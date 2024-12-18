@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: bolt-ai-production
+    network_mode: host
     ports:
       - "5173:5173"
     env_file: ".env.local"
@@ -35,6 +36,7 @@ services:
     image: bolt-ai:development
     build:
       target: bolt-ai-development
+    network_mode: host
     environment:
       - NODE_ENV=development
       - VITE_HMR_PROTOCOL=ws
