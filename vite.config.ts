@@ -5,8 +5,24 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
+import { execSync } from 'child_process';
+
+// Get git hash with fallback
+const getGitHash = () => {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim();
+  } catch {
+    return 'no-git-info';
+  }
+};
+
+
 export default defineConfig((config) => {
   return {
+    define: {
+      __COMMIT_HASH__: JSON.stringify(getGitHash()),
+      __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+    },
     build: {
       target: 'esnext',
     },

@@ -29,15 +29,4 @@ if ! pnpm lint; then
     exit 1
 fi
 
-# Update commit.json with the latest commit hash
-echo "Updating commit.json with the latest commit hash..."
-COMMIT_HASH=$(git rev-parse HEAD)
-if [ $? -ne 0 ]; then
-    echo "❌ Failed to get commit hash. Ensure you are in a git repository."
-    exit 1
-fi
-
-echo "{ \"commit\": \"$COMMIT_HASH\" }" > app/commit.json
-git add app/commit.json
-
 echo "👍 All checks passed! Committing changes..."

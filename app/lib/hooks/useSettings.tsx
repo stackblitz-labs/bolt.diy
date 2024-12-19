@@ -12,14 +12,16 @@ import { useCallback, useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import type { IProviderSetting, ProviderInfo } from '~/types/model';
 import { logStore } from '~/lib/stores/logs'; // assuming logStore is imported from this location
-import commit from '~/commit.json';
 
 interface CommitData {
   commit: string;
   version?: string;
 }
 
-const commitJson: CommitData = commit;
+const versionData: CommitData = {
+  commit: __COMMIT_HASH,
+  version: __APP_VERSION,
+};
 
 export function useSettings() {
   const providers = useStore(providersStore);
@@ -34,7 +36,7 @@ export function useSettings() {
   const checkIsStableVersion = async () => {
     try {
       const stableResponse = await fetch(
-        `https://raw.githubusercontent.com/stackblitz-labs/bolt.diy/refs/tags/v${commitJson.version}/app/commit.json`,
+        `https://raw.githubusercontent.com/stackblitz-labs/bolt.diy/refs/tags/v${versionData.version}/app/commit.json`,
       );
 
       if (!stableResponse.ok) {
@@ -44,7 +46,7 @@ export function useSettings() {
 
       const stableData = (await stableResponse.json()) as CommitData;
 
-      return commit.commit === stableData.commit;
+      return versionData.commit === stableData.commit;
     } catch (error) {
       console.warn('Error checking stable version:', error);
       return false;
@@ -105,16 +107,16 @@ export function useSettings() {
     let checkCommit = Cookies.get('commitHash');
 
     if (checkCommit === undefined) {
-      checkCommit = commit.commit;
+      checkCommit = versionData.commit;
     }
 
-    if (savedLatestBranch === undefined || checkCommit !== commit.commit) {
+    if (savedLatestBranch === undefined || checkCommit !== versionData.commit) {
       // If setting hasn't been set by user, check version
       checkIsStableVersion().then((isStable) => {
         const shouldUseLatest = !isStable;
         latestBranchStore.set(shouldUseLatest);
         Cookies.set('isLatestBranch', String(shouldUseLatest));
-        Cookies.set('commitHash', String(commit.commit));
+        Cookies.set('commitHash', String(versionData.commit));
       });
     } else {
       latestBranchStore.set(savedLatestBranch === 'true');
