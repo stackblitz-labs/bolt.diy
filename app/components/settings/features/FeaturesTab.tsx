@@ -14,6 +14,8 @@ export default function FeaturesTab() {
     enableLatestBranch,
     promptId,
     setPromptId,
+    isGitHubAuth,
+    enableGitHubAuth,
   } = useSettings();
 
   const handleToggle = (enabled: boolean) => {
@@ -40,6 +42,17 @@ export default function FeaturesTab() {
             <Switch className="ml-auto" checked={isLatestBranch} onCheckedChange={enableLatestBranch} />
           </div>
         </div>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-bolt-elements-textPrimary">GitHub Auth</span>
+            <Switch className="ml-auto" checked={isGitHubAuth} onCheckedChange={enableGitHubAuth} />
+          </div>
+          <p className="text-sm text-bolt-elements-textSecondary">
+            A utility feature that Provides GitHub authentication. If your feature needs GitHub authentication you can
+            use this. The useGitHubAuth() hook provides authentication state including login status, loading state, and
+            user information. Once authenticated, you can access the GitHub token from localStorage.
+          </p>
+        </div>
       </div>
 
       <div className="mb-6 border-t border-bolt-elements-borderColor pt-4">
@@ -60,6 +73,7 @@ export default function FeaturesTab() {
             </p>
           </div>
           <select
+            title="Prompt Library"
             value={promptId}
             onChange={(e) => setPromptId(e.target.value)}
             className="flex-1 p-2 ml-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all text-sm min-w-[100px]"

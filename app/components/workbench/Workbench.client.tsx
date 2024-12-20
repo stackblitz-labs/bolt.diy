@@ -17,7 +17,8 @@ import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
 import useViewport from '~/lib/hooks';
-import Cookies from 'js-cookie';
+import { GitHubAuthModal } from '~/components/github/GitHubAuthModal';
+import { getGitHubUser } from '~/lib/github/github.client';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -58,6 +59,7 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
   renderLogger.trace('Workbench');
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
   const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -170,32 +172,24 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                     </PanelHeaderButton>
                     <PanelHeaderButton
                       className="mr-1 text-sm"
-                      onClick={() => {
-                        const repoName = prompt(
-                          'Please enter a name for your new GitHub repository:',
-                          'bolt-generated-project',
-                        );
+                      onClick={async () => {
+                        try {
+                          // Check for existing GitHub token
+                          const existingToken = localStorage.getItem('github_token');
 
-                        if (!repoName) {
-                          alert('Repository name is required. Push to GitHub cancelled.');
-                          return;
-                        }
-
-                        const githubUsername = Cookies.get('githubUsername');
-                        const githubToken = Cookies.get('githubToken');
-
-                        if (!githubUsername || !githubToken) {
-                          const usernameInput = prompt('Please enter your GitHub username:');
-                          const tokenInput = prompt('Please enter your GitHub personal access token:');
-
-                          if (!usernameInput || !tokenInput) {
-                            alert('GitHub username and token are required. Push to GitHub cancelled.');
-                            return;
+                          if (existingToken) {
+                            // Get the GitHub user info directly to validate token
+                            await getGitHubUser(existingToken);
                           }
 
-                          workbenchStore.pushToGitHub(repoName, usernameInput, tokenInput);
-                        } else {
-                          workbenchStore.pushToGitHub(repoName, githubUsername, githubToken);
+                          // Show auth modal in both cases - it will handle the flow
+                          setIsAuthModalOpen(true);
+                        } catch (error) {
+                          console.error('Failed to use existing GitHub token:', error);
+
+                          // If token is invalid, remove it
+                          localStorage.removeItem('github_token');
+                          setIsAuthModalOpen(true);
                         }
                       }}
                     >
@@ -241,10 +235,19 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
             </div>
           </div>
         </div>
+        <GitHubAuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onAuthComplete={() => {
+            // Token is already stored in localStorage by GitHubAuth component
+            setIsAuthModalOpen(false);
+          }}
+        />
       </motion.div>
     )
   );
 });
+
 interface ViewProps extends HTMLMotionProps<'div'> {
   children: JSX.Element;
 }

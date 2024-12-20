@@ -3,6 +3,7 @@ import {
   isDebugMode,
   isEventLogsEnabled,
   isLocalModelsEnabled,
+  isGitHubAuthEnabled,
   LOCAL_PROVIDERS,
   promptStore,
   providersStore,
@@ -23,11 +24,12 @@ const commitJson: CommitData = commit;
 
 export function useSettings() {
   const providers = useStore(providersStore);
-  const debug = useStore(isDebugMode);
-  const eventLogs = useStore(isEventLogsEnabled);
+  const debug: boolean = useStore(isDebugMode);
+  const eventLogs: boolean = useStore(isEventLogsEnabled);
   const promptId = useStore(promptStore);
-  const isLocalModel = useStore(isLocalModelsEnabled);
-  const isLatestBranch = useStore(latestBranchStore);
+  const isLocalModel: boolean = useStore(isLocalModelsEnabled);
+  const isLatestBranch: boolean = useStore(latestBranchStore);
+  const isGitHubAuth: boolean = useStore(isGitHubAuthEnabled);
   const [activeProviders, setActiveProviders] = useState<ProviderInfo[]>([]);
 
   // Function to check if we're on stable version
@@ -119,6 +121,13 @@ export function useSettings() {
     } else {
       latestBranchStore.set(savedLatestBranch === 'true');
     }
+
+    // load GitHub authentication from cookies
+    const savedGitHubAuth = Cookies.get('isGitHubAuthEnabled');
+
+    if (savedGitHubAuth) {
+      isGitHubAuthEnabled.set(savedGitHubAuth === 'true');
+    }
   }, []);
 
   // writing values to cookies on change
@@ -174,10 +183,25 @@ export function useSettings() {
     promptStore.set(promptId);
     Cookies.set('promptId', promptId);
   }, []);
+
   const enableLatestBranch = useCallback((enabled: boolean) => {
     latestBranchStore.set(enabled);
     logStore.logSystem(`Main branch updates ${enabled ? 'enabled' : 'disabled'}`);
     Cookies.set('isLatestBranch', String(enabled));
+  }, []);
+
+  const enableGitHubAuth = useCallback((enabled: boolean) => {
+    isGitHubAuthEnabled.set(enabled);
+    logStore.logSystem(`GitHub authentication ${enabled ? 'enabled' : 'disabled'}`);
+    Cookies.set('isGitHubAuthEnabled', String(enabled));
+
+    // Clean up GitHub data when feature is disabled
+    if (!enabled) {
+      localStorage.removeItem('github_token');
+      Cookies.remove('githubUsername');
+      Cookies.remove('githubToken');
+      Cookies.remove('git:github.com');
+    }
   }, []);
 
   return {
@@ -194,5 +218,7 @@ export function useSettings() {
     setPromptId,
     isLatestBranch,
     enableLatestBranch,
+    isGitHubAuth,
+    enableGitHubAuth,
   };
 }
