@@ -35,18 +35,12 @@ export function useSettings() {
   // Function to check if we're on stable version
   const checkIsStableVersion = async () => {
     try {
-      const stableResponse = await fetch(
-        `https://raw.githubusercontent.com/stackblitz-labs/bolt.diy/refs/tags/v${versionData.version}/app/commit.json`,
+      const response = await fetch(
+        `https://api.github.com/repos/stackblitz-labs/bolt.diy/git/refs/tags/v${versionData.version}`,
       );
+      const data: { object: { sha: string } } = await response.json();
 
-      if (!stableResponse.ok) {
-        console.warn('Failed to fetch stable commit info');
-        return false;
-      }
-
-      const stableData = (await stableResponse.json()) as CommitData;
-
-      return versionData.commit === stableData.commit;
+      return versionData.commit.slice(0, 7) === data.object.sha.slice(0, 7);
     } catch (error) {
       console.warn('Error checking stable version:', error);
       return false;

@@ -56,8 +56,25 @@ const versionTag = connitJson.version;
 const GITHUB_URLS = {
   original: 'https://api.github.com/repos/stackblitz-labs/bolt.diy/commits/main',
   fork: 'https://api.github.com/repos/Stijnus/bolt.new-any-llm/commits/main',
-  commitJson: (branch: string) =>
-    `https://raw.githubusercontent.com/stackblitz-labs/bolt.diy/${branch}/app/commit.json`,
+  commitJson: async (branch: string) => {
+    try {
+      const response = await fetch(`https://api.github.com/repos/stackblitz-labs/bolt.diy/commits/${branch}`);
+      const data: { sha: string } = await response.json();
+
+      const packageJsonResp = await fetch(
+        `https://raw.githubusercontent.com/stackblitz-labs/bolt.diy/${branch}/package.json`,
+      );
+      const packageJson: { version: string } = await packageJsonResp.json();
+
+      return {
+        commit: data.sha.slice(0, 7),
+        version: packageJson.version,
+      };
+    } catch (error) {
+      console.log('Failed to fetch local commit info:', error);
+      throw new Error('Failed to fetch local commit info');
+    }
+  },
 };
 
 function getSystemInfo(): SystemInfo {
@@ -373,14 +390,9 @@ export default function DebugTab() {
       const branchToCheck = isLatestBranch ? 'main' : 'stable';
       console.log(`[Debug] Checking for updates against ${branchToCheck} branch`);
 
-      const localCommitResponse = await fetch(GITHUB_URLS.commitJson(branchToCheck));
+      const latestCommitResp = await GITHUB_URLS.commitJson(branchToCheck);
 
-      if (!localCommitResponse.ok) {
-        throw new Error('Failed to fetch local commit info');
-      }
-
-      const localCommitData = (await localCommitResponse.json()) as CommitData;
-      const remoteCommitHash = localCommitData.commit;
+      const remoteCommitHash = latestCommitResp.commit;
       const currentCommitHash = versionHash;
 
       if (remoteCommitHash !== currentCommitHash) {
