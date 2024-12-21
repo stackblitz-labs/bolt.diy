@@ -43,7 +43,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
   return (
     <div id={id} ref={ref} className={props.className}>
       {messages.length > 0
-        ? messages.map((message, index) => {
+        ? messages.filter(x=>!x.annotations?.find(a=>a=='hidden')).map((message, index) => {
             const { role, content, id: messageId } = message;
             const isUserMessage = role === 'user';
             const isFirst = index === 0;
