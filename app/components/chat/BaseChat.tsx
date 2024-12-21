@@ -28,6 +28,8 @@ import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import type { IProviderSetting, ProviderInfo } from '~/types/model';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { toast } from 'react-toastify';
+import type { ActionAlert } from '~/types/actions';
+import ChatAlert from './ChatAlert';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -58,6 +60,8 @@ interface BaseChatProps {
   setUploadedFiles?: (files: File[]) => void;
   imageDataList?: string[];
   setImageDataList?: (dataList: string[]) => void;
+  actionAlert?: ActionAlert;
+  clearAlert?: () => void;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -89,6 +93,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       imageDataList = [],
       setImageDataList,
       messages,
+      actionAlert,
+      clearAlert,
     },
     ref,
   ) => {
@@ -318,226 +324,247 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 }}
               </ClientOnly>
               <div
-                className={classNames(
-                  'bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt mb-6',
-                  {
-                    'sticky bottom-2': chatStarted,
-                  },
-                )}
+                className={classNames('flex flex-col gap-4 w-full max-w-chat mx-auto z-prompt mb-6', {
+                  'sticky bottom-2': chatStarted,
+                })}
               >
-                <svg className={classNames(styles.PromptEffectContainer)}>
-                  <defs>
-                    <linearGradient
-                      id="line-gradient"
-                      x1="20%"
-                      y1="0%"
-                      x2="-14%"
-                      y2="10%"
-                      gradientUnits="userSpaceOnUse"
-                      gradientTransform="rotate(-45)"
-                    >
-                      <stop offset="0%" stopColor="#b44aff" stopOpacity="0%"></stop>
-                      <stop offset="40%" stopColor="#b44aff" stopOpacity="80%"></stop>
-                      <stop offset="50%" stopColor="#b44aff" stopOpacity="80%"></stop>
-                      <stop offset="100%" stopColor="#b44aff" stopOpacity="0%"></stop>
-                    </linearGradient>
-                    <linearGradient id="shine-gradient">
-                      <stop offset="0%" stopColor="white" stopOpacity="0%"></stop>
-                      <stop offset="40%" stopColor="#ffffff" stopOpacity="80%"></stop>
-                      <stop offset="50%" stopColor="#ffffff" stopOpacity="80%"></stop>
-                      <stop offset="100%" stopColor="white" stopOpacity="0%"></stop>
-                    </linearGradient>
-                  </defs>
-                  <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round"></rect>
-                  <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1"></rect>
-                </svg>
-                <div>
-                  <div className={isModelSettingsCollapsed ? 'hidden' : ''}>
-                    <ModelSelector
-                      key={provider?.name + ':' + modelList.length}
-                      model={model}
-                      setModel={setModel}
-                      modelList={modelList}
-                      provider={provider}
-                      setProvider={setProvider}
-                      providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
-                      apiKeys={apiKeys}
-                    />
-                    {(providerList || []).length > 0 && provider && (
-                      <APIKeyManager
-                        provider={provider}
-                        apiKey={apiKeys[provider.name] || ''}
-                        setApiKey={(key) => {
-                          const newApiKeys = { ...apiKeys, [provider.name]: key };
-                          setApiKeys(newApiKeys);
-                          Cookies.set('apiKeys', JSON.stringify(newApiKeys));
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
-                <FilePreview
-                  files={uploadedFiles}
-                  imageDataList={imageDataList}
-                  onRemove={(index) => {
-                    setUploadedFiles?.(uploadedFiles.filter((_, i) => i !== index));
-                    setImageDataList?.(imageDataList.filter((_, i) => i !== index));
-                  }}
-                />
-                <ClientOnly>
-                  {() => (
-                    <ScreenshotStateManager
-                      setUploadedFiles={setUploadedFiles}
-                      setImageDataList={setImageDataList}
-                      uploadedFiles={uploadedFiles}
-                      imageDataList={imageDataList}
+                <div className="bg-bolt-elements-background-depth-2">
+                  {actionAlert && (
+                    <ChatAlert
+                      alert={actionAlert}
+                      clearAlert={() => clearAlert?.()}
+                      postMessage={(message) => {
+                        sendMessage?.({} as any, message);
+                        clearAlert?.();
+                      }}
                     />
                   )}
-                </ClientOnly>
+                </div>
                 <div
                   className={classNames(
-                    'relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg',
+                    'bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt',
+
+                    /*
+                     * {
+                     *   'sticky bottom-2': chatStarted,
+                     * },
+                     */
                   )}
                 >
-                  <textarea
-                    ref={textareaRef}
-                    className={classNames(
-                      'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
-                      'transition-all duration-200',
-                      'hover:border-bolt-elements-focus',
-                    )}
-                    onDragEnter={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.style.border = '2px solid #1488fc';
+                  <svg className={classNames(styles.PromptEffectContainer)}>
+                    <defs>
+                      <linearGradient
+                        id="line-gradient"
+                        x1="20%"
+                        y1="0%"
+                        x2="-14%"
+                        y2="10%"
+                        gradientUnits="userSpaceOnUse"
+                        gradientTransform="rotate(-45)"
+                      >
+                        <stop offset="0%" stopColor="#b44aff" stopOpacity="0%"></stop>
+                        <stop offset="40%" stopColor="#b44aff" stopOpacity="80%"></stop>
+                        <stop offset="50%" stopColor="#b44aff" stopOpacity="80%"></stop>
+                        <stop offset="100%" stopColor="#b44aff" stopOpacity="0%"></stop>
+                      </linearGradient>
+                      <linearGradient id="shine-gradient">
+                        <stop offset="0%" stopColor="white" stopOpacity="0%"></stop>
+                        <stop offset="40%" stopColor="#ffffff" stopOpacity="80%"></stop>
+                        <stop offset="50%" stopColor="#ffffff" stopOpacity="80%"></stop>
+                        <stop offset="100%" stopColor="white" stopOpacity="0%"></stop>
+                      </linearGradient>
+                    </defs>
+                    <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round"></rect>
+                    <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1"></rect>
+                  </svg>
+                  <div>
+                    <div className={isModelSettingsCollapsed ? 'hidden' : ''}>
+                      <ModelSelector
+                        key={provider?.name + ':' + modelList.length}
+                        model={model}
+                        setModel={setModel}
+                        modelList={modelList}
+                        provider={provider}
+                        setProvider={setProvider}
+                        providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
+                        apiKeys={apiKeys}
+                      />
+                      {(providerList || []).length > 0 && provider && (
+                        <APIKeyManager
+                          provider={provider}
+                          apiKey={apiKeys[provider.name] || ''}
+                          setApiKey={(key) => {
+                            const newApiKeys = { ...apiKeys, [provider.name]: key };
+                            setApiKeys(newApiKeys);
+                            Cookies.set('apiKeys', JSON.stringify(newApiKeys));
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <FilePreview
+                    files={uploadedFiles}
+                    imageDataList={imageDataList}
+                    onRemove={(index) => {
+                      setUploadedFiles?.(uploadedFiles.filter((_, i) => i !== index));
+                      setImageDataList?.(imageDataList.filter((_, i) => i !== index));
                     }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.style.border = '2px solid #1488fc';
-                    }}
-                    onDragLeave={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-
-                      const files = Array.from(e.dataTransfer.files);
-                      files.forEach((file) => {
-                        if (file.type.startsWith('image/')) {
-                          const reader = new FileReader();
-
-                          reader.onload = (e) => {
-                            const base64Image = e.target?.result as string;
-                            setUploadedFiles?.([...uploadedFiles, file]);
-                            setImageDataList?.([...imageDataList, base64Image]);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      });
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        if (event.shiftKey) {
-                          return;
-                        }
-
-                        event.preventDefault();
-
-                        if (isStreaming) {
-                          handleStop?.();
-                          return;
-                        }
-
-                        // ignore if using input method engine
-                        if (event.nativeEvent.isComposing) {
-                          return;
-                        }
-
-                        handleSendMessage?.(event);
-                      }
-                    }}
-                    value={input}
-                    onChange={(event) => {
-                      handleInputChange?.(event);
-                    }}
-                    onPaste={handlePaste}
-                    style={{
-                      minHeight: TEXTAREA_MIN_HEIGHT,
-                      maxHeight: TEXTAREA_MAX_HEIGHT,
-                    }}
-                    placeholder="How can Bolt help you today?"
-                    translate="no"
                   />
                   <ClientOnly>
                     {() => (
-                      <SendButton
-                        show={input.length > 0 || isStreaming || uploadedFiles.length > 0}
-                        isStreaming={isStreaming}
-                        disabled={!providerList || providerList.length === 0}
-                        onClick={(event) => {
+                      <ScreenshotStateManager
+                        setUploadedFiles={setUploadedFiles}
+                        setImageDataList={setImageDataList}
+                        uploadedFiles={uploadedFiles}
+                        imageDataList={imageDataList}
+                      />
+                    )}
+                  </ClientOnly>
+                  <div
+                    className={classNames(
+                      'relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg',
+                    )}
+                  >
+                    <textarea
+                      ref={textareaRef}
+                      className={classNames(
+                        'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
+                        'transition-all duration-200',
+                        'hover:border-bolt-elements-focus',
+                      )}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.style.border = '2px solid #1488fc';
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.style.border = '2px solid #1488fc';
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+
+                        const files = Array.from(e.dataTransfer.files);
+                        files.forEach((file) => {
+                          if (file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+
+                            reader.onload = (e) => {
+                              const base64Image = e.target?.result as string;
+                              setUploadedFiles?.([...uploadedFiles, file]);
+                              setImageDataList?.([...imageDataList, base64Image]);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        });
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          if (event.shiftKey) {
+                            return;
+                          }
+
+                          event.preventDefault();
+
                           if (isStreaming) {
                             handleStop?.();
                             return;
                           }
 
-                          if (input.length > 0 || uploadedFiles.length > 0) {
-                            handleSendMessage?.(event);
+                          // ignore if using input method engine
+                          if (event.nativeEvent.isComposing) {
+                            return;
                           }
-                        }}
-                      />
-                    )}
-                  </ClientOnly>
-                  <div className="flex justify-between items-center text-sm p-4 pt-2">
-                    <div className="flex gap-1 items-center">
-                      <IconButton title="Upload file" className="transition-all" onClick={() => handleFileUpload()}>
-                        <div className="i-ph:paperclip text-xl"></div>
-                      </IconButton>
-                      <IconButton
-                        title="Enhance prompt"
-                        disabled={input.length === 0 || enhancingPrompt}
-                        className={classNames('transition-all', enhancingPrompt ? 'opacity-100' : '')}
-                        onClick={() => {
-                          enhancePrompt?.();
-                          toast.success('Prompt enhanced!');
-                        }}
-                      >
-                        {enhancingPrompt ? (
-                          <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-                        ) : (
-                          <div className="i-bolt:stars text-xl"></div>
-                        )}
-                      </IconButton>
 
-                      <SpeechRecognitionButton
-                        isListening={isListening}
-                        onStart={startListening}
-                        onStop={stopListening}
-                        disabled={isStreaming}
-                      />
-                      {chatStarted && <ClientOnly>{() => <ExportChatButton exportChat={exportChat} />}</ClientOnly>}
-                      <IconButton
-                        title="Model Settings"
-                        className={classNames('transition-all flex items-center gap-1', {
-                          'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
-                            isModelSettingsCollapsed,
-                          'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
-                            !isModelSettingsCollapsed,
-                        })}
-                        onClick={() => setIsModelSettingsCollapsed(!isModelSettingsCollapsed)}
-                        disabled={!providerList || providerList.length === 0}
-                      >
-                        <div className={`i-ph:caret-${isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-                        {isModelSettingsCollapsed ? <span className="text-xs">{model}</span> : <span />}
-                      </IconButton>
-                    </div>
-                    {input.length > 3 ? (
-                      <div className="text-xs text-bolt-elements-textTertiary">
-                        Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd> +{' '}
-                        <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd> a
-                        new line
+                          handleSendMessage?.(event);
+                        }
+                      }}
+                      value={input}
+                      onChange={(event) => {
+                        handleInputChange?.(event);
+                      }}
+                      onPaste={handlePaste}
+                      style={{
+                        minHeight: TEXTAREA_MIN_HEIGHT,
+                        maxHeight: TEXTAREA_MAX_HEIGHT,
+                      }}
+                      placeholder="How can Bolt help you today?"
+                      translate="no"
+                    />
+                    <ClientOnly>
+                      {() => (
+                        <SendButton
+                          show={input.length > 0 || isStreaming || uploadedFiles.length > 0}
+                          isStreaming={isStreaming}
+                          disabled={!providerList || providerList.length === 0}
+                          onClick={(event) => {
+                            if (isStreaming) {
+                              handleStop?.();
+                              return;
+                            }
+
+                            if (input.length > 0 || uploadedFiles.length > 0) {
+                              handleSendMessage?.(event);
+                            }
+                          }}
+                        />
+                      )}
+                    </ClientOnly>
+                    <div className="flex justify-between items-center text-sm p-4 pt-2">
+                      <div className="flex gap-1 items-center">
+                        <IconButton title="Upload file" className="transition-all" onClick={() => handleFileUpload()}>
+                          <div className="i-ph:paperclip text-xl"></div>
+                        </IconButton>
+                        <IconButton
+                          title="Enhance prompt"
+                          disabled={input.length === 0 || enhancingPrompt}
+                          className={classNames('transition-all', enhancingPrompt ? 'opacity-100' : '')}
+                          onClick={() => {
+                            enhancePrompt?.();
+                            toast.success('Prompt enhanced!');
+                          }}
+                        >
+                          {enhancingPrompt ? (
+                            <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                          ) : (
+                            <div className="i-bolt:stars text-xl"></div>
+                          )}
+                        </IconButton>
+
+                        <SpeechRecognitionButton
+                          isListening={isListening}
+                          onStart={startListening}
+                          onStop={stopListening}
+                          disabled={isStreaming}
+                        />
+                        {chatStarted && <ClientOnly>{() => <ExportChatButton exportChat={exportChat} />}</ClientOnly>}
+                        <IconButton
+                          title="Model Settings"
+                          className={classNames('transition-all flex items-center gap-1', {
+                            'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
+                              isModelSettingsCollapsed,
+                            'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
+                              !isModelSettingsCollapsed,
+                          })}
+                          onClick={() => setIsModelSettingsCollapsed(!isModelSettingsCollapsed)}
+                          disabled={!providerList || providerList.length === 0}
+                        >
+                          <div className={`i-ph:caret-${isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
+                          {isModelSettingsCollapsed ? <span className="text-xs">{model}</span> : <span />}
+                        </IconButton>
                       </div>
-                    ) : null}
+                      {input.length > 3 ? (
+                        <div className="text-xs text-bolt-elements-textTertiary">
+                          Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd>{' '}
+                          + <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd>{' '}
+                          a new line
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>

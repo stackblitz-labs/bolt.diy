@@ -1,7 +1,7 @@
 import { WebContainer } from '@webcontainer/api';
 import { atom, map, type MapStore } from 'nanostores';
 import * as nodePath from 'node:path';
-import type { BoltAction } from '~/types/actions';
+import type { ActionAlert, BoltAction } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
@@ -34,16 +34,51 @@ export type ActionStateUpdate =
 
 type ActionsMap = MapStore<Record<string, ActionState>>;
 
+class ActionCommandError extends Error {
+  readonly _output: string;
+  readonly _header: string;
+
+  constructor(message: string, output: string) {
+    // Create a formatted message that includes both the error message and output
+    const formattedMessage = `Failed To Execute Shell Command: ${message}\n\nOutput:\n${output}`;
+    super(formattedMessage);
+
+    // Set the output separately so it can be accessed programmatically
+    this._header = message;
+    this._output = output;
+
+    // Maintain proper prototype chain
+    Object.setPrototypeOf(this, ActionCommandError.prototype);
+
+    // Set the name of the error for better debugging
+    this.name = 'ActionCommandError';
+  }
+
+  // Optional: Add a method to get just the terminal output
+  get output() {
+    return this._output;
+  }
+  get header() {
+    return this._header;
+  }
+}
+
 export class ActionRunner {
   #webcontainer: Promise<WebContainer>;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
   #shellTerminal: () => BoltShell;
   runnerId = atom<string>(`${Date.now()}`);
   actions: ActionsMap = map({});
+  onAlert?: (alert: ActionAlert) => void;
 
-  constructor(webcontainerPromise: Promise<WebContainer>, getShellTerminal: () => BoltShell) {
+  constructor(
+    webcontainerPromise: Promise<WebContainer>,
+    getShellTerminal: () => BoltShell,
+    onAlert?: (alert: ActionAlert) => void,
+  ) {
     this.#webcontainer = webcontainerPromise;
     this.#shellTerminal = getShellTerminal;
+    this.onAlert = onAlert;
   }
 
   addAction(data: ActionCallbackData) {
@@ -126,7 +161,25 @@ export class ActionRunner {
 
           this.#runStartAction(action)
             .then(() => this.#updateAction(actionId, { status: 'complete' }))
-            .catch(() => this.#updateAction(actionId, { status: 'failed', error: 'Action failed' }));
+            .catch((err: Error) => {
+              if (action.abortSignal.aborted) {
+                return;
+              }
+
+              this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
+              logger.error(`[${action.type}]:Action failed\n\n`, err);
+
+              if (!(err instanceof ActionCommandError)) {
+                return;
+              }
+
+              this.onAlert?.({
+                type: 'error',
+                title: 'Dev Server Failed',
+                description: err.header,
+                content: err.output,
+              });
+            });
 
           /*
            * adding a delay to avoid any race condition between 2 start actions
@@ -142,8 +195,23 @@ export class ActionRunner {
         status: isStreaming ? 'running' : action.abortSignal.aborted ? 'aborted' : 'complete',
       });
     } catch (error) {
+      if (action.abortSignal.aborted) {
+        return;
+      }
+
       this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
       logger.error(`[${action.type}]:Action failed\n\n`, error);
+
+      if (!(error instanceof ActionCommandError)) {
+        return;
+      }
+
+      this.onAlert?.({
+        type: 'error',
+        title: 'Dev Server Failed',
+        description: error.header,
+        content: error.output,
+      });
 
       // re-throw the error to be caught in the promise chain
       throw error;
@@ -162,11 +230,14 @@ export class ActionRunner {
       unreachable('Shell terminal not found');
     }
 
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content);
+    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
+      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
+      action.abort();
+    });
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
     if (resp?.exitCode != 0) {
-      throw new Error('Failed To Execute Shell Command');
+      throw new ActionCommandError(`Failed To Execute Shell Command`, resp?.output || 'No Output Available');
     }
   }
 
@@ -186,11 +257,14 @@ export class ActionRunner {
       unreachable('Shell terminal not found');
     }
 
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content);
+    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
+      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
+      action.abort();
+    });
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
     if (resp?.exitCode != 0) {
-      throw new Error('Failed To Start Application');
+      throw new ActionCommandError('Failed To Start Application', resp?.output || 'No Output Available');
     }
 
     return resp;

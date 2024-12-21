@@ -20,3 +20,10 @@ export interface StartAction extends BaseAction {
 export type BoltAction = FileAction | ShellAction | StartAction;
 
 export type BoltActionData = BoltAction | BaseAction;
+
+export interface ActionAlert {
+  type: string;
+  title: string;
+  description: string;
+  content: string;
+}

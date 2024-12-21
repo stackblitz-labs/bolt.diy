@@ -17,6 +17,7 @@ import { extractRelativePath } from '~/utils/diff';
 import { description } from '~/lib/persistence';
 import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
+import type { ActionAlert } from '~/types/actions';
 
 export interface ArtifactState {
   id: string;
@@ -38,11 +39,15 @@ export class WorkbenchStore {
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(webcontainer);
 
+  #reloadedMessages = new Set<string>();
+
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
   unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
+  actionAlert: WritableAtom<ActionAlert | undefined> =
+    import.meta.hot?.data.unsavedFiles ?? atom<ActionAlert | undefined>(undefined);
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
   #globalExecutionQueue = Promise.resolve();
@@ -52,6 +57,7 @@ export class WorkbenchStore {
       import.meta.hot.data.unsavedFiles = this.unsavedFiles;
       import.meta.hot.data.showWorkbench = this.showWorkbench;
       import.meta.hot.data.currentView = this.currentView;
+      import.meta.hot.data.actionAlert = this.actionAlert;
     }
   }
 
@@ -88,6 +94,12 @@ export class WorkbenchStore {
   }
   get boltTerminal() {
     return this.#terminalStore.boltTerminal;
+  }
+  get alert() {
+    return this.actionAlert;
+  }
+  clearAlert() {
+    this.actionAlert.set(undefined);
   }
 
   toggleTerminal(value?: boolean) {
@@ -233,6 +245,10 @@ export class WorkbenchStore {
     // TODO: what do we wanna do and how do we wanna recover from this?
   }
 
+  setReloadedMessages(messages: string[]) {
+    this.#reloadedMessages = new Set(messages);
+  }
+
   addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
     const artifact = this.#getArtifact(messageId);
 
@@ -249,7 +265,17 @@ export class WorkbenchStore {
       title,
       closed: false,
       type,
-      runner: new ActionRunner(webcontainer, () => this.boltTerminal),
+      runner: new ActionRunner(
+        webcontainer,
+        () => this.boltTerminal,
+        (alert) => {
+          if (this.#reloadedMessages.has(messageId)) {
+            return;
+          }
+
+          this.actionAlert.set(alert);
+        },
+      ),
     });
   }
 
