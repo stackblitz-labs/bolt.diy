@@ -1,0 +1,31 @@
+# Source files
+src/
+test/
+docs/
+
+# Development configs
+.git/
+.github/
+.gitignore
+.prettierrc
+.eslintrc
+tsconfig.json
+jest.config.js
+
+# Environment
+.env
+.env.*
+
+# Build process
+node_modules/
+coverage/
+
+# Editor specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*

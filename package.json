@@ -1,14 +1,34 @@
 {
-  "name": "bolt",
+  "name": "bolt.diy",
   "description": "An AI Agent",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
   "type": "module",
   "version": "0.0.5",
+  "bin": {
+    "bolt.diy": "bin/bolt.js"
+  },
+  "files": [
+    "bin/",
+    "public/",
+    "build/",
+    "functions/",
+    "wrangler.toml",
+    "worker-configuration.d.ts",
+    "load-context.ts",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "peerDependencies": {
+    "wrangler": "^3.91.0",
+    "@remix-run/cloudflare": "^2.15.0",
+    "@remix-run/cloudflare-pages": "^2.15.0"
+  },
   "scripts": {
     "deploy": "npm run build && wrangler pages deploy",
-    "build": "remix vite:build",
+    "build": "BUILDING_SERVER=true && remix vite:build",
     "dev": "node pre-start.cjs  && remix vite:dev",
     "test": "vitest --run",
     "test:watch": "vitest",
@@ -24,7 +44,7 @@
     "typecheck": "tsc",
     "typegen": "wrangler types",
     "preview": "pnpm run build && pnpm run start",
-    "prepare": "husky"
+    "prepare": "chmod +x bin/bolt.js"
   },
   "engines": {
     "node": ">=18.18.0"
@@ -101,7 +121,8 @@
     "remix-island": "^0.2.0",
     "remix-utils": "^7.7.0",
     "shiki": "^1.24.0",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.0.0",
+    "buffer": "^6.0.3"
   },
   "devDependencies": {
     "@blitz/eslint-plugin": "0.1.0",
@@ -134,5 +155,8 @@
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"
   },
-  "packageManager": "pnpm@9.4.0"
+  "packageManager": "pnpm@9.4.0",
+  "publishConfig": {
+    "access": "public"
+  }
 }

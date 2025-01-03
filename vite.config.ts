@@ -18,17 +18,42 @@ const getGitHash = () => {
 
 
 export default defineConfig((config) => {
+  const isServer = process.env.NODE_ENV === 'production' && process.env.BUILDING_SERVER === 'true';
   return {
     define: {
       __COMMIT_HASH: JSON.stringify(getGitHash()),
       __APP_VERSION: JSON.stringify(process.env.npm_package_version),
+      'process': JSON.stringify({
+        env: process.env,
+        version: process.version,
+      }),
+      'global': 'globalThis',
     },
     build: {
       target: 'esnext',
+      rollupOptions: {
+        // Mark problematic modules as external for server build
+        external: isServer ? [
+          'vite-plugin-node-polyfills/shims/process',
+          'buffer',
+          'path'
+        ] : [],
+        output: {
+          // Ensure correct format for server build
+          format: 'esm',
+        },
+      },
     },
     plugins: [
       nodePolyfills({
         include: ['path', 'buffer'],
+        globals: {
+          Buffer: true,
+          global: true,
+          process: true,
+        },
+        // Ensure polyfills are inlined during build
+        protocolImports: true,
       }),
       config.mode !== 'test' && remixCloudflareDevProxy(),
       remixVitePlugin({
@@ -43,7 +68,26 @@ export default defineConfig((config) => {
       tsconfigPaths(),
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
+      // Add polyfill injection plugin
+      {
+        name: 'inject-polyfills',
+        transform(code, id) {
+          // Only inject in client builds
+          if (!isServer && id.includes('entry.client')) {
+            const injection = `
+              import { Buffer } from 'buffer';
+              window.Buffer = Buffer;
+            `;
+            return {
+              code: injection + code,
+              map: null
+            };
+          }
+        }
+      },
+
     ],
+    
     envPrefix: ["VITE_","OPENAI_LIKE_API_BASE_URL", "OLLAMA_API_BASE_URL", "LMSTUDIO_API_BASE_URL","TOGETHER_API_BASE_URL"],
     css: {
       preprocessorOptions: {
@@ -51,6 +95,11 @@ export default defineConfig((config) => {
           api: 'modern-compiler',
         },
       },
+    },
+    optimizeDeps: {
+      // Include polyfills in the optimization
+      include: ['buffer', 'process'],
+      needsInterop: ['buffer']
     },
   };
 });
