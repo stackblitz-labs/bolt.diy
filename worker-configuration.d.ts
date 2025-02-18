@@ -1,6 +1,5 @@
 interface Env {
-  RUNNING_IN_DOCKER: Settings;
-  DEFAULT_NUM_CTX: Settings;
+  DEFAULT_NUM_CTX:Settings;
   ANTHROPIC_API_KEY: string;
   OPENAI_API_KEY: string;
   GROQ_API_KEY: string;
@@ -18,4 +17,6 @@ interface Env {
   XAI_API_KEY: string;
   PERPLEXITY_API_KEY: string;
   AWS_BEDROCK_CONFIG: string;
+  CLOUDFLARE_API_KEY: string;
+  CLOUDFLARE_ACCOUNT_ID: string;
 }
