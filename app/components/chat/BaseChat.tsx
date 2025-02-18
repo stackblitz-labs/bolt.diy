@@ -330,6 +330,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         className="flex flex-col "
                         messages={messages}
                         isStreaming={isStreaming}
+                        onSuggestionClick={(task) => {
+                          sendMessage?.({} as any, task);
+                        }}
                       />
                     </div>
                   ) : null;
