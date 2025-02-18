@@ -1,25 +1,33 @@
+# Use Dockerfile syntax version for better caching and future features
+# syntax=docker/dockerfile:1
+# Some M3 macOS fresh installs with fresh dockers with fresh nodejs. installs may experience this issue
+# Base image with Node.js (with version as a build argument)
 ARG BASE=node:20.18.0
 FROM ${BASE} AS base
 
 WORKDIR /app
 
-# Install dependencies (this step is cached as long as the dependencies don't change)
+# Copy dependency files first to leverage Docker cache when dependencies haven’t changed
 COPY package.json pnpm-lock.yaml ./
 
-RUN npm install -g corepack@latest
+# Enable Corepack, prepare a specific PNPM version (replace with your desired version),
+# and install dependencies with a frozen lockfile for consistency.
+RUN corepack enable pnpm \
+    && corepack prepare pnpm@8.7.0 --activate \
+    && pnpm install --frozen-lockfile
 
-RUN corepack enable pnpm && pnpm install
-
-# Copy the rest of your app's source code
+# Copy the rest of your application code.
 COPY . .
 
-# Expose the port the app runs on
+# Expose the port your app uses.
 EXPOSE 5173
 
-# Production image
+#################################################
+# Production Stage
+#################################################
 FROM base AS bolt-ai-production
 
-# Define environment variables with default values or let them be overridden
+# Define build-time variables (they can be overridden at build-time)
 ARG GROQ_API_KEY
 ARG HuggingFace_API_KEY
 ARG OPENAI_API_KEY
@@ -34,9 +42,10 @@ ARG AWS_BEDROCK_CONFIG
 ARG VITE_LOG_LEVEL=debug
 ARG DEFAULT_NUM_CTX
 
+# Set environment variables using the build-time args
 ENV WRANGLER_SEND_METRICS=false \
     GROQ_API_KEY=${GROQ_API_KEY} \
-    HuggingFace_KEY=${HuggingFace_API_KEY} \
+    HuggingFace_API_KEY=${HuggingFace_API_KEY} \
     OPENAI_API_KEY=${OPENAI_API_KEY} \
     ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} \
     OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY} \
@@ -47,23 +56,27 @@ ENV WRANGLER_SEND_METRICS=false \
     TOGETHER_API_BASE_URL=${TOGETHER_API_BASE_URL} \
     AWS_BEDROCK_CONFIG=${AWS_BEDROCK_CONFIG} \
     VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
-    DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX}\
+    DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
     RUNNING_IN_DOCKER=true
 
-# Pre-configure wrangler to disable metrics
-RUN mkdir -p /root/.config/.wrangler && \
-    echo '{"enabled":false}' > /root/.config/.wrangler/metrics.json
+# Pre-configure wrangler to disable metrics collection
+RUN mkdir -p /root/.config/.wrangler \
+    && echo '{"enabled":false}' > /root/.config/.wrangler/metrics.json
 
+# Build the production assets
 RUN pnpm run build
 
-CMD [ "pnpm", "run", "dockerstart"]
+# Define the command to start your app in production
+CMD ["pnpm", "run", "dockerstart"]
 
-# Development image
+#################################################
+# Development Stage
+#################################################
 FROM base AS bolt-ai-development
 
-# Define the same environment variables for development
+# Define the same build-time variables for development.
 ARG GROQ_API_KEY
-ARG HuggingFace 
+ARG HuggingFace_API_KEY
 ARG OPENAI_API_KEY
 ARG ANTHROPIC_API_KEY
 ARG OPEN_ROUTER_API_KEY
@@ -75,6 +88,7 @@ ARG TOGETHER_API_BASE_URL
 ARG VITE_LOG_LEVEL=debug
 ARG DEFAULT_NUM_CTX
 
+# Set environment variables
 ENV GROQ_API_KEY=${GROQ_API_KEY} \
     HuggingFace_API_KEY=${HuggingFace_API_KEY} \
     OPENAI_API_KEY=${OPENAI_API_KEY} \
@@ -87,8 +101,11 @@ ENV GROQ_API_KEY=${GROQ_API_KEY} \
     TOGETHER_API_BASE_URL=${TOGETHER_API_BASE_URL} \
     AWS_BEDROCK_CONFIG=${AWS_BEDROCK_CONFIG} \
     VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
-    DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX}\
+    DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
     RUNNING_IN_DOCKER=true
 
+# Create a directory for any runtime files if needed.
 RUN mkdir -p ${WORKDIR}/run
-CMD pnpm run dev --host
+
+# Start the development server
+CMD ["pnpm", "run", "dev", "--host"]
