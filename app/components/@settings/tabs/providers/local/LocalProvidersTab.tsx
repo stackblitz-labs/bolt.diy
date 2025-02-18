@@ -471,6 +471,60 @@ export default function LocalProvidersTab() {
                 />
               </div>
 
+              {/* URL Configuration Section */}
+              <AnimatePresence>
+                {provider.settings.enabled && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-4"
+                  >
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm text-bolt-elements-textSecondary">API Endpoint</label>
+                      {editingProvider === provider.name ? (
+                        <input
+                          type="text"
+                          defaultValue={provider.settings.baseUrl || OLLAMA_API_URL}
+                          placeholder="Enter Ollama base URL"
+                          className={classNames(
+                            'w-full px-3 py-2 rounded-lg text-sm',
+                            'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
+                            'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
+                            'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
+                            'transition-all duration-200',
+                          )}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleUpdateBaseUrl(provider, e.currentTarget.value);
+                            } else if (e.key === 'Escape') {
+                              setEditingProvider(null);
+                            }
+                          }}
+                          onBlur={(e) => handleUpdateBaseUrl(provider, e.target.value)}
+                          autoFocus
+                        />
+                      ) : (
+                        <div
+                          onClick={() => setEditingProvider(provider.name)}
+                          className={classNames(
+                            'w-full px-3 py-2 rounded-lg text-sm cursor-pointer',
+                            'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
+                            'hover:border-purple-500/30 hover:bg-bolt-elements-background-depth-4',
+                            'transition-all duration-200',
+                          )}
+                        >
+                          <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
+                            <div className="i-ph:link text-sm" />
+                            <span>{provider.settings.baseUrl || OLLAMA_API_URL}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Ollama Models Section */}
               {provider.settings.enabled && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 space-y-4">
@@ -505,7 +559,19 @@ export default function LocalProvidersTab() {
                       <div className="text-center py-8 text-bolt-elements-textSecondary">
                         <div className="i-ph:cube-transparent text-4xl mx-auto mb-2" />
                         <p>No models installed yet</p>
-                        <p className="text-sm">Install your first model below</p>
+                        <p className="text-sm text-bolt-elements-textTertiary px-1">
+                          Browse models at{' '}
+                          <a
+                            href="https://ollama.com/library"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-500 hover:underline inline-flex items-center gap-0.5 text-base font-medium"
+                          >
+                            ollama.com/library
+                            <div className="i-ph:arrow-square-out text-xs" />
+                          </a>{' '}
+                          and copy model names to install
+                        </p>
                       </div>
                     ) : (
                       ollamaModels.map((model) => (

@@ -1103,15 +1103,18 @@ export default function DebugTab() {
   // Add Ollama health check function
   const checkOllamaStatus = useCallback(async () => {
     try {
+      const ollamaProvider = providers?.Ollama;
+      const baseUrl = ollamaProvider?.settings?.baseUrl || 'http://127.0.0.1:11434';
+
       // First check if service is running
-      const versionResponse = await fetch('http://127.0.0.1:11434/api/version');
+      const versionResponse = await fetch(`${baseUrl}/api/version`);
 
       if (!versionResponse.ok) {
         throw new Error('Service not running');
       }
 
       // Then fetch installed models
-      const modelsResponse = await fetch('http://127.0.0.1:11434/api/tags');
+      const modelsResponse = await fetch(`${baseUrl}/api/tags`);
 
       const modelsData = (await modelsResponse.json()) as {
         models: Array<{ name: string; size: string; quantization: string }>;
@@ -1130,7 +1133,7 @@ export default function DebugTab() {
         models: undefined,
       });
     }
-  }, []);
+  }, [providers]);
 
   // Monitor isLocalModel changes and check status periodically
   useEffect(() => {
@@ -1270,60 +1273,32 @@ export default function DebugTab() {
     <div className="flex flex-col gap-6 max-w-7xl mx-auto p-4">
       {/* Quick Stats Banner */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Ollama Service Status Card */}
-        <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200">
+        {/* Errors Card */}
+        <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200 h-[180px] flex flex-col">
           <div className="flex items-center gap-2">
-            <div className="i-ph:robot text-purple-500 w-4 h-4" />
-            <div className="text-sm text-bolt-elements-textSecondary">Ollama Service</div>
+            <div className="i-ph:warning-octagon text-purple-500 w-4 h-4" />
+            <div className="text-sm text-bolt-elements-textSecondary">Errors</div>
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <div
-              className={classNames('w-2 h-2 rounded-full animate-pulse', status.bgColor, {
-                'shadow-lg shadow-green-500/20': status.status === 'Running',
-                'shadow-lg shadow-red-500/20': status.status === 'Not Running',
-              })}
-            />
-            <span className={classNames('text-sm font-medium flex items-center gap-1.5', status.color)}>
-              {status.status === 'Running' && <div className="i-ph:check-circle-fill w-3.5 h-3.5" />}
-              {status.status === 'Not Running' && <div className="i-ph:x-circle-fill w-3.5 h-3.5" />}
-              {status.status === 'Disabled' && <div className="i-ph:prohibit-fill w-3.5 h-3.5" />}
-              {status.status}
+            <span
+              className={classNames('text-2xl font-semibold', errorLogs.length > 0 ? 'text-red-500' : 'text-green-500')}
+            >
+              {errorLogs.length}
             </span>
           </div>
           <div className="text-xs text-bolt-elements-textSecondary mt-2 flex items-center gap-1.5">
             <div
-              className={classNames('w-3.5 h-3.5', {
-                'i-ph:info text-green-500': status.status === 'Running',
-                'i-ph:warning text-red-500': status.status === 'Not Running' || status.status === 'Disabled',
-              })}
+              className={classNames(
+                'w-3.5 h-3.5',
+                errorLogs.length > 0 ? 'i-ph:warning text-red-500' : 'i-ph:check-circle text-green-500',
+              )}
             />
-            {status.message}
-          </div>
-          {ollamaStatus.models && ollamaStatus.models.length > 0 && (
-            <div className="mt-3 space-y-1 border-t border-[#E5E5E5] dark:border-[#1A1A1A] pt-2">
-              <div className="text-xs font-medium text-bolt-elements-textSecondary flex items-center gap-1.5">
-                <div className="i-ph:cube-duotone w-3.5 h-3.5 text-purple-500" />
-                Installed Models
-              </div>
-              {ollamaStatus.models.map((model) => (
-                <div key={model.name} className="text-xs text-bolt-elements-textSecondary flex items-center gap-2 pl-5">
-                  <div className="i-ph:cube w-3 h-3 text-purple-500/70" />
-                  <span className="font-mono">{model.name}</span>
-                  <span className="text-bolt-elements-textTertiary">
-                    ({Math.round(parseInt(model.size) / 1024 / 1024)}MB, {model.quantization})
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="text-xs text-bolt-elements-textTertiary mt-3 flex items-center gap-1.5">
-            <div className="i-ph:clock w-3 h-3" />
-            Last checked: {ollamaStatus.lastChecked.toLocaleTimeString()}
+            {errorLogs.length > 0 ? 'Errors detected' : 'No errors detected'}
           </div>
         </div>
 
         {/* Memory Usage Card */}
-        <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200">
+        <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200 h-[180px] flex flex-col">
           <div className="flex items-center gap-2">
             <div className="i-ph:cpu text-purple-500 w-4 h-4" />
             <div className="text-sm text-bolt-elements-textSecondary">Memory Usage</div>
@@ -1360,7 +1335,7 @@ export default function DebugTab() {
         </div>
 
         {/* Page Load Time Card */}
-        <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200">
+        <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200 h-[180px] flex flex-col">
           <div className="flex items-center gap-2">
             <div className="i-ph:timer text-purple-500 w-4 h-4" />
             <div className="text-sm text-bolt-elements-textSecondary">Page Load Time</div>
@@ -1386,7 +1361,7 @@ export default function DebugTab() {
         </div>
 
         {/* Network Speed Card */}
-        <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200">
+        <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200 h-[180px] flex flex-col">
           <div className="flex items-center gap-2">
             <div className="i-ph:wifi-high text-purple-500 w-4 h-4" />
             <div className="text-sm text-bolt-elements-textSecondary">Network Speed</div>
@@ -1411,27 +1386,80 @@ export default function DebugTab() {
           </div>
         </div>
 
-        {/* Errors Card */}
-        <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200">
-          <div className="flex items-center gap-2">
-            <div className="i-ph:warning-octagon text-purple-500 w-4 h-4" />
-            <div className="text-sm text-bolt-elements-textSecondary">Errors</div>
+        {/* Ollama Service Card - Now spans all 4 columns */}
+        <div className="md:col-span-4 p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200 h-[260px] flex flex-col">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="i-ph:robot text-purple-500 w-5 h-5" />
+              <div>
+                <div className="text-base font-medium text-bolt-elements-textPrimary">Ollama Service</div>
+                <div className="text-xs text-bolt-elements-textSecondary mt-0.5">{status.message}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-bolt-elements-background-depth-3">
+                <div
+                  className={classNames('w-2 h-2 rounded-full animate-pulse', status.bgColor, {
+                    'shadow-lg shadow-green-500/20': status.status === 'Running',
+                    'shadow-lg shadow-red-500/20': status.status === 'Not Running',
+                  })}
+                />
+                <span className={classNames('text-xs font-medium flex items-center gap-1', status.color)}>
+                  {status.status}
+                </span>
+              </div>
+              <div className="text-[10px] text-bolt-elements-textTertiary flex items-center gap-1.5">
+                <div className="i-ph:clock w-3 h-3" />
+                {ollamaStatus.lastChecked.toLocaleTimeString()}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <span
-              className={classNames('text-2xl font-semibold', errorLogs.length > 0 ? 'text-red-500' : 'text-green-500')}
-            >
-              {errorLogs.length}
-            </span>
-          </div>
-          <div className="text-xs text-bolt-elements-textSecondary mt-2 flex items-center gap-1.5">
-            <div
-              className={classNames(
-                'w-3.5 h-3.5',
-                errorLogs.length > 0 ? 'i-ph:warning text-red-500' : 'i-ph:check-circle text-green-500',
-              )}
-            />
-            {errorLogs.length > 0 ? 'Errors detected' : 'No errors detected'}
+
+          <div className="mt-6 flex-1 min-h-0 flex flex-col">
+            {status.status === 'Running' && ollamaStatus.models && ollamaStatus.models.length > 0 ? (
+              <>
+                <div className="text-xs font-medium text-bolt-elements-textSecondary flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="i-ph:cube-duotone w-4 h-4 text-purple-500" />
+                    <span>Installed Models</span>
+                    <Badge variant="secondary" className="ml-1">
+                      {ollamaStatus.models.length}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-600">
+                  <div className="grid grid-cols-2 gap-3 pr-2">
+                    {ollamaStatus.models.map((model) => (
+                      <div
+                        key={model.name}
+                        className="text-sm bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4 rounded-lg px-4 py-3 flex items-center justify-between transition-colors group"
+                      >
+                        <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
+                          <div className="i-ph:cube w-4 h-4 text-purple-500/70 group-hover:text-purple-500 transition-colors" />
+                          <span className="font-mono truncate">{model.name}</span>
+                        </div>
+                        <Badge variant="outline" className="ml-2 text-xs font-mono">
+                          {Math.round(parseInt(model.size) / 1024 / 1024)}MB
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3 max-w-[280px] text-center">
+                  <div
+                    className={classNames('w-12 h-12', {
+                      'i-ph:warning-circle text-red-500/80':
+                        status.status === 'Not Running' || status.status === 'Disabled',
+                      'i-ph:cube-duotone text-purple-500/80': status.status === 'Running',
+                    })}
+                  />
+                  <span className="text-sm text-bolt-elements-textSecondary">{status.message}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

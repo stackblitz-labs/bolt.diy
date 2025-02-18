@@ -263,6 +263,27 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
     },
   };
 
+  // Reset to default view when modal opens/closes
+  useEffect(() => {
+    if (!open) {
+      // Reset when closing
+      setActiveTab(null);
+      setLoadingTab(null);
+      setShowTabManagement(false);
+    } else {
+      // When opening, set to null to show the main view
+      setActiveTab(null);
+    }
+  }, [open]);
+
+  // Handle closing
+  const handleClose = () => {
+    setActiveTab(null);
+    setLoadingTab(null);
+    setShowTabManagement(false);
+    onClose();
+  };
+
   // Handlers
   const handleBack = () => {
     if (showTabManagement) {
@@ -405,8 +426,8 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
 
           <RadixDialog.Content
             aria-describedby={undefined}
-            onEscapeKeyDown={onClose}
-            onPointerDownOutside={onClose}
+            onEscapeKeyDown={handleClose}
+            onPointerDownOutside={handleClose}
             className="relative z-[101]"
           >
             <motion.div
@@ -461,7 +482,7 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
 
                     {/* Close Button */}
                     <button
-                      onClick={onClose}
+                      onClick={handleClose}
                       className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
                     >
                       <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />

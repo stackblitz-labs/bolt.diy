@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '@nanostores/react';
-import { Switch } from '@radix-ui/react-switch';
+import { Switch } from '~/components/ui/Switch';
 import { classNames } from '~/utils/classNames';
 import { tabConfigurationStore } from '~/lib/stores/settings';
 import { TAB_LABELS } from '~/components/@settings/core/constants';
 import type { TabType } from '~/components/@settings/core/types';
 import { toast } from 'react-toastify';
 import { TbLayoutGrid } from 'react-icons/tb';
+import { useSettingsStore } from '~/lib/stores/settings';
 
 // Define tab icons mapping
 const TAB_ICONS: Record<TabType, string> = {
@@ -55,6 +56,7 @@ const BetaLabel = () => (
 export const TabManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const tabConfiguration = useStore(tabConfigurationStore);
+  const { setSelectedTab } = useSettingsStore();
 
   const handleTabVisibilityChange = (tabId: TabType, checked: boolean) => {
     // Get current tab configuration
@@ -126,6 +128,13 @@ export const TabManagement = () => {
   // Filter tabs based on search query
   const filteredTabs = allTabs.filter((tab) => TAB_LABELS[tab.id].toLowerCase().includes(searchQuery.toLowerCase()));
 
+  useEffect(() => {
+    // Reset to first tab when component unmounts
+    return () => {
+      setSelectedTab('user'); // Reset to user tab when unmounting
+    };
+  }, [setSelectedTab]);
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -177,92 +186,193 @@ export const TabManagement = () => {
 
         {/* Tab Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredTabs.map((tab, index) => (
-            <motion.div
-              key={tab.id}
-              className={classNames(
-                'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary',
-                'bg-bolt-elements-background-depth-2',
-                'hover:bg-bolt-elements-background-depth-3',
-                'transition-all duration-200',
-                'relative overflow-hidden group',
-              )}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
-            >
-              {/* Status Badges */}
-              <div className="absolute top-2 right-2 flex gap-1">
-                {DEFAULT_USER_TABS.includes(tab.id) && (
-                  <span className="px-2 py-0.5 text-xs rounded-full bg-purple-500/10 text-purple-500 font-medium">
+          {/* Default Section Header */}
+          {filteredTabs.some((tab) => DEFAULT_USER_TABS.includes(tab.id)) && (
+            <div className="col-span-full flex items-center gap-2 mt-4 mb-2">
+              <div className="i-ph:star-fill w-4 h-4 text-purple-500" />
+              <span className="text-sm font-medium text-bolt-elements-textPrimary">Default Tabs</span>
+            </div>
+          )}
+
+          {/* Default Tabs */}
+          {filteredTabs
+            .filter((tab) => DEFAULT_USER_TABS.includes(tab.id))
+            .map((tab, index) => (
+              <motion.div
+                key={tab.id}
+                className={classNames(
+                  'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary',
+                  'bg-bolt-elements-background-depth-2',
+                  'hover:bg-bolt-elements-background-depth-3',
+                  'transition-all duration-200',
+                  'relative overflow-hidden group',
+                )}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+              >
+                {/* Status Badges */}
+                <div className="absolute top-1 right-1.5 flex gap-1">
+                  <span className="px-1.5 py-0.25 text-xs rounded-full bg-purple-500/10 text-purple-500 font-medium mr-2">
                     Default
                   </span>
-                )}
-                {OPTIONAL_USER_TABS.includes(tab.id) && (
-                  <span className="px-2 py-0.5 text-xs rounded-full bg-blue-500/10 text-blue-500 font-medium">
-                    Optional
-                  </span>
-                )}
-              </div>
+                </div>
 
-              <div className="flex items-start gap-4 p-4">
-                <motion.div
-                  className={classNames(
-                    'w-10 h-10 flex items-center justify-center rounded-xl',
-                    'bg-bolt-elements-background-depth-3 group-hover:bg-bolt-elements-background-depth-4',
-                    'transition-all duration-200',
-                    tab.visible ? 'text-purple-500' : 'text-bolt-elements-textSecondary',
-                  )}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <div className={classNames('w-6 h-6', 'transition-transform duration-200', 'group-hover:rotate-12')}>
-                    <div className={classNames(TAB_ICONS[tab.id], 'w-full h-full')} />
-                  </div>
-                </motion.div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
-                          {TAB_LABELS[tab.id]}
-                        </h4>
-                        {BETA_TABS.has(tab.id) && <BetaLabel />}
-                      </div>
-                      <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
-                        {tab.visible ? 'Visible in user mode' : 'Hidden in user mode'}
-                      </p>
+                <div className="flex items-start gap-4 p-4">
+                  <motion.div
+                    className={classNames(
+                      'w-10 h-10 flex items-center justify-center rounded-xl',
+                      'bg-bolt-elements-background-depth-3 group-hover:bg-bolt-elements-background-depth-4',
+                      'transition-all duration-200',
+                      tab.visible ? 'text-purple-500' : 'text-bolt-elements-textSecondary',
+                    )}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <div
+                      className={classNames('w-6 h-6', 'transition-transform duration-200', 'group-hover:rotate-12')}
+                    >
+                      <div className={classNames(TAB_ICONS[tab.id], 'w-full h-full')} />
                     </div>
-                    <Switch
-                      checked={tab.visible}
-                      onCheckedChange={(checked) => handleTabVisibilityChange(tab.id, checked)}
-                      disabled={!DEFAULT_USER_TABS.includes(tab.id) && !OPTIONAL_USER_TABS.includes(tab.id)}
-                      className={classNames(
-                        'relative inline-flex h-5 w-9 items-center rounded-full',
-                        'transition-colors duration-200',
-                        tab.visible ? 'bg-purple-500' : 'bg-bolt-elements-background-depth-4',
-                        {
-                          'opacity-50 cursor-not-allowed':
+                  </motion.div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
+                            {TAB_LABELS[tab.id]}
+                          </h4>
+                          {BETA_TABS.has(tab.id) && <BetaLabel />}
+                        </div>
+                        <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
+                          {tab.visible ? 'Visible in user mode' : 'Hidden in user mode'}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={tab.visible}
+                        onCheckedChange={(checked) => {
+                          const isDisabled =
+                            !DEFAULT_USER_TABS.includes(tab.id) && !OPTIONAL_USER_TABS.includes(tab.id);
+
+                          if (!isDisabled) {
+                            handleTabVisibilityChange(tab.id, checked);
+                          }
+                        }}
+                        className={classNames('data-[state=checked]:bg-purple-500 ml-4', {
+                          'opacity-50 pointer-events-none':
                             !DEFAULT_USER_TABS.includes(tab.id) && !OPTIONAL_USER_TABS.includes(tab.id),
-                        },
-                      )}
-                    />
+                        })}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
+                <motion.div
+                  className="absolute inset-0 border-2 border-purple-500/0 rounded-lg pointer-events-none"
+                  animate={{
+                    borderColor: tab.visible ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0)',
+                    scale: tab.visible ? 1 : 0.98,
+                  }}
+                  transition={{ duration: 0.2 }}
+                />
+              </motion.div>
+            ))}
+
+          {/* Optional Section Header */}
+          {filteredTabs.some((tab) => OPTIONAL_USER_TABS.includes(tab.id)) && (
+            <div className="col-span-full flex items-center gap-2 mt-8 mb-2">
+              <div className="i-ph:plus-circle-fill w-4 h-4 text-blue-500" />
+              <span className="text-sm font-medium text-bolt-elements-textPrimary">Optional Tabs</span>
+            </div>
+          )}
+
+          {/* Optional Tabs */}
+          {filteredTabs
+            .filter((tab) => OPTIONAL_USER_TABS.includes(tab.id))
+            .map((tab, index) => (
               <motion.div
-                className="absolute inset-0 border-2 border-purple-500/0 rounded-lg pointer-events-none"
-                animate={{
-                  borderColor: tab.visible ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0)',
-                  scale: tab.visible ? 1 : 0.98,
-                }}
-                transition={{ duration: 0.2 }}
-              />
-            </motion.div>
-          ))}
+                key={tab.id}
+                className={classNames(
+                  'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary',
+                  'bg-bolt-elements-background-depth-2',
+                  'hover:bg-bolt-elements-background-depth-3',
+                  'transition-all duration-200',
+                  'relative overflow-hidden group',
+                )}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+              >
+                {/* Status Badges */}
+                <div className="absolute top-1 right-1.5 flex gap-1">
+                  <span className="px-1.5 py-0.25 text-xs rounded-full bg-blue-500/10 text-blue-500 font-medium mr-2">
+                    Optional
+                  </span>
+                </div>
+
+                <div className="flex items-start gap-4 p-4">
+                  <motion.div
+                    className={classNames(
+                      'w-10 h-10 flex items-center justify-center rounded-xl',
+                      'bg-bolt-elements-background-depth-3 group-hover:bg-bolt-elements-background-depth-4',
+                      'transition-all duration-200',
+                      tab.visible ? 'text-purple-500' : 'text-bolt-elements-textSecondary',
+                    )}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <div
+                      className={classNames('w-6 h-6', 'transition-transform duration-200', 'group-hover:rotate-12')}
+                    >
+                      <div className={classNames(TAB_ICONS[tab.id], 'w-full h-full')} />
+                    </div>
+                  </motion.div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
+                            {TAB_LABELS[tab.id]}
+                          </h4>
+                          {BETA_TABS.has(tab.id) && <BetaLabel />}
+                        </div>
+                        <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
+                          {tab.visible ? 'Visible in user mode' : 'Hidden in user mode'}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={tab.visible}
+                        onCheckedChange={(checked) => {
+                          const isDisabled =
+                            !DEFAULT_USER_TABS.includes(tab.id) && !OPTIONAL_USER_TABS.includes(tab.id);
+
+                          if (!isDisabled) {
+                            handleTabVisibilityChange(tab.id, checked);
+                          }
+                        }}
+                        className={classNames('data-[state=checked]:bg-purple-500 ml-4', {
+                          'opacity-50 pointer-events-none':
+                            !DEFAULT_USER_TABS.includes(tab.id) && !OPTIONAL_USER_TABS.includes(tab.id),
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <motion.div
+                  className="absolute inset-0 border-2 border-purple-500/0 rounded-lg pointer-events-none"
+                  animate={{
+                    borderColor: tab.visible ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0)',
+                    scale: tab.visible ? 1 : 0.98,
+                  }}
+                  transition={{ duration: 0.2 }}
+                />
+              </motion.div>
+            ))}
         </div>
       </motion.div>
     </div>

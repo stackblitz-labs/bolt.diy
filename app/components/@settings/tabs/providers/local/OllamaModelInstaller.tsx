@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
 import { Progress } from '~/components/ui/Progress';
 import { useToast } from '~/components/ui/use-toast';
+import { useSettings } from '~/lib/hooks/useSettings';
 
 interface OllamaModelInstallerProps {
   onModelInstalled: () => void;
@@ -141,11 +142,15 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [models, setModels] = useState<ModelInfo[]>(POPULAR_MODELS);
   const { toast } = useToast();
+  const { providers } = useSettings();
+
+  // Get base URL from provider settings
+  const baseUrl = providers?.Ollama?.settings?.baseUrl || 'http://127.0.0.1:11434';
 
   // Function to check installed models and their versions
   const checkInstalledModels = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:11434/api/tags', {
+      const response = await fetch(`${baseUrl}/api/tags`, {
         method: 'GET',
       });
 
@@ -181,7 +186,7 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
   // Check installed models on mount and after installation
   useEffect(() => {
     checkInstalledModels();
-  }, []);
+  }, [baseUrl]);
 
   const handleCheckUpdates = async () => {
     setIsChecking(true);
@@ -224,7 +229,7 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
       setModelString('');
       setSearchQuery('');
 
-      const response = await fetch('http://127.0.0.1:11434/api/pull', {
+      const response = await fetch(`${baseUrl}/api/pull`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -302,7 +307,7 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
     try {
       setModels((prev) => prev.map((m) => (m.name === modelToUpdate ? { ...m, status: 'updating' } : m)));
 
-      const response = await fetch('http://127.0.0.1:11434/api/pull', {
+      const response = await fetch(`${baseUrl}/api/pull`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -429,16 +434,16 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
               }}
               disabled={isInstalling}
             />
-            <p className="text-xs text-bolt-elements-textTertiary px-1">
+            <p className="text-sm text-bolt-elements-textSecondary px-1">
               Browse models at{' '}
               <a
                 href="https://ollama.com/library"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-purple-500 hover:underline inline-flex items-center gap-0.5"
+                className="text-purple-500 hover:underline inline-flex items-center gap-1 text-base font-medium"
               >
                 ollama.com/library
-                <div className="i-ph:arrow-square-out text-[10px]" />
+                <div className="i-ph:arrow-square-out text-sm" />
               </a>{' '}
               and copy model names to install
             </p>
@@ -448,10 +453,11 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
           onClick={() => handleInstallModel(modelString)}
           disabled={!modelString || isInstalling}
           className={classNames(
-            'rounded-xl px-6 py-3',
-            'bg-purple-500 text-white',
+            'rounded-lg px-4 py-2',
+            'bg-purple-500 text-white text-sm',
             'hover:bg-purple-600',
             'transition-all duration-200',
+            'flex items-center gap-2',
             { 'opacity-50 cursor-not-allowed': !modelString || isInstalling },
           )}
           whileHover={{ scale: 1.02 }}
@@ -459,7 +465,7 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
         >
           {isInstalling ? (
             <div className="flex items-center gap-2">
-              <div className="i-ph:spinner-gap-bold animate-spin" />
+              <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
               <span>Installing...</span>
             </div>
           ) : (

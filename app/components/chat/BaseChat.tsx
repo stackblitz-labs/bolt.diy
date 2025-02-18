@@ -34,6 +34,7 @@ import ChatAlert from './ChatAlert';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import ProgressCompilation from './ProgressCompilation';
 import type { ProgressAnnotation } from '~/types/context';
+import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -404,7 +405,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             apiKeys={apiKeys}
                             modelLoading={isModelLoading}
                           />
-                          {(providerList || []).length > 0 && provider && (
+                          {(providerList || []).length > 0 && provider && !LOCAL_PROVIDERS.includes(provider.name) && (
                             <APIKeyManager
                               provider={provider}
                               apiKey={apiKeys[provider.name] || ''}

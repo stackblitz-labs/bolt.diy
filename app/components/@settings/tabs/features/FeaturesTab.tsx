@@ -123,23 +123,23 @@ export default function FeaturesTab() {
   React.useEffect(() => {
     // Only set defaults if values are undefined
     if (isLatestBranch === undefined) {
-      enableLatestBranch(true);
+      enableLatestBranch(false); // Default: OFF - Don't auto-update from main branch
     }
 
     if (contextOptimizationEnabled === undefined) {
-      enableContextOptimization(true);
+      enableContextOptimization(true); // Default: ON - Enable context optimization
     }
 
     if (autoSelectTemplate === undefined) {
-      setAutoSelectTemplate(true);
+      setAutoSelectTemplate(true); // Default: ON - Enable auto-select templates
     }
 
     if (promptId === undefined) {
-      setPromptId('optimized');
+      setPromptId('default'); // Default: 'default'
     }
 
     if (eventLogs === undefined) {
-      setEventLogs(true);
+      setEventLogs(true); // Default: ON - Enable event logging
     }
   }, []); // Only run once on component mount
 
