@@ -10,17 +10,15 @@ import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
-import fileSaver from 'file-saver';
+import pkg from 'file-saver';
+const { saveAs } = pkg;
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
-import { path } from '~/utils/path';
+import * as nodePath from 'node:path';
 import { extractRelativePath } from '~/utils/diff';
 import { description } from '~/lib/persistence';
 import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert } from '~/types/actions';
-
-// Destructure saveAs from the CommonJS module
-const { saveAs } = fileSaver;
 
 export interface ArtifactState {
   id: string;
@@ -34,7 +32,7 @@ export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
 
 type Artifacts = MapStore<Record<string, ArtifactState>>;
 
-export type WorkbenchViewType = 'code' | 'preview';
+export type WorkbenchViewType = 'code' | 'diff' | 'preview';
 
 export class WorkbenchStore {
   #previewsStore = new PreviewsStore(webcontainer);
@@ -332,7 +330,7 @@ export class WorkbenchStore {
 
     if (data.action.type === 'file') {
       const wc = await webcontainer;
-      const fullPath = path.join(wc.workdir, data.action.filePath);
+      const fullPath = nodePath.join(wc.workdir, data.action.filePath);
 
       if (this.selectedFile.value !== fullPath) {
         this.setSelectedFile(fullPath);
@@ -437,13 +435,7 @@ export class WorkbenchStore {
     return syncedFiles;
   }
 
-  async pushToGitHub(
-    repoName: string,
-    commitMessage?: string,
-    githubUsername?: string,
-    ghToken?: string,
-    isPrivate: boolean = false,
-  ) {
+  async pushToGitHub(repoName: string, commitMessage?: string, githubUsername?: string, ghToken?: string) {
     try {
       // Use cookies if username and token are not provided
       const githubToken = ghToken || Cookies.get('githubToken');
@@ -467,7 +459,7 @@ export class WorkbenchStore {
           // Repository doesn't exist, so create a new one
           const { data: newRepo } = await octokit.repos.createForAuthenticatedUser({
             name: repoName,
-            private: isPrivate,
+            private: false,
             auto_init: true,
           });
           repo = newRepo;
@@ -545,7 +537,7 @@ export class WorkbenchStore {
         sha: newCommit.sha,
       });
 
-      return repo.html_url; // Return the URL instead of showing alert
+      alert(`Repository created and code pushed: ${repo.html_url}`);
     } catch (error) {
       console.error('Error pushing to GitHub:', error);
       throw error; // Rethrow the error for further handling

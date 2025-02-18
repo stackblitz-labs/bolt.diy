@@ -30,3 +30,7 @@ runs:
       run: |
         pnpm install
         pnpm run build
+
+    - name: Create history directory
+      shell: bash
+      run: mkdir -p .history
