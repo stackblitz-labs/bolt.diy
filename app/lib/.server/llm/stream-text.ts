@@ -7,7 +7,7 @@ import { PromptLibrary } from '~/lib/common/prompt-library';
 import { allowedHTMLElements } from '~/utils/markdown';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { createScopedLogger } from '~/utils/logger';
-import { createFilesContext, extractPropertiesFromMessage } from './utils';
+import { createFilesContext, extractPropertiesFromMessage, simplifyBundledArtifacts } from './utils';
 import { getFilePaths } from './select-context';
 
 export type Messages = Message[];
@@ -54,6 +54,7 @@ export async function streamText(props: {
       let content = message.content;
       content = content.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/s, '');
       content = content.replace(/<think>.*?<\/think>/s, '');
+      content = simplifyBundledArtifacts(content);
 
       return { ...message, content };
     }
@@ -92,7 +93,7 @@ export async function streamText(props: {
 
   const dynamicMaxTokens = modelDetails && modelDetails.maxTokenAllowed ? modelDetails.maxTokenAllowed : MAX_TOKENS;
 
-  let systemPrompt =
+  const systemPrompt =
     PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
       cwd: WORK_DIR,
       allowedHtmlElements: allowedHTMLElements,
@@ -103,7 +104,7 @@ export async function streamText(props: {
     const codeContext = createFilesContext(contextFiles, true);
     const filePaths = getFilePaths(files);
 
-    systemPrompt = `${systemPrompt}
+    let additionalMessage = `
 Below are all the files present in the project:
 ---
 ${filePaths.join('\n')}
@@ -117,8 +118,8 @@ ${codeContext}
 `;
 
     if (summary) {
-      systemPrompt = `${systemPrompt}
-      below is the chat history till now
+      additionalMessage = `${additionalMessage}
+below is the chat history till now
 CHAT SUMMARY:
 ---
 ${props.summary}
@@ -134,6 +135,28 @@ ${props.summary}
           processedMessages = [lastMessage];
         }
       }
+
+      console.log(additionalMessage);
+
+      if (processedMessages[0].role === 'assistant') {
+        const preUserMessage: Omit<Message, 'id'> = {
+          role: 'user',
+          content: additionalMessage,
+        };
+        processedMessages = [preUserMessage, ...processedMessages];
+      } else {
+        const preUserMessage: Omit<Message, 'id'> = {
+          role: 'user',
+          content: additionalMessage,
+        };
+        const preAssistantMessage: Omit<Message, 'id'> = {
+          role: 'assistant',
+          content: 'thank you for providing the context, I am now ready to assist you with your request.',
+        };
+        processedMessages = [preUserMessage, preAssistantMessage, ...processedMessages];
+      }
+
+      // systemPrompt = `${systemPrompt}\n\n${additionalMessage}`;
     }
   }
 

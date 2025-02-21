@@ -1,7 +1,7 @@
 import ignore from 'ignore';
 import type { ProviderInfo } from '~/types/model';
 import type { Template } from '~/types/template';
-import { STARTER_TEMPLATES } from './constants';
+import { STARTER_TEMPLATES, WORK_DIR } from './constants';
 import Cookies from 'js-cookie';
 
 const starterTemplateSelectionPrompt = (templates: Template[]) => `
@@ -298,8 +298,17 @@ NO NOT EDIT/WRITE ANY FILES THAT ALREADY EXIST IN THE PROJECT AND DOES NOT NEED 
 Now that the Template is imported please continue with my original request
 `;
 
+  const filesObject: any = {};
+  filesToImport.files.forEach((file) => {
+    filesObject[`${WORK_DIR}/${file.path}`] = {
+      type: 'file',
+      content: file.content,
+    };
+  });
+
   return {
     assistantMessage,
     userMessage,
+    files: filesObject,
   };
 }
