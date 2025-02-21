@@ -335,6 +335,12 @@ Remember to always commit your local changes or stash them before pulling update
 
 ---
 
+## One-Click Deployment Options
+
+[![Deploy to RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/?app_id=321)
+
+---
+
 ## Contributing
 
 We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to get started.
