@@ -32,8 +32,12 @@ const PROVIDER_DESCRIPTIONS: Record<ProviderName, string> = {
   OpenAILike: 'Connect to OpenAI-compatible API endpoints',
 };
 
-// Add a constant for the Ollama API base URL
-const OLLAMA_API_URL = 'http://127.0.0.1:11434';
+// Add environment-based URLs with fallbacks
+const DEFAULT_URLS = {
+  Ollama: import.meta.env.VITE_OLLAMA_API_BASE_URL || 'http://127.0.0.1:11434',
+  LMStudio: import.meta.env.LMSTUDIO_API_BASE_URL || 'http://127.0.0.1:1234',
+  OpenAILike: import.meta.env.OPENAI_LIKE_API_BASE_URL || '',
+} as const;
 
 interface OllamaModel {
   name: string;
@@ -71,6 +75,43 @@ const isOllamaPullResponse = (data: unknown): data is OllamaPullResponse => {
   );
 };
 
+// Update the UrlConfigInfo component to include model management info
+const UrlConfigInfo = ({ provider }: { provider: IProviderConfig }) => {
+  const defaultUrl = DEFAULT_URLS[provider.name as keyof typeof DEFAULT_URLS];
+
+  return (
+    <div className="mt-2 text-xs text-bolt-elements-textSecondary">
+      <div className="flex items-center gap-1 mb-1">
+        <div className="i-ph:info text-purple-500" />
+        <span className="font-medium">Configuration Help:</span>
+      </div>
+      <ul className="list-disc list-inside space-y-1 ml-1">
+        <li>Default URL: {defaultUrl || 'Not set'}</li>
+        <li>Click the URL field above to edit</li>
+        <li>Format: http://IP:PORT (e.g., http://127.0.0.1:11434)</li>
+        <li>Settings will persist after page reload</li>
+        <li>You can also set the URL in your .env.local file</li>
+      </ul>
+
+      {provider.name === 'Ollama' && (
+        <>
+          <div className="flex items-center gap-1 mt-3 mb-1">
+            <div className="i-ph:warning text-yellow-500" />
+            <span className="font-medium">Important Note:</span>
+          </div>
+          <ul className="list-disc list-inside space-y-1 ml-1 text-bolt-elements-textTertiary">
+            <li>After installing or deleting Ollama models, restart the development server</li>
+            <li>This ensures proper model registration with the application</li>
+            <li>
+              Run <code className="px-1 py-0.5 bg-bolt-elements-background-depth-4 rounded">pnpm dev</code> to restart
+            </li>
+          </ul>
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function LocalProvidersTab() {
   const { providers, updateProviderSettings } = useSettings();
   const [filteredProviders, setFilteredProviders] = useState<IProviderConfig[]>([]);
@@ -90,10 +131,13 @@ export default function LocalProvidersTab() {
         const envUrl = envKey ? (import.meta.env[envKey] as string | undefined) : undefined;
 
         // Set base URL if provided by environment
-        if (envUrl && !provider.settings.baseUrl) {
+        const baseUrl = provider.settings.baseUrl || envUrl || DEFAULT_URLS[key as keyof typeof DEFAULT_URLS];
+
+        // Update provider settings if needed
+        if (!provider.settings.baseUrl && (envUrl || DEFAULT_URLS[key as keyof typeof DEFAULT_URLS])) {
           updateProviderSettings(key, {
             ...provider.settings,
-            baseUrl: envUrl,
+            baseUrl,
           });
         }
 
@@ -101,7 +145,7 @@ export default function LocalProvidersTab() {
           name: key,
           settings: {
             ...provider.settings,
-            baseUrl: provider.settings.baseUrl || envUrl,
+            baseUrl,
           },
           staticModels: provider.staticModels || [],
           getDynamicModels: provider.getDynamicModels,
@@ -153,8 +197,22 @@ export default function LocalProvidersTab() {
     try {
       setIsLoadingModels(true);
 
-      const response = await fetch('http://127.0.0.1:11434/api/tags');
-      const data = (await response.json()) as { models: OllamaModel[] };
+      const ollamaProvider = filteredProviders.find((p) => p.name === 'Ollama');
+      const baseUrl = ollamaProvider?.settings.baseUrl || DEFAULT_URLS.Ollama;
+
+      const checkResponse = await fetch(`${baseUrl}/api/tags`, {
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (!checkResponse.ok) {
+        throw new Error(`Failed to fetch models: ${checkResponse.statusText}`);
+      }
+
+      const data = (await checkResponse.json()) as { models: OllamaModel[] };
+
+      if (!data.models) {
+        throw new Error('Invalid response format from Ollama API');
+      }
 
       setOllamaModels(
         data.models.map((model) => ({
@@ -162,8 +220,27 @@ export default function LocalProvidersTab() {
           status: 'idle' as const,
         })),
       );
+
+      // Log success
+      logStore.logProvider('Successfully fetched Ollama models', {
+        provider: 'Ollama',
+        modelCount: data.models.length,
+      });
     } catch (error) {
-      console.error('Error fetching Ollama models:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error fetching Ollama models:', errorMessage);
+
+      // Show error toast to user
+      toast('Failed to fetch models - Please ensure Ollama is running and accessible');
+
+      // Log error
+      logStore.logProvider('Failed to fetch Ollama models', {
+        provider: 'Ollama',
+        error: errorMessage,
+      });
+
+      // Clear models list on error
+      setOllamaModels([]);
     } finally {
       setIsLoadingModels(false);
     }
@@ -171,7 +248,7 @@ export default function LocalProvidersTab() {
 
   const updateOllamaModel = async (modelName: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${OLLAMA_API_URL}/api/pull`, {
+      const response = await fetch(`${DEFAULT_URLS.Ollama}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: modelName }),
@@ -245,10 +322,19 @@ export default function LocalProvidersTab() {
   );
 
   const handleToggleProvider = (provider: IProviderConfig, enabled: boolean) => {
-    updateProviderSettings(provider.name, {
-      ...provider.settings,
-      enabled,
-    });
+    // If enabling provider, ensure base URL is set from environment
+    if (enabled) {
+      updateProviderSettings(provider.name, {
+        ...provider.settings,
+        enabled,
+        baseUrl: provider.settings.baseUrl || DEFAULT_URLS[provider.name as keyof typeof DEFAULT_URLS],
+      });
+    } else {
+      updateProviderSettings(provider.name, {
+        ...provider.settings,
+        enabled,
+      });
+    }
 
     if (enabled) {
       logStore.logProvider(`Provider ${provider.name} enabled`, { provider: provider.name });
@@ -272,7 +358,7 @@ export default function LocalProvidersTab() {
     const updateSuccess = await updateOllamaModel(modelName);
 
     if (updateSuccess) {
-      toast(`Updated ${modelName}`);
+      toast(`Updated ${modelName} - Please restart the development server for changes to take effect`);
     } else {
       toast(`Failed to update ${modelName}`);
     }
@@ -280,7 +366,7 @@ export default function LocalProvidersTab() {
 
   const handleDeleteOllamaModel = async (modelName: string) => {
     try {
-      const response = await fetch(`${OLLAMA_API_URL}/api/delete`, {
+      const response = await fetch(`${DEFAULT_URLS.Ollama}/api/delete`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -293,7 +379,7 @@ export default function LocalProvidersTab() {
       }
 
       setOllamaModels((current) => current.filter((m) => m.name !== modelName));
-      toast(`Deleted ${modelName}`);
+      toast(`Deleted ${modelName} - Please restart the development server for changes to take effect`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error(`Error deleting ${modelName}:`, errorMessage);
@@ -375,6 +461,44 @@ export default function LocalProvidersTab() {
       </motion.button>
     </div>
   );
+
+  // Add this near your other components
+  const OllamaStatus = () => {
+    const [status, setStatus] = useState<'checking' | 'running' | 'not-running'>('checking');
+
+    useEffect(() => {
+      const checkOllamaStatus = async () => {
+        try {
+          const response = await fetch('http://127.0.0.1:11434/api/tags', {
+            signal: AbortSignal.timeout(3000),
+          });
+          setStatus(response.ok ? 'running' : 'not-running');
+        } catch {
+          setStatus('not-running');
+        }
+      };
+
+      checkOllamaStatus();
+    }, []);
+
+    if (status === 'checking') {
+      return (
+        <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
+          <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
+          <span>Checking Ollama status...</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`flex items-center gap-2 ${status === 'running' ? 'text-green-500' : 'text-red-500'}`}>
+        <div className={`i-ph:${status === 'running' ? 'check-circle' : 'x-circle'} w-4 h-4`} />
+        <span>
+          {status === 'running' ? 'Ollama is running' : 'Ollama is not running - Please start Ollama service'}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -481,12 +605,19 @@ export default function LocalProvidersTab() {
                     className="mt-4"
                   >
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm text-bolt-elements-textSecondary">API Endpoint</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm text-bolt-elements-textSecondary">API Endpoint</label>
+                        {editingProvider === provider.name && (
+                          <span className="text-xs text-purple-500">Press Enter to save, Escape to cancel</span>
+                        )}
+                      </div>
                       {editingProvider === provider.name ? (
                         <input
                           type="text"
-                          defaultValue={provider.settings.baseUrl || OLLAMA_API_URL}
-                          placeholder="Enter Ollama base URL"
+                          defaultValue={
+                            provider.settings.baseUrl || DEFAULT_URLS[provider.name as keyof typeof DEFAULT_URLS]
+                          }
+                          placeholder={`Enter ${provider.name} base URL`}
                           className={classNames(
                             'w-full px-3 py-2 rounded-lg text-sm',
                             'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
@@ -516,10 +647,13 @@ export default function LocalProvidersTab() {
                         >
                           <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
                             <div className="i-ph:link text-sm" />
-                            <span>{provider.settings.baseUrl || OLLAMA_API_URL}</span>
+                            <span>
+                              {provider.settings.baseUrl || DEFAULT_URLS[provider.name as keyof typeof DEFAULT_URLS]}
+                            </span>
                           </div>
                         </div>
                       )}
+                      <UrlConfigInfo provider={provider} />
                     </div>
                   </motion.div>
                 )}
@@ -624,6 +758,9 @@ export default function LocalProvidersTab() {
                   <OllamaModelInstaller onModelInstalled={fetchOllamaModels} />
                 </motion.div>
               )}
+
+              {/* Ollama Status Section */}
+              {provider.name === 'Ollama' && <OllamaStatus />}
             </motion.div>
           ))}
 
@@ -699,7 +836,12 @@ export default function LocalProvidersTab() {
                         className="mt-4"
                       >
                         <div className="flex flex-col gap-2">
-                          <label className="text-sm text-bolt-elements-textSecondary">API Endpoint</label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm text-bolt-elements-textSecondary">API Endpoint</label>
+                            {editingProvider === provider.name && (
+                              <span className="text-xs text-purple-500">Press Enter to save, Escape to cancel</span>
+                            )}
+                          </div>
                           {editingProvider === provider.name ? (
                             <input
                               type="text"
@@ -738,6 +880,7 @@ export default function LocalProvidersTab() {
                               </div>
                             </div>
                           )}
+                          <UrlConfigInfo provider={provider} />
                         </div>
                       </motion.div>
                     )}
