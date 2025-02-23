@@ -3,6 +3,8 @@ import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import * as ContextMenu from '@radix-ui/react-context-menu';
+import type { FileHistory } from '~/types/actions';
+import { diffLines, type Change } from 'diff';
 
 const logger = createScopedLogger('FileTree');
 
@@ -19,6 +21,7 @@ interface Props {
   allowFolderSelection?: boolean;
   hiddenFiles?: Array<string | RegExp>;
   unsavedFiles?: Set<string>;
+  fileHistory?: Record<string, FileHistory>;
   className?: string;
 }
 
@@ -34,6 +37,7 @@ export const FileTree = memo(
     hiddenFiles,
     className,
     unsavedFiles,
+    fileHistory = {},
   }: Props) => {
     renderLogger.trace('FileTree');
 
@@ -138,6 +142,7 @@ export const FileTree = memo(
                   selected={selectedFile === fileOrFolder.fullPath}
                   file={fileOrFolder}
                   unsavedChanges={unsavedFiles?.has(fileOrFolder.fullPath)}
+                  fileHistory={fileHistory}
                   onCopyPath={() => {
                     onCopyPath(fileOrFolder);
                   }}
@@ -253,19 +258,55 @@ interface FileProps {
   file: FileNode;
   selected: boolean;
   unsavedChanges?: boolean;
+  fileHistory?: Record<string, FileHistory>;
   onCopyPath: () => void;
   onCopyRelativePath: () => void;
   onClick: () => void;
 }
 
 function File({
-  file: { depth, name },
+  file: { depth, name, fullPath },
   onClick,
   onCopyPath,
   onCopyRelativePath,
   selected,
   unsavedChanges = false,
+  fileHistory = {},
 }: FileProps) {
+  const fileModifications = fileHistory[fullPath];
+  const hasModifications = fileModifications !== undefined;
+
+  // Calculate added and removed lines from the most recent changes
+  const { additions, deletions } = useMemo(() => {
+    if (!fileModifications?.originalContent) return { additions: 0, deletions: 0 };
+
+    // Usar a mesma lógica do DiffView para processar as mudanças
+    const normalizedOriginal = fileModifications.originalContent.replace(/\r\n/g, '\n');
+    const normalizedCurrent = fileModifications.versions[fileModifications.versions.length - 1]?.content.replace(/\r\n/g, '\n') || '';
+
+    if (normalizedOriginal === normalizedCurrent) {
+      return { additions: 0, deletions: 0 };
+    }
+
+    const changes = diffLines(normalizedOriginal, normalizedCurrent, {
+      newlineIsToken: false,
+      ignoreWhitespace: true,
+      ignoreCase: false
+    });
+
+    return changes.reduce((acc: { additions: number; deletions: number }, change: Change) => {
+      if (change.added) {
+        acc.additions += change.value.split('\n').length;
+      }
+      if (change.removed) {
+        acc.deletions += change.value.split('\n').length;
+      }
+      return acc;
+    }, { additions: 0, deletions: 0 });
+  }, [fileModifications]);
+
+  const showStats = additions > 0 || deletions > 0;
+
   return (
     <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath}>
       <NodeButton
@@ -286,7 +327,21 @@ function File({
           })}
         >
           <div className="flex-1 truncate pr-2">{name}</div>
-          {unsavedChanges && <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />}
+          <div className="flex items-center gap-1">
+            {showStats && (
+              <div className="flex items-center gap-1 text-xs">
+                {additions > 0 && (
+                  <span className="text-green-500">+{additions}</span>
+                )}
+                {deletions > 0 && (
+                  <span className="text-red-500">-{deletions}</span>
+                )}
+              </div>
+            )}
+            {unsavedChanges && (
+              <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />
+            )}
+          </div>
         </div>
       </NodeButton>
     </FileContextMenu>

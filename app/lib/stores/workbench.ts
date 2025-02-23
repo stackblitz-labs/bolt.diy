@@ -19,7 +19,6 @@ import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert } from '~/types/actions';
 
-// Destructure saveAs from the CommonJS module
 const { saveAs } = fileSaver;
 
 export interface ArtifactState {
@@ -34,7 +33,7 @@ export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
 
 type Artifacts = MapStore<Record<string, ArtifactState>>;
 
-export type WorkbenchViewType = 'code' | 'preview';
+export type WorkbenchViewType = 'code' | 'diff' | 'preview';
 
 export class WorkbenchStore {
   #previewsStore = new PreviewsStore(webcontainer);
@@ -437,13 +436,7 @@ export class WorkbenchStore {
     return syncedFiles;
   }
 
-  async pushToGitHub(
-    repoName: string,
-    commitMessage?: string,
-    githubUsername?: string,
-    ghToken?: string,
-    isPrivate: boolean = false,
-  ) {
+  async pushToGitHub(repoName: string, commitMessage?: string, githubUsername?: string, ghToken?: string) {
     try {
       // Use cookies if username and token are not provided
       const githubToken = ghToken || Cookies.get('githubToken');
@@ -467,7 +460,7 @@ export class WorkbenchStore {
           // Repository doesn't exist, so create a new one
           const { data: newRepo } = await octokit.repos.createForAuthenticatedUser({
             name: repoName,
-            private: isPrivate,
+            private: false,
             auto_init: true,
           });
           repo = newRepo;
@@ -545,7 +538,7 @@ export class WorkbenchStore {
         sha: newCommit.sha,
       });
 
-      return repo.html_url; // Return the URL instead of showing alert
+      alert(`Repository created and code pushed: ${repo.html_url}`);
     } catch (error) {
       console.error('Error pushing to GitHub:', error);
       throw error; // Rethrow the error for further handling
