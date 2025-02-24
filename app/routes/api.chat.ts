@@ -73,7 +73,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let summary: string | undefined = undefined;
         let messageSliceId = 0;
 
-        if (messages.length > 3) {
+        if (messages.length > 3 && messages.length !== 4) {
           messageSliceId = messages.length - 3;
         }
 
@@ -89,6 +89,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
           // Create a summary of the chat
           console.log(`Messages count: ${messages.length}`);
+          console.log(`Files count: ${filePaths.length}`);
 
           summary = await createSummary({
             messages: [...messages],
@@ -207,6 +208,35 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 order: progressCounter++,
                 message: 'Response Generated',
               } satisfies ProgressAnnotation);
+
+              /*
+               * if (contextOptimization) {
+               *   await generateResponses({
+               *     messages: [...messages],
+               *     assistantResponse: content,
+               *     env: context.cloudflare?.env,
+               *     apiKeys,
+               *     providerSettings,
+               *     promptId,
+               *     contextOptimization,
+               *     summary: summary || "",
+               *     onFinish(resp) {
+               *       if (resp.usage) {
+               *         logger.debug('selectContext token usage', JSON.stringify(resp.usage));
+               *         cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
+               *         cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+               *         cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
+               *       }
+               *     },
+               *   })
+               *   then((tasks)=>{
+               *     messages=[...messages,...tasks]
+               *   })
+               *   .catch((e)=>{
+               *     logger.error(e)
+               *   })
+               * }
+               */
               await new Promise((resolve) => setTimeout(resolve, 0));
 
               // stream.close();
