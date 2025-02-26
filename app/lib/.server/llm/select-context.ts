@@ -204,7 +204,8 @@ export async function selectContext(props: {
     }
 
     if (!filePaths.includes(fullPath)) {
-      throw new Error(`File ${path} is not in the list of files above.`);
+      logger.warn(`File ${path} is not in the list of available files.`);
+      return;
     }
 
     if (currrentFiles.includes(path)) {

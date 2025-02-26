@@ -111,6 +111,7 @@ ${summary.summary}`;
 - **Current Phase**: {phase}
 - **Tech Stack**: {languages}, {frameworks}, {key_dependencies}
 - **Environment**: {critical_env_details}
+- **Core Requirements**:{detailed_user_requirements}
 
 # Conversation Context
 - **Last Topic**: {main_discussion_point}
@@ -146,6 +147,9 @@ ${summary.summary}`;
 - **Immediate**: {next_steps}
 - **Open Questions**: {unresolved_issues}
 
+# Current Plan
+- {list of todo to address current request}
+
 ---
 Note:
 4. Keep entries concise and focused on information needed for continuity
@@ -158,6 +162,7 @@ Note:
         * Do not provide any new information.
         * DO not need to think too much just start writing imidiately
         * do not write any thing other that the summary with with the provided structure
+        * break the requirements into smaller parts and do not miss any crucial details capture all of them
         `,
     prompt: `
 

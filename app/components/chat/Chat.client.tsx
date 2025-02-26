@@ -317,12 +317,21 @@ export const ChatImpl = memo(
             });
 
             if (temResp) {
-              const { assistantMessage, userMessage } = temResp;
+              const { assistantMessage, userMessage, files: templateFiles } = temResp;
               setMessages([
                 {
                   id: `${new Date().getTime()}`,
                   role: 'user',
-                  content: messageContent,
+                  content: [
+                    {
+                      type: 'text',
+                      text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${messageContent}`,
+                    },
+                    ...imageDataList.map((imageData) => ({
+                      type: 'image',
+                      image: imageData,
+                    })),
+                  ] as any,
                 },
                 {
                   id: `${new Date().getTime()}`,
@@ -336,7 +345,14 @@ export const ChatImpl = memo(
                   annotations: ['hidden'],
                 },
               ]);
-              reload();
+              reload({
+                body: {
+                  apiKeys,
+                  files: templateFiles,
+                  promptId,
+                  contextOptimization: contextOptimizationEnabled,
+                },
+              });
               setFakeLoading(false);
 
               return;
@@ -361,7 +377,14 @@ export const ChatImpl = memo(
             ] as any,
           },
         ]);
-        reload();
+        reload({
+          body: {
+            apiKeys,
+            files,
+            promptId,
+            contextOptimization: contextOptimizationEnabled,
+          },
+        });
         setFakeLoading(false);
 
         return;

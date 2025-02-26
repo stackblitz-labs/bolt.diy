@@ -18,11 +18,12 @@ interface MessagesProps {
   className?: string;
   isStreaming?: boolean;
   messages?: Message[];
+  onSuggestionClick?: (task: string) => void;
 }
 
 export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
   (props: MessagesProps, ref: ForwardedRef<HTMLDivElement> | undefined) => {
-    const { id, isStreaming = false, messages = [] } = props;
+    const { id, isStreaming = false, messages = [], onSuggestionClick } = props;
     const location = useLocation();
     const profile = useStore(profileStore);
 
@@ -89,7 +90,13 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                     {isUserMessage ? (
                       <UserMessage content={content} />
                     ) : (
-                      <AssistantMessage content={content} annotations={message.annotations} />
+                      <AssistantMessage
+                        content={content}
+                        annotations={message.annotations}
+                        isLast={isLast}
+                        isStreaming={isStreaming}
+                        onSuggestionClick={onSuggestionClick}
+                      />
                     )}
                   </div>
                   {!isUserMessage && (
