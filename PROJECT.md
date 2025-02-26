@@ -14,20 +14,15 @@ Here's how we structure long-term vision, mid-term capabilities of the software 
 Strategic epics define areas in which the product evolves. Usually, these epics don’t overlap. They shall allow the core
 team to define what they believe is most important and should be worked on with the highest priority.
 
-You can find the [epics as issues](https://github.com/stackblitz-labs/bolt.diy/labels/epic) which are probably never
-going to be closed.
+You can find the [epics as issues](https://github.com/stackblitz-labs/bolt.diy/labels/epic) which are probably nevern going to be closed.
 
 What's the benefit / purpose of epics?
 
 1. Prioritization
 
-E. g. we could say “managing files is currently more important that quality”. Then, we could thing about which features
-would bring “managing files” forward. It may be different features, such as “upload local files”, “import from a repo”
-or also undo/redo/commit.
+E. g. we could say “managing files is currently more important that quality”. Then, we could think about which features would bring “managing files” forward. It may be different features, such as “upload local files”, “import from a repo” or also undo/redo/commit.
 
-In a more-or-less regular meeting dedicated for that, the core team discusses which epics matter most, sketch features
-and then check who can work on them. After the meeting, they update the roadmap (at least for the next development turn)
-and this way communicate where the focus currently is.
+In a more-or-less regular meeting dedicated for that, the core team discusses which epics matter most, sketch features and then check who can work on them. After the meeting, they update the roadmap (at least for the next development turn) and this way communicate where the focus currently is.
 
 2. Grouping of features
 
