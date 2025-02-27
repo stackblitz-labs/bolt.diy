@@ -7,7 +7,6 @@ import { bufferWatchEvents } from '~/utils/buffer';
 import { WORK_DIR } from '~/utils/constants';
 import { computeFileModifications } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
-import { unreachable } from '~/utils/unreachable';
 
 const logger = createScopedLogger('FilesStore');
 
@@ -113,10 +112,11 @@ export class FilesStore {
         throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
       }
 
-      const oldContent = this.getFile(filePath)?.content;
+      let oldContent = this.getFile(filePath)?.content;
 
       if (!oldContent) {
-        unreachable('Expected content to be defined');
+        console.warn(`File content not found for ${filePath}. Maybe new file?`);
+        oldContent = '';
       }
 
       await webcontainer.fs.writeFile(relativePath, content);
