@@ -319,6 +319,7 @@ export class ActionRunner {
       const webcontainer = await this.#webcontainer;
       const historyPath = this.#getHistoryPath(filePath);
       const content = await webcontainer.fs.readFile(historyPath, 'utf-8');
+
       return JSON.parse(content);
     } catch (error) {
       return null;
@@ -333,7 +334,7 @@ export class ActionRunner {
       type: 'file',
       filePath: historyPath,
       content: JSON.stringify(history),
-      changeSource: 'auto-save'
+      changeSource: 'auto-save',
     } as any);
   }
 

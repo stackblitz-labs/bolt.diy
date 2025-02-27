@@ -73,16 +73,16 @@ export default class AnthropicProvider extends BaseProvider {
     }));
   }
 
-  getModelInstance: (options: {
+  getModelInstance(options: {
     model: string;
-    serverEnv: Env;
+    serverEnv?: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }) => LanguageModelV1 = (options) => {
+  }): LanguageModelV1 {
     const { apiKeys, providerSettings, serverEnv, model } = options;
     const { apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
-      providerSettings,
+      providerSettings: providerSettings?.[this.name],
       serverEnv: serverEnv as any,
       defaultBaseUrlKey: '',
       defaultApiTokenKey: 'ANTHROPIC_API_KEY',
@@ -92,5 +92,5 @@ export default class AnthropicProvider extends BaseProvider {
     });
 
     return anthropic(model);
-  };
+  }
 }

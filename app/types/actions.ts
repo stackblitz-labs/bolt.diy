@@ -43,6 +43,7 @@ export interface FileHistory {
     timestamp: number;
     content: string;
   }[];
+
   // Novo campo para rastrear a origem das mudanças
   changeSource?: 'user' | 'auto-save' | 'external';
 }

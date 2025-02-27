@@ -73,6 +73,7 @@ const getInitialProviderSettings = (): ProviderSetting => {
       settings: {
         // Local providers should be disabled by default
         enabled: !LOCAL_PROVIDERS.includes(provider.name),
+        apiKey: '', // Add the required apiKey property
       },
     };
   });

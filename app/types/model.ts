@@ -15,6 +15,7 @@ export type ProviderInfo = {
 };
 
 export interface IProviderSetting {
+  apiKey: string;
   enabled?: boolean;
   baseUrl?: string;
 }

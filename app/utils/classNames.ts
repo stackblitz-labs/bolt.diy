@@ -24,6 +24,9 @@ export function classNames(...args: ClassNamesArg[]): string {
   return classes;
 }
 
+// Export cn as an alias for classNames for convenience
+export const cn = classNames;
+
 function parseValue(arg: ClassNamesArg) {
   if (typeof arg === 'string' || typeof arg === 'number') {
     return arg;
