@@ -4,11 +4,6 @@ import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { genericMemo } from '~/utils/react';
 
-interface SliderOption<T> {
-  value: T;
-  text: string;
-}
-
 export type SliderOptions<T> = {
   left: { value: T; text: string };
   middle?: { value: T; text: string };
@@ -31,14 +26,17 @@ export const Slider = genericMemo(<T,>({ selected, options, setSelected }: Slide
       <SliderButton selected={isLeftSelected} setSelected={() => setSelected?.(options.left.value)}>
         {options.left.text}
       </SliderButton>
-      
+
       {options.middle && (
         <SliderButton selected={isMiddleSelected} setSelected={() => setSelected?.(options.middle!.value)}>
           {options.middle.text}
         </SliderButton>
       )}
-      
-      <SliderButton selected={!isLeftSelected && !isMiddleSelected} setSelected={() => setSelected?.(options.right.value)}>
+
+      <SliderButton
+        selected={!isLeftSelected && !isMiddleSelected}
+        setSelected={() => setSelected?.(options.right.value)}
+      >
         {options.right.text}
       </SliderButton>
     </div>

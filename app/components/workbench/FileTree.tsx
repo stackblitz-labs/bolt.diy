@@ -274,15 +274,19 @@ function File({
   fileHistory = {},
 }: FileProps) {
   const fileModifications = fileHistory[fullPath];
-  const hasModifications = fileModifications !== undefined;
+
+  // const hasModifications = fileModifications !== undefined;
 
   // Calculate added and removed lines from the most recent changes
   const { additions, deletions } = useMemo(() => {
-    if (!fileModifications?.originalContent) return { additions: 0, deletions: 0 };
+    if (!fileModifications?.originalContent) {
+      return { additions: 0, deletions: 0 };
+    }
 
     // Usar a mesma lógica do DiffView para processar as mudanças
     const normalizedOriginal = fileModifications.originalContent.replace(/\r\n/g, '\n');
-    const normalizedCurrent = fileModifications.versions[fileModifications.versions.length - 1]?.content.replace(/\r\n/g, '\n') || '';
+    const normalizedCurrent =
+      fileModifications.versions[fileModifications.versions.length - 1]?.content.replace(/\r\n/g, '\n') || '';
 
     if (normalizedOriginal === normalizedCurrent) {
       return { additions: 0, deletions: 0 };
@@ -291,18 +295,23 @@ function File({
     const changes = diffLines(normalizedOriginal, normalizedCurrent, {
       newlineIsToken: false,
       ignoreWhitespace: true,
-      ignoreCase: false
+      ignoreCase: false,
     });
 
-    return changes.reduce((acc: { additions: number; deletions: number }, change: Change) => {
-      if (change.added) {
-        acc.additions += change.value.split('\n').length;
-      }
-      if (change.removed) {
-        acc.deletions += change.value.split('\n').length;
-      }
-      return acc;
-    }, { additions: 0, deletions: 0 });
+    return changes.reduce(
+      (acc: { additions: number; deletions: number }, change: Change) => {
+        if (change.added) {
+          acc.additions += change.value.split('\n').length;
+        }
+
+        if (change.removed) {
+          acc.deletions += change.value.split('\n').length;
+        }
+
+        return acc;
+      },
+      { additions: 0, deletions: 0 },
+    );
   }, [fileModifications]);
 
   const showStats = additions > 0 || deletions > 0;
@@ -330,17 +339,11 @@ function File({
           <div className="flex items-center gap-1">
             {showStats && (
               <div className="flex items-center gap-1 text-xs">
-                {additions > 0 && (
-                  <span className="text-green-500">+{additions}</span>
-                )}
-                {deletions > 0 && (
-                  <span className="text-red-500">-{deletions}</span>
-                )}
+                {additions > 0 && <span className="text-green-500">+{additions}</span>}
+                {deletions > 0 && <span className="text-red-500">-{deletions}</span>}
               </div>
             )}
-            {unsavedChanges && (
-              <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />
-            )}
+            {unsavedChanges && <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />}
           </div>
         </div>
       </NodeButton>
