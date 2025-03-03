@@ -16,6 +16,7 @@ import XAIProvider from './providers/xai';
 import HyperbolicProvider from './providers/hyperbolic';
 import AmazonBedrockProvider from './providers/amazon-bedrock';
 import GithubProvider from './providers/github';
+import PollinationsProvider from './providers/pollinations';
 
 export {
   AnthropicProvider,
@@ -36,4 +37,5 @@ export {
   LMStudioProvider,
   AmazonBedrockProvider,
   GithubProvider,
+  PollinationsProvider,
 };
