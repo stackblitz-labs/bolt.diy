@@ -91,6 +91,6 @@ export default class AnthropicProvider extends BaseProvider {
       apiKey,
     });
 
-    return anthropic(model);
+    return anthropic(model, { cacheControl: true });
   };
 }
