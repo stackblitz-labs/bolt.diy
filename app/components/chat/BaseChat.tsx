@@ -39,6 +39,12 @@ import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
+/*
+ * Flag to use only fallback method
+ * const USE_ONLY_FALLBACK = true;
+ */
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
@@ -257,24 +263,127 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const handleFileUpload = () => {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*';
+      input.accept = 'image/*,.txt,.md,.docx,.pdf';
+      input.multiple = true;
 
       input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
+        const selectedFiles = Array.from((e.target as HTMLInputElement).files || []);
 
-        if (file) {
-          const reader = new FileReader();
-
-          reader.onload = (e) => {
-            const base64Image = e.target?.result as string;
-            setUploadedFiles?.([...uploadedFiles, file]);
-            setImageDataList?.([...imageDataList, base64Image]);
-          };
-          reader.readAsDataURL(file);
+        if (selectedFiles.length === 0) {
+          return;
         }
+
+        // We process all types of files now
+        processSelectedFiles(selectedFiles);
+      };
+
+      // Helper function to process selected files
+      const processSelectedFiles = (filesToProcess: File[]) => {
+        // Prepare arrays for new files
+        const newUploadedFiles = [...uploadedFiles, ...filesToProcess];
+        const newImageDataList = [...imageDataList];
+
+        // Add placeholders for all files first
+        filesToProcess.forEach((file) => {
+          if (file.type.startsWith('image/')) {
+            newImageDataList.push('loading-image');
+          } else {
+            newImageDataList.push('non-image');
+          }
+        });
+
+        // Update state once with all files
+        setUploadedFiles?.(newUploadedFiles);
+        setImageDataList?.(newImageDataList);
+
+        // Process the files
+        filesToProcess.forEach((file, fileIndex) => {
+          const actualIndex = uploadedFiles.length + fileIndex;
+
+          if (file.type.startsWith('image/')) {
+            // Process image
+            processImageFile(file, actualIndex);
+          } else if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+            // Process text file to show preview
+            previewTextFile(file, actualIndex);
+          }
+        });
       };
 
       input.click();
+    };
+
+    // Function to process image files
+    const processImageFile = (file: File, _index: number) => {
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        if (setImageDataList) {
+          const result = (e.target?.result as string) || 'non-image';
+          const newImageDataList = [...imageDataList];
+          newImageDataList[_index] = result;
+          setImageDataList(newImageDataList);
+        }
+      };
+
+      reader.onerror = () => {
+        console.error('Error reading file:', file.name);
+
+        if (setImageDataList) {
+          const newImageDataList = [...imageDataList];
+          newImageDataList[_index] = 'non-image';
+          setImageDataList(newImageDataList);
+        }
+      };
+
+      reader.readAsDataURL(file);
+    };
+
+    // Function to process text files and show preview
+    const previewTextFile = (file: File, _index: number) => {
+      // If it's a PDF or DOCX file, show a special preview
+      if (
+        file.type === 'application/pdf' ||
+        file.name.endsWith('.pdf') ||
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.name.endsWith('.docx')
+      ) {
+        toast.info(
+          <div>
+            <div className="font-bold">Document file attached:</div>
+            <div className="text-xs text-gray-200 bg-gray-800 p-2 mt-1 rounded flex items-center">
+              <div
+                className={
+                  file.type === 'application/pdf' || file.name.endsWith('.pdf')
+                    ? 'i-ph:file-pdf text-red-500 mr-2'
+                    : 'i-ph:file-doc text-blue-500 mr-2'
+                }
+                style={{ fontSize: '1.25rem' }}
+              ></div>
+              <div>
+                <div>{file.name}</div>
+                <div className="text-xs text-gray-400">
+                  {Math.round(file.size / 1024)} KB - Text will be extracted when sending
+                </div>
+              </div>
+            </div>
+          </div>,
+          { autoClose: 4000 },
+        );
+
+        return;
+      }
+
+      // For other file types, maintain previous behavior
+      toast.info(
+        <div>
+          <div className="font-bold">File attached:</div>
+          <div className="text-xs text-gray-200 bg-gray-800 p-2 mt-1 rounded">
+            {file.name} ({Math.round(file.size / 1024)} KB)
+          </div>
+        </div>,
+        { autoClose: 3000 },
+      );
     };
 
     const handlePaste = async (e: React.ClipboardEvent) => {
@@ -284,26 +393,86 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
-      for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          e.preventDefault();
+      // Check if there are files in the clipboard
+      const clipboardFiles: File[] = [];
 
+      for (const item of items) {
+        if (item.kind === 'file') {
           const file = item.getAsFile();
 
           if (file) {
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-              const base64Image = e.target?.result as string;
-              setUploadedFiles?.([...uploadedFiles, file]);
-              setImageDataList?.([...imageDataList, base64Image]);
-            };
-            reader.readAsDataURL(file);
+            clipboardFiles.push(file);
           }
-
-          break;
         }
       }
+
+      if (clipboardFiles && clipboardFiles.length > 0) {
+        // If there are PDF or DOCX files, check possible filters
+        if (
+          clipboardFiles.some(
+            (file) =>
+              file.type === 'application/pdf' ||
+              file.name.endsWith('.pdf') ||
+              file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+              file.name.endsWith('.docx'),
+          )
+        ) {
+          // Filter large files
+          const filteredFiles = clipboardFiles.filter((file) => file.size <= MAX_FILE_SIZE);
+
+          if (filteredFiles.length < clipboardFiles.length) {
+            toast.warning('Some files were ignored because they exceed the maximum size of 5MB.');
+
+            // Continue only with valid files
+            processPastedFiles(filteredFiles);
+          } else {
+            processPastedFiles(clipboardFiles);
+          }
+        } else {
+          processPastedFiles(clipboardFiles);
+        }
+      }
+    };
+
+    // Helper function to process pasted files
+    const processPastedFiles = (filesToProcess: File[]) => {
+      // Prepare arrays for new files
+      const newUploadedFiles = [...uploadedFiles, ...filesToProcess];
+      const newImageDataList = [...imageDataList];
+
+      // Add placeholders for all files first
+      filesToProcess.forEach((file) => {
+        if (file.type.startsWith('image/')) {
+          newImageDataList.push('loading-image');
+        } else {
+          newImageDataList.push('non-image');
+        }
+      });
+
+      // Update state once with all files
+      setUploadedFiles?.(newUploadedFiles);
+      setImageDataList?.(newImageDataList);
+
+      // Process the files
+      filesToProcess.forEach((file, fileIndex) => {
+        const actualIndex = uploadedFiles.length + fileIndex;
+
+        if (file.type.startsWith('image/')) {
+          // Process image
+          processImageFile(file, actualIndex);
+        } else if (
+          file.type.includes('text') ||
+          file.name.endsWith('.txt') ||
+          file.name.endsWith('.md') ||
+          file.type === 'application/pdf' ||
+          file.name.endsWith('.pdf') ||
+          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+          file.name.endsWith('.docx')
+        ) {
+          // Process text file to show preview
+          previewTextFile(file, actualIndex);
+        }
+      });
     };
 
     const baseChat = (
@@ -464,29 +633,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }}
                       onDragOver={(e) => {
                         e.preventDefault();
-                        e.currentTarget.style.border = '2px solid #1488fc';
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+                        e.stopPropagation();
 
                         const files = Array.from(e.dataTransfer.files);
-                        files.forEach((file) => {
-                          if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
 
-                            reader.onload = (e) => {
-                              const base64Image = e.target?.result as string;
-                              setUploadedFiles?.([...uploadedFiles, file]);
-                              setImageDataList?.([...imageDataList, base64Image]);
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        });
+                        // Check if there are script files
+                        const hasScripts = files.some((file) => file.name.match(/\.(sh|bat|ps1)$/i));
+
+                        let filteredFiles = files;
+
+                        if (hasScripts) {
+                          toast.error(
+                            <div>
+                              <div className="font-bold">Script files not allowed</div>
+                              <div className="text-xs text-gray-200">
+                                For security reasons, script files (.sh, .bat, .ps1) are not supported.
+                              </div>
+                            </div>,
+                            { autoClose: 5000 },
+                          );
+
+                          // Remove script files
+                          filteredFiles = filteredFiles.filter(
+                            (file) =>
+                              !file.name.endsWith('.sh') && !file.name.endsWith('.bat') && !file.name.endsWith('.ps1'),
+                          );
+                        }
+
+                        if (filteredFiles.length === 0) {
+                          return;
+                        } // If there were only unsupported files, cancel processing
+
+                        // Process valid files
+                        processPastedFiles(filteredFiles);
                       }}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
@@ -542,9 +721,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </ClientOnly>
                     <div className="flex justify-between items-center text-sm p-4 pt-2">
                       <div className="flex gap-1 items-center">
-                        <IconButton title="Upload file" className="transition-all" onClick={() => handleFileUpload()}>
-                          <div className="i-ph:paperclip text-xl"></div>
-                        </IconButton>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <IconButton
+                              title="Upload file"
+                              className="transition-all"
+                              onClick={() => handleFileUpload()}
+                            >
+                              <div className="i-ph:paperclip text-xl"></div>
+                            </IconButton>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              className="bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary p-2 rounded-md text-xs border border-bolt-elements-borderColor max-w-xs"
+                              sideOffset={5}
+                            >
+                              <p>Attach files</p>
+                              <div className="text-bolt-elements-textSecondary mt-1">
+                                <p>Supported formats:</p>
+                                <p className="mt-1">• Images: png, jpg, jpeg, gif, etc.</p>
+                                <p>• Text: txt, md, js, py, html, css, json, etc.</p>
+                                <p>• Documents: pdf, docx</p>
+                              </div>
+                              <Tooltip.Arrow className="fill-bolt-elements-background-depth-3" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
                         <IconButton
                           title="Enhance prompt"
                           disabled={input.length === 0 || enhancingPrompt}
