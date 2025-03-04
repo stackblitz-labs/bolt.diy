@@ -54,6 +54,16 @@ export function simplifyBoltActions(input: string): string {
   });
 }
 
+export function simplifyBundledArtifacts(input: string): string {
+  // Using regex to match buldled boltArtifact tags
+  const regex = /(<boltArtifact[^>]*type="bundled"[^>]*>)([\s\S]*?)(<\/boltArtifact>)/g;
+
+  // Replace each matching occurrence
+  return input.replace(regex, (_0, _1, _2, _3) => {
+    return `[[Imported Code Files]]`;
+  });
+}
+
 export function createFilesContext(files: FileMap, useRelativePath?: boolean) {
   const ig = ignore().add(IGNORE_PATTERNS);
   let filePaths = Object.keys(files);

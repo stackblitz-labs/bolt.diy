@@ -334,12 +334,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <ClientOnly>
                 {() => {
                   return chatStarted ? (
-                    <Messages
-                      ref={messageRef}
-                      className="flex flex-col w-full flex-1 max-w-chat pb-6 mx-auto z-1"
-                      messages={messages}
-                      isStreaming={isStreaming}
-                    />
+                    <div className="flex-1 w-full max-w-chat pb-6 mx-auto z-1">
+                      <Messages
+                        ref={messageRef}
+                        className="flex flex-col "
+                        messages={messages}
+                        isStreaming={isStreaming}
+                        onSuggestionClick={(task) => {
+                          sendMessage?.({} as any, task);
+                        }}
+                      />
+                    </div>
                   ) : null;
                 }}
               </ClientOnly>
