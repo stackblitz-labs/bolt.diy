@@ -125,6 +125,25 @@ export const ChatImpl = memo(
     const actionAlert = useStore(workbenchStore.alert);
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
 
+    function isPromptCachingEnabled(): boolean {
+      // Server-side default
+      if (typeof window === 'undefined') {
+        console.log('Server-side: isPromptCachingEnabled: window undefined');
+        return false;
+      }
+
+      try {
+        // Read from localStorage in browser
+        const savedState = localStorage.getItem('PROMPT_CACHING_ENABLED');
+        console.log('Saved prompt caching state:', savedState);
+
+        return savedState !== null ? JSON.parse(savedState) : false;
+      } catch (error) {
+        console.error('Error reading prompt caching setting:', error);
+        return false; // Default to true if reading fails
+      }
+    }
+
     const [model, setModel] = useState(() => {
       const savedModel = Cookies.get('selectedModel');
       return savedModel || DEFAULT_MODEL;
@@ -160,6 +179,7 @@ export const ChatImpl = memo(
         files,
         promptId,
         contextOptimization: contextOptimizationEnabled,
+        isPromptCachingEnabled: provider.name === 'Anthropic' && isPromptCachingEnabled(),
       },
       sendExtraMessageFields: true,
       onError: (e) => {

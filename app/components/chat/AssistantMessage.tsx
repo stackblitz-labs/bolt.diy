@@ -55,7 +55,12 @@ export const AssistantMessage = memo(({ content, annotations }: AssistantMessage
     completionTokens: number;
     promptTokens: number;
     totalTokens: number;
-  } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value;
+    isCacheHit?: boolean;
+    isCacheMiss?: boolean;
+  } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value ?? undefined;
+
+  const cacheHitMsg = usage?.isCacheHit ? ' [Cache Hit]' : '';
+  const cacheMissMsg = usage?.isCacheMiss ? ' [Cache Miss]' : '';
 
   return (
     <div className="overflow-hidden w-full">
@@ -101,8 +106,10 @@ export const AssistantMessage = memo(({ content, annotations }: AssistantMessage
             </Popover>
           )}
           {usage && (
-            <div>
+            <div className="text-sm text-bolt-elements-textSecondary mb-2">
               Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
+              <span className="text-sm text-green-500 ml-1">{cacheHitMsg}</span>
+              <span className="text-sm text-red-500 ml-1">{cacheMissMsg}</span>
             </div>
           )}
         </div>
