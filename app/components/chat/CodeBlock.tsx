@@ -2,6 +2,7 @@ import { memo, useEffect, useState } from 'react';
 import { bundledLanguages, codeToHtml, isSpecialLang, type BundledLanguage, type SpecialLanguage } from 'shiki';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger } from '~/utils/logger';
+import { extractTextFromDocument } from '~/utils/documentUtils';
 
 import styles from './CodeBlock.module.scss';
 
@@ -10,22 +11,25 @@ const logger = createScopedLogger('CodeBlock');
 interface CodeBlockProps {
   className?: string;
   code: string;
-  language?: BundledLanguage | SpecialLanguage;
+  language?: BundledLanguage | SpecialLanguage | string;
   theme?: 'light-plus' | 'dark-plus';
   disableCopy?: boolean;
+  document?: File | Blob;
 }
 
 export const CodeBlock = memo(
-  ({ className, code, language = 'plaintext', theme = 'dark-plus', disableCopy = false }: CodeBlockProps) => {
+  ({ className, code, language = 'plaintext', theme = 'dark-plus', disableCopy = false, document }: CodeBlockProps) => {
     const [html, setHTML] = useState<string | undefined>(undefined);
     const [copied, setCopied] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [documentText, setDocumentText] = useState<string | null>(null);
 
     const copyToClipboard = () => {
       if (copied) {
         return;
       }
 
-      navigator.clipboard.writeText(code);
+      navigator.clipboard.writeText(documentText || code);
 
       setCopied(true);
 
@@ -35,21 +39,70 @@ export const CodeBlock = memo(
     };
 
     useEffect(() => {
-      if (language && !isSpecialLang(language) && !(language in bundledLanguages)) {
-        logger.warn(`Unsupported language '${language}'`);
+      if (document) {
+        setIsLoading(true);
+
+        const processDocument = async () => {
+          try {
+            const text = await extractTextFromDocument(document);
+            setDocumentText(text);
+            setHTML(`<pre class="shiki"><code>${text}</code></pre>`);
+          } catch (error) {
+            logger.error(`Error processing document: ${error}`);
+            setHTML(`<pre class="shiki"><code>Error processing document: ${error}</code></pre>`);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        processDocument();
+      }
+    }, [document]);
+
+    useEffect(() => {
+      if (document || isLoading) {
+        return;
       }
 
-      logger.trace(`Language = ${language}`);
+      const normalizeLanguage = (lang: string): string => {
+        if (lang === 'tool_code') {
+          return 'plaintext';
+        }
+
+        if (!isSpecialLang(lang as any) && !(lang in bundledLanguages)) {
+          logger.warn(`Unsupported language '${lang}', falling back to plaintext`);
+          return 'plaintext';
+        }
+
+        return lang;
+      };
+
+      const normalizedLanguage = normalizeLanguage(language);
+
+      logger.trace(`Language = ${normalizedLanguage} (originally ${language})`);
 
       const processCode = async () => {
-        setHTML(await codeToHtml(code, { lang: language, theme }));
+        try {
+          setHTML(await codeToHtml(code, { lang: normalizedLanguage, theme }));
+        } catch (error) {
+          logger.error(`Error highlighting code: ${error}`);
+          setHTML(`<pre class="shiki"><code>${code}</code></pre>`);
+        }
       };
 
       processCode();
-    }, [code]);
+    }, [code, language, document, isLoading]);
 
     return (
       <div className={classNames('relative group text-left', className)}>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-opacity-50 bg-gray-800 z-20">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin h-8 w-8 border-4 border-t-transparent border-bolt-elements-loader-progress rounded-full"></div>
+              <span className="mt-2 text-sm text-bolt-elements-textSecondary">Processing document...</span>
+            </div>
+          </div>
+        )}
         <div
           className={classNames(
             styles.CopyButtonContainer,

@@ -395,12 +395,12 @@ const NoChangesView = memo(
   ),
 );
 
-// Otimização do processamento de diferenças com memoização
+// Optimization of differences processing with memoization
 const useProcessChanges = (beforeCode: string, afterCode: string) => {
   return useMemo(() => processChanges(beforeCode, afterCode), [beforeCode, afterCode]);
 };
 
-// Componente otimizado para renderização de linhas de código
+// Optimized component for rendering code lines
 const CodeLine = memo(
   ({
     lineNumber,
@@ -469,7 +469,7 @@ const CodeLine = memo(
   },
 );
 
-// Componente para exibir informações sobre o arquivo
+// Component to display file information
 const FileInfo = memo(
   ({
     filename,
@@ -641,13 +641,13 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
       const existingHistory = fileHistory[selectedFile];
       const currentContent = currentDocument.value;
 
-      // Normalizar o conteúdo para comparação
+      // Normalize content for comparison
       const normalizedCurrentContent = currentContent.replace(/\r\n/g, '\n').trim();
       const normalizedOriginalContent = (existingHistory?.originalContent || file.content)
         .replace(/\r\n/g, '\n')
         .trim();
 
-      // Se não há histórico existente, criar um novo apenas se houver diferenças
+      // If there's no existing history, create a new one only if there are differences
       if (!existingHistory) {
         if (normalizedCurrentContent !== normalizedOriginalContent) {
           const newChanges = diffLines(file.content, currentContent);
@@ -671,22 +671,22 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
         return;
       }
 
-      // Se já existe histórico, verificar se há mudanças reais desde a última versão
+      // If history already exists, check if there are real changes since the last version
       const lastVersion = existingHistory.versions[existingHistory.versions.length - 1];
       const normalizedLastContent = lastVersion?.content.replace(/\r\n/g, '\n').trim();
 
       if (normalizedCurrentContent === normalizedLastContent) {
-        return; // Não criar novo histórico se o conteúdo é o mesmo
+        return; // Don't create new history if the content is the same
       }
 
-      // Verificar se há mudanças significativas usando diffFiles
+      // Check for significant changes using diffFiles
       const relativePath = extractRelativePath(selectedFile);
       const unifiedDiff = diffFiles(relativePath, existingHistory.originalContent, currentContent);
 
       if (unifiedDiff) {
         const newChanges = diffLines(existingHistory.originalContent, currentContent);
 
-        // Verificar se as mudanças são significativas
+        // Check if changes are significant
         const hasSignificantChanges = newChanges.some(
           (change) => (change.added || change.removed) && change.value.trim().length > 0,
         );
@@ -695,14 +695,14 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
           const newHistory: FileHistory = {
             originalContent: existingHistory.originalContent,
             lastModified: Date.now(),
-            changes: [...existingHistory.changes, ...newChanges].slice(-100), // Limitar histórico de mudanças
+            changes: [...existingHistory.changes, ...newChanges].slice(-100), // Limit change history
             versions: [
               ...existingHistory.versions,
               {
                 timestamp: Date.now(),
                 content: currentContent,
               },
-            ].slice(-10), // Manter apenas as 10 últimas versões
+            ].slice(-10), // Keep only the last 10 versions
             changeSource: 'auto-save',
           };
 

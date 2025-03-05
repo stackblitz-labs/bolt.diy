@@ -26,6 +26,7 @@ import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTempla
 import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
+import { extractTextFromDocument } from '~/utils/documentUtils';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -296,12 +297,105 @@ export const ChatImpl = memo(
 
       runAnimation();
 
+      // Function to read file content as text
+      const readFileContent = async (file: File): Promise<string> => {
+        // For DOCX and PDF, use the specialized extractor
+        if (
+          file.type === 'application/pdf' ||
+          file.name.endsWith('.pdf') ||
+          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+          file.name.endsWith('.docx')
+        ) {
+          return extractTextFromDocument(file);
+        }
+
+        // For other file types, use the standard method
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onload = (e) => {
+            resolve((e.target?.result as string) || '');
+          };
+
+          reader.onerror = () => {
+            reject(new Error(`Error reading file ${file.name}`));
+          };
+          reader.readAsText(file);
+        });
+      };
+
+      // Prepare array to store file reading promises
+      const fileReadPromises: Promise<string>[] = [];
+      const fileNames: string[] = [];
+      const fileTypes: string[] = [];
+
+      // Start reading text files
+      uploadedFiles
+        .filter((file) => !file.type.startsWith('image/'))
+        .forEach((file) => {
+          fileNames.push(file.name);
+          fileTypes.push(file.type);
+          fileReadPromises.push(readFileContent(file));
+        });
+
+      // Wait for all files to be read
+      const fileContents = await Promise.all(fileReadPromises);
+
+      // Build information about files with content
+      const textFilesInfo = fileContents
+        .map((content, index) => {
+          const file = uploadedFiles.find((f) => f.name === fileNames[index]);
+          const fileSizeKB = file ? Math.round(file.size / 1024) : 0;
+          const fileName = fileNames[index];
+
+          // For DOCX and PDF files, add information about the document type
+          const isDocFile = fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.pdf');
+
+          const fileTypeLabel = fileName.toLowerCase().endsWith('.docx')
+            ? 'DOCX'
+            : fileName.toLowerCase().endsWith('.pdf')
+              ? 'PDF'
+              : '';
+
+          // For document files, use a special format
+          if (isDocFile) {
+            return (
+              `[File attached: ${fileName} (${fileSizeKB} KB) - ${fileTypeLabel} document]\n\n` +
+              `Extracted text from ${fileName}:\n` +
+              `\`\`\`\n${content}\n\`\`\``
+            );
+          }
+
+          // For markdown files (.md), send a special marker
+          if (fileName.toLowerCase().endsWith('.md')) {
+            return (
+              `[File attached: ${fileName} (${fileSizeKB} KB)]\n\n` +
+              `Content of file ${fileName} (being sent to backend):\n` +
+              `\`\`\`\n[Markdown file content sent only to backend]\n\`\`\`\n\n` +
+              `<!-- BACKEND_MARKDOWN_CONTENT_START -->\n` +
+              `Content of file ${fileName}:\n` +
+              `\`\`\`\n${content}\n\`\`\`\n` +
+              `<!-- BACKEND_MARKDOWN_CONTENT_END -->`
+            );
+          }
+
+          // For text files, use standard format
+          return (
+            `[File attached: ${fileName} (${fileSizeKB} KB)]\n\n` +
+            `Content of file ${fileName}:\n` +
+            `\`\`\`\n${content}\n\`\`\``
+          );
+        })
+        .join('\n\n');
+
+      const contentWithFilesInfo = textFilesInfo ? `${messageContent}\n\n${textFilesInfo}` : messageContent;
+
       if (!chatStarted) {
         setFakeLoading(true);
 
         if (autoSelectTemplate) {
           const { template, title } = await selectStarterTemplate({
-            message: messageContent,
+            message: contentWithFilesInfo,
             model,
             provider,
           });
@@ -323,7 +417,7 @@ export const ChatImpl = memo(
                 {
                   id: `1-${new Date().getTime()}`,
                   role: 'user',
-                  content: messageContent,
+                  content: contentWithFilesInfo,
                 },
                 {
                   id: `2-${new Date().getTime()}`,
@@ -353,12 +447,25 @@ export const ChatImpl = memo(
             content: [
               {
                 type: 'text',
-                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${messageContent}`,
+                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${contentWithFilesInfo}`,
               },
-              ...imageDataList.map((imageData) => ({
-                type: 'image',
-                image: imageData,
-              })),
+              ...imageDataList
+                .map((imageData, _index) => {
+                  // If it's an image, send as image
+                  if (imageData !== 'non-image' && imageData !== 'loading-image') {
+                    return {
+                      type: 'image',
+                      image: imageData,
+                    };
+                  }
+
+                  /*
+                   * For non-image files, we don't include in the message content
+                   * because the API doesn't support this format
+                   */
+                  return null;
+                })
+                .filter(Boolean),
             ] as any,
           },
         ]);
@@ -383,12 +490,25 @@ export const ChatImpl = memo(
           content: [
             {
               type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${messageContent}`,
+              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${contentWithFilesInfo}`,
             },
-            ...imageDataList.map((imageData) => ({
-              type: 'image',
-              image: imageData,
-            })),
+            ...imageDataList
+              .map((imageData, _index) => {
+                // If it's an image, send as image
+                if (imageData !== 'non-image' && imageData !== 'loading-image') {
+                  return {
+                    type: 'image',
+                    image: imageData,
+                  };
+                }
+
+                /*
+                 * For non-image files, we don't include in the message content
+                 * because the API doesn't support this format
+                 */
+                return null;
+              })
+              .filter(Boolean),
           ] as any,
         });
 
@@ -399,12 +519,25 @@ export const ChatImpl = memo(
           content: [
             {
               type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${messageContent}`,
+              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${contentWithFilesInfo}`,
             },
-            ...imageDataList.map((imageData) => ({
-              type: 'image',
-              image: imageData,
-            })),
+            ...imageDataList
+              .map((imageData, _index) => {
+                // If it's an image, send as image
+                if (imageData !== 'non-image' && imageData !== 'loading-image') {
+                  return {
+                    type: 'image',
+                    image: imageData,
+                  };
+                }
+
+                /*
+                 * For non-image files, we don't include in the message content
+                 * because the API doesn't support this format
+                 */
+                return null;
+              })
+              .filter(Boolean),
           ] as any,
         });
       }
