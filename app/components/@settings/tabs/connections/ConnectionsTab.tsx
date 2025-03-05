@@ -1,6 +1,19 @@
 import { motion } from 'framer-motion';
-import { GithubConnection } from './GithubConnection';
-import { NetlifyConnection } from './NetlifyConnection';
+import React, { Suspense } from 'react';
+
+// Use React.lazy for dynamic imports
+const GithubConnection = React.lazy(() => import('./GithubConnection'));
+const NetlifyConnection = React.lazy(() => import('./NetlifyConnection'));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="p-4 bg-white dark:bg-[#0A0A0A] rounded-lg border border-[#E5E5E5] dark:border-[#1A1A1A]">
+    <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
+      <div className="i-ph:spinner-gap w-5 h-5 animate-spin" />
+      <span>Loading connection...</span>
+    </div>
+  </div>
+);
 
 export default function ConnectionsTab() {
   return (
@@ -20,8 +33,12 @@ export default function ConnectionsTab() {
       </p>
 
       <div className="grid grid-cols-1 gap-4">
-        <GithubConnection />
-        <NetlifyConnection />
+        <Suspense fallback={<LoadingFallback />}>
+          <GithubConnection />
+        </Suspense>
+        <Suspense fallback={<LoadingFallback />}>
+          <NetlifyConnection />
+        </Suspense>
       </div>
     </div>
   );

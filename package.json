@@ -123,6 +123,7 @@
     "remark-gfm": "^4.0.0",
     "remix-island": "^0.2.0",
     "remix-utils": "^7.7.0",
+    "rollup-plugin-node-polyfills": "^0.2.1",
     "shiki": "^1.24.0",
     "tailwind-merge": "^2.2.1",
     "unist-util-visit": "^5.0.0",
