@@ -8,7 +8,6 @@ import { motion } from 'framer-motion';
 import { formatSize } from '~/utils/formatSize';
 import { Input } from '~/components/ui/Input';
 import Cookies from 'js-cookie';
-import ReactDOM from 'react-dom';
 
 interface GitHubTreeResponse {
   tree: Array<{
@@ -124,7 +123,6 @@ function StatsDialog({ isOpen, onClose, onConfirm, stats, isLargeRepo }: StatsDi
   );
 }
 
-// Add this new component for GitHub authentication
 function GitHubAuthDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [token, setToken] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -133,7 +131,6 @@ function GitHubAuthDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Return early if token is empty
     if (!token.trim()) {
       return;
     }
@@ -141,7 +138,6 @@ function GitHubAuthDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     setIsSubmitting(true);
 
     try {
-      // Test the token by making a request to the GitHub API
       const response = await fetch('https://api.github.com/user', {
         headers: {
           Accept: 'application/vnd.github.v3+json',
@@ -152,26 +148,27 @@ function GitHubAuthDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       if (response.ok) {
         const userData = (await response.json()) as GitHubUserResponse;
 
-        // Save the token and user data to localStorage
-        localStorage.setItem(
-          'github_connection',
-          JSON.stringify({
-            token,
-            tokenType,
-            user: {
-              login: userData.login,
-              avatar_url: userData.avatar_url,
-              name: userData.name || userData.login,
-            },
-            connected_at: new Date().toISOString(),
-          }),
-        );
+        // Save connection data
+        const connectionData = {
+          token,
+          tokenType,
+          user: {
+            login: userData.login,
+            avatar_url: userData.avatar_url,
+            name: userData.name || userData.login,
+          },
+          connected_at: new Date().toISOString(),
+        };
+
+        localStorage.setItem('github_connection', JSON.stringify(connectionData));
+
+        // Set cookies for API requests
+        Cookies.set('githubToken', token);
+        Cookies.set('githubUsername', userData.login);
+        Cookies.set('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
 
         toast.success(`Successfully connected as ${userData.login}`);
         onClose();
-
-        // Reload the page to refresh the GitHub connection state
-        window.location.reload();
       } else {
         if (response.status === 401) {
           toast.error('Invalid GitHub token. Please check and try again.');
@@ -187,129 +184,120 @@ function GitHubAuthDialog({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     }
   };
 
-  // Early return if dialog is not open
-  if (!isOpen) {
-    return null;
-  }
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]" />
+        <div className="fixed inset-0 flex items-center justify-center z-[9999]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Dialog.Content className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-xl max-w-sm w-full mx-4 overflow-hidden">
+              <div className="p-4 space-y-3">
+                <h2 className="text-lg font-semibold text-[#111111] dark:text-white">Access Private Repositories</h2>
 
-  // Create a portal directly to the document body to ensure highest z-index
-  return ReactDOM.createPortal(
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center">
-      <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-xl p-6 max-w-md w-full z-[10000] relative border border-[#E5E5E5] dark:border-[#333333]">
-        <h2 className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-4">
-          Access Private Repositories
-        </h2>
-
-        <div className="space-y-4">
-          <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-            To access private repositories, you need to connect your GitHub account by providing a personal access
-            token.
-          </p>
-
-          <div className="bg-[#F5F5F5] dark:bg-[#252525] p-4 rounded-lg border border-[#E5E5E5] dark:border-[#333333]">
-            <h3 className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-2">
-              Connect with GitHub Token
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label
-                  htmlFor="github-token"
-                  className="block text-sm font-medium text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark mb-1"
-                >
-                  GitHub Personal Access Token
-                </label>
-                <input
-                  id="github-token"
-                  type="password"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                  className="w-full px-3 py-2 border border-[#E5E5E5] dark:border-[#333333] rounded-md bg-white dark:bg-[#1A1A1A] text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark"
-                  required
-                />
-                <p className="text-xs text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark mt-1">
-                  Get your token at{' '}
-                  <a
-                    href="https://github.com/settings/tokens"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-purple-500 hover:underline"
-                  >
-                    github.com/settings/tokens
-                  </a>
+                <p className="text-sm text-[#666666] dark:text-[#999999]">
+                  To access private repositories, you need to connect your GitHub account by providing a personal access
+                  token.
                 </p>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark mb-1">
-                  Token Type
-                </label>
-                <div className="flex space-x-3">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="token-type"
-                      checked={tokenType === 'classic'}
-                      onChange={() => setTokenType('classic')}
-                      className="mr-1.5 accent-purple-500"
-                    />
-                    <span className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                      Classic
-                    </span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="token-type"
-                      checked={tokenType === 'fine-grained'}
-                      onChange={() => setTokenType('fine-grained')}
-                      className="mr-1.5 accent-purple-500"
-                    />
-                    <span className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                      Fine-grained
-                    </span>
-                  </label>
+                <div className="bg-[#F9F9F9] dark:bg-[#252525] p-4 rounded-lg space-y-3">
+                  <h3 className="text-base font-medium text-[#111111] dark:text-white">Connect with GitHub Token</h3>
+
+                  <form onSubmit={handleSubmit} className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-[#666666] dark:text-[#999999] mb-1">
+                        GitHub Personal Access Token
+                      </label>
+                      <input
+                        type="password"
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                        placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                        className="w-full px-3 py-1.5 rounded-lg border border-[#E5E5E5] dark:border-[#333333] bg-white dark:bg-[#1A1A1A] text-[#111111] dark:text-white placeholder-[#999999] text-sm"
+                      />
+                      <div className="mt-1 text-xs text-[#666666] dark:text-[#999999]">
+                        Get your token at{' '}
+                        <a
+                          href="https://github.com/settings/tokens"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-500 hover:underline"
+                        >
+                          github.com/settings/tokens
+                        </a>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm text-[#666666] dark:text-[#999999]">Token Type</label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            checked={tokenType === 'classic'}
+                            onChange={() => setTokenType('classic')}
+                            className="w-3.5 h-3.5 accent-purple-500"
+                          />
+                          <span className="text-sm text-[#111111] dark:text-white">Classic</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            checked={tokenType === 'fine-grained'}
+                            onChange={() => setTokenType('fine-grained')}
+                            className="w-3.5 h-3.5 accent-purple-500"
+                          />
+                          <span className="text-sm text-[#111111] dark:text-white">Fine-grained</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                      {isSubmitting ? 'Connecting...' : 'Connect to GitHub'}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg space-y-1.5">
+                  <h3 className="text-sm text-amber-800 dark:text-amber-300 font-medium flex items-center gap-1.5">
+                    <span className="i-ph:warning-circle w-4 h-4" />
+                    Accessing Private Repositories
+                  </h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Important things to know about accessing private repositories:
+                  </p>
+                  <ul className="list-disc pl-4 text-xs text-amber-700 dark:text-amber-400 space-y-0.5">
+                    <li>You must be granted access to the repository by its owner</li>
+                    <li>Your GitHub token must have the 'repo' scope</li>
+                    <li>For organization repositories, you may need additional permissions</li>
+                    <li>No token can give you access to repositories you don't have permission for</li>
+                  </ul>
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2 px-4 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Connecting...' : 'Connect to GitHub'}
-              </button>
-            </form>
-          </div>
-
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-4 rounded-lg">
-            <h3 className="font-medium text-amber-800 dark:text-amber-300 mb-2 flex items-center">
-              <span className="i-ph:warning-circle mr-2"></span>
-              Accessing Private Repositories
-            </h3>
-            <p className="text-sm text-amber-700 dark:text-amber-400">
-              Important things to know about accessing private repositories:
-            </p>
-            <ul className="list-disc pl-5 mt-2 text-sm text-amber-700 dark:text-amber-400 space-y-1">
-              <li>You must be granted access to the repository by its owner</li>
-              <li>Your GitHub token must have the 'repo' scope</li>
-              <li>For organization repositories, you may need additional permissions</li>
-              <li>No token can give you access to repositories you don't have permission for</li>
-            </ul>
-          </div>
+              <div className="border-t border-[#E5E5E5] dark:border-[#333333] p-3 flex justify-end">
+                <Dialog.Close asChild>
+                  <button
+                    onClick={onClose}
+                    className="px-4 py-1.5 bg-[#F5F5F5] hover:bg-[#E5E5E5] dark:bg-[#252525] dark:hover:bg-[#333333] rounded-lg text-[#111111] dark:text-white transition-colors text-sm"
+                  >
+                    Close
+                  </button>
+                </Dialog.Close>
+              </div>
+            </Dialog.Content>
+          </motion.div>
         </div>
-
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="py-2 px-4 border border-[#E5E5E5] dark:border-[#333333] rounded-lg text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark hover:bg-[#F5F5F5] dark:hover:bg-[#252525] transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -324,14 +312,22 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
   const [branches, setBranches] = useState<{ name: string; default?: boolean }[]>([]);
   const [selectedBranch, setSelectedBranch] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [stats, setStats] = useState<RepositoryStats | null>(null);
   const [showStatsDialog, setShowStatsDialog] = useState(false);
   const [currentStats, setCurrentStats] = useState<RepositoryStats | null>(null);
   const [pendingGitUrl, setPendingGitUrl] = useState<string>('');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  // Initialize GitHub connection from environment variables if not already connected
+  // Handle GitHub auth dialog close and refresh repositories
+  const handleAuthDialogClose = () => {
+    setShowAuthDialog(false);
+
+    // If we're on the my-repos tab, refresh the repository list
+    if (activeTab === 'my-repos') {
+      fetchUserRepos();
+    }
+  };
+
+  // Initialize GitHub connection and fetch repositories
   useEffect(() => {
     const savedConnection = getLocalStorage('github_connection');
 
@@ -355,18 +351,18 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
           return response.json();
         })
         .then((data: unknown) => {
-          // Type assertion for the GitHub user data
-          const userData = data as {
-            login: string;
-            avatar_url: string;
-            name: string | null;
-          };
+          const userData = data as GitHubUserResponse;
 
           // Save connection to local storage
           const newConnection = {
-            user: userData as unknown as GitHubUserResponse,
             token,
             tokenType,
+            user: {
+              login: userData.login,
+              avatar_url: userData.avatar_url,
+              name: userData.name || userData.login,
+            },
+            connected_at: new Date().toISOString(),
           };
 
           localStorage.setItem('github_connection', JSON.stringify(newConnection));
@@ -387,7 +383,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
     }
   }, [isOpen]);
 
-  // Fetch user's repositories when dialog opens
+  // Fetch repositories when dialog opens or tab changes
   useEffect(() => {
     if (isOpen && activeTab === 'my-repos') {
       fetchUserRepos();
@@ -686,12 +682,27 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
         hasDependencies,
       };
 
-      setStats(stats);
-
       return stats;
     } catch (error) {
       console.error('Error verifying repository:', error);
-      toast.error('Failed to verify repository');
+
+      // Check if it's an authentication error and show the auth dialog
+      const errorMessage = error instanceof Error ? error.message : 'Failed to verify repository';
+
+      if (
+        errorMessage.includes('Authentication failed') ||
+        errorMessage.includes('may be private') ||
+        errorMessage.includes('Repository not found or is private') ||
+        errorMessage.includes('Unauthorized') ||
+        errorMessage.includes('401') ||
+        errorMessage.includes('403') ||
+        errorMessage.includes('404') ||
+        errorMessage.includes('access permissions')
+      ) {
+        setShowAuthDialog(true);
+      }
+
+      toast.error(errorMessage);
 
       return null;
     }
@@ -975,6 +986,10 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
             </div>
           </Dialog.Content>
         </Dialog.Portal>
+
+        {/* GitHub Auth Dialog */}
+        <GitHubAuthDialog isOpen={showAuthDialog} onClose={handleAuthDialogClose} />
+
         {/* Repository Stats Dialog */}
         {currentStats && (
           <StatsDialog
@@ -986,9 +1001,6 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
           />
         )}
       </Dialog.Root>
-
-      {/* GitHub Auth Dialog - Using the new portal-based implementation */}
-      {showAuthDialog && <GitHubAuthDialog isOpen={true} onClose={() => setShowAuthDialog(false)} />}
     </>
   );
 }
