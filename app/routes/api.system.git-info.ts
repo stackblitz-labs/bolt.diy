@@ -45,7 +45,7 @@ const getGitHubInfo = async (repoFullName: string) => {
       Accept: 'application/vnd.github.v3+json',
     };
 
-    const githubToken = process.env.GITHUB_TOKEN;
+    const githubToken = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_ACCESS_TOKEN;
 
     if (githubToken) {
       headers.Authorization = `token ${githubToken}`;

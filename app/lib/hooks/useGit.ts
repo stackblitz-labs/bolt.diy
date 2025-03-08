@@ -50,6 +50,11 @@ export function useGit() {
 
       fileData.current = {};
 
+      /*
+       * Skip Git initialization for now - let isomorphic-git handle it
+       * This avoids potential issues with our manual initialization
+       */
+
       const headers: {
         [x: string]: string;
       } = {
@@ -72,18 +77,23 @@ export function useGit() {
           singleBranch: true,
           corsProxy: '/api/git-proxy',
           headers,
-
+          onProgress: (event) => {
+            console.log('Git clone progress:', event);
+          },
           onAuth: (url) => {
             let auth = lookupSavedPassword(url);
 
             if (auth) {
+              console.log('Using saved authentication for', url);
               return auth;
             }
 
+            console.log('Repository requires authentication:', url);
+
             if (confirm('This repo is password protected. Ready to enter a username & password?')) {
               auth = {
-                username: prompt('Enter username'),
-                password: prompt('Enter password'),
+                username: prompt('Enter username') || '',
+                password: prompt('Enter password') || '',
               };
               return auth;
             } else {
@@ -91,10 +101,12 @@ export function useGit() {
             }
           },
           onAuthFailure: (url, _auth) => {
+            console.error(`Authentication failed for ${url}`);
             toast.error(`Error Authenticating with ${url.split('/')[2]}`);
             throw `Error Authenticating with ${url.split('/')[2]}`;
           },
           onAuthSuccess: (url, auth) => {
+            console.log(`Authentication successful for ${url}`);
             saveGitAuth(url, auth);
           },
         });
@@ -136,18 +148,26 @@ const getFs = (
         throw error;
       }
     },
-    writeFile: async (path: string, data: any, options: any) => {
-      const encoding = options.encoding;
+    writeFile: async (path: string, data: any, options: any = {}) => {
       const relativePath = pathUtils.relative(webcontainer.workdir, path);
 
       if (record.current) {
-        record.current[relativePath] = { data, encoding };
+        record.current[relativePath] = { data, encoding: options?.encoding };
       }
 
       try {
-        const result = await webcontainer.fs.writeFile(relativePath, data, { ...options, encoding });
+        // Handle encoding properly based on data type
+        if (data instanceof Uint8Array) {
+          // For binary data, don't pass encoding
+          const result = await webcontainer.fs.writeFile(relativePath, data);
+          return result;
+        } else {
+          // For text data, use the encoding if provided
+          const encoding = options?.encoding || 'utf8';
+          const result = await webcontainer.fs.writeFile(relativePath, data, encoding);
 
-        return result;
+          return result;
+        }
       } catch (error) {
         throw error;
       }
@@ -208,33 +228,80 @@ const getFs = (
     stat: async (path: string) => {
       try {
         const relativePath = pathUtils.relative(webcontainer.workdir, path);
-        const resp = await webcontainer.fs.readdir(pathUtils.dirname(relativePath), { withFileTypes: true });
-        const name = pathUtils.basename(relativePath);
-        const fileInfo = resp.find((x) => x.name == name);
+        const dirPath = pathUtils.dirname(relativePath);
+        const fileName = pathUtils.basename(relativePath);
+
+        // Special handling for .git/index file
+        if (relativePath === '.git/index') {
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            isSymbolicLink: () => false,
+            size: 12, // Size of our empty index
+            mode: 0o100644, // Regular file
+            mtimeMs: Date.now(),
+            ctimeMs: Date.now(),
+            birthtimeMs: Date.now(),
+            atimeMs: Date.now(),
+            uid: 1000,
+            gid: 1000,
+            dev: 1,
+            ino: 1,
+            nlink: 1,
+            rdev: 0,
+            blksize: 4096,
+            blocks: 1,
+            mtime: new Date(),
+            ctime: new Date(),
+            birthtime: new Date(),
+            atime: new Date(),
+          };
+        }
+
+        const resp = await webcontainer.fs.readdir(dirPath, { withFileTypes: true });
+        const fileInfo = resp.find((x) => x.name === fileName);
 
         if (!fileInfo) {
-          throw new Error(`ENOENT: no such file or directory, stat '${path}'`);
+          const err = new Error(`ENOENT: no such file or directory, stat '${path}'`) as NodeJS.ErrnoException;
+          err.code = 'ENOENT';
+          err.errno = -2;
+          err.syscall = 'stat';
+          err.path = path;
+          throw err;
         }
 
         return {
           isFile: () => fileInfo.isFile(),
           isDirectory: () => fileInfo.isDirectory(),
           isSymbolicLink: () => false,
-          size: 1,
-          mode: 0o666, // Default permissions
+          size: fileInfo.isDirectory() ? 4096 : 1,
+          mode: fileInfo.isDirectory() ? 0o040755 : 0o100644, // Directory or regular file
           mtimeMs: Date.now(),
+          ctimeMs: Date.now(),
+          birthtimeMs: Date.now(),
+          atimeMs: Date.now(),
           uid: 1000,
           gid: 1000,
+          dev: 1,
+          ino: 1,
+          nlink: 1,
+          rdev: 0,
+          blksize: 4096,
+          blocks: 8,
+          mtime: new Date(),
+          ctime: new Date(),
+          birthtime: new Date(),
+          atime: new Date(),
         };
       } catch (error: any) {
-        console.log(error?.message);
+        if (!error.code) {
+          error.code = 'ENOENT';
+          error.errno = -2;
+          error.syscall = 'stat';
+          error.path = path;
+        }
 
-        const err = new Error(`ENOENT: no such file or directory, stat '${path}'`) as NodeJS.ErrnoException;
-        err.code = 'ENOENT';
-        err.errno = -2;
-        err.syscall = 'stat';
-        err.path = path;
-        throw err;
+        throw error;
       }
     },
     lstat: async (path: string) => {

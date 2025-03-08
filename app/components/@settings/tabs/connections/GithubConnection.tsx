@@ -76,13 +76,16 @@ export function GithubConnection() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isFetchingStats, setIsFetchingStats] = useState(false);
   const [isStatsExpanded, setIsStatsExpanded] = useState(false);
+  const tokenTypeRef = React.useRef<'classic' | 'fine-grained'>('classic');
 
-  const fetchGithubUser = async (token: string) => {
+  // Define fetchGithubUser using function declaration syntax for hoisting
+  async function fetchGithubUser(token: string) {
     try {
       setIsConnecting(true);
 
       const response = await fetch('https://api.github.com/user', {
         headers: {
+          Accept: 'application/vnd.github.v3+json',
           Authorization: `Bearer ${token}`,
         },
       });
@@ -92,13 +95,20 @@ export function GithubConnection() {
       }
 
       const data = (await response.json()) as GitHubUserResponse;
+
+      // Get the current token type from ref instead of state
+      const currentTokenType = tokenTypeRef.current;
+      console.log('Current token type when connecting:', currentTokenType);
+
       const newConnection: GitHubConnection = {
         user: data,
         token,
-        tokenType: connection.tokenType,
+        tokenType: currentTokenType,
       };
 
       localStorage.setItem('github_connection', JSON.stringify(newConnection));
+
+      // Also save the token as a cookie for API requests
       Cookies.set('githubToken', token);
       Cookies.set('githubUsername', data.login);
       Cookies.set('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
@@ -115,7 +125,7 @@ export function GithubConnection() {
     } finally {
       setIsConnecting(false);
     }
-  };
+  }
 
   const fetchGitHubStats = async (token: string) => {
     try {
@@ -125,6 +135,7 @@ export function GithubConnection() {
         'https://api.github.com/user/repos?sort=updated&per_page=10&affiliation=owner,organization_member,collaborator',
         {
           headers: {
+            Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
           },
         },
@@ -138,6 +149,7 @@ export function GithubConnection() {
 
       const orgsResponse = await fetch('https://api.github.com/user/orgs', {
         headers: {
+          Accept: 'application/vnd.github.v3+json',
           Authorization: `Bearer ${token}`,
         },
       });
@@ -150,6 +162,7 @@ export function GithubConnection() {
 
       const eventsResponse = await fetch('https://api.github.com/users/' + connection.user?.login + '/events/public', {
         headers: {
+          Accept: 'application/vnd.github.v3+json',
           Authorization: `Bearer ${token}`,
         },
       });
@@ -163,6 +176,7 @@ export function GithubConnection() {
       const languagePromises = repos.map((repo) =>
         fetch(repo.languages_url, {
           headers: {
+            Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
           },
         }).then((res) => res.json() as Promise<Record<string, number>>),
@@ -211,13 +225,39 @@ export function GithubConnection() {
         parsed.tokenType = 'classic';
       }
 
+      // Update the ref with the parsed token type
+      tokenTypeRef.current = parsed.tokenType;
       setConnection(parsed);
 
       if (parsed.user && parsed.token) {
         fetchGitHubStats(parsed.token);
       }
-    } else if (import.meta.env.VITE_GITHUB_ACCESS_TOKEN) {
-      fetchGithubUser(import.meta.env.VITE_GITHUB_ACCESS_TOKEN);
+    } else {
+      // Check for environment variable token
+      const envToken = import.meta.env.VITE_GITHUB_ACCESS_TOKEN;
+
+      if (envToken) {
+        // Check if token type is specified in environment variables
+        const envTokenType = import.meta.env.VITE_GITHUB_TOKEN_TYPE;
+        console.log('Environment token type:', envTokenType);
+
+        const tokenType =
+          envTokenType === 'classic' || envTokenType === 'fine-grained'
+            ? (envTokenType as 'classic' | 'fine-grained')
+            : 'classic';
+
+        console.log('Using token type:', tokenType);
+
+        // Update both the state and the ref
+        tokenTypeRef.current = tokenType;
+        setConnection((prev) => ({
+          ...prev,
+          tokenType,
+        }));
+
+        // No need for setTimeout, we can fetch directly since we're using the ref
+        fetchGithubUser(envToken);
+      }
     }
 
     setIsLoading(false);
@@ -243,11 +283,22 @@ export function GithubConnection() {
 
   const handleConnect = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    // Update the ref with the current state value before connecting
+    tokenTypeRef.current = connection.tokenType;
     await fetchGithubUser(connection.token);
   };
 
   const handleDisconnect = () => {
     localStorage.removeItem('github_connection');
+
+    // Remove all GitHub-related cookies
+    Cookies.remove('githubToken');
+    Cookies.remove('githubUsername');
+    Cookies.remove('git:github.com');
+
+    // Reset the token type ref
+    tokenTypeRef.current = 'classic';
     setConnection({ user: null, token: '', tokenType: 'classic' });
     toast.success('Disconnected from GitHub');
   };
@@ -265,14 +316,33 @@ export function GithubConnection() {
           <h3 className="text-base font-medium text-bolt-elements-textPrimary">GitHub Connection</h3>
         </div>
 
+        {!connection.user && (
+          <div className="text-xs text-bolt-elements-textSecondary bg-[#F8F8F8] dark:bg-[#1A1A1A] p-3 rounded-lg mb-4">
+            <p className="flex items-center gap-1 mb-1">
+              <span className="i-ph:lightbulb w-3.5 h-3.5 text-yellow-500" />
+              <span className="font-medium">Tip:</span> You can also set the{' '}
+              <code className="px-1 py-0.5 bg-[#EFEFEF] dark:bg-[#252525] rounded">VITE_GITHUB_ACCESS_TOKEN</code>{' '}
+              environment variable to connect automatically.
+            </p>
+            <p>
+              For fine-grained tokens, also set{' '}
+              <code className="px-1 py-0.5 bg-[#EFEFEF] dark:bg-[#252525] rounded">
+                VITE_GITHUB_TOKEN_TYPE=fine-grained
+              </code>
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-bolt-elements-textSecondary mb-2">Token Type</label>
             <select
               value={connection.tokenType}
-              onChange={(e) =>
-                setConnection((prev) => ({ ...prev, tokenType: e.target.value as 'classic' | 'fine-grained' }))
-              }
+              onChange={(e) => {
+                const newTokenType = e.target.value as 'classic' | 'fine-grained';
+                tokenTypeRef.current = newTokenType;
+                setConnection((prev) => ({ ...prev, tokenType: newTokenType }));
+              }}
               disabled={isConnecting || !!connection.user}
               className={classNames(
                 'w-full px-3 py-2 rounded-lg text-sm',
@@ -371,7 +441,8 @@ export function GithubConnection() {
           {connection.user && (
             <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
               <div className="i-ph:check-circle w-4 h-4" />
-              Connected to GitHub
+              Connected to GitHub using{' '}
+              {connection.tokenType === 'classic' ? 'Personal Access Token' : 'Fine-grained Token'}
             </span>
           )}
         </div>
@@ -383,8 +454,17 @@ export function GithubConnection() {
                 <img src={connection.user.avatar_url} alt={connection.user.login} className="w-16 h-16 rounded-full" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-bolt-elements-textPrimary">
+                    <h3 className="text-lg font-medium text-bolt-elements-textPrimary flex items-center gap-2">
                       {connection.user.name || connection.user.login}
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          connection.tokenType === 'classic'
+                            ? 'bg-blue-500/10 text-blue-500'
+                            : 'bg-green-500/10 text-green-500'
+                        }`}
+                      >
+                        {connection.tokenType === 'classic' ? 'Classic Token' : 'Fine-grained Token'}
+                      </span>
                     </h3>
                     <div
                       className={classNames(
