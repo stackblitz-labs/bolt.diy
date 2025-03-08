@@ -185,7 +185,7 @@ export const ModelSelector = ({
       >
         {providerList.map((provider: ProviderInfo) => (
           <option key={provider.name} value={provider.name}>
-            {provider.name}
+            {provider.name} {provider.name === 'Pollinations' ? '(Free, No API Key Required)' : ''}
           </option>
         ))}
       </select>
