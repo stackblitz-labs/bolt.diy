@@ -185,7 +185,7 @@ export default function FeaturesTab() {
         description: 'Get the latest updates from the main branch',
         icon: 'i-ph:git-branch',
         enabled: isLatestBranch,
-        tooltip: 'Enabled by default to receive updates from the main development branch',
+        tooltip: 'Receive updates from the main development branch',
       },
       {
         id: 'autoSelectTemplate',
