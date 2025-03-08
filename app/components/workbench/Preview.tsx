@@ -38,11 +38,11 @@ const WINDOW_SIZES: WindowSize[] = [
     hasFrame: true,
     frameType: 'tablet',
   },
-  { name: 'Small Laptop', width: 1280, height: 800, icon: 'i-ph:laptop' },
-  { name: 'Laptop', width: 1366, height: 768, icon: 'i-ph:laptop' },
-  { name: 'Large Laptop', width: 1440, height: 900, icon: 'i-ph:laptop' },
-  { name: 'Desktop', width: 1920, height: 1080, icon: 'i-ph:monitor' },
-  { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor' },
+  { name: 'Small Laptop', width: 1280, height: 800, icon: 'i-ph:laptop', hasFrame: true, frameType: 'laptop' },
+  { name: 'Laptop', width: 1366, height: 768, icon: 'i-ph:laptop', hasFrame: true, frameType: 'laptop' },
+  { name: 'Large Laptop', width: 1440, height: 900, icon: 'i-ph:laptop', hasFrame: true, frameType: 'laptop' },
+  { name: 'Desktop', width: 1920, height: 1080, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
+  { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
 ];
 
 export const Preview = memo(() => {
@@ -75,6 +75,7 @@ export const Preview = memo(() => {
     startX: 0,
     startWidthPercent: 37.5,
     windowWidth: window.innerWidth,
+    pointerId: null as number | null,
   });
 
   // Reduce scaling factor to make resizing less sensitive
@@ -82,7 +83,6 @@ export const Preview = memo(() => {
 
   const [isWindowSizeDropdownOpen, setIsWindowSizeDropdownOpen] = useState(false);
   const [selectedWindowSize, setSelectedWindowSize] = useState<WindowSize>(WINDOW_SIZES[0]);
-
   const [isLandscape, setIsLandscape] = useState(false);
   const [showDeviceFrame, setShowDeviceFrame] = useState(true);
 
@@ -162,63 +162,139 @@ export const Preview = memo(() => {
     setIsDeviceModeOn((prev) => !prev);
   };
 
-  const startResizing = (e: React.MouseEvent, side: ResizeSide) => {
+  const startResizing = (e: React.PointerEvent, side: ResizeSide) => {
     if (!isDeviceModeOn) {
       return;
     }
 
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+
     document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'ew-resize';
 
-    resizingState.current.isResizing = true;
-    resizingState.current.side = side;
-    resizingState.current.startX = e.clientX;
-    resizingState.current.startWidthPercent = widthPercent;
-    resizingState.current.windowWidth = window.innerWidth;
-
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+    resizingState.current = {
+      isResizing: true,
+      side,
+      startX: e.clientX,
+      startWidthPercent: widthPercent,
+      windowWidth: window.innerWidth,
+      pointerId: e.pointerId,
+    };
 
     e.preventDefault();
   };
 
-  const onMouseMove = (e: MouseEvent) => {
-    if (!resizingState.current.isResizing) {
-      return;
+  const ResizeHandle = ({ side }: { side: ResizeSide }) => {
+    if (!side) {
+      return null;
     }
 
-    const dx = e.clientX - resizingState.current.startX;
-    const windowWidth = resizingState.current.windowWidth;
-
-    const dxPercent = (dx / windowWidth) * 100 * SCALING_FACTOR;
-
-    let newWidthPercent = resizingState.current.startWidthPercent;
-
-    if (resizingState.current.side === 'right') {
-      newWidthPercent = resizingState.current.startWidthPercent + dxPercent;
-    } else if (resizingState.current.side === 'left') {
-      newWidthPercent = resizingState.current.startWidthPercent - dxPercent;
-    }
-
-    // Limit width percentage between 10% and 90%
-    newWidthPercent = Math.max(10, Math.min(newWidthPercent, 90));
-
-    setWidthPercent(newWidthPercent);
-
-    // Calculate and update the actual pixel width
-    if (containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      setCurrentWidth(Math.round((containerWidth * newWidthPercent) / 100));
-    }
+    return (
+      <div
+        onPointerDown={(e) => startResizing(e, side)}
+        style={{
+          position: 'absolute',
+          top: 0,
+          ...(side === 'left' ? { left: 0, marginLeft: '-7px' } : { right: 0, marginRight: '-7px' }),
+          width: '15px',
+          height: '100%',
+          cursor: 'ew-resize',
+          background: 'var(--bolt-elements-background-depth-3, rgba(0,0,0,.15))',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'background 0.2s',
+          userSelect: 'none',
+          touchAction: 'none',
+          zIndex: 10,
+        }}
+        onMouseOver={(e) =>
+          (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-4, rgba(0,0,0,.3))')
+        }
+        onMouseOut={(e) =>
+          (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-3, rgba(0,0,0,.15))')
+        }
+        title="Drag to resize width"
+      >
+        <GripIcon />
+      </div>
+    );
   };
 
-  const onMouseUp = () => {
-    resizingState.current.isResizing = false;
-    resizingState.current.side = null;
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      const state = resizingState.current;
 
-    document.body.style.userSelect = '';
-  };
+      if (!state.isResizing || e.pointerId !== state.pointerId) {
+        return;
+      }
+
+      const dx = e.clientX - state.startX;
+      const dxPercent = (dx / state.windowWidth) * 100 * SCALING_FACTOR;
+
+      let newWidthPercent = state.startWidthPercent;
+
+      if (state.side === 'right') {
+        newWidthPercent = state.startWidthPercent + dxPercent;
+      } else if (state.side === 'left') {
+        newWidthPercent = state.startWidthPercent - dxPercent;
+      }
+
+      // Limit width percentage between 10% and 90%
+      newWidthPercent = Math.max(10, Math.min(newWidthPercent, 90));
+
+      setWidthPercent(newWidthPercent);
+
+      // Calculate and update the actual pixel width
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        setCurrentWidth(Math.round((containerWidth * newWidthPercent) / 100));
+      }
+
+      e.preventDefault();
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      const state = resizingState.current;
+
+      if (e.pointerId !== state.pointerId) {
+        return;
+      }
+
+      const target = e.target as HTMLElement;
+
+      if (target.hasPointerCapture(e.pointerId)) {
+        target.releasePointerCapture(e.pointerId);
+      }
+
+      resizingState.current = {
+        ...resizingState.current,
+        isResizing: false,
+        side: null,
+        pointerId: null,
+      };
+
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+
+      e.preventDefault();
+    };
+
+    if (resizingState.current.isResizing) {
+      document.addEventListener('pointermove', handlePointerMove);
+      document.addEventListener('pointerup', handlePointerUp);
+      document.addEventListener('pointercancel', handlePointerUp);
+
+      return () => {
+        document.removeEventListener('pointermove', handlePointerMove);
+        document.removeEventListener('pointerup', handlePointerUp);
+        document.removeEventListener('pointercancel', handlePointerUp);
+      };
+    }
+
+    return undefined;
+  }, [SCALING_FACTOR]);
 
   useEffect(() => {
     const handleWindowResize = () => {
@@ -295,7 +371,7 @@ export const Preview = memo(() => {
           height = size.width;
         }
 
-        // Create a more reliable approach by using a wrapper page
+        // Create a window with device frame if enabled
         if (showDeviceFrame && size.hasFrame) {
           // Calculate frame dimensions
           const frameWidth = size.frameType === 'mobile' ? 40 : 60; // 20px or 30px on each side
@@ -409,38 +485,11 @@ export const Preview = memo(() => {
                   background: white;
                   display: block;
                 }
-                
-                .controls {
-                  position: absolute;
-                  top: -60px;
-                  left: 0;
-                  right: 0;
-                  display: flex;
-                  justify-content: center;
-                  gap: 10px;
-                }
-                
-                .button {
-                  background: #6D28D9;
-                  color: white;
-                  border: none;
-                  border-radius: 4px;
-                  padding: 4px 10px;
-                  font-size: 12px;
-                  cursor: pointer;
-                  transition: background 0.2s;
-                }
-                
-                .button:hover {
-                  background: #5b21b6;
-                }
               </style>
             </head>
             <body>
               <div class="device-container">
-                <div class="controls">
-                  <div class="device-name">${size.name} ${isLandscape ? '(Landscape)' : '(Portrait)'}</div>
-                </div>
+                <div class="device-name">${size.name} ${isLandscape ? '(Landscape)' : '(Portrait)'}</div>
                 <div class="device-frame">
                   <iframe src="${previewUrl}" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin" allow="cross-origin-isolated"></iframe>
                 </div>
@@ -453,8 +502,6 @@ export const Preview = memo(() => {
           newWindow.document.open();
           newWindow.document.write(htmlContent);
           newWindow.document.close();
-
-          newWindow.focus();
         } else {
           // Standard window without frame
           const newWindow = window.open(
@@ -691,63 +738,8 @@ export const Preview = memo(() => {
                 {currentWidth}px
               </div>
 
-              <div
-                onMouseDown={(e) => startResizing(e, 'left')}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '15px',
-                  marginLeft: '-7px', // Move handle closer to the edge
-                  height: '100%',
-                  cursor: 'ew-resize',
-                  background: 'var(--bolt-elements-background-depth-3, rgba(0,0,0,.15))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.2s',
-                  userSelect: 'none',
-                  zIndex: 10,
-                }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-4, rgba(0,0,0,.3))')
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-3, rgba(0,0,0,.15))')
-                }
-                title="Drag to resize width"
-              >
-                <GripIcon />
-              </div>
-
-              <div
-                onMouseDown={(e) => startResizing(e, 'right')}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  width: '15px',
-                  marginRight: '-7px', // Move handle closer to the edge
-                  height: '100%',
-                  cursor: 'ew-resize',
-                  background: 'var(--bolt-elements-background-depth-3, rgba(0,0,0,.15))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.2s',
-                  userSelect: 'none',
-                  zIndex: 10,
-                }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-4, rgba(0,0,0,.3))')
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-3, rgba(0,0,0,.15))')
-                }
-                title="Drag to resize width"
-              >
-                <GripIcon />
-              </div>
+              <ResizeHandle side="left" />
+              <ResizeHandle side="right" />
             </>
           )}
         </div>
