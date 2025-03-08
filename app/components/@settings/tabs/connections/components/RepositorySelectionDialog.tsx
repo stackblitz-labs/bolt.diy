@@ -292,11 +292,24 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
 
       const connection = getLocalStorage('github_connection');
       const headers: HeadersInit = connection?.token ? { Authorization: `Bearer ${connection.token}` } : {};
-
-      // Fetch repository tree
-      const treeResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`, {
+      const repoObjResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
         headers,
       });
+      const repoObjData = (await repoObjResponse.json()) as any;
+
+      if (!repoObjData.default_branch) {
+        throw new Error('Failed to fetch repository branch');
+      }
+
+      const defaultBranch = repoObjData.default_branch;
+
+      // Fetch repository tree
+      const treeResponse = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`,
+        {
+          headers,
+        },
+      );
 
       if (!treeResponse.ok) {
         throw new Error('Failed to fetch repository structure');

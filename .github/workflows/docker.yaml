@@ -2,10 +2,13 @@ name: Docker Publish
 
 on:
   push:
-    branches:
-      - main
-      - stable
+    branches: [main, stable]
+    tags: ['v*', '*.*.*']
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   packages: write
@@ -18,13 +21,14 @@ env:
 jobs:
   docker-build-publish:
     runs-on: ubuntu-latest
+    # timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
+        
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -37,25 +41,22 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=stable,enable=${{ github.ref == 'refs/heads/stable' }}
+            type=ref,event=tag
+            type=sha,format=short
+            type=raw,value=${{ github.ref_name }},enable=${{ startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/stable' }}
 
-      - name: Build and push Docker image for main
-        if: github.ref == 'refs/heads/main'
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
+          target: bolt-ai-production
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
-      - name: Build and push Docker image for stable
-        if: github.ref == 'refs/heads/stable'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:stable
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          labels: ${{ steps.meta.outputs.labels }}
+          
+      - name: Check manifest
+        run: docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
