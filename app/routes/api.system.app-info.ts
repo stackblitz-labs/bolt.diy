@@ -1,6 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunction } from '@remix-run/cloudflare';
 import { json } from '@remix-run/cloudflare';
-import { execSync } from 'child_process';
 
 // These are injected by Vite at build time
 declare const __APP_VERSION: string;
@@ -11,34 +10,24 @@ declare const __PKG_DEPENDENCIES: Record<string, string>;
 declare const __PKG_DEV_DEPENDENCIES: Record<string, string>;
 declare const __PKG_PEER_DEPENDENCIES: Record<string, string>;
 declare const __PKG_OPTIONAL_DEPENDENCIES: Record<string, string>;
+declare const __COMMIT_HASH: string;
+declare const __GIT_BRANCH: string;
+declare const __GIT_COMMIT_TIME: string;
+declare const __GIT_AUTHOR: string;
+declare const __GIT_EMAIL: string;
+declare const __GIT_REMOTE_URL: string;
+declare const __GIT_REPO_NAME: string;
 
 const getGitInfo = () => {
-  try {
-    return {
-      commitHash: execSync('git rev-parse --short HEAD').toString().trim(),
-      branch: execSync('git rev-parse --abbrev-ref HEAD').toString().trim(),
-      commitTime: execSync('git log -1 --format=%cd').toString().trim(),
-      author: execSync('git log -1 --format=%an').toString().trim(),
-      email: execSync('git log -1 --format=%ae').toString().trim(),
-      remoteUrl: execSync('git config --get remote.origin.url').toString().trim(),
-      repoName: execSync('git config --get remote.origin.url')
-        .toString()
-        .trim()
-        .replace(/^.*github.com[:/]/, '')
-        .replace(/\.git$/, ''),
-    };
-  } catch (error) {
-    console.error('Failed to get git info:', error);
-    return {
-      commitHash: 'unknown',
-      branch: 'unknown',
-      commitTime: 'unknown',
-      author: 'unknown',
-      email: 'unknown',
-      remoteUrl: 'unknown',
-      repoName: 'unknown',
-    };
-  }
+  return {
+    commitHash: __COMMIT_HASH || 'unknown',
+    branch: __GIT_BRANCH || 'unknown',
+    commitTime: __GIT_COMMIT_TIME || 'unknown',
+    author: __GIT_AUTHOR || 'unknown',
+    email: __GIT_EMAIL || 'unknown',
+    remoteUrl: __GIT_REMOTE_URL || 'unknown',
+    repoName: __GIT_REPO_NAME || 'unknown',
+  };
 };
 
 const formatDependencies = (
@@ -60,11 +49,11 @@ const getAppResponse = () => {
     version: __APP_VERSION || '0.1.0',
     description: __PKG_DESCRIPTION || 'A DIY LLM interface',
     license: __PKG_LICENSE || 'MIT',
-    environment: process.env.NODE_ENV || 'development',
+    environment: 'cloudflare',
     gitInfo,
     timestamp: new Date().toISOString(),
     runtimeInfo: {
-      nodeVersion: process.version || 'unknown',
+      nodeVersion: 'cloudflare',
     },
     dependencies: {
       production: formatDependencies(__PKG_DEPENDENCIES, 'production'),

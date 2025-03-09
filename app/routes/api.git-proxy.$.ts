@@ -114,10 +114,14 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
       redirect: 'follow',
     };
 
-    // Add body and duplex option for non-GET/HEAD requests
+    // Add body for non-GET/HEAD requests
     if (!['GET', 'HEAD'].includes(request.method)) {
       fetchOptions.body = request.body;
-      fetchOptions.duplex = 'half'; // This fixes the "duplex option is required when sending a body" error
+
+      /*
+       * Note: duplex property is removed to ensure TypeScript compatibility
+       * across different environments and versions
+       */
     }
 
     // Forward the request to the target URL

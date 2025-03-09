@@ -41,7 +41,7 @@ export function useShortcuts(): void {
       }
 
       // Debug logging in development only
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log('Key pressed:', {
           key: event.key,
           code: event.code,

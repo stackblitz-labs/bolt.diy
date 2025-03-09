@@ -66,7 +66,7 @@ interface GitHubConnection {
   stats?: GitHubStats;
 }
 
-export function GithubConnection() {
+export default function GithubConnection() {
   const [connection, setConnection] = useState<GitHubConnection>({
     user: null,
     token: '',

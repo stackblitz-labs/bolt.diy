@@ -13,7 +13,7 @@ import {
 } from '~/lib/stores/netlify';
 import type { NetlifyUser } from '~/types/netlify';
 
-export function NetlifyConnection() {
+export default function NetlifyConnection() {
   const connection = useStore(netlifyConnection);
   const connecting = useStore(isConnecting);
   const fetchingStats = useStore(isFetchingStats);
