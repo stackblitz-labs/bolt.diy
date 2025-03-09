@@ -547,6 +547,152 @@ export class WorkbenchStore {
       throw error; // Rethrow the error for further handling
     }
   }
+
+  async createNewFile(filePath: string, content: string | File | ArrayBuffer = '') {
+    try {
+      const wc = await webcontainer;
+      const relativePath = extractRelativePath(filePath);
+
+      const dirPath = path.dirname(relativePath);
+
+      if (dirPath !== '.') {
+        await wc.fs.mkdir(dirPath, { recursive: true });
+      }
+
+      let fileContent: string | Uint8Array;
+
+      if (content instanceof File) {
+        const buffer = await content.arrayBuffer();
+        fileContent = new Uint8Array(buffer);
+      } else if (content instanceof ArrayBuffer) {
+        fileContent = new Uint8Array(content);
+      } else {
+        fileContent = content || '';
+      }
+
+      await wc.fs.writeFile(relativePath, fileContent);
+
+      const fullPath = path.join(wc.workdir, relativePath);
+      this.setSelectedFile(fullPath);
+
+      return true;
+    } catch (error) {
+      console.error('Error creating file:', error);
+      return false;
+    }
+  }
+
+  async createNewFolder(folderPath: string) {
+    try {
+      const wc = await webcontainer;
+      const relativePath = extractRelativePath(folderPath);
+
+      await wc.fs.mkdir(relativePath, { recursive: true });
+
+      return true;
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      return false;
+    }
+  }
+
+  async deleteFile(filePath: string) {
+    try {
+      const wc = await webcontainer;
+      const relativePath = extractRelativePath(filePath);
+
+      await wc.fs.rm(relativePath);
+
+      // If the deleted file was selected, clear the selection
+      if (this.selectedFile.get() === filePath) {
+        this.setSelectedFile(undefined);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      return false;
+    }
+  }
+
+  async deleteFolder(folderPath: string) {
+    try {
+      const wc = await webcontainer;
+      const relativePath = extractRelativePath(folderPath);
+
+      await wc.fs.rm(relativePath, { recursive: true });
+
+      const selectedFile = this.selectedFile.get();
+
+      if (selectedFile && selectedFile.startsWith(folderPath)) {
+        this.setSelectedFile(undefined);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      return false;
+    }
+  }
+
+  async renameFile(oldPath: string, newPath: string) {
+    try {
+      const wc = await webcontainer;
+      const oldRelativePath = extractRelativePath(oldPath);
+      const newRelativePath = extractRelativePath(newPath);
+
+      const fileContent = await wc.fs.readFile(oldRelativePath, 'utf-8');
+
+      await this.createNewFile(newPath, fileContent);
+
+      await this.deleteFile(oldPath);
+
+      if (this.selectedFile.get() === oldPath) {
+        const fullNewPath = path.join(wc.workdir, newRelativePath);
+        this.setSelectedFile(fullNewPath);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error renaming file:', error);
+      return false;
+    }
+  }
+
+  async renameFolder(oldPath: string, newPath: string) {
+    try {
+      await this.createNewFolder(newPath);
+
+      const files = this.files.get();
+      const filesToMove = Object.entries(files)
+        .filter(([filePath]) => filePath.startsWith(oldPath))
+        .map(([filePath, dirent]) => ({ path: filePath, dirent }));
+
+      for (const { path: filePath, dirent } of filesToMove) {
+        if (dirent?.type === 'file') {
+          const relativePath = filePath.substring(oldPath.length);
+          const newFilePath = path.join(newPath, relativePath);
+
+          await this.createNewFile(newFilePath, dirent.content);
+        }
+      }
+
+      await this.deleteFolder(oldPath);
+
+      const selectedFile = this.selectedFile.get();
+
+      if (selectedFile && selectedFile.startsWith(oldPath)) {
+        const relativePath = selectedFile.substring(oldPath.length);
+        const newSelectedPath = path.join(newPath, relativePath);
+        this.setSelectedFile(newSelectedPath);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      return false;
+    }
+  }
 }
 
 export const workbenchStore = new WorkbenchStore();
