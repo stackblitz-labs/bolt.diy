@@ -1,0 +1,65 @@
+appId: com.stackblitz.bolt.diy
+productName: Bolt Local
+directories:
+  buildResources: build
+  output: dist
+files:
+  - build/**/*
+  - package.json
+  - node_modules/**/*
+  - icons/**
+  - electron-update.yml
+extraMetadata:
+  main: build/electron/main/index.mjs
+asarUnpack:
+  - resources/**
+  - build/client/**/*
+  - build/server/**/*
+  - electron-update.yml
+
+mac:
+  icon: assets/icons/icon.icns
+  target:
+    - dmg
+  identity: "Xinzhe Wang (RDQSC33B2X)"
+  category: "public.app-category.developer-tools"
+  type: "distribution"
+  hardenedRuntime: true
+  entitlements: "assets/entitlements.mac.plist"
+  entitlementsInherit: "assets/entitlements.mac.plist"
+  gatekeeperAssess: false
+
+win:
+  icon: assets/icons/icon.ico
+  target:
+    - nsis
+  signDlls: false
+  artifactName: ${name}-${version}-${os}-${arch}.${ext}
+
+linux:
+  icon: assets/icons/icon.png
+  target:
+    - AppImage
+    - deb
+  artifactName: ${name}-${version}-${os}-${arch}.${ext}
+  category: Development
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ${productName}
+  artifactName: ${name}-${version}-${os}-${arch}-setup.${ext}
+
+npmRebuild: false
+
+publish:
+  provider: github
+  owner: Derek-X-Wang
+  repo: bolt.local
+  private: true
+  releaseType: release
+
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/

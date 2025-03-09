@@ -1353,7 +1353,9 @@ export default function DebugTab() {
           </div>
           <div className="text-xs text-bolt-elements-textSecondary mt-2 flex items-center gap-1.5">
             <div className="i-ph:code w-3.5 h-3.5 text-purple-500" />
-            DOM Ready: {systemInfo ? (systemInfo.performance.timing.domReadyTime / 1000).toFixed(2) : '-'}s
+            DOM Ready: {systemInfo
+              ? (systemInfo.performance.timing.domReadyTime / 1000).toFixed(2)
+              : '-'}s
           </div>
         </div>
 
