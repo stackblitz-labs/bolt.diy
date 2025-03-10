@@ -1,10 +1,13 @@
-import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import type { FileHistory } from '~/types/actions';
 import { diffLines, type Change } from 'diff';
+import { workbenchStore } from '~/lib/stores/workbench';
+import { toast } from 'react-toastify';
+import { path } from '~/utils/path';
 
 const logger = createScopedLogger('FileTree');
 
@@ -23,6 +26,14 @@ interface Props {
   unsavedFiles?: Set<string>;
   fileHistory?: Record<string, FileHistory>;
   className?: string;
+}
+
+interface InlineInputProps {
+  depth: number;
+  placeholder: string;
+  initialValue?: string;
+  onSubmit: (value: string) => void;
+  onCancel: () => void;
 }
 
 export const FileTree = memo(
@@ -213,28 +224,258 @@ function ContextMenuItem({ onSelect, children }: { onSelect?: () => void; childr
   );
 }
 
-function FileContextMenu({ onCopyPath, onCopyRelativePath, children }: FolderContextMenuProps) {
+function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel }: InlineInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+
+        if (initialValue) {
+          inputRef.current.value = initialValue;
+          inputRef.current.select();
+        }
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [initialValue]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      const value = inputRef.current?.value.trim();
+
+      if (value) {
+        onSubmit(value);
+      }
+    } else if (e.key === 'Escape') {
+      onCancel();
+    }
+  };
+
   return (
-    <ContextMenu.Root>
-      <ContextMenu.Trigger>{children}</ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Content
-          style={{ zIndex: 998 }}
-          className="border border-bolt-elements-borderColor rounded-md z-context-menu bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-2 data-[state=open]:animate-in animate-duration-100 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-98 w-56"
-        >
-          <ContextMenu.Group className="p-1 border-b-px border-solid border-bolt-elements-borderColor">
-            <ContextMenuItem onSelect={onCopyPath}>Copy path</ContextMenuItem>
-            <ContextMenuItem onSelect={onCopyRelativePath}>Copy relative path</ContextMenuItem>
-          </ContextMenu.Group>
-        </ContextMenu.Content>
-      </ContextMenu.Portal>
-    </ContextMenu.Root>
+    <div
+      className="flex items-center w-full px-2 bg-bolt-elements-background-depth-4 border border-bolt-elements-item-contentAccent py-0.5 text-bolt-elements-textPrimary"
+      style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
+    >
+      <div className="scale-120 shrink-0 i-ph:file-plus text-bolt-elements-textTertiary" />
+      <input
+        ref={inputRef}
+        type="text"
+        className="ml-2 flex-1 bg-transparent border-none outline-none py-0.5 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary min-w-0"
+        placeholder={placeholder}
+        onKeyDown={handleKeyDown}
+        onBlur={() => {
+          setTimeout(() => {
+            if (document.activeElement !== inputRef.current) {
+              onCancel();
+            }
+          }, 100);
+        }}
+      />
+    </div>
+  );
+}
+
+function FileContextMenu({
+  onCopyPath,
+  onCopyRelativePath,
+  fullPath,
+  children,
+}: FolderContextMenuProps & { fullPath: string }) {
+  const [isCreatingFile, setIsCreatingFile] = useState(false);
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const depth = useMemo(() => fullPath.split('/').length, [fullPath]);
+  const fileName = useMemo(() => path.basename(fullPath), [fullPath]);
+
+  const isFolder = useMemo(() => {
+    const files = workbenchStore.files.get();
+    const fileEntry = files[fullPath];
+
+    return !fileEntry || fileEntry.type === 'folder';
+  }, [fullPath]);
+
+  const targetPath = useMemo(() => {
+    return isFolder ? fullPath : path.dirname(fullPath);
+  }, [fullPath, isFolder]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const items = Array.from(e.dataTransfer.items);
+      const files = items.filter((item) => item.kind === 'file');
+
+      for (const item of files) {
+        const file = item.getAsFile();
+
+        if (file) {
+          try {
+            const filePath = path.join(fullPath, file.name);
+
+            // Convert file to binary data (Uint8Array)
+            const arrayBuffer = await file.arrayBuffer();
+            const binaryContent = new Uint8Array(arrayBuffer);
+
+            const success = await workbenchStore.createFile(filePath, binaryContent);
+
+            if (success) {
+              toast.success(`File ${file.name} uploaded successfully`);
+            } else {
+              toast.error(`Failed to upload file ${file.name}`);
+            }
+          } catch (error) {
+            toast.error(`Error uploading ${file.name}`);
+            logger.error(error);
+          }
+        }
+      }
+
+      setIsDragging(false);
+    },
+    [fullPath],
+  );
+
+  const handleCreateFile = async (fileName: string) => {
+    const newFilePath = path.join(targetPath, fileName);
+    const success = await workbenchStore.createFile(newFilePath, '');
+
+    if (success) {
+      toast.success('File created successfully');
+    } else {
+      toast.error('Failed to create file');
+    }
+
+    setIsCreatingFile(false);
+  };
+
+  const handleCreateFolder = async (folderName: string) => {
+    const newFolderPath = path.join(targetPath, folderName);
+    const success = await workbenchStore.createFolder(newFolderPath);
+
+    if (success) {
+      toast.success('Folder created successfully');
+    } else {
+      toast.error('Failed to create folder');
+    }
+
+    setIsCreatingFolder(false);
+  };
+
+  const handleDelete = async () => {
+    try {
+      if (!confirm(`Are you sure you want to delete ${isFolder ? 'folder' : 'file'}: ${fileName}?`)) {
+        return;
+      }
+
+      let success;
+
+      if (isFolder) {
+        success = await workbenchStore.deleteFolder(fullPath);
+      } else {
+        success = await workbenchStore.deleteFile(fullPath);
+      }
+
+      if (success) {
+        toast.success(`${isFolder ? 'Folder' : 'File'} deleted successfully`);
+      } else {
+        toast.error(`Failed to delete ${isFolder ? 'folder' : 'file'}`);
+      }
+    } catch (error) {
+      toast.error(`Error deleting ${isFolder ? 'folder' : 'file'}`);
+      logger.error(error);
+    }
+  };
+
+  return (
+    <>
+      <ContextMenu.Root>
+        <ContextMenu.Trigger>
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={classNames('relative', {
+              'bg-bolt-elements-background-depth-2 border border-dashed border-bolt-elements-item-contentAccent rounded-md':
+                isDragging,
+            })}
+          >
+            {children}
+          </div>
+        </ContextMenu.Trigger>
+        <ContextMenu.Portal>
+          <ContextMenu.Content
+            style={{ zIndex: 998 }}
+            className="border border-bolt-elements-borderColor rounded-md z-context-menu bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-2 data-[state=open]:animate-in animate-duration-100 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-98 w-56"
+          >
+            <ContextMenu.Group className="p-1 border-b-px border-solid border-bolt-elements-borderColor">
+              <ContextMenuItem onSelect={() => setIsCreatingFile(true)}>
+                <div className="flex items-center gap-2">
+                  <div className="i-ph:file-plus" />
+                  New File
+                </div>
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={() => setIsCreatingFolder(true)}>
+                <div className="flex items-center gap-2">
+                  <div className="i-ph:folder-plus" />
+                  New Folder
+                </div>
+              </ContextMenuItem>
+            </ContextMenu.Group>
+            <ContextMenu.Group className="p-1">
+              <ContextMenuItem onSelect={onCopyPath}>Copy path</ContextMenuItem>
+              <ContextMenuItem onSelect={onCopyRelativePath}>Copy relative path</ContextMenuItem>
+            </ContextMenu.Group>
+            {/* Add delete option in a new group */}
+            <ContextMenu.Group className="p-1 border-t-px border-solid border-bolt-elements-borderColor">
+              <ContextMenuItem onSelect={handleDelete}>
+                <div className="flex items-center gap-2 text-red-500">
+                  <div className="i-ph:trash" />
+                  Delete {isFolder ? 'Folder' : 'File'}
+                </div>
+              </ContextMenuItem>
+            </ContextMenu.Group>
+          </ContextMenu.Content>
+        </ContextMenu.Portal>
+      </ContextMenu.Root>
+      {isCreatingFile && (
+        <InlineInput
+          depth={depth}
+          placeholder="Enter file name..."
+          onSubmit={handleCreateFile}
+          onCancel={() => setIsCreatingFile(false)}
+        />
+      )}
+      {isCreatingFolder && (
+        <InlineInput
+          depth={depth}
+          placeholder="Enter folder name..."
+          onSubmit={handleCreateFolder}
+          onCancel={() => setIsCreatingFolder(false)}
+        />
+      )}
+    </>
   );
 }
 
 function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativePath, onClick }: FolderProps) {
   return (
-    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath}>
+    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={folder.fullPath}>
       <NodeButton
         className={classNames('group', {
           'bg-transparent text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive':
@@ -265,7 +506,7 @@ interface FileProps {
 }
 
 function File({
-  file: { depth, name, fullPath },
+  file,
   onClick,
   onCopyPath,
   onCopyRelativePath,
@@ -273,17 +514,15 @@ function File({
   unsavedChanges = false,
   fileHistory = {},
 }: FileProps) {
+  const { depth, name, fullPath } = file;
+
   const fileModifications = fileHistory[fullPath];
 
-  // const hasModifications = fileModifications !== undefined;
-
-  // Calculate added and removed lines from the most recent changes
   const { additions, deletions } = useMemo(() => {
     if (!fileModifications?.originalContent) {
       return { additions: 0, deletions: 0 };
     }
 
-    // Usar a mesma lógica do DiffView para processar as mudanças
     const normalizedOriginal = fileModifications.originalContent.replace(/\r\n/g, '\n');
     const normalizedCurrent =
       fileModifications.versions[fileModifications.versions.length - 1]?.content.replace(/\r\n/g, '\n') || '';
@@ -317,7 +556,7 @@ function File({
   const showStats = additions > 0 || deletions > 0;
 
   return (
-    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath}>
+    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={fullPath}>
       <NodeButton
         className={classNames('group', {
           'bg-transparent hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-item-contentDefault':

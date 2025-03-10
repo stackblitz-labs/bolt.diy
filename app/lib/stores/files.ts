@@ -43,6 +43,11 @@ export class FilesStore {
   #modifiedFiles: Map<string, string> = import.meta.hot?.data.modifiedFiles ?? new Map();
 
   /**
+   * Keeps track of deleted files and folders to prevent them from reappearing on reload
+   */
+  #deletedPaths: Set<string> = import.meta.hot?.data.deletedPaths ?? new Set();
+
+  /**
    * Map of files that matches the state of WebContainer.
    */
   files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
@@ -54,9 +59,28 @@ export class FilesStore {
   constructor(webcontainerPromise: Promise<WebContainer>) {
     this.#webcontainer = webcontainerPromise;
 
+    // Load deleted paths from localStorage if available
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const deletedPathsJson = localStorage.getItem('bolt-deleted-paths');
+
+        if (deletedPathsJson) {
+          const deletedPaths = JSON.parse(deletedPathsJson);
+
+          if (Array.isArray(deletedPaths)) {
+            deletedPaths.forEach((path) => this.#deletedPaths.add(path));
+          }
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to load deleted paths from localStorage', error);
+    }
+
     if (import.meta.hot) {
+      // Persist our state across hot reloads
       import.meta.hot.data.files = this.files;
       import.meta.hot.data.modifiedFiles = this.#modifiedFiles;
+      import.meta.hot.data.deletedPaths = this.#deletedPaths;
     }
 
     this.#init();
@@ -139,18 +163,74 @@ export class FilesStore {
   async #init() {
     const webcontainer = await this.#webcontainer;
 
+    // Clean up any files that were previously deleted
+    this.#cleanupDeletedFiles();
+
     webcontainer.internal.watchPaths(
       { include: [`${WORK_DIR}/**`], exclude: ['**/node_modules', '.git'], includeContent: true },
       bufferWatchEvents(100, this.#processEventBuffer.bind(this)),
     );
   }
 
+  /**
+   * Removes any deleted files/folders from the store
+   */
+  #cleanupDeletedFiles() {
+    if (this.#deletedPaths.size === 0) {
+      return;
+    }
+
+    const currentFiles = this.files.get();
+
+    for (const deletedPath of this.#deletedPaths) {
+      if (currentFiles[deletedPath]) {
+        this.files.setKey(deletedPath, undefined);
+
+        if (currentFiles[deletedPath]?.type === 'file') {
+          this.#size--;
+        }
+      }
+
+      for (const [path, dirent] of Object.entries(currentFiles)) {
+        if (path.startsWith(deletedPath + '/')) {
+          this.files.setKey(path, undefined);
+
+          if (dirent?.type === 'file') {
+            this.#size--;
+          }
+
+          if (dirent?.type === 'file' && this.#modifiedFiles.has(path)) {
+            this.#modifiedFiles.delete(path);
+          }
+        }
+      }
+    }
+  }
+
   #processEventBuffer(events: Array<[events: PathWatcherEvent[]]>) {
     const watchEvents = events.flat(2);
 
-    for (const { type, path, buffer } of watchEvents) {
+    for (const { type, path: eventPath, buffer } of watchEvents) {
       // remove any trailing slashes
-      const sanitizedPath = path.replace(/\/+$/g, '');
+      const sanitizedPath = eventPath.replace(/\/+$/g, '');
+
+      // Skip processing if this file/folder was explicitly deleted
+      if (this.#deletedPaths.has(sanitizedPath)) {
+        continue;
+      }
+
+      let isInDeletedFolder = false;
+
+      for (const deletedPath of this.#deletedPaths) {
+        if (sanitizedPath.startsWith(deletedPath + '/')) {
+          isInDeletedFolder = true;
+          break;
+        }
+      }
+
+      if (isInDeletedFolder) {
+        continue;
+      }
 
       switch (type) {
         case 'add_dir': {
@@ -176,21 +256,30 @@ export class FilesStore {
           }
 
           let content = '';
-
-          /**
-           * @note This check is purely for the editor. The way we detect this is not
-           * bullet-proof and it's a best guess so there might be false-positives.
-           * The reason we do this is because we don't want to display binary files
-           * in the editor nor allow to edit them.
-           */
           const isBinary = isBinaryFile(buffer);
 
-          if (!isBinary) {
+          if (isBinary && buffer) {
+            // For binary files, we need to preserve the content as base64
+            content = Buffer.from(buffer).toString('base64');
+          } else if (!isBinary) {
             content = this.#decodeFileContent(buffer);
+
+            /*
+             * If the content is a single space and this is from our empty file workaround,
+             * convert it back to an actual empty string
+             */
+            if (content === ' ' && type === 'add_file') {
+              content = '';
+            }
+          }
+
+          const existingFile = this.files.get()[sanitizedPath];
+
+          if (existingFile?.type === 'file' && existingFile.isBinary && existingFile.content && !content) {
+            content = existingFile.content;
           }
 
           this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
-
           break;
         }
         case 'remove_file': {
@@ -216,6 +305,160 @@ export class FilesStore {
     } catch (error) {
       console.log(error);
       return '';
+    }
+  }
+
+  async createFile(filePath: string, content: string | Uint8Array = '') {
+    const webcontainer = await this.#webcontainer;
+
+    try {
+      const relativePath = path.relative(webcontainer.workdir, filePath);
+
+      if (!relativePath) {
+        throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
+      }
+
+      const dirPath = path.dirname(relativePath);
+
+      if (dirPath !== '.') {
+        await webcontainer.fs.mkdir(dirPath, { recursive: true });
+      }
+
+      const isBinary = content instanceof Uint8Array;
+
+      if (isBinary) {
+        await webcontainer.fs.writeFile(relativePath, Buffer.from(content));
+
+        const base64Content = Buffer.from(content).toString('base64');
+        this.files.setKey(filePath, { type: 'file', content: base64Content, isBinary: true });
+
+        this.#modifiedFiles.set(filePath, base64Content);
+      } else {
+        const contentToWrite = (content as string).length === 0 ? ' ' : content;
+        await webcontainer.fs.writeFile(relativePath, contentToWrite);
+
+        this.files.setKey(filePath, { type: 'file', content: content as string, isBinary: false });
+
+        this.#modifiedFiles.set(filePath, content as string);
+      }
+
+      logger.info(`File created: ${filePath}`);
+
+      return true;
+    } catch (error) {
+      logger.error('Failed to create file\n\n', error);
+      throw error;
+    }
+  }
+
+  async createFolder(folderPath: string) {
+    const webcontainer = await this.#webcontainer;
+
+    try {
+      const relativePath = path.relative(webcontainer.workdir, folderPath);
+
+      if (!relativePath) {
+        throw new Error(`EINVAL: invalid folder path, create '${relativePath}'`);
+      }
+
+      await webcontainer.fs.mkdir(relativePath, { recursive: true });
+
+      this.files.setKey(folderPath, { type: 'folder' });
+
+      logger.info(`Folder created: ${folderPath}`);
+
+      return true;
+    } catch (error) {
+      logger.error('Failed to create folder\n\n', error);
+      throw error;
+    }
+  }
+
+  async deleteFile(filePath: string) {
+    const webcontainer = await this.#webcontainer;
+
+    try {
+      const relativePath = path.relative(webcontainer.workdir, filePath);
+
+      if (!relativePath) {
+        throw new Error(`EINVAL: invalid file path, delete '${relativePath}'`);
+      }
+
+      await webcontainer.fs.rm(relativePath);
+
+      this.#deletedPaths.add(filePath);
+
+      this.files.setKey(filePath, undefined);
+      this.#size--;
+
+      if (this.#modifiedFiles.has(filePath)) {
+        this.#modifiedFiles.delete(filePath);
+      }
+
+      this.#persistDeletedPaths();
+
+      logger.info(`File deleted: ${filePath}`);
+
+      return true;
+    } catch (error) {
+      logger.error('Failed to delete file\n\n', error);
+      throw error;
+    }
+  }
+
+  async deleteFolder(folderPath: string) {
+    const webcontainer = await this.#webcontainer;
+
+    try {
+      const relativePath = path.relative(webcontainer.workdir, folderPath);
+
+      if (!relativePath) {
+        throw new Error(`EINVAL: invalid folder path, delete '${relativePath}'`);
+      }
+
+      await webcontainer.fs.rm(relativePath, { recursive: true });
+
+      this.#deletedPaths.add(folderPath);
+
+      this.files.setKey(folderPath, undefined);
+
+      const allFiles = this.files.get();
+
+      for (const [path, dirent] of Object.entries(allFiles)) {
+        if (path.startsWith(folderPath + '/')) {
+          this.files.setKey(path, undefined);
+
+          this.#deletedPaths.add(path);
+
+          if (dirent?.type === 'file') {
+            this.#size--;
+          }
+
+          if (dirent?.type === 'file' && this.#modifiedFiles.has(path)) {
+            this.#modifiedFiles.delete(path);
+          }
+        }
+      }
+
+      this.#persistDeletedPaths();
+
+      logger.info(`Folder deleted: ${folderPath}`);
+
+      return true;
+    } catch (error) {
+      logger.error('Failed to delete folder\n\n', error);
+      throw error;
+    }
+  }
+
+  // method to persist deleted paths to localStorage
+  #persistDeletedPaths() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('bolt-deleted-paths', JSON.stringify([...this.#deletedPaths]));
+      }
+    } catch (error) {
+      logger.error('Failed to persist deleted paths to localStorage', error);
     }
   }
 }
