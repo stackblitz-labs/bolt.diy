@@ -11,6 +11,7 @@ import OpenRouterProvider from './providers/open-router';
 import OpenAILikeProvider from './providers/openai-like';
 import OpenAIProvider from './providers/openai';
 import PerplexityProvider from './providers/perplexity';
+import TelkomDesignProvider from './providers/telkom-design';
 import TogetherProvider from './providers/together';
 import XAIProvider from './providers/xai';
 import HyperbolicProvider from './providers/hyperbolic';
@@ -31,6 +32,7 @@ export {
   OpenRouterProvider,
   OpenAILikeProvider,
   PerplexityProvider,
+  TelkomDesignProvider,
   XAIProvider,
   TogetherProvider,
   LMStudioProvider,
