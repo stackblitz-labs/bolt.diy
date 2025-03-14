@@ -44,6 +44,6 @@ export interface FileHistory {
     content: string;
   }[];
 
-  // Novo campo para rastrear a origem das mudanças
+  // New field to track the origin of changes
   changeSource?: 'user' | 'auto-save' | 'external';
 }

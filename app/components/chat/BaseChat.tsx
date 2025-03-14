@@ -39,6 +39,12 @@ import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
+/*
+ * Flag to use only fallback method
+ * const USE_ONLY_FALLBACK = true;
+ */
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
@@ -257,24 +263,209 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const handleFileUpload = () => {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*';
+      input.accept = 'image/*,.txt,.md,.docx,.pdf';
+      input.multiple = true;
 
       input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-
-        if (file) {
-          const reader = new FileReader();
-
-          reader.onload = (e) => {
-            const base64Image = e.target?.result as string;
-            setUploadedFiles?.([...uploadedFiles, file]);
-            setImageDataList?.([...imageDataList, base64Image]);
-          };
-          reader.readAsDataURL(file);
-        }
+        const selectedFiles = Array.from((e.target as HTMLInputElement).files || []);
+        processNewFiles(selectedFiles, 'upload');
       };
-
       input.click();
+    };
+
+    // Unified file processing function
+    const processNewFiles = (filesToProcess: File[], source: 'upload' | 'paste') => {
+      // Validate file types and sizes first
+      const filteredFiles = filesToProcess.filter((file) => {
+        // Block script files
+        if (file.name.match(/\.(sh|bat|ps1)$/i)) {
+          toast.error(
+            <div>
+              <div className="font-bold">Script files not allowed</div>
+              <div className="text-xs text-gray-200">
+                For security reasons, script files (.sh, .bat, .ps1) are not supported.
+              </div>
+            </div>,
+            { autoClose: 5000 },
+          );
+          return false;
+        }
+
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+          toast.warning(`File ${file.name} exceeds maximum size of 5MB and was ignored.`);
+          return false;
+        }
+
+        return true;
+      });
+
+      if (filteredFiles.length === 0) {
+        return;
+      }
+
+      // Prepare new files array
+      const newUploadedFiles = [...uploadedFiles, ...filteredFiles];
+      const newImageDataList = [
+        ...imageDataList,
+        ...filteredFiles.map((file) => (file.type.startsWith('image/') ? 'loading-image' : 'non-image')),
+      ];
+
+      // Update state
+      setUploadedFiles?.(newUploadedFiles);
+      setImageDataList?.(newImageDataList);
+
+      // Process individual files
+      filteredFiles.forEach((file, index) => {
+        const actualIndex = uploadedFiles.length + index;
+        processIndividualFiles(file, actualIndex, source);
+      });
+    };
+
+    const processIndividualFiles = (file: File, index: number, _source: 'upload' | 'paste') => {
+      if (file.type.startsWith('image/')) {
+        processImageFile(file, index);
+      } else if (file.type.includes('text') || file.name.match(/\.(txt|md|pdf|docx)$/i)) {
+        previewTextFile(file, index);
+      }
+    };
+
+    // Rename and update processPastedFiles to use new unified function
+    const processPastedFiles = (filesToProcess: File[]) => {
+      processNewFiles(filesToProcess, 'paste');
+    };
+
+    // Function to process image files
+    const processImageFile = (file: File, _index: number) => {
+      // Handle image files for display
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          if (e.target && e.target.result && setImageDataList) {
+            setImageDataList([...imageDataList, e.target.result as string]);
+          }
+        };
+        reader.readAsDataURL(file);
+
+        toast.info(
+          <div>
+            <div className="font-bold">Image attached:</div>
+            <div className="text-xs text-gray-200 bg-gray-800 p-2 mt-1 rounded">
+              {file.name} ({Math.round(file.size / 1024)} KB)
+            </div>
+          </div>,
+          { autoClose: 3000 },
+        );
+      } else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        // Special handling for PDF files
+        const fileSize = Math.round(file.size / 1024);
+        const isLargePdf = fileSize > 5000; // 5MB threshold
+
+        const toastId = toast.info(
+          <div>
+            <div className="font-bold">PDF attached:</div>
+            <div className="text-xs text-gray-200 bg-gray-800 p-2 mt-1 rounded">
+              {file.name} ({fileSize} KB){isLargePdf ? ' - Large file, processing may take longer' : ''}
+            </div>
+            <div className="mt-2">
+              <div className="w-full bg-gray-700 rounded-full h-2.5 mb-1">
+                <div className="bg-blue-600 h-2.5 rounded-full w-1/4"></div>
+              </div>
+              <div className="text-xs text-gray-400">Extracting text...</div>
+            </div>
+          </div>,
+          { autoClose: false },
+        );
+
+        // Process the PDF file asynchronously
+        import('~/utils/documentUtils').then(async ({ extractTextFromDocument }) => {
+          try {
+            await extractTextFromDocument(file);
+
+            // Update toast with success message
+            toast.update(toastId, {
+              render: (
+                <div>
+                  <div className="font-bold">PDF processed successfully:</div>
+                  <div className="text-xs text-gray-200 bg-gray-800 p-2 mt-1 rounded">
+                    {file.name} ({fileSize} KB)
+                  </div>
+                  <div className="mt-1 text-xs text-green-400">Text extracted and ready to send</div>
+                </div>
+              ),
+              autoClose: 3000,
+              type: 'success',
+            });
+          } catch (error) {
+            console.error('Error processing PDF:', error);
+
+            // Update toast with error message
+            toast.update(toastId, {
+              render: (
+                <div>
+                  <div className="font-bold">Error processing PDF:</div>
+                  <div className="text-xs text-gray-200 bg-gray-800 p-2 mt-1 rounded">
+                    {file.name} ({fileSize} KB)
+                  </div>
+                  <div className="mt-1 text-xs text-red-400">
+                    The file will be attached but text extraction had issues
+                  </div>
+                </div>
+              ),
+              autoClose: 5000,
+              type: 'error',
+            });
+          }
+        });
+      }
+    };
+
+    // Function to process text files and show preview
+    const previewTextFile = (file: File, _index: number) => {
+      // If it's a PDF or DOCX file, show a special preview
+      if (
+        file.type === 'application/pdf' ||
+        file.name.endsWith('.pdf') ||
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.name.endsWith('.docx')
+      ) {
+        toast.info(
+          <div>
+            <div className="font-bold">Document file attached:</div>
+            <div className="text-xs text-gray-200 bg-gray-800 p-2 mt-1 rounded flex items-center">
+              <div
+                className={
+                  file.type === 'application/pdf' || file.name.endsWith('.pdf')
+                    ? 'i-ph:file-pdf text-red-500 mr-2'
+                    : 'i-ph:file-doc text-blue-500 mr-2'
+                }
+                style={{ fontSize: '1.25rem' }}
+              ></div>
+              <div>
+                <div>{file.name}</div>
+                <div className="text-xs text-gray-400">
+                  {Math.round(file.size / 1024)} KB - Text will be extracted when sending
+                </div>
+              </div>
+            </div>
+          </div>,
+          { autoClose: 4000 },
+        );
+
+        return;
+      }
+
+      // For other file types, maintain previous behavior
+      toast.info(
+        <div>
+          <div className="font-bold">File attached:</div>
+          <div className="text-xs text-gray-200 bg-gray-800 p-2 mt-1 rounded">
+            {file.name} ({Math.round(file.size / 1024)} KB)
+          </div>
+        </div>,
+        { autoClose: 3000 },
+      );
     };
 
     const handlePaste = async (e: React.ClipboardEvent) => {
@@ -284,24 +475,43 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
-      for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          e.preventDefault();
+      // Check if there are files in the clipboard
+      const clipboardFiles: File[] = [];
 
+      for (const item of items) {
+        if (item.kind === 'file') {
           const file = item.getAsFile();
 
           if (file) {
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-              const base64Image = e.target?.result as string;
-              setUploadedFiles?.([...uploadedFiles, file]);
-              setImageDataList?.([...imageDataList, base64Image]);
-            };
-            reader.readAsDataURL(file);
+            clipboardFiles.push(file);
           }
+        }
+      }
 
-          break;
+      if (clipboardFiles && clipboardFiles.length > 0) {
+        // If there are PDF or DOCX files, check possible filters
+        if (
+          clipboardFiles.some(
+            (file) =>
+              file.type === 'application/pdf' ||
+              file.name.endsWith('.pdf') ||
+              file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+              file.name.endsWith('.docx'),
+          )
+        ) {
+          // Filter large files
+          const filteredFiles = clipboardFiles.filter((file) => file.size <= MAX_FILE_SIZE);
+
+          if (filteredFiles.length < clipboardFiles.length) {
+            toast.warning('Some files were ignored because they exceed the maximum size of 5MB.');
+
+            // Continue only with valid files
+            processPastedFiles(filteredFiles);
+          } else {
+            processPastedFiles(clipboardFiles);
+          }
+        } else {
+          processPastedFiles(clipboardFiles);
         }
       }
     };
@@ -464,29 +674,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }}
                       onDragOver={(e) => {
                         e.preventDefault();
-                        e.currentTarget.style.border = '2px solid #1488fc';
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+                        e.stopPropagation();
 
                         const files = Array.from(e.dataTransfer.files);
-                        files.forEach((file) => {
-                          if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
 
-                            reader.onload = (e) => {
-                              const base64Image = e.target?.result as string;
-                              setUploadedFiles?.([...uploadedFiles, file]);
-                              setImageDataList?.([...imageDataList, base64Image]);
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        });
+                        // Check if there are script files
+                        const hasScripts = files.some((file) => file.name.match(/\.(sh|bat|ps1)$/i));
+
+                        let filteredFiles = files;
+
+                        if (hasScripts) {
+                          toast.error(
+                            <div>
+                              <div className="font-bold">Script files not allowed</div>
+                              <div className="text-xs text-gray-200">
+                                For security reasons, script files (.sh, .bat, .ps1) are not supported.
+                              </div>
+                            </div>,
+                            { autoClose: 5000 },
+                          );
+
+                          // Remove script files
+                          filteredFiles = filteredFiles.filter(
+                            (file) =>
+                              !file.name.endsWith('.sh') && !file.name.endsWith('.bat') && !file.name.endsWith('.ps1'),
+                          );
+                        }
+
+                        if (filteredFiles.length === 0) {
+                          return;
+                        } // If there were only unsupported files, cancel processing
+
+                        // Process valid files
+                        processPastedFiles(filteredFiles);
                       }}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
@@ -542,9 +762,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </ClientOnly>
                     <div className="flex justify-between items-center text-sm p-4 pt-2">
                       <div className="flex gap-1 items-center">
-                        <IconButton title="Upload file" className="transition-all" onClick={() => handleFileUpload()}>
-                          <div className="i-ph:paperclip text-xl"></div>
-                        </IconButton>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <IconButton
+                              title="Upload file"
+                              className="transition-all"
+                              onClick={() => handleFileUpload()}
+                            >
+                              <div className="i-ph:paperclip text-xl"></div>
+                            </IconButton>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              className="bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary p-2 rounded-md text-xs border border-bolt-elements-borderColor max-w-xs"
+                              sideOffset={5}
+                            >
+                              <p>Attach files</p>
+                              <div className="text-bolt-elements-textSecondary mt-1">
+                                <p>Supported formats:</p>
+                                <p className="mt-1">• Images: png, jpg, jpeg, gif, etc.</p>
+                                <p>• Text: txt, md, js, py, html, css, json, etc.</p>
+                                <p>• Documents: pdf, docx</p>
+                              </div>
+                              <Tooltip.Arrow className="fill-bolt-elements-background-depth-3" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
                         <IconButton
                           title="Enhance prompt"
                           disabled={input.length === 0 || enhancingPrompt}
