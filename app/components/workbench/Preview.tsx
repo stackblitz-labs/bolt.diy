@@ -251,8 +251,6 @@ export const Preview = memo(() => {
         const containerWidth = containerRef.current.clientWidth;
         setCurrentWidth(Math.round((containerWidth * newWidthPercent) / 100));
       }
-
-      e.preventDefault();
     };
 
     const handlePointerUp = (e: PointerEvent) => {
@@ -262,9 +260,18 @@ export const Preview = memo(() => {
         return;
       }
 
-      const target = e.target as HTMLElement;
+      // Find the element that has the pointer capture
+      const elements = document.querySelectorAll('*');
+      let target: HTMLElement | null = null;
 
-      if (target.hasPointerCapture(e.pointerId)) {
+      for (const el of elements) {
+        if ((el as HTMLElement).hasPointerCapture?.(e.pointerId)) {
+          target = el as HTMLElement;
+          break;
+        }
+      }
+
+      if (target && target.hasPointerCapture(e.pointerId)) {
         target.releasePointerCapture(e.pointerId);
       }
 
@@ -277,8 +284,6 @@ export const Preview = memo(() => {
 
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
-
-      e.preventDefault();
     };
 
     if (resizingState.current.isResizing) {
