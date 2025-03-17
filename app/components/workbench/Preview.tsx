@@ -181,8 +181,6 @@ export const Preview = memo(() => {
       windowWidth: window.innerWidth,
       pointerId: e.pointerId,
     };
-
-    e.preventDefault();
   };
 
   const ResizeHandle = ({ side }: { side: ResizeSide }) => {
@@ -192,6 +190,7 @@ export const Preview = memo(() => {
 
     return (
       <div
+        className={`resize-handle-${side}`}
         onPointerDown={(e) => startResizing(e, side)}
         style={{
           position: 'absolute',
@@ -223,6 +222,11 @@ export const Preview = memo(() => {
   };
 
   useEffect(() => {
+    // Skip if not in device mode
+    if (!isDeviceModeOn) {
+      return;
+    }
+
     const handlePointerMove = (e: PointerEvent) => {
       const state = resizingState.current;
 
@@ -244,37 +248,42 @@ export const Preview = memo(() => {
       // Limit width percentage between 10% and 90%
       newWidthPercent = Math.max(10, Math.min(newWidthPercent, 90));
 
+      // Force a synchronous update to ensure the UI reflects the change immediately
       setWidthPercent(newWidthPercent);
 
       // Calculate and update the actual pixel width
       if (containerRef.current) {
         const containerWidth = containerRef.current.clientWidth;
-        setCurrentWidth(Math.round((containerWidth * newWidthPercent) / 100));
+        const newWidth = Math.round((containerWidth * newWidthPercent) / 100);
+        setCurrentWidth(newWidth);
+
+        // Apply the width directly to the container for immediate feedback
+        const previewContainer = containerRef.current.querySelector('div[style*="width"]');
+
+        if (previewContainer) {
+          (previewContainer as HTMLElement).style.width = `${newWidthPercent}%`;
+        }
       }
     };
 
     const handlePointerUp = (e: PointerEvent) => {
       const state = resizingState.current;
 
-      if (e.pointerId !== state.pointerId) {
+      if (!state.isResizing || e.pointerId !== state.pointerId) {
         return;
       }
 
-      // Find the element that has the pointer capture
-      const elements = document.querySelectorAll('*');
-      let target: HTMLElement | null = null;
+      // Find all resize handles
+      const handles = document.querySelectorAll('.resize-handle-left, .resize-handle-right');
 
-      for (const el of elements) {
-        if ((el as HTMLElement).hasPointerCapture?.(e.pointerId)) {
-          target = el as HTMLElement;
-          break;
+      // Release pointer capture from any handle that has it
+      handles.forEach((handle) => {
+        if ((handle as HTMLElement).hasPointerCapture?.(e.pointerId)) {
+          (handle as HTMLElement).releasePointerCapture(e.pointerId);
         }
-      }
+      });
 
-      if (target && target.hasPointerCapture(e.pointerId)) {
-        target.releasePointerCapture(e.pointerId);
-      }
-
+      // Reset state
       resizingState.current = {
         ...resizingState.current,
         isResizing: false,
@@ -286,20 +295,43 @@ export const Preview = memo(() => {
       document.body.style.cursor = '';
     };
 
-    if (resizingState.current.isResizing) {
-      document.addEventListener('pointermove', handlePointerMove);
-      document.addEventListener('pointerup', handlePointerUp);
-      document.addEventListener('pointercancel', handlePointerUp);
+    // Add event listeners
+    document.addEventListener('pointermove', handlePointerMove, { passive: false });
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', handlePointerUp);
 
-      return () => {
-        document.removeEventListener('pointermove', handlePointerMove);
-        document.removeEventListener('pointerup', handlePointerUp);
-        document.removeEventListener('pointercancel', handlePointerUp);
-      };
+    // Define cleanup function
+    function cleanupResizeListeners() {
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerUp);
+
+      // Release any lingering pointer captures
+      if (resizingState.current.pointerId !== null) {
+        const handles = document.querySelectorAll('.resize-handle-left, .resize-handle-right');
+        handles.forEach((handle) => {
+          if ((handle as HTMLElement).hasPointerCapture?.(resizingState.current.pointerId!)) {
+            (handle as HTMLElement).releasePointerCapture(resizingState.current.pointerId!);
+          }
+        });
+
+        // Reset state
+        resizingState.current = {
+          ...resizingState.current,
+          isResizing: false,
+          side: null,
+          pointerId: null,
+        };
+
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+      }
     }
 
-    return undefined;
-  }, [SCALING_FACTOR]);
+    // Return the cleanup function
+    // eslint-disable-next-line consistent-return
+    return cleanupResizeListeners;
+  }, [isDeviceModeOn, SCALING_FACTOR]);
 
   useEffect(() => {
     const handleWindowResize = () => {
