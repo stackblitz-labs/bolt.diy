@@ -1,5 +1,5 @@
 // Remove unused imports
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Switch } from '~/components/ui/Switch';
 import { useSettings } from '~/lib/hooks/useSettings';
@@ -119,6 +119,29 @@ export default function FeaturesTab() {
     promptId,
   } = useSettings();
 
+  // State for custom prompt text
+  const [customPromptText, setCustomPromptText] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Load custom prompt from localStorage on component mount
+  useEffect(() => {
+    setCustomPromptText(PromptLibrary.getCustomPrompt());
+    setHasUnsavedChanges(false);
+  }, []);
+
+  // Handle custom prompt change
+  const handleCustomPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCustomPromptText(e.target.value);
+    setHasUnsavedChanges(true);
+  };
+
+  // Save custom prompt
+  const handleSaveCustomPrompt = () => {
+    PromptLibrary.saveCustomPrompt(customPromptText);
+    toast.success('Custom prompt saved');
+    setHasUnsavedChanges(false);
+  };
+
   // Enable features by default on first load
   React.useEffect(() => {
     // Only set defaults if values are undefined
@@ -142,6 +165,13 @@ export default function FeaturesTab() {
       setEventLogs(true); // Default: ON - Enable event logging
     }
   }, []); // Only run once on component mount
+
+  // Add this effect to check if the user has selected the custom prompt option but hasn't saved a custom prompt yet
+  useEffect(() => {
+    if (promptId === 'custom' && !PromptLibrary.hasCustomPrompt() && !customPromptText) {
+      toast.warning('Please create and save a custom prompt to use this option');
+    }
+  }, [promptId, customPromptText]);
 
   const handleToggleFeature = useCallback(
     (id: string, enabled: boolean) => {
@@ -176,6 +206,18 @@ export default function FeaturesTab() {
     },
     [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs],
   );
+
+  // Update the select onChange handler to warn if selecting custom without a saved prompt
+  const handlePromptIdChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPromptId = e.target.value;
+
+    if (newPromptId === 'custom' && !PromptLibrary.hasCustomPrompt()) {
+      toast.info('Please create and save a custom prompt');
+    }
+
+    setPromptId(newPromptId);
+    toast.success('Prompt template updated');
+  };
 
   const features = {
     stable: [
@@ -269,10 +311,7 @@ export default function FeaturesTab() {
           </div>
           <select
             value={promptId}
-            onChange={(e) => {
-              setPromptId(e.target.value);
-              toast.success('Prompt template updated');
-            }}
+            onChange={handlePromptIdChange}
             className={classNames(
               'p-2 rounded-lg text-sm min-w-[200px]',
               'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
@@ -289,6 +328,48 @@ export default function FeaturesTab() {
             ))}
           </select>
         </div>
+
+        {/* Custom Prompt Text Area */}
+        {promptId === 'custom' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-4"
+          >
+            <textarea
+              value={customPromptText}
+              onChange={handleCustomPromptChange}
+              placeholder="Enter your custom system prompt here..."
+              className={classNames(
+                'w-full p-3 rounded-lg text-sm min-h-[200px]',
+                'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
+                'text-bolt-elements-textPrimary',
+                'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
+                'transition-all duration-200',
+                'resize-y',
+              )}
+            />
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-xs text-bolt-elements-textSecondary">
+                {hasUnsavedChanges ? 'You have unsaved changes' : 'Your custom prompt is saved'}
+              </p>
+              <button
+                onClick={handleSaveCustomPrompt}
+                disabled={!hasUnsavedChanges}
+                className={classNames(
+                  'px-4 py-2 rounded-lg text-sm font-medium',
+                  'transition-all duration-200',
+                  hasUnsavedChanges
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-bolt-elements-background-depth-4 text-bolt-elements-textTertiary cursor-not-allowed',
+                )}
+              >
+                Save Prompt
+              </button>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );

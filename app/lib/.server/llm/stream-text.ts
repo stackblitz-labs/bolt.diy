@@ -28,6 +28,7 @@ export async function streamText(props: {
   contextFiles?: FileMap;
   summary?: string;
   messageSliceId?: number;
+  customPrompt?: string;
 }) {
   const {
     messages,
@@ -40,6 +41,7 @@ export async function streamText(props: {
     contextOptimization,
     contextFiles,
     summary,
+    customPrompt,
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -92,12 +94,29 @@ export async function streamText(props: {
 
   const dynamicMaxTokens = modelDetails && modelDetails.maxTokenAllowed ? modelDetails.maxTokenAllowed : MAX_TOKENS;
 
-  let systemPrompt =
-    PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
-      cwd: WORK_DIR,
-      allowedHtmlElements: allowedHTMLElements,
-      modificationTagName: MODIFICATIONS_TAG_NAME,
-    }) ?? getSystemPrompt();
+  let systemPrompt;
+
+  if (promptId === 'custom') {
+    if (customPrompt && customPrompt.trim()) {
+      systemPrompt = customPrompt;
+    } else {
+      systemPrompt =
+        PromptLibrary.getPropmtFromLibrary('default', {
+          cwd: WORK_DIR,
+          allowedHtmlElements: allowedHTMLElements,
+          modificationTagName: MODIFICATIONS_TAG_NAME,
+        }) ?? getSystemPrompt();
+
+      logger.warn('Custom prompt selected but no custom prompt provided, falling back to default prompt');
+    }
+  } else {
+    systemPrompt =
+      PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
+        cwd: WORK_DIR,
+        allowedHtmlElements: allowedHTMLElements,
+        modificationTagName: MODIFICATIONS_TAG_NAME,
+      }) ?? getSystemPrompt();
+  }
 
   if (files && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);

@@ -37,11 +37,12 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, files, promptId, contextOptimization } = await request.json<{
+  const { messages, files, promptId, contextOptimization, customPrompt } = await request.json<{
     messages: Messages;
     files: any;
     promptId?: string;
     contextOptimization: boolean;
+    customPrompt?: string;
   }>();
 
   const cookieHeader = request.headers.get('Cookie');
@@ -242,6 +243,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               contextFiles: filteredFiles,
               summary,
               messageSliceId,
+              customPrompt,
             });
 
             result.mergeIntoDataStream(dataStream);
@@ -269,7 +271,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           message: 'Generating Response',
         } satisfies ProgressAnnotation);
 
-        const result = await streamText({
+        const textStream = await streamText({
           messages,
           env: context.cloudflare?.env,
           options,
@@ -281,10 +283,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           contextFiles: filteredFiles,
           summary,
           messageSliceId,
+          customPrompt,
         });
 
         (async () => {
-          for await (const part of result.fullStream) {
+          for await (const part of textStream.fullStream) {
             if (part.type === 'error') {
               const error: any = part.error;
               logger.error(`${error}`);
@@ -293,7 +296,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             }
           }
         })();
-        result.mergeIntoDataStream(dataStream);
+        textStream.mergeIntoDataStream(dataStream);
       },
       onError: (error: any) => `Custom error: ${error.message}`,
     }).pipeThrough(

@@ -26,6 +26,7 @@ import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTempla
 import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
+import { CUSTOM_PROMPT_STORAGE_KEY } from '~/lib/common/prompt-library';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -140,6 +141,36 @@ export const ChatImpl = memo(
 
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 
+    const [customPrompt, setCustomPrompt] = useState<string | undefined>(() => {
+      if (promptId === 'custom') {
+        return localStorage.getItem(CUSTOM_PROMPT_STORAGE_KEY) || undefined;
+      }
+
+      return undefined;
+    });
+
+    useEffect(() => {
+      if (promptId === 'custom') {
+        setCustomPrompt(localStorage.getItem(CUSTOM_PROMPT_STORAGE_KEY) || undefined);
+      } else {
+        setCustomPrompt(undefined);
+      }
+    }, [promptId]);
+
+    useEffect(() => {
+      const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === CUSTOM_PROMPT_STORAGE_KEY && promptId === 'custom') {
+          setCustomPrompt(event.newValue || undefined);
+        }
+      };
+
+      window.addEventListener('storage', handleStorageChange);
+
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+      };
+    }, [promptId]);
+
     const {
       messages,
       isLoading,
@@ -160,6 +191,7 @@ export const ChatImpl = memo(
         files,
         promptId,
         contextOptimization: contextOptimizationEnabled,
+        customPrompt,
       },
       sendExtraMessageFields: true,
       onError: (e) => {
