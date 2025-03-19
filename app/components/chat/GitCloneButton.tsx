@@ -33,8 +33,44 @@ const IGNORE_PATTERNS = [
 
 const ig = ignore().add(IGNORE_PATTERNS);
 
-const MAX_FILE_SIZE = 100 * 1024; // 100KB limit per file
-const MAX_TOTAL_SIZE = 500 * 1024; // 500KB total limit
+const MAX_FILE_SIZE = 500 * 1024; // 500KB limit per file (increased from 100KB)
+const MAX_TOTAL_SIZE = 2 * 1024 * 1024; // 2MB total limit (increased from 500KB)
+
+// Binary file extensions that should be skipped
+const BINARY_EXTENSIONS = [
+  // Images
+  'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'ico', 'heic', 'avif',
+  // Audio/Video
+  'mp3', 'wav', 'ogg', 'mp4', 'avi', 'mov', 'webm', 'flac', 'aac', 'mkv',
+  // Archives
+  'zip', 'rar', 'tar', 'gz', '7z', 'bz2', 'xz',
+  // Documents
+  'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx',
+  // Executables
+  'exe', 'dll', 'so', 'dylib', 'bin', 'apk', 'dmg', 'iso',
+  // Other known binary formats
+  'ttf', 'otf', 'woff', 'woff2', 'eot', 'class', 'o', 'pyc', 'pyd'
+];
+
+// Function to check if a file is likely binary based on extension
+const isBinaryFileByExtension = (filePath: string): boolean => {
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  return extension ? BINARY_EXTENSIONS.includes(extension) : false;
+};
+
+// Function to check if data is likely binary content
+const isBinaryContent = (data: Uint8Array): boolean => {
+  // Check a sample of the file for null bytes or other binary indicators
+  const sampleSize = Math.min(1000, data.length);
+  for (let i = 0; i < sampleSize; i++) {
+    // Check for null bytes and other control characters (except common ones like newline, tab)
+    const byte = data[i];
+    if (byte === 0 || (byte < 9 && byte !== 0) || (byte > 13 && byte < 32)) {
+      return true;
+    }
+  }
+  return false;
+};
 
 interface GitCloneButtonProps {
   className?: string;
@@ -67,20 +103,26 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
         for (const filePath of filePaths) {
           const { data: content, encoding } = data[filePath];
 
-          // Skip binary files
-          if (
-            content instanceof Uint8Array &&
-            !filePath.match(/\.(txt|md|astro|mjs|js|jsx|ts|tsx|json|html|css|scss|less|yml|yaml|xml|svg)$/i)
-          ) {
-            skippedFiles.push(filePath);
+          // Skip files that are likely binary based on extension
+          if (isBinaryFileByExtension(filePath)) {
+            skippedFiles.push(`${filePath} (binary file type)`);
             continue;
           }
 
           try {
+            // For Uint8Array content, check if it's actually binary
+            if (content instanceof Uint8Array) {
+              if (isBinaryContent(content)) {
+                skippedFiles.push(`${filePath} (binary content detected)`);
+                continue;
+              }
+            }
+
             const textContent =
               encoding === 'utf8' ? content : content instanceof Uint8Array ? textDecoder.decode(content) : '';
 
             if (!textContent) {
+              skippedFiles.push(`${filePath} (empty or unreadable)`);
               continue;
             }
 
