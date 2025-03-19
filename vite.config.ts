@@ -11,6 +11,16 @@ import { join } from 'path';
 
 dotenv.config();
 
+
+// Define allowed hosts based on the VITE_ALLOWED_HOSTS environment variable
+// If the environment variable is not set, default to an empty array
+const allowedHosts = process.env.VITE_ALLOWED_HOSTS
+  ?  process.env.VITE_ALLOWED_HOSTS.split(',')
+    .filter(host => host.trim() !== '')
+    .map(host => host.trim())
+  : []
+
+
 // Get detailed git info with fallbacks
 const getGitInfo = () => {
   try {
@@ -166,6 +176,9 @@ export default defineConfig((config) => {
         },
       },
     },
+    server: {
+      allowedHosts
+    }
   };
 });
 
