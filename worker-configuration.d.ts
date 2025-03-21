@@ -3,6 +3,13 @@ interface Env {
   DEFAULT_NUM_CTX: Settings;
   ANTHROPIC_API_KEY: string;
   OPENAI_API_KEY: string;
+  AZURE_OPENAI_API_KEY: string;
+  AZURE_OPENAI_ENDPOINT_NAME: string;
+  AZURE_OPENAI_USE_MI: string;
+  AZURE_OPENAI_VERSION: string;
+  AZURE_TENANT_ID: string;
+  AZURE_SUBSCRIPTION_ID: string;
+  AZURE_RESOURCE_GROUP_NAME: string;
   GROQ_API_KEY: string;
   HuggingFace_API_KEY: string;
   OPEN_ROUTER_API_KEY: string;

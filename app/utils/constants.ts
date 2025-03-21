@@ -15,10 +15,15 @@ export const PROVIDER_LIST = llmManager.getAllProviders();
 export const DEFAULT_PROVIDER = llmManager.getDefaultProvider();
 
 export const providerBaseUrlEnvKeys: Record<string, { baseUrlKey?: string; apiTokenKey?: string }> = {};
+export const providerManagedIdentityEnvKeys: Record<string, { clientIdKey?: string; tenantIdKey?: string }> = {};
 PROVIDER_LIST.forEach((provider) => {
   providerBaseUrlEnvKeys[provider.name] = {
     baseUrlKey: provider.config.baseUrlKey,
     apiTokenKey: provider.config.apiTokenKey,
+  };
+  providerManagedIdentityEnvKeys[provider.name] = {
+    clientIdKey: provider.config.managedIdentityClientIdKey,
+    tenantIdKey: provider.config.managedIdentityTenantIdKey,
   };
 });
 

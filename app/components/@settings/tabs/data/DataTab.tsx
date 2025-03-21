@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { DialogRoot, DialogClose, Dialog, DialogTitle } from '~/components/ui/Dialog';
-import { db, getAll, deleteById } from '~/lib/persistence';
+import { Dialog, DialogClose, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { db, deleteById, getAll } from '~/lib/persistence';
 
 export default function DataTab() {
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
@@ -139,6 +139,13 @@ export default function DataTab() {
       const template = {
         Anthropic_API_KEY: '',
         OpenAI_API_KEY: '',
+        AZURE_OPENAI_API_KEY: '',
+        AZURE_OPENAI_ENDPOINT_NAME: '',
+        AZURE_OPENAI_USE_MI: '',
+        AZURE_OPENAI_VERSION: '',
+        AZURE_TENANT_ID: '',
+        AZURE_SUBSCRIPTION_ID: '',
+        AZURE_RESOURCE_GROUP_NAME: '',
         Google_API_KEY: '',
         Groq_API_KEY: '',
         HuggingFace_API_KEY: '',

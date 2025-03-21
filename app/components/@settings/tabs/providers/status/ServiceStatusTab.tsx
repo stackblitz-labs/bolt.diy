@@ -1,16 +1,14 @@
-import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { classNames } from '~/utils/classNames';
-import { TbActivityHeartbeat } from 'react-icons/tb';
-import { BsCheckCircleFill, BsXCircleFill, BsExclamationCircleFill } from 'react-icons/bs';
-import { SiAmazon, SiGoogle, SiHuggingface, SiPerplexity, SiOpenai } from 'react-icons/si';
-import { BsRobot, BsCloud } from 'react-icons/bs';
-import { TbBrain } from 'react-icons/tb';
-import { BiChip, BiCodeBlock } from 'react-icons/bi';
-import { FaCloud, FaBrain } from 'react-icons/fa';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { IconType } from 'react-icons';
-import { useSettings } from '~/lib/hooks/useSettings';
+import { BiChip, BiCodeBlock } from 'react-icons/bi';
+import { BsCheckCircleFill, BsCloud, BsExclamationCircleFill, BsRobot, BsXCircleFill } from 'react-icons/bs';
+import { FaBrain, FaCloud } from 'react-icons/fa';
+import { SiAmazon, SiGoogle, SiHuggingface, SiOpenai, SiPerplexity } from 'react-icons/si';
+import { TbActivityHeartbeat, TbBrain, TbBrandAzure } from 'react-icons/tb';
 import { useToast } from '~/components/ui/use-toast';
+import { useSettings } from '~/lib/hooks/useSettings';
+import { classNames } from '~/utils/classNames';
 
 // Types
 type ProviderName =
@@ -23,6 +21,7 @@ type ProviderName =
   | 'HuggingFace'
   | 'Mistral'
   | 'OpenAI'
+  | 'AzureOpenAI'
   | 'OpenRouter'
   | 'Perplexity'
   | 'Together'
@@ -72,6 +71,15 @@ const PROVIDER_STATUS_URLS: Record<ProviderName, ProviderConfig> = {
       Authorization: 'Bearer $OPENAI_API_KEY',
     },
     testModel: 'gpt-3.5-turbo',
+  },
+  AzureOpenAI: {
+    statusUrl: 'https://azure.status.microsoft/en-us/status',
+    apiUrl:
+      'https://$AZURE_OPENAI_API_KEY.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-02-15-preview',
+    headers: {
+      Authorization: 'Bearer $AZURE_OPENAI_API_KEY',
+    },
+    testModel: 'gpt-4o-mini',
   },
   Anthropic: {
     statusUrl: 'https://status.anthropic.com/',
@@ -181,6 +189,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   HuggingFace: SiHuggingface,
   Mistral: TbBrain,
   OpenAI: SiOpenai,
+  AzureOpenAI: TbBrandAzure,
   OpenRouter: FaCloud,
   Perplexity: SiPerplexity,
   Together: BsCloud,
@@ -208,6 +217,7 @@ const ServiceStatusTab = () => {
       // Map provider names to environment variable names
       const envKeyMap: Record<ProviderName, string> = {
         OpenAI: 'OPENAI_API_KEY',
+        AzureOpenAI: 'AZURE_OPENAI_API_KEY',
         Anthropic: 'ANTHROPIC_API_KEY',
         Cohere: 'COHERE_API_KEY',
         Google: 'GOOGLE_GENERATIVE_AI_API_KEY',

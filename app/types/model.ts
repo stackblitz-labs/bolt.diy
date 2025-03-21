@@ -12,6 +12,7 @@ export type ProviderInfo = {
   getApiKeyLink?: string;
   labelForGetApiKey?: string;
   icon?: string;
+  supportsManagedIdentity?: boolean;
 };
 
 export interface IProviderSetting {

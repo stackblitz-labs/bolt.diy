@@ -25,9 +25,12 @@ export interface ProviderInfo {
   getApiKeyLink?: string;
   labelForGetApiKey?: string;
   icon?: string;
+  supportsManagedIdentity?: boolean;
 }
 export interface ProviderConfig {
   baseUrlKey?: string;
   baseUrl?: string;
   apiTokenKey?: string;
+  managedIdentityClientIdKey?: string;
+  managedIdentityTenantIdKey?: string;
 }

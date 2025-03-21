@@ -1,8 +1,8 @@
-import type { LanguageModelV1 } from 'ai';
-import type { ProviderInfo, ProviderConfig, ModelInfo } from './types';
-import type { IProviderSetting } from '~/types/model';
 import { createOpenAI } from '@ai-sdk/openai';
+import type { LanguageModelV1 } from 'ai';
+import type { IProviderSetting } from '~/types/model';
 import { LLMManager } from './manager';
+import type { ModelInfo, ProviderConfig, ProviderInfo } from './types';
 
 export abstract class BaseProvider implements ProviderInfo {
   abstract name: string;
@@ -12,10 +12,39 @@ export abstract class BaseProvider implements ProviderInfo {
     cacheId: string;
     models: ModelInfo[];
   };
+  supportsManagedIdentity?: boolean | undefined;
+  getToken?: () => Promise<string> | undefined;
 
   getApiKeyLink?: string;
   labelForGetApiKey?: string;
   icon?: string;
+
+  getInterceptor():
+    | ((request: RequestInfo | URL, init?: RequestInit<RequestInitCfProperties>) => Promise<Response>)
+    | undefined {
+    if (!this.getToken) {
+      return undefined;
+    }
+
+    return async (request: RequestInfo | URL, init?: RequestInit<RequestInitCfProperties>): Promise<Response> => {
+      if (!this.getToken) {
+        throw new Error("getToken is not defined in the provider's instance");
+      }
+
+      const token = await this.getToken();
+
+      const allHeaders: Headers = new Headers({
+        ...init?.headers,
+        Authorization: `Bearer ${token}`,
+      });
+      allHeaders.delete('api-key');
+
+      return fetch(request, {
+        ...init,
+        headers: allHeaders,
+      });
+    };
+  }
 
   getProviderBaseUrlAndKey(options: {
     apiKeys?: Record<string, string>;

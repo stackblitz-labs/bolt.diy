@@ -2,7 +2,9 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
+import * as Tooltip from '@radix-ui/react-tooltip';
 import type { JSONValue, Message } from 'ai';
+import Cookies from 'js-cookie';
 import React, { type RefCallback, useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
@@ -10,32 +12,31 @@ import { IconButton } from '~/components/ui/IconButton';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
+import { APIKeyManager, getApiKeysFromCookies, getManagedIdentityOptionsFromCookies } from './APIKeyManager';
 import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
-import { APIKeyManager, getApiKeysFromCookies } from './APIKeyManager';
-import Cookies from 'js-cookie';
-import * as Tooltip from '@radix-ui/react-tooltip';
 
-import styles from './BaseChat.module.scss';
 import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
+import styles from './BaseChat.module.scss';
 import GitCloneButton from './GitCloneButton';
 
-import FilePreview from './FilePreview';
+import { toast } from 'react-toastify';
 import { ModelSelector } from '~/components/chat/ModelSelector';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
-import type { ProviderInfo } from '~/types/model';
-import { ScreenshotStateManager } from './ScreenshotStateManager';
-import { toast } from 'react-toastify';
-import StarterTemplates from './StarterTemplates';
-import type { ActionAlert } from '~/types/actions';
-import ChatAlert from './ChatAlert';
+import type { ManagedIdentityOptions } from '~/lib/modules/llm/providers/openai-azure';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import ProgressCompilation from './ProgressCompilation';
-import type { ProgressAnnotation } from '~/types/context';
 import type { ActionRunner } from '~/lib/runtime/action-runner';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
+import type { ActionAlert } from '~/types/actions';
+import type { ProgressAnnotation } from '~/types/context';
+import type { ProviderInfo } from '~/types/model';
+import ChatAlert from './ChatAlert';
+import FilePreview from './FilePreview';
+import ProgressCompilation from './ProgressCompilation';
+import { ScreenshotStateManager } from './ScreenshotStateManager';
+import StarterTemplates from './StarterTemplates';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -112,6 +113,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
+    const [managedIdentityOptions, setManagedIdentityOptions] = useState<ManagedIdentityOptions>(
+      getManagedIdentityOptionsFromCookies(),
+    );
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
     const [isListening, setIsListening] = useState(false);
@@ -199,6 +203,33 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const newApiKeys = { ...apiKeys, [providerName]: apiKey };
       setApiKeys(newApiKeys);
       Cookies.set('apiKeys', JSON.stringify(newApiKeys));
+
+      setIsModelLoading(providerName);
+
+      let providerModels: ModelInfo[] = [];
+
+      try {
+        const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`);
+        const data = await response.json();
+        providerModels = (data as { modelList: ModelInfo[] }).modelList;
+      } catch (error) {
+        console.error('Error loading dynamic models for:', providerName, error);
+      }
+
+      // Only update models for the specific provider
+      setModelList((prevModels) => {
+        const otherModels = prevModels.filter((model) => model.provider !== providerName);
+        return [...otherModels, ...providerModels];
+      });
+      setIsModelLoading(undefined);
+    };
+
+    const onManagedIdentityOptionsChange = async (
+      providerName: string,
+      managedIdentityOptions: ManagedIdentityOptions,
+    ) => {
+      setManagedIdentityOptions(managedIdentityOptions);
+      Cookies.set('managedIdentityOptions', JSON.stringify(managedIdentityOptions));
 
       setIsModelLoading(providerName);
 
@@ -421,6 +452,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                 apiKey={apiKeys[provider.name] || ''}
                                 setApiKey={(key) => {
                                   onApiKeysChange(provider.name, key);
+                                }}
+                                managedIdentityOptions={managedIdentityOptions}
+                                setManagedIdentityOptions={(managedIdentityOptions) => {
+                                  onManagedIdentityOptionsChange(provider.name, managedIdentityOptions);
                                 }}
                               />
                             )}
