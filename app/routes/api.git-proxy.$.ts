@@ -1,6 +1,11 @@
 import { json } from '@remix-run/cloudflare';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/cloudflare';
 
+// Extend RequestInit to include duplex property
+interface ExtendedRequestInit extends RequestInit {
+  duplex?: 'half';
+}
+
 // Allowed headers to forward to the target server
 const ALLOW_HEADERS = [
   'accept-encoding',
@@ -108,7 +113,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     console.log('Request headers:', Object.fromEntries(headers.entries()));
 
     // Prepare fetch options
-    const fetchOptions: RequestInit = {
+    const fetchOptions: ExtendedRequestInit = {
       method: request.method,
       headers,
       redirect: 'follow',
@@ -117,6 +122,9 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     // Add body for non-GET/HEAD requests
     if (!['GET', 'HEAD'].includes(request.method)) {
       fetchOptions.body = request.body;
+
+      // Set duplex option when sending a body (required in Node.js)
+      fetchOptions.duplex = 'half';
 
       /*
        * Note: duplex property is removed to ensure TypeScript compatibility
@@ -165,10 +173,19 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     });
   } catch (error) {
     console.error('Proxy error:', error);
+    console.error('Error details:', {
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      path,
+      url: path ? `https://${path}` : 'Invalid URL',
+    });
+
     return json(
       {
         error: 'Proxy error',
         message: error instanceof Error ? error.message : 'Unknown error',
+        type: error instanceof Error ? error.constructor.name : typeof error,
         url: path ? `https://${path}` : 'Invalid URL',
       },
       { status: 500 },

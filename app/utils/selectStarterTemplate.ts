@@ -126,7 +126,7 @@ const getGitHubRepoContent = async (
 
     // Add your GitHub token if needed
     if (token) {
-      headers.Authorization = 'token ' + token;
+      headers.Authorization = 'Bearer ' + token;
     }
 
     // Fetch contents of the path

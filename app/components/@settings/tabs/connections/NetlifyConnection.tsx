@@ -1,263 +1,884 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { useStore } from '@nanostores/react';
-import { logStore } from '~/lib/stores/logs';
 import { classNames } from '~/utils/classNames';
+import { useStore } from '@nanostores/react';
+import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
+import type { NetlifyStats, NetlifyUser, NetlifySite, NetlifyDeploy, NetlifyBuild } from '~/types/netlify';
 import {
-  netlifyConnection,
-  isConnecting,
-  isFetchingStats,
-  updateNetlifyConnection,
-  fetchNetlifyStats,
-} from '~/lib/stores/netlify';
-import type { NetlifyUser } from '~/types/netlify';
+  CloudIcon,
+  BuildingLibraryIcon,
+  ClockIcon,
+  CodeBracketIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  TrashIcon,
+  ArrowPathIcon,
+  LockClosedIcon,
+  LockOpenIcon,
+  PlusIcon,
+  RocketLaunchIcon,
+} from '@heroicons/react/24/outline';
+import { Button } from '~/components/ui/Button';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { formatDistanceToNow } from 'date-fns';
+import { Badge } from '~/components/ui/Badge';
+
+// Add the Netlify logo SVG component at the top of the file
+const NetlifyLogo = () => (
+  <svg viewBox="0 0 40 40" className="w-5 h-5">
+    <path
+      fill="currentColor"
+      d="M28.589 14.135l-.014-.006c-.008-.003-.016-.006-.023-.013a.11.11 0 0 1-.028-.093l.773-4.726 3.625 3.626-3.77 1.604a.083.083 0 0 1-.033.006h-.015c-.005-.003-.01-.007-.02-.017a1.716 1.716 0 0 0-.495-.381zm5.258-.288l3.876 3.876c.805.806 1.208 1.208 1.355 1.674.022.069.04.138.054.209l-9.263-3.923a.728.728 0 0 0-.015-.006c-.037-.015-.08-.032-.08-.07 0-.038.044-.056.081-.071l.012-.005 3.98-1.684zm5.127 7.003c-.2.376-.59.766-1.25 1.427l-4.37 4.369-5.652-1.177-.03-.006c-.05-.008-.103-.017-.103-.062a1.706 1.706 0 0 0-.655-1.193c-.023-.023-.017-.059-.01-.092 0-.005 0-.01.002-.014l1.063-6.526.004-.022c.006-.05.015-.108.06-.108a1.73 1.73 0 0 0 1.16-.665c.009-.01.015-.021.027-.027.032-.015.07 0 .103.014l9.65 4.082zm-6.625 6.801l-7.186 7.186 1.23-7.56.002-.01c.001-.01.003-.02.006-.029.01-.024.036-.034.061-.044l.012-.005a1.85 1.85 0 0 0 .695-.517c.024-.028.053-.055.09-.06a.09.09 0 0 1 .029 0l5.06 1.04zm-8.707 8.707l-.81.81-8.955-12.942a.424.424 0 0 0-.01-.014c-.014-.019-.029-.038-.026-.06.001-.016.011-.03.022-.042l.01-.013c.027-.04.05-.08.075-.123l.02-.035.003-.003c.014-.024.027-.047.051-.06.021-.01.05-.006.073-.001l9.921 2.046a.164.164 0 0 1 .076.033c.013.013.016.027.019.043a1.757 1.757 0 0 0 1.028 1.175c.028.014.016.045.003.078a.238.238 0 0 0-.015.045c-.125.76-1.197 7.298-1.485 9.063zm-1.692 1.691c-.597.591-.949.904-1.347 1.03a2 2 0 0 1-1.206 0c-.466-.148-.869-.55-1.674-1.356L8.73 28.73l2.349-3.643c.011-.018.022-.034.04-.047.025-.018.061-.01.091 0a2.434 2.434 0 0 0 1.638-.083c.027-.01.054-.017.075.002a.19.19 0 0 1 .028.032L21.95 38.05zM7.863 27.863L5.8 25.8l4.074-1.738a.084.084 0 0 1 .033-.007c.034 0 .054.034.072.065a2.91 2.91 0 0 0 .13.184l.013.016c.012.017.004.034-.008.05l-2.25 3.493zm-2.976-2.976l-2.61-2.61c-.444-.444-.766-.766-.99-1.043l7.936 1.646a.84.84 0 0 0 .03.005c.049.008.103.017.103.063 0 .05-.059.073-.109.092l-.023.01-4.337 1.837zM.831 19.892a2 2 0 0 1 .09-.495c.148-.466.55-.868 1.356-1.674l3.34-3.34a2175.525 2175.525 0 0 0 4.626 6.687c.027.036.057.076.026.106-.146.161-.292.337-.395.528a.16.16 0 0 1-.05.062c-.013.008-.027.005-.042.002H9.78L.831 19.892zm5.68-6.403l4.491-4.491c.422.185 1.958.834 3.332 1.414 1.04.44 1.988.84 2.286.97.03.012.057.024.07.054.008.018.004.041 0 .06a2.003 2.003 0 0 0 .523 1.828c.03.03 0 .073-.026.11l-.014.021-4.56 7.063c-.012.02-.023.037-.043.05-.024.015-.058.008-.086.001a2.274 2.274 0 0 0-.543-.074c-.164 0-.342.03-.522.063h-.001c-.02.003-.038.007-.054-.005a.21.21 0 0 1-.045-.051l-4.808-7.013zm5.398-5.398l5.814-5.814c.805-.805 1.208-1.208 1.674-1.355a2 2 0 0 1 1.206 0c.466.147.869.55 1.674 1.355l1.26 1.26-4.135 6.404a.155.155 0 0 1-.041.048c-.025.017-.06.01-.09 0a2.097 2.097 0 0 0-1.92.37c-.027.028-.067.012-.101-.003-.54-.235-4.74-2.01-5.341-2.265zm12.506-3.676l3.818 3.818-.92 5.698v.015a.135.135 0 0 1-.008.038c-.01.02-.03.024-.05.03a1.83 1.83 0 0 0-.548.273.154.154 0 0 0-.02.017c-.011.012-.022.023-.04.025a.114.114 0 0 1-.043-.007l-5.818-2.472-.011-.005c-.037-.015-.081-.033-.081-.071a2.198 2.198 0 0 0-.31-.915c-.028-.046-.059-.094-.035-.141l4.066-6.303zm-3.932 8.606l5.454 2.31c.03.014.063.027.076.058a.106.106 0 0 1 0 .057c-.016.08-.03.171-.03.263v.153c0 .038-.039.054-.075.069l-.011.004c-.864.369-12.13 5.173-12.147 5.173-.017 0-.035 0-.052-.017-.03-.03 0-.072.027-.11a.76.76 0 0 0 .014-.02l4.482-6.94.008-.012c.026-.042.056-.089.104-.089l.045.007c.102.014.192.027.283.027.68 0 1.31-.331 1.69-.897a.16.16 0 0 1 .034-.04c.027-.02.067-.01.098.004zm-6.246 9.185l12.28-5.237s.018 0 .035.017c.067.067.124.112.179.154l.027.017c.025.014.05.03.052.056 0 .01 0 .016-.002.025L25.756 23.7l-.004.026c-.007.05-.014.107-.061.107a1.729 1.729 0 0 0-1.373.847l-.005.008c-.014.023-.027.045-.05.057-.021.01-.048.006-.07.001l-9.793-2.02c-.01-.002-.152-.519-.163-.52z"
+    />
+  </svg>
+);
+
+// Add new interface for site actions
+interface SiteAction {
+  name: string;
+  icon: React.ComponentType<any>;
+  action: (siteId: string) => Promise<void>;
+  requiresConfirmation?: boolean;
+  variant?: 'default' | 'destructive' | 'outline';
+}
 
 export default function NetlifyConnection() {
   const connection = useStore(netlifyConnection);
-  const connecting = useStore(isConnecting);
-  const fetchingStats = useStore(isFetchingStats);
-  const [isSitesExpanded, setIsSitesExpanded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [tokenInput, setTokenInput] = useState('');
+  const [fetchingStats, setFetchingStats] = useState(false);
+  const [sites, setSites] = useState<NetlifySite[]>([]);
+  const [deploys, setDeploys] = useState<NetlifyDeploy[]>([]);
+  const [builds, setBuilds] = useState<NetlifyBuild[]>([]);
+  const [deploymentCount, setDeploymentCount] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState('');
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [activeSiteIndex, setActiveSiteIndex] = useState(0);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [hookTitle, setHookTitle] = useState('');
 
-  useEffect(() => {
-    const fetchSites = async () => {
-      if (connection.user && connection.token) {
-        await fetchNetlifyStats(connection.token);
-      }
-    };
-    fetchSites();
-  }, [connection.user, connection.token]);
+  // Add site actions
+  const siteActions: SiteAction[] = [
+    {
+      name: 'Clear Cache',
+      icon: ArrowPathIcon,
+      action: async (siteId: string) => {
+        try {
+          const response = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/cache`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${connection.token}`,
+            },
+          });
 
-  const handleConnect = async (event: React.FormEvent) => {
-    event.preventDefault();
-    isConnecting.set(true);
+          if (!response.ok) {
+            throw new Error('Failed to clear cache');
+          }
 
+          toast.success('Site cache cleared successfully');
+        } catch (err: unknown) {
+          const error = err instanceof Error ? err.message : 'Unknown error';
+          toast.error(`Failed to clear site cache: ${error}`);
+        }
+      },
+    },
+    {
+      name: 'Delete Site',
+      icon: TrashIcon,
+      action: async (siteId: string) => {
+        try {
+          const response = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${connection.token}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to delete site');
+          }
+
+          toast.success('Site deleted successfully');
+          fetchNetlifyStats(connection.token);
+        } catch (err: unknown) {
+          const error = err instanceof Error ? err.message : 'Unknown error';
+          toast.error(`Failed to delete site: ${error}`);
+        }
+      },
+      requiresConfirmation: true,
+      variant: 'destructive',
+    },
+  ];
+
+  // Add deploy management functions
+  const handleDeploy = async (siteId: string, deployId: string, action: 'lock' | 'unlock' | 'publish') => {
     try {
-      const response = await fetch('https://api.netlify.com/api/v1/user', {
+      setIsActionLoading(true);
+
+      const endpoint =
+        action === 'publish'
+          ? `https://api.netlify.com/api/v1/sites/${siteId}/deploys/${deployId}/restore`
+          : `https://api.netlify.com/api/v1/deploys/${deployId}/${action}`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${connection.token}`,
-          'Content-Type': 'application/json',
         },
       });
 
       if (!response.ok) {
-        throw new Error('Invalid token or unauthorized');
+        throw new Error(`Failed to ${action} deploy`);
+      }
+
+      toast.success(`Deploy ${action}ed successfully`);
+      fetchNetlifyStats(connection.token);
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(`Failed to ${action} deploy: ${error}`);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  // Add function to handle build hooks
+  const handleCreateBuildHook = async (siteId: string, title: string): Promise<any> => {
+    try {
+      setIsActionLoading(true);
+
+      const response = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/build_hooks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${connection.token}`,
+        },
+        body: JSON.stringify({
+          title,
+          branch: 'main',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create build hook');
+      }
+
+      const buildHook = await response.json();
+      toast.success('Build hook created successfully');
+
+      return buildHook;
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(`Failed to create build hook: ${error}`);
+
+      return null;
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Initialize connection with environment token if available
+    initializeNetlifyConnection();
+  }, []);
+
+  useEffect(() => {
+    // Check if we have a connection with a token but no stats
+    if (connection.user && connection.token && (!connection.stats || !connection.stats.sites)) {
+      fetchNetlifyStats(connection.token);
+    }
+
+    // Update local state from connection
+    if (connection.stats) {
+      setSites(connection.stats.sites || []);
+      setDeploys(connection.stats.deploys || []);
+      setBuilds(connection.stats.builds || []);
+      setDeploymentCount(connection.stats.deploys?.length || 0);
+      setLastUpdated(connection.stats.lastDeployTime || '');
+    }
+  }, [connection]);
+
+  const handleConnect = async () => {
+    if (!tokenInput) {
+      toast.error('Please enter a Netlify API token');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('https://api.netlify.com/api/v1/user', {
+        headers: {
+          Authorization: `Bearer ${tokenInput}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to connect to Netlify: ${response.statusText}`);
       }
 
       const userData = (await response.json()) as NetlifyUser;
-      updateNetlifyConnection({
-        user: userData,
-        token: connection.token,
-      });
 
-      await fetchNetlifyStats(connection.token);
-      toast.success('Successfully connected to Netlify');
+      // Update the connection state
+      const connectionData = {
+        user: userData,
+        token: tokenInput,
+      };
+
+      // Store in localStorage for persistence
+      localStorage.setItem('netlify_connection', JSON.stringify(connectionData));
+
+      // Update the store
+      updateNetlifyConnection(connectionData);
+
+      toast.success('Connected to Netlify');
+
+      // Fetch stats after connecting
+      fetchNetlifyStats(tokenInput);
     } catch (error) {
-      console.error('Auth error:', error);
-      logStore.logError('Failed to authenticate with Netlify', { error });
-      toast.error('Failed to connect to Netlify');
-      updateNetlifyConnection({ user: null, token: '' });
+      console.error('Error connecting to Netlify:', error);
+      toast.error(`Failed to connect to Netlify: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      isConnecting.set(false);
+      setIsLoading(false);
+      setTokenInput('');
     }
   };
 
   const handleDisconnect = () => {
+    // Clear from localStorage
+    localStorage.removeItem('netlify_connection');
+
+    // Remove cookies
+    document.cookie = 'netlifyToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+    // Update the store
     updateNetlifyConnection({ user: null, token: '' });
     toast.success('Disconnected from Netlify');
   };
 
-  return (
-    <motion.div
-      className="bg-[#FFFFFF] dark:bg-[#0A0A0A] rounded-lg border border-[#E5E5E5] dark:border-[#1A1A1A]"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-    >
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img
-              className="w-5 h-5"
-              height="24"
-              width="24"
-              crossOrigin="anonymous"
-              src="https://cdn.simpleicons.org/netlify"
-            />
-            <h3 className="text-base font-medium text-bolt-elements-textPrimary">Netlify Connection</h3>
-          </div>
-        </div>
+  const fetchNetlifyStats = async (token: string) => {
+    setFetchingStats(true);
 
-        {!connection.user ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-bolt-elements-textSecondary mb-2">Personal Access Token</label>
-              <input
-                type="password"
-                value={connection.token}
-                onChange={(e) => updateNetlifyConnection({ ...connection, token: e.target.value })}
-                disabled={connecting}
-                placeholder="Enter your Netlify personal access token"
-                className={classNames(
-                  'w-full px-3 py-2 rounded-lg text-sm',
-                  'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
-                  'border border-[#E5E5E5] dark:border-[#333333]',
-                  'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
-                  'focus:outline-none focus:ring-1 focus:ring-[#00AD9F]',
-                  'disabled:opacity-50',
-                )}
-              />
-              <div className="mt-2 text-sm text-bolt-elements-textSecondary">
-                <a
-                  href="https://app.netlify.com/user/applications#personal-access-tokens"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#00AD9F] hover:underline inline-flex items-center gap-1"
-                >
-                  Get your token
-                  <div className="i-ph:arrow-square-out w-4 h-4" />
-                </a>
-              </div>
-            </div>
+    try {
+      // Fetch sites
+      const sitesResponse = await fetch('https://api.netlify.com/api/v1/sites', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-            <button
-              onClick={handleConnect}
-              disabled={connecting || !connection.token}
-              className={classNames(
-                'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                'bg-[#00AD9F] text-white',
-                'hover:bg-[#00968A]',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-              )}
-            >
-              {connecting ? (
-                <>
-                  <div className="i-ph:spinner-gap animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <div className="i-ph:plug-charging w-4 h-4" />
-                  Connect
-                </>
-              )}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleDisconnect}
-                  className={classNames(
-                    'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                    'bg-red-500 text-white',
-                    'hover:bg-red-600',
-                  )}
-                >
-                  <div className="i-ph:plug w-4 h-4" />
-                  Disconnect
-                </button>
-                <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
-                  <div className="i-ph:check-circle w-4 h-4 text-green-500" />
-                  Connected to Netlify
+      if (!sitesResponse.ok) {
+        throw new Error(`Failed to fetch sites: ${sitesResponse.statusText}`);
+      }
+
+      const sitesData = (await sitesResponse.json()) as NetlifySite[];
+      setSites(sitesData);
+
+      // Fetch recent deploys for the first site (if any)
+      let deploysData: NetlifyDeploy[] = [];
+      let buildsData: NetlifyBuild[] = [];
+      let lastDeployTime = '';
+
+      if (sitesData.length > 0) {
+        const firstSiteId = sitesData[0].id;
+
+        // Fetch deploys
+        const deploysResponse = await fetch(`https://api.netlify.com/api/v1/sites/${firstSiteId}/deploys?per_page=10`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (deploysResponse.ok) {
+          deploysData = (await deploysResponse.json()) as NetlifyDeploy[];
+          setDeploys(deploysData);
+          setDeploymentCount(deploysData.length);
+
+          if (deploysData.length > 0) {
+            lastDeployTime = deploysData[0].created_at;
+            setLastUpdated(lastDeployTime);
+          }
+
+          // Fetch builds for the first deploy (if any)
+          if (deploysData.length > 0) {
+            const buildsResponse = await fetch(`https://api.netlify.com/api/v1/sites/${firstSiteId}/builds`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (buildsResponse.ok) {
+              buildsData = (await buildsResponse.json()) as NetlifyBuild[];
+              setBuilds(buildsData);
+            }
+          }
+        }
+      }
+
+      // Update the connection store with all stats
+      const statsData: NetlifyStats = {
+        sites: sitesData,
+        totalSites: sitesData.length,
+        deploys: deploysData,
+        builds: buildsData,
+        lastDeployTime,
+      };
+
+      const connectionData = {
+        ...connection,
+        stats: statsData,
+      };
+
+      // Update localStorage
+      localStorage.setItem('netlify_connection', JSON.stringify(connectionData));
+
+      // Update the store
+      updateNetlifyConnection(connectionData);
+
+      toast.success('Netlify stats refreshed');
+    } catch (error) {
+      console.error('Error fetching Netlify stats:', error);
+      toast.error(`Failed to fetch Netlify stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setFetchingStats(false);
+    }
+  };
+
+  const renderStats = () => {
+    if (!connection.user || !connection.stats) {
+      return null;
+    }
+
+    return (
+      <div className="mt-6">
+        <Collapsible open={isStatsOpen} onOpenChange={setIsStatsOpen}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between p-4 rounded-lg bg-bolt-elements-background dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive/70 dark:hover:border-bolt-elements-borderColorActive/70 transition-all duration-200">
+              <div className="flex items-center gap-2">
+                <div className="i-ph:chart-bar w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                <span className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                  Netlify Stats
                 </span>
               </div>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-[#F8F8F8] dark:bg-[#1A1A1A] rounded-lg">
-              <img
-                src={connection.user.avatar_url}
-                referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
-                alt={connection.user.full_name}
-                className="w-12 h-12 rounded-full border-2 border-[#00AD9F]"
+              <div
+                className={classNames(
+                  'i-ph:caret-down w-4 h-4 transform transition-transform duration-200 text-bolt-elements-textSecondary',
+                  isStatsOpen ? 'rotate-180' : '',
+                )}
               />
-              <div>
-                <h4 className="text-sm font-medium text-bolt-elements-textPrimary">{connection.user.full_name}</h4>
-                <p className="text-sm text-bolt-elements-textSecondary">{connection.user.email}</p>
-              </div>
             </div>
-
-            {fetchingStats ? (
-              <div className="flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
-                <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
-                Fetching Netlify sites...
-              </div>
-            ) : (
-              <div>
-                <button
-                  onClick={() => setIsSitesExpanded(!isSitesExpanded)}
-                  className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary mb-3 flex items-center gap-2"
+          </CollapsibleTrigger>
+          <CollapsibleContent className="overflow-hidden">
+            <div className="space-y-4 mt-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <Badge
+                  variant="outline"
+                  className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                 >
-                  <div className="i-ph:buildings w-4 h-4" />
-                  Your Sites ({connection.stats?.totalSites || 0})
-                  <div
-                    className={classNames(
-                      'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
-                      isSitesExpanded ? 'rotate-180' : '',
-                    )}
-                  />
-                </button>
-                {isSitesExpanded && connection.stats?.sites?.length ? (
-                  <div className="grid gap-3">
-                    {connection.stats.sites.map((site) => (
-                      <a
-                        key={site.id}
-                        href={site.admin_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-4 rounded-lg border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-[#00AD9F] dark:hover:border-[#00AD9F] transition-colors"
+                  <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent" />
+                  <span>{connection.stats.totalSites} Sites</span>
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                >
+                  <RocketLaunchIcon className="h-4 w-4 text-bolt-elements-item-contentAccent" />
+                  <span>{deploymentCount} Deployments</span>
+                </Badge>
+                {lastUpdated && (
+                  <Badge
+                    variant="outline"
+                    className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                  >
+                    <ClockIcon className="h-4 w-4 text-bolt-elements-item-contentAccent" />
+                    <span>Updated {formatDistanceToNow(new Date(lastUpdated))} ago</span>
+                  </Badge>
+                )}
+              </div>
+              {sites.length > 0 && (
+                <div className="mt-4 space-y-4">
+                  <div className="bg-bolt-elements-background dark:bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-medium flex items-center gap-2 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                        <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                        Your Sites
+                      </h4>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchNetlifyStats(connection.token)}
+                        disabled={fetchingStats}
+                        className="flex items-center gap-2 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/10"
                       >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h5 className="text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2">
-                              <div className="i-ph:globe w-4 h-4 text-[#00AD9F]" />
-                              {site.name}
-                            </h5>
-                            <div className="flex items-center gap-2 mt-2 text-xs text-bolt-elements-textSecondary">
-                              <a
-                                href={site.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:text-[#00AD9F]"
+                        <ArrowPathIcon
+                          className={classNames(
+                            'h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent',
+                            { 'animate-spin': fetchingStats },
+                          )}
+                        />
+                        {fetchingStats ? 'Refreshing...' : 'Refresh'}
+                      </Button>
+                    </div>
+                    <div className="space-y-3">
+                      {sites.map((site, index) => (
+                        <div
+                          key={site.id}
+                          className={classNames(
+                            'bg-bolt-elements-background dark:bg-bolt-elements-background-depth-1 border rounded-lg p-4 transition-all',
+                            activeSiteIndex === index
+                              ? 'border-bolt-elements-item-contentAccent bg-bolt-elements-item-backgroundActive/10'
+                              : 'border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive/70',
+                          )}
+                          onClick={() => {
+                            setActiveSiteIndex(index);
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <CloudIcon className="h-5 w-5 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                              <span className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                                {site.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={site.published_deploy?.state === 'ready' ? 'default' : 'destructive'}
+                                className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                               >
-                                {site.url}
-                              </a>
+                                {site.published_deploy?.state === 'ready' ? (
+                                  <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <XCircleIcon className="h-4 w-4 text-red-500" />
+                                )}
+                                <span className="text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                                  {site.published_deploy?.state || 'Unknown'}
+                                </span>
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex items-center gap-2">
+                            <a
+                              href={site.ssl_url || site.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm flex items-center gap-1 transition-colors text-bolt-elements-link-text hover:text-bolt-elements-link-textHover dark:text-white dark:hover:text-bolt-elements-link-textHover"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <CloudIcon className="h-3 w-3 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                              <span className="underline decoration-1 underline-offset-2">
+                                {site.ssl_url || site.url}
+                              </span>
+                            </a>
+                          </div>
+
+                          {activeSiteIndex === index && (
+                            <>
+                              <div className="mt-4 pt-3 border-t border-bolt-elements-borderColor">
+                                <div className="flex items-center gap-2">
+                                  {siteActions.map((action) => (
+                                    <Button
+                                      key={action.name}
+                                      variant={action.variant || 'outline'}
+                                      size="sm"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+
+                                        if (action.requiresConfirmation) {
+                                          if (!confirm(`Are you sure you want to ${action.name.toLowerCase()}?`)) {
+                                            return;
+                                          }
+                                        }
+
+                                        setIsActionLoading(true);
+                                        await action.action(site.id);
+                                        setIsActionLoading(false);
+                                      }}
+                                      disabled={isActionLoading}
+                                      className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                                    >
+                                      <action.icon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                      {action.name}
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
                               {site.published_deploy && (
-                                <>
-                                  <span>•</span>
-                                  <span className="flex items-center gap-1">
-                                    <div className="i-ph:clock w-3 h-3" />
-                                    {new Date(site.published_deploy.published_at).toLocaleDateString()}
+                                <div className="mt-3 text-sm">
+                                  <div className="flex items-center gap-1">
+                                    <ClockIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                    <span className="text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
+                                      Published {formatDistanceToNow(new Date(site.published_deploy.published_at))} ago
+                                    </span>
+                                  </div>
+                                  {site.published_deploy.branch && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <CodeBracketIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                      <span className="text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
+                                        Branch: {site.published_deploy.branch}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {activeSiteIndex !== -1 && deploys.length > 0 && (
+                    <div className="bg-bolt-elements-background dark:bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium flex items-center gap-2 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                          <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                          Recent Deployments
+                        </h4>
+                      </div>
+                      <div className="space-y-2">
+                        {deploys.map((deploy) => (
+                          <div
+                            key={deploy.id}
+                            className="bg-bolt-elements-background dark:bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor rounded-lg p-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={
+                                    deploy.state === 'ready'
+                                      ? 'default'
+                                      : deploy.state === 'error'
+                                        ? 'destructive'
+                                        : 'outline'
+                                  }
+                                  className="flex items-center gap-1"
+                                >
+                                  {deploy.state === 'ready' ? (
+                                    <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                                  ) : deploy.state === 'error' ? (
+                                    <XCircleIcon className="h-4 w-4 text-red-500" />
+                                  ) : (
+                                    <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent" />
+                                  )}
+                                  <span className="text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                                    {deploy.state}
                                   </span>
-                                </>
+                                </Badge>
+                              </div>
+                              <span className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
+                                {formatDistanceToNow(new Date(deploy.created_at))} ago
+                              </span>
+                            </div>
+                            {deploy.branch && (
+                              <div className="mt-2 text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary flex items-center gap-1">
+                                <CodeBracketIcon className="h-3 w-3 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                <span className="text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
+                                  Branch: {deploy.branch}
+                                </span>
+                              </div>
+                            )}
+                            {deploy.deploy_url && (
+                              <div className="mt-2 text-xs">
+                                <a
+                                  href={deploy.deploy_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 transition-colors text-bolt-elements-link-text hover:text-bolt-elements-link-textHover dark:text-white dark:hover:text-bolt-elements-link-textHover"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <CloudIcon className="h-3 w-3 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                  <span className="underline decoration-1 underline-offset-2">{deploy.deploy_url}</span>
+                                </a>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeploy(sites[activeSiteIndex].id, deploy.id, 'publish')}
+                                disabled={isActionLoading}
+                                className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                              >
+                                <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                Publish
+                              </Button>
+                              {deploy.state === 'ready' ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeploy(sites[activeSiteIndex].id, deploy.id, 'lock')}
+                                  disabled={isActionLoading}
+                                  className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                                >
+                                  <LockClosedIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                  Lock
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeploy(sites[activeSiteIndex].id, deploy.id, 'unlock')}
+                                  disabled={isActionLoading}
+                                  className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                                >
+                                  <LockOpenIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                  Unlock
+                                </Button>
                               )}
                             </div>
                           </div>
-                          {site.build_settings?.provider && (
-                            <div className="text-xs text-bolt-elements-textSecondary px-2 py-1 rounded-md bg-[#F0F0F0] dark:bg-[#252525]">
-                              <span className="flex items-center gap-1">
-                                <div className="i-ph:git-branch w-3 h-3" />
-                                {site.build_settings.provider}
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {activeSiteIndex !== -1 && builds.length > 0 && (
+                    <div className="bg-bolt-elements-background dark:bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium flex items-center gap-2 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                          <CodeBracketIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                          Recent Builds
+                        </h4>
+                      </div>
+                      <div className="space-y-2">
+                        {builds.map((build) => (
+                          <div
+                            key={build.id}
+                            className="bg-bolt-elements-background dark:bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor rounded-lg p-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={
+                                    build.done && !build.error ? 'default' : build.error ? 'destructive' : 'outline'
+                                  }
+                                  className="flex items-center gap-1"
+                                >
+                                  {build.done && !build.error ? (
+                                    <CheckCircleIcon className="h-4 w-4" />
+                                  ) : build.error ? (
+                                    <XCircleIcon className="h-4 w-4" />
+                                  ) : (
+                                    <CodeBracketIcon className="h-4 w-4" />
+                                  )}
+                                  <span className="text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                                    {build.done ? (build.error ? 'Failed' : 'Completed') : 'In Progress'}
+                                  </span>
+                                </Badge>
+                              </div>
+                              <span className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
+                                {formatDistanceToNow(new Date(build.created_at))} ago
                               </span>
                             </div>
-                          )}
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                ) : isSitesExpanded ? (
-                  <div className="text-sm text-bolt-elements-textSecondary flex items-center gap-2">
-                    <div className="i-ph:info w-4 h-4" />
-                    No sites found in your Netlify account
-                  </div>
-                ) : null}
+                            {build.error && (
+                              <div className="mt-2 text-xs text-bolt-elements-textDestructive dark:text-bolt-elements-textDestructive flex items-center gap-1">
+                                <XCircleIcon className="h-3 w-3 text-bolt-elements-textDestructive dark:text-bolt-elements-textDestructive" />
+                                Error: {build.error}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+    );
+  };
+
+  if (isLoading || fetchingStats) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <div className="flex items-center gap-2">
+          <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
+          <span className="text-bolt-elements-textSecondary">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 bg-bolt-elements-background dark:bg-bolt-elements-background border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor rounded-lg">
+      <motion.div
+        className="flex items-center justify-between gap-2 p-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        {!connection.user ? (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="text-[#00AD9F]">
+                <NetlifyLogo />
               </div>
-            )}
+              <h2 className="text-lg font-medium text-bolt-elements-textPrimary">Netlify Connection</h2>
+            </div>
+            <Button onClick={handleConnect} variant="outline" className="flex items-center gap-2">
+              Connect
+            </Button>
+          </>
+        ) : (
+          <div className="flex flex-col w-full gap-4">
+            <div className="flex items-center gap-2">
+              <div className="text-[#00AD9F]">
+                <NetlifyLogo />
+              </div>
+              <h2 className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                Netlify Connection
+              </h2>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button onClick={handleDisconnect} variant="destructive" size="sm" className="flex items-center gap-2">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="rotate-180"
+                >
+                  <path
+                    d="M16.9998 7L21.9998 12M21.9998 12L16.9998 17M21.9998 12H8.99983"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M11.9998 3H7.99983C5.79069 3 3.99983 4.79086 3.99983 7V17C3.99983 19.2091 5.79069 21 7.99983 21H11.9998"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Disconnect
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                  Connected to Netlify
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  onClick={() => window.open('https://app.netlify.com', '_blank', 'noopener,noreferrer')}
+                  className="flex items-center gap-2 hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-colors"
+                >
+                  <div className="i-ph:layout-dashboard w-4 h-4" />
+                  Dashboard
+                </Button>
+                <Button
+                  onClick={() => fetchNetlifyStats(connection.token)}
+                  disabled={fetchingStats}
+                  variant="outline"
+                  className="flex items-center gap-2 hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-colors"
+                >
+                  {fetchingStats ? (
+                    <>
+                      <div className="i-ph:spinner-gap w-4 h-4 animate-spin text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary" />
+                      <span className="text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                        Refreshing...
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowPathIcon className="h-4 w-4 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary" />
+                      <span className="text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+                        Refresh Stats
+                      </span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
-      </div>
-    </motion.div>
+      </motion.div>
+
+      {!connection.user ? (
+        <div className="p-6">
+          <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2">
+            API Token
+          </label>
+          <input
+            type="password"
+            value={tokenInput}
+            onChange={(e) => setTokenInput(e.target.value)}
+            placeholder="Enter your Netlify API token"
+            className={classNames(
+              'w-full px-3 py-2 rounded-lg text-sm',
+              'bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1',
+              'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor',
+              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary dark:placeholder-bolt-elements-textTertiary',
+              'focus:outline-none focus:ring-1 focus:ring-bolt-elements-item-contentAccent dark:focus:ring-bolt-elements-item-contentAccent',
+            )}
+          />
+          <div className="mt-2 text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
+            <a
+              href="https://app.netlify.com/user/applications#personal-access-tokens"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-bolt-elements-link-text dark:text-bolt-elements-link-text hover:text-bolt-elements-link-textHover dark:hover:text-bolt-elements-link-textHover flex items-center gap-1"
+            >
+              <div className="i-ph:key w-4 h-4" />
+              Get your token
+              <div className="i-ph:arrow-square-out w-3 h-3" />
+            </a>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6 p-6">{renderStats()}</div>
+      )}
+
+      {/* Build Hook Creation */}
+      {activeSiteIndex !== -1 && (
+        <div className="mt-4 space-y-4">
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium flex items-center gap-2 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
+              <PlusIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+              Create Build Hook
+            </h4>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={hookTitle}
+                onChange={(e) => setHookTitle(e.target.value)}
+                placeholder="Build hook title"
+                className="flex-1 px-3 py-1 text-sm rounded-md bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (!hookTitle) {
+                    toast.error('Please enter a hook title');
+                    return;
+                  }
+
+                  const hook = await handleCreateBuildHook(sites[activeSiteIndex].id, hookTitle);
+
+                  if (hook) {
+                    setHookTitle('');
+                  }
+                }}
+                disabled={isActionLoading}
+                className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+              >
+                <PlusIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                Create Hook
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

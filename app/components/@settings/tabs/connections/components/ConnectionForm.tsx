@@ -16,7 +16,7 @@ interface ConnectionFormProps {
 export function ConnectionForm({ authState, setAuthState, onSave, onDisconnect }: ConnectionFormProps) {
   // Check for saved token on mount
   useEffect(() => {
-    const savedToken = Cookies.get(GITHUB_TOKEN_KEY) || getLocalStorage(GITHUB_TOKEN_KEY);
+    const savedToken = Cookies.get(GITHUB_TOKEN_KEY) || Cookies.get('githubToken') || getLocalStorage(GITHUB_TOKEN_KEY);
 
     if (savedToken && !authState.tokenInfo?.token) {
       setAuthState((prev: GitHubAuthState) => ({
@@ -30,6 +30,9 @@ export function ConnectionForm({ authState, setAuthState, onSave, onDisconnect }
           followers: 0,
         },
       }));
+
+      // Ensure the token is also saved with the correct key for API requests
+      Cookies.set('githubToken', savedToken);
     }
   }, []);
 
