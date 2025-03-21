@@ -1,7 +1,7 @@
 import type { WebContainer } from '@webcontainer/api';
 import { path as nodePath } from '~/utils/path';
 import { atom, map, type MapStore } from 'nanostores';
-import type { ActionAlert, BoltAction, FileHistory } from '~/types/actions';
+import type { ActionAlert, BoltAction, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
@@ -70,16 +70,19 @@ export class ActionRunner {
   runnerId = atom<string>(`${Date.now()}`);
   actions: ActionsMap = map({});
   onAlert?: (alert: ActionAlert) => void;
+  onSupabaseAlert?: (alert: SupabaseAlert) => void;
   buildOutput?: { path: string; exitCode: number; output: string };
 
   constructor(
     webcontainerPromise: Promise<WebContainer>,
     getShellTerminal: () => BoltShell,
     onAlert?: (alert: ActionAlert) => void,
+    onSupabaseAlert?: (alert: SupabaseAlert) => void,
   ) {
     this.#webcontainer = webcontainerPromise;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
+    this.onSupabaseAlert = onSupabaseAlert;
   }
 
   addAction(data: ActionCallbackData) {
@@ -155,6 +158,21 @@ export class ActionRunner {
         }
         case 'file': {
           await this.#runFileAction(action);
+          break;
+        }
+        case 'supabase': {
+          try {
+            await this.handleSupabaseAction(action as SupabaseAction);
+          } catch (error: any) {
+            // Update action status
+            this.#updateAction(actionId, {
+              status: 'failed',
+              error: error instanceof Error ? error.message : 'Supabase action failed',
+            });
+
+            // Return early without re-throwing
+            return;
+          }
           break;
         }
         case 'build': {
@@ -376,5 +394,51 @@ export class ActionRunner {
       exitCode,
       output,
     };
+  }
+  async handleSupabaseAction(action: SupabaseAction) {
+    const { operation, content, filePath } = action;
+    logger.debug('[Supabase Action]:', { operation, filePath, content });
+
+    switch (operation) {
+      case 'migration':
+        if (!filePath) {
+          throw new Error('Migration requires a filePath');
+        }
+
+        // Show alert for migration action
+        this.onSupabaseAlert?.({
+          type: 'info',
+          title: 'Supabase Migration',
+          description: `Create migration file: ${filePath}`,
+          content,
+          source: 'supabase',
+        });
+
+        // Only create the migration file
+        await this.#runFileAction({
+          type: 'file',
+          filePath,
+          content,
+          changeSource: 'supabase',
+        } as any);
+        return { success: true };
+
+      case 'query': {
+        // Always show the alert and let the SupabaseAlert component handle connection state
+        this.onSupabaseAlert?.({
+          type: 'info',
+          title: 'Supabase Query',
+          description: 'Execute database query',
+          content,
+          source: 'supabase',
+        });
+
+        // The actual execution will be triggered from SupabaseChatAlert
+        return { pending: true };
+      }
+
+      default:
+        throw new Error(`Unknown operation: ${operation}`);
+    }
   }
 }

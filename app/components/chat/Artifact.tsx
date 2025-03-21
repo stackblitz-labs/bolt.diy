@@ -35,7 +35,11 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
 
   const actions = useStore(
     computed(artifact.runner.actions, (actions) => {
-      return Object.values(actions);
+      // Filter out Supabase actions except for migrations
+      return Object.values(actions).filter((action) => {
+        // Exclude actions with type 'supabase' or actions that contain 'supabase' in their content
+        return action.type !== 'supabase' && !(action.type === 'shell' && action.content?.includes('supabase'));
+      });
     }),
   );
 
