@@ -1,6 +1,6 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Markdown } from './Markdown';
-import type { JSONValue } from 'ai';
+import type { JSONValue, ToolInvocation } from 'ai';
 import Popover from '~/components/ui/Popover';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
@@ -8,6 +8,7 @@ import { WORK_DIR } from '~/utils/constants';
 interface AssistantMessageProps {
   content: string;
   annotations?: JSONValue[];
+  toolInvocations?: ToolInvocation[];
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -34,7 +35,16 @@ function normalizedFilePath(path: string) {
   return normalizedPath;
 }
 
-export const AssistantMessage = memo(({ content, annotations }: AssistantMessageProps) => {
+export const AssistantMessage = memo(({ content, annotations, toolInvocations }: AssistantMessageProps) => {
+  const [expandedTools, setExpandedTools] = useState<Record<number, boolean>>({});
+
+  const toggleTool = (idx: number) => {
+    setExpandedTools((prev) => ({
+      ...prev,
+      [idx]: !prev[idx],
+    }));
+  };
+
   const filteredAnnotations = (annotations?.filter(
     (annotation: JSONValue) => annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
   ) || []) as { type: string; value: any } & { [key: string]: any }[];
@@ -107,6 +117,62 @@ export const AssistantMessage = memo(({ content, annotations }: AssistantMessage
           )}
         </div>
       </>
+      {toolInvocations && toolInvocations.length > 0 && (
+        <div className="mt-4 border-t border-bolt-elements-borderColor pt-4">
+          {toolInvocations.map((tool, idx) => (
+            <div
+              key={idx}
+              className="mb-4 bg-bolt-elements-artifacts-inlineCode-background p-3 rounded-md border border-bolt-elements-borderColor"
+            >
+              <div
+                className="font-semibold text-sm mb-1 flex items-center justify-between cursor-pointer text-bolt-elements-textPrimary"
+                onClick={() => toggleTool(idx)}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-bolt-elements-item-contentAccent">🔧</span> {tool.toolName}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors">
+                  {expandedTools[idx] ? (
+                    <>
+                      <span className="i-ph:caret-up text-bolt-elements-item-contentAccent" />
+                      <span>Hide</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="i-ph:caret-down text-bolt-elements-item-contentAccent" />
+                      <span>Show</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              {tool.args && expandedTools[idx] && (
+                <div className="text-xs mb-2 text-bolt-elements-textPrimary">
+                  <div className="font-semibold mb-1">Arguments:</div>
+                  <pre className="whitespace-pre-wrap overflow-x-auto p-2 bg-bolt-elements-artifacts-inlineCode-background/50 rounded border border-bolt-elements-borderColor/30">
+                    {JSON.stringify(tool.args, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {expandedTools[idx] && (
+                <div className="text-xs mb-2 text-bolt-elements-textPrimary">
+                  <div className="font-semibold mb-1">Result:</div>
+                  <pre className="whitespace-pre-wrap overflow-x-auto overflow-y-auto max-h-60 p-2 bg-bolt-elements-artifacts-inlineCode-background/50 rounded border border-bolt-elements-borderColor/30">
+                    {tool.state === 'result' ? (
+                      tool.result
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="i-ph:spinner animate-spin"></span>
+                        <span>Waiting...</span>
+                      </div>
+                    )}
+                  </pre>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       <Markdown html>{content}</Markdown>
     </div>
   );

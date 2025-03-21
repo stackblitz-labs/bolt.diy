@@ -11,6 +11,7 @@ import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
 import { WORK_DIR } from '~/utils/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
+import { MCPManager } from '~/lib/modules/mcp/manager';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
@@ -49,6 +50,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   const providerSettings: Record<string, IProviderSetting> = JSON.parse(
     parseCookies(cookieHeader || '').providers || '{}',
   );
+
+  const mcpManager = await MCPManager.getInstance(context);
+  const mcpTools = mcpManager.tools;
 
   const stream = new SwitchableStream();
 
@@ -181,7 +185,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         // Stream the text
         const options: StreamingOptions = {
-          toolChoice: 'none',
+          toolChoice: 'auto',
           onFinish: async ({ text: content, finishReason, usage }) => {
             logger.debug('usage', JSON.stringify(usage));
 
@@ -242,6 +246,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               contextFiles: filteredFiles,
               summary,
               messageSliceId,
+              tools: mcpTools,
             });
 
             result.mergeIntoDataStream(dataStream);
@@ -281,6 +286,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           contextFiles: filteredFiles,
           summary,
           messageSliceId,
+          tools: mcpTools,
         });
 
         (async () => {

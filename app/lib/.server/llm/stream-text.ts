@@ -28,6 +28,7 @@ export async function streamText(props: {
   contextFiles?: FileMap;
   summary?: string;
   messageSliceId?: number;
+  tools?: Record<string, any>;
 }) {
   const {
     messages,
@@ -40,6 +41,7 @@ export async function streamText(props: {
     contextOptimization,
     contextFiles,
     summary,
+    tools,
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -150,7 +152,9 @@ ${props.summary}
     }),
     system: systemPrompt,
     maxTokens: dynamicMaxTokens,
+    maxSteps: 100,
     messages: convertToCoreMessages(processedMessages as any),
+    tools,
     ...options,
   });
 }

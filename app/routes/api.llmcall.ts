@@ -8,6 +8,7 @@ import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { createScopedLogger } from '~/utils/logger';
+import { MCPManager } from '~/lib/modules/mcp/manager';
 
 export async function action(args: ActionFunctionArgs) {
   return llmCallAction(args);
@@ -54,6 +55,9 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
   const apiKeys = getApiKeysFromCookie(cookieHeader);
   const providerSettings = getProviderSettingsFromCookie(cookieHeader);
 
+  const mcpManager = await MCPManager.getInstance(context);
+  const mcpTools = mcpManager.tools;
+
   if (streamOutput) {
     try {
       const result = await streamText({
@@ -69,6 +73,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         env: context.cloudflare?.env as any,
         apiKeys,
         providerSettings,
+        tools: mcpTools,
       });
 
       return new Response(result.textStream, {
@@ -126,7 +131,9 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
           providerSettings,
         }),
         maxTokens: dynamicMaxTokens,
-        toolChoice: 'none',
+        maxSteps: 100,
+        toolChoice: 'auto',
+        tools: mcpTools,
       });
       logger.info(`Generated response`);
 
