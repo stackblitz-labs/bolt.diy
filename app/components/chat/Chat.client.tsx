@@ -22,10 +22,29 @@ import { useSettings } from '~/lib/hooks/useSettings';
 import type { ProviderInfo } from '~/types/model';
 import { useSearchParams } from '@remix-run/react';
 import { createSampler } from '~/utils/sampler';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 import { logStore } from '~/lib/stores/logs';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
+import { useWebSearch } from '~/lib/hooks/useWebSearch';
+
+// Add a browser-compatible UUID generator
+const generateUUID = () => {
+  // Use browser's native crypto API if available
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return window.crypto.randomUUID();
+  }
+
+  // Fallback for older browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+
+    return v.toString(16);
+  });
+};
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -120,9 +139,11 @@ export const ChatImpl = memo(
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [imageDataList, setImageDataList] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [fakeLoading, setFakeLoading] = useState(false);
     const files = useStore(workbenchStore.files);
     const actionAlert = useStore(workbenchStore.alert);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
 
     const [model, setModel] = useState(() => {
@@ -139,6 +160,7 @@ export const ChatImpl = memo(
     const [animationScope, animate] = useAnimate();
 
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+    const [isStreaming, setIsStreaming] = useState(false);
 
     const {
       messages,
@@ -216,6 +238,7 @@ export const ChatImpl = memo(
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
+    const { searchResults, performSearch, clearSearchResults, isSearching } = useWebSearch();
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
@@ -241,18 +264,11 @@ export const ChatImpl = memo(
       }
     };
 
-    const abort = () => {
-      stop();
+    const abort = useCallback(() => {
       chatStore.setKey('aborted', true);
-      workbenchStore.abortAllActions();
-
-      logStore.logProvider('Chat response aborted', {
-        component: 'Chat',
-        action: 'abort',
-        model,
-        provider: provider.name,
-      });
-    };
+      stop();
+      setIsStreaming(false);
+    }, [stop]);
 
     useEffect(() => {
       const textarea = textareaRef.current;
@@ -282,170 +298,337 @@ export const ChatImpl = memo(
       setChatStarted(true);
     };
 
-    const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
-      const messageContent = messageInput || input;
+    const handleSearch = async (query: string) => {
+      try {
+        console.log(`handleSearch called with query: "${query}"`);
 
-      if (!messageContent?.trim()) {
-        return;
+        const results = await performSearch(query);
+
+        console.log(`Search completed, ${results?.data?.length || 0} results found`);
+
+        return results;
+      } catch (error) {
+        console.error('Error in handleSearch:', error);
+        toast.error('Search failed. Please try again.');
+
+        return null;
       }
+    };
 
-      if (isLoading) {
-        abort();
-        return;
-      }
-
-      runAnimation();
-
-      if (!chatStarted) {
-        setFakeLoading(true);
-
-        if (autoSelectTemplate) {
-          const { template, title } = await selectStarterTemplate({
-            message: messageContent,
-            model,
-            provider,
-          });
-
-          if (template !== 'blank') {
-            const temResp = await getTemplates(template, title).catch((e) => {
-              if (e.message.includes('rate limit')) {
-                toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
-              } else {
-                toast.warning('Failed to import starter template\n Continuing with blank template');
-              }
-
-              return null;
-            });
-
-            if (temResp) {
-              const { assistantMessage, userMessage } = temResp;
-              setMessages([
-                {
-                  id: `1-${new Date().getTime()}`,
-                  role: 'user',
-                  content: [
-                    {
-                      type: 'text',
-                      text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${messageContent}`,
-                    },
-                    ...imageDataList.map((imageData) => ({
-                      type: 'image',
-                      image: imageData,
-                    })),
-                  ] as any,
-                },
-                {
-                  id: `2-${new Date().getTime()}`,
-                  role: 'assistant',
-                  content: assistantMessage,
-                },
-                {
-                  id: `3-${new Date().getTime()}`,
-                  role: 'user',
-                  content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
-                  annotations: ['hidden'],
-                },
-              ]);
-              reload();
-              setInput('');
-              Cookies.remove(PROMPT_COOKIE_KEY);
-
-              setUploadedFiles([]);
-              setImageDataList([]);
-
-              resetEnhancer();
-
-              textareaRef.current?.blur();
-              setFakeLoading(false);
-
-              return;
-            }
-          }
+    const sendMessage = useCallback(
+      async (message: string) => {
+        if (!message || isLoading) {
+          return;
         }
 
-        // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
-        setMessages([
-          {
-            id: `${new Date().getTime()}`,
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${messageContent}`,
-              },
-              ...imageDataList.map((imageData) => ({
-                type: 'image',
-                image: imageData,
-              })),
-            ] as any,
-          },
-        ]);
-        reload();
-        setFakeLoading(false);
         setInput('');
-        Cookies.remove(PROMPT_COOKIE_KEY);
+        setChatStarted(true);
+        setIsStreaming(true);
 
-        setUploadedFiles([]);
-        setImageDataList([]);
+        try {
+          // Check if the message starts with @search command
+          const searchCommandRegex = /^@search\s+(.+)$/i;
+          const searchMatch = message.match(searchCommandRegex);
 
-        resetEnhancer();
+          if (searchMatch) {
+            let searchQueryToUse = searchMatch[1].trim();
 
-        textareaRef.current?.blur();
+            // Check if the query appears to be asking for code generation
+            const codeGenerationTerms = [
+              'create a',
+              'build a',
+              'make a',
+              'write a',
+              'code a',
+              'develop a',
+              'generate a',
+              'implement a',
+              'example of',
+              'sample of',
+              'top 10',
+              'list of',
+              'using',
+              'with',
+            ];
 
-        return;
-      }
+            // Add exception patterns for error messages and debugging queries
+            const errorRelatedTerms = [
+              'error',
+              'exception',
+              'bug',
+              'crash',
+              'failed',
+              'failure',
+              'not working',
+              "doesn't work",
+              'issue',
+              'problem',
+              'debug',
+              'fix',
+              'troubleshoot',
+              'TypeError',
+              'ReferenceError',
+              'SyntaxError',
+              'RangeError',
+            ];
 
-      if (error != null) {
-        setMessages(messages.slice(0, -1));
-      }
+            const queryLower = searchQueryToUse.toLowerCase();
 
-      const modifiedFiles = workbenchStore.getModifiedFiles();
+            // Check if query contains error-related terms first
+            const isErrorRelatedQuery = errorRelatedTerms.some((term) => queryLower.includes(term.toLowerCase()));
 
-      chatStore.setKey('aborted', false);
+            // Only treat as code generation if it's not an error-related query
+            const isLikelyCodeRequest =
+              !isErrorRelatedQuery &&
+              codeGenerationTerms.some((term) => queryLower.includes(term)) &&
+              (queryLower.includes('code') ||
+                queryLower.includes('app') ||
+                queryLower.includes('project') ||
+                queryLower.includes('website') ||
+                queryLower.includes('application') ||
+                queryLower.includes('component') ||
+                queryLower.includes('react') ||
+                queryLower.includes('vue') ||
+                queryLower.includes('angular') ||
+                queryLower.includes('html') ||
+                queryLower.includes('css') ||
+                queryLower.includes('javascript') ||
+                queryLower.includes('typescript'));
 
-      if (modifiedFiles !== undefined) {
-        const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
-        append({
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${messageContent}`,
-            },
-            ...imageDataList.map((imageData) => ({
-              type: 'image',
-              image: imageData,
-            })),
-          ] as any,
-        });
+            if (isLikelyCodeRequest) {
+              // Add a clarification that we're using web search to find information, not generate code
+              searchQueryToUse = `information about ${searchQueryToUse}`;
+              console.log(`Search query appears to be asking for code. Clarifying to: "${searchQueryToUse}"`);
 
-        workbenchStore.resetAllFileModifications();
-      } else {
-        append({
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${messageContent}`,
-            },
-            ...imageDataList.map((imageData) => ({
-              type: 'image',
-              image: imageData,
-            })),
-          ] as any,
-        });
-      }
+              // Add the user message to the messages with original query
+              setMessages([
+                ...messages,
+                {
+                  id: generateUUID(),
+                  role: 'user',
+                  content: message,
+                  createdAt: new Date(),
+                },
+              ]);
 
-      setInput('');
-      Cookies.remove(PROMPT_COOKIE_KEY);
+              // Add a clarifying assistant message
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: generateUUID(),
+                  role: 'assistant',
+                  content: `I'll search the web for information about "${searchMatch[1].trim()}". Note that web search is for finding facts and information, not for generating code directly.`,
+                  createdAt: new Date(),
+                },
+              ]);
+            } else {
+              // Add the user message to the messages
+              setMessages([
+                ...messages,
+                {
+                  id: generateUUID(),
+                  role: 'user',
+                  content: message,
+                  createdAt: new Date(),
+                },
+              ]);
+            }
 
-      setUploadedFiles([]);
-      setImageDataList([]);
+            // Perform the search
+            try {
+              console.log(`Processing search for: ${searchQueryToUse}`);
 
-      resetEnhancer();
+              // Set streaming flag and show loading indicator
+              setIsStreaming(true);
 
-      textareaRef.current?.blur();
-    };
+              // Show a toast to inform the user that search is in progress
+              toast.info(`Searching the web for "${searchQueryToUse}". Results will be added to the chat once found.`, {
+                autoClose: 5000,
+              });
+
+              // Clear any previous search results first
+              clearSearchResults();
+
+              // Perform the search and get results
+              const searchPromise = performSearch(searchQueryToUse);
+
+              // Wait longer for the search results to be available
+              await searchPromise;
+
+              // Wait for state update to complete (React state updates are asynchronous)
+              await new Promise((resolve) => setTimeout(resolve, 500));
+
+              console.log('Search results after waiting:', searchResults);
+
+              // If searchResults is still null after waiting, there was an issue with state updating
+              if (!searchResults) {
+                console.error('Search state not updated with results after waiting');
+                throw new Error('Search state not synchronized');
+              }
+
+              // If we have search results, create a new message that includes them for the LLM
+              if (searchResults.data && searchResults.data.length > 0) {
+                console.log(`Found ${searchResults.data.length} search results, processing...`);
+
+                // Inform user that results were found
+                toast.success(`Found ${searchResults.data.length} search results. Adding to chat...`, {
+                  autoClose: 3000,
+                });
+
+                // Create a formatted version of search results to include in the prompt
+                const formattedResults = searchResults.data
+                  .map(
+                    (item, index) =>
+                      `Result ${index + 1}:\nTitle: ${item.title}\nURL: ${item.link}\nSummary: ${item.snippet}`,
+                  )
+                  .join('\n\n');
+
+                // Create the prompt with search results - make it more explicit about what we want
+                const promptWithResults = isErrorRelatedQuery
+                  ? `I searched the web for information about this error: "${searchQueryToUse}" and found these results:\n\n${formattedResults}\n\nPlease analyze these search results and provide troubleshooting advice for this specific error. Explain what likely caused the error and how to fix it based on the search information. Include practical steps to resolve the issue.`
+                  : `I searched the web for "${searchQueryToUse}" and found these results:\n\n${formattedResults}\n\nPlease summarize the information from these search results. DO NOT generate code or create projects - just analyze and explain the web search results.`;
+
+                // Use the proper append function with search results as content
+                const modifiedFiles = workbenchStore.getModifiedFiles();
+                chatStore.setKey('aborted', false);
+
+                // Instead of switching models, just make sure the data is ready
+                console.log(`Using ${model} from ${provider.name} for web search results processing`);
+
+                try {
+                  if (modifiedFiles !== undefined) {
+                    const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
+                    append({
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${promptWithResults}`,
+                        },
+                      ] as any,
+                    });
+
+                    workbenchStore.resetAllFileModifications();
+                  } else {
+                    append({
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'text',
+                          text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${promptWithResults}`,
+                        },
+                      ] as any,
+                    });
+                  }
+
+                  // Hide the search results UI since we're incorporating them into the chat
+                  clearSearchResults();
+                } catch (appendError) {
+                  console.error('Error appending search results to chat:', appendError);
+                  toast.error('Error adding search results to chat. Please try again.');
+                  setIsStreaming(false);
+                }
+              } else {
+                console.log('No search results found, sending fallback message');
+
+                // Inform user that no results were found
+                toast.info(`No search results found for "${searchQueryToUse}". Using AI knowledge instead.`, {
+                  autoClose: 3000,
+                });
+
+                // Handle case where no search results were found
+                try {
+                  append({
+                    role: 'user',
+                    content: [
+                      {
+                        type: 'text',
+                        text: isErrorRelatedQuery
+                          ? `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\nI searched for information about this error: "${searchQueryToUse}" but didn't find specific results. Based on your knowledge, can you please explain what might be causing this error and suggest troubleshooting steps? Focus on practical advice for fixing the issue.`
+                          : `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\nI searched for "${searchQueryToUse}" but didn't find any results. Please provide general information about this topic based on your knowledge. DO NOT generate code or create projects - just provide factual information.`,
+                      },
+                    ] as any,
+                  });
+                } catch (appendError) {
+                  console.error('Error appending no-results message:', appendError);
+                  toast.error('Error processing your request. Please try again.');
+                  setIsStreaming(false);
+                }
+              }
+            } catch (error) {
+              console.error('Search operation failed:', error);
+              toast.error(
+                'Search failed. The web search feature may not be working correctly. Try a different query or continue without search.',
+                { autoClose: 5000 },
+              );
+              setIsStreaming(false);
+            }
+
+            return;
+          }
+
+          // Continue with normal message handling if not a search command
+          /*
+           * We don't actually use the UUID here, but we keep the line for code clarity
+           * as a placeholder for the original code
+           */
+          generateUUID(); // Generate UUID but don't assign it
+
+          if (error != null) {
+            setMessages(messages.slice(0, -1));
+          }
+
+          const modifiedFiles = workbenchStore.getModifiedFiles();
+
+          chatStore.setKey('aborted', false);
+
+          if (modifiedFiles !== undefined) {
+            const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
+            append({
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${message}`,
+                },
+                ...imageDataList.map((imageData) => ({
+                  type: 'image',
+                  image: imageData,
+                })),
+              ] as any,
+            });
+
+            workbenchStore.resetAllFileModifications();
+          } else {
+            append({
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${message}`,
+                },
+                ...imageDataList.map((imageData) => ({
+                  type: 'image',
+                  image: imageData,
+                })),
+              ] as any,
+            });
+          }
+
+          Cookies.remove(PROMPT_COOKIE_KEY);
+
+          setUploadedFiles([]);
+          setImageDataList([]);
+
+          resetEnhancer();
+
+          textareaRef.current?.blur();
+        } catch (error) {
+          console.error(error);
+        }
+      },
+      [input, isLoading, messages, error, append, setMessages, workbenchStore, model, provider, imageDataList],
+    );
 
     /**
      * Handles the change event for the textarea and updates the input state.
@@ -496,36 +679,10 @@ export const ChatImpl = memo(
         chatStarted={chatStarted}
         isStreaming={isLoading || fakeLoading}
         onStreamingChange={(streaming) => {
-          streamingState.set(streaming);
+          setIsStreaming(streaming);
         }}
         enhancingPrompt={enhancingPrompt}
-        promptEnhanced={promptEnhanced}
-        sendMessage={sendMessage}
-        model={model}
-        setModel={handleModelChange}
-        provider={provider}
-        setProvider={handleProviderChange}
-        providerList={activeProviders}
-        messageRef={messageRef}
-        scrollRef={scrollRef}
-        handleInputChange={(e) => {
-          onTextareaChange(e);
-          debouncedCachePrompt(e);
-        }}
-        handleStop={abort}
-        description={description}
-        importChat={importChat}
-        exportChat={exportChat}
-        messages={messages.map((message, i) => {
-          if (message.role === 'user') {
-            return message;
-          }
-
-          return {
-            ...message,
-            content: parsedMessages[i] || '',
-          };
-        })}
+        _promptEnhanced={promptEnhanced}
         enhancePrompt={() => {
           enhancePrompt(
             input,
@@ -538,13 +695,74 @@ export const ChatImpl = memo(
             apiKeys,
           );
         }}
+        sendMessage={sendMessage}
+        model={model}
+        setModel={handleModelChange}
+        provider={provider}
+        setProvider={handleProviderChange}
+        providerList={activeProviders}
+        messageRef={messageRef}
+        scrollRef={scrollRef}
+        handleInputChange={(e) => {
+          onTextareaChange(e);
+          debouncedCachePrompt(e);
+        }}
+        handleKeyDown={(event) => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+
+            if (isStreaming) {
+              abort();
+              return;
+            }
+
+            if (input.trim()) {
+              sendMessage(input);
+            }
+          }
+        }}
+        _handleResetChat={() => {
+          setMessages([]);
+          chatStore.setKey('started', false);
+          setChatStarted(false);
+        }}
+        _handleRegenerate={() => {
+          if (!messages.length) {
+            return;
+          }
+
+          reload();
+        }}
+        _handleClearChat={() => {
+          setMessages([]);
+          chatStore.setKey('started', false);
+          setChatStarted(false);
+        }}
+        handleStop={abort}
+        _description={description}
+        importChat={importChat}
+        exportChat={exportChat}
+        messages={messages.map((message, i) => {
+          if (message.role === 'user') {
+            return message;
+          }
+
+          return {
+            ...message,
+            content: parsedMessages[i] || '',
+          };
+        })}
         uploadedFiles={uploadedFiles}
         setUploadedFiles={setUploadedFiles}
         imageDataList={imageDataList}
         setImageDataList={setImageDataList}
-        actionAlert={actionAlert}
+        _actionAlert={actionAlert}
         clearAlert={() => workbenchStore.clearAlert()}
         data={chatData}
+        _handleSearch={handleSearch}
+        onSearch={handleSearch}
+        isSearching={isSearching}
+        onClearSearchResults={clearSearchResults}
       />
     );
   },

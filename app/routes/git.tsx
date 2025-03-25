@@ -19,7 +19,25 @@ export default function Index() {
     <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
       <BackgroundRays />
       <Header />
-      <ClientOnly fallback={<BaseChat />}>{() => <GitUrlImport />}</ClientOnly>
+      <ClientOnly
+        fallback={
+          <BaseChat
+            input=""
+            messages={[]}
+            showChat={true}
+            chatStarted={false}
+            isStreaming={false}
+            onStreamingChange={function noOp() {}}
+            enhancingPrompt={false}
+            _promptEnhanced={false}
+            handleInputChange={function noOp() {}}
+            handleKeyDown={function noOp() {}}
+            _handleResetChat={function noOp() {}}
+          />
+        }
+      >
+        {() => <GitUrlImport />}
+      </ClientOnly>
     </div>
   );
 }

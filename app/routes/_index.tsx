@@ -22,7 +22,25 @@ export default function Index() {
     <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
       <BackgroundRays />
       <Header />
-      <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
+      <ClientOnly
+        fallback={
+          <BaseChat
+            input=""
+            messages={[]}
+            showChat={true}
+            chatStarted={false}
+            isStreaming={false}
+            onStreamingChange={function noOp() {}}
+            enhancingPrompt={false}
+            _promptEnhanced={false}
+            handleInputChange={function noOp() {}}
+            handleKeyDown={function noOp() {}}
+            _handleResetChat={function noOp() {}}
+          />
+        }
+      >
+        {() => <Chat />}
+      </ClientOnly>
     </div>
   );
 }

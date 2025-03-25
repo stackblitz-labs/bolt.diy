@@ -134,7 +134,23 @@ ${escapeBoltTags(file.content)}
   }, [searchParams, historyReady, gitReady, imported]);
 
   return (
-    <ClientOnly fallback={<BaseChat />}>
+    <ClientOnly
+      fallback={
+        <BaseChat
+          input=""
+          messages={[]}
+          showChat={true}
+          chatStarted={false}
+          isStreaming={false}
+          onStreamingChange={function noOp() {}}
+          enhancingPrompt={false}
+          _promptEnhanced={false}
+          handleInputChange={function noOp() {}}
+          handleKeyDown={function noOp() {}}
+          _handleResetChat={function noOp() {}}
+        />
+      }
+    >
       {() => (
         <>
           <Chat />
