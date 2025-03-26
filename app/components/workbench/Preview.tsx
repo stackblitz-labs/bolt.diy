@@ -50,6 +50,7 @@ export const Preview = memo(() => {
     startX: 0,
     startWidthPercent: 37.5,
     windowWidth: window.innerWidth,
+    target: null as HTMLElement | null,
   });
 
   const SCALING_FACTOR = 2;
@@ -133,10 +134,14 @@ export const Preview = memo(() => {
     setIsDeviceModeOn((prev) => !prev);
   };
 
-  const startResizing = (e: React.MouseEvent, side: ResizeSide) => {
+  const startResizing = (e: React.PointerEvent, side: ResizeSide) => {
     if (!isDeviceModeOn) {
       return;
     }
+
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    resizingState.current.target = target;
 
     document.body.style.userSelect = 'none';
 
@@ -146,13 +151,13 @@ export const Preview = memo(() => {
     resizingState.current.startWidthPercent = widthPercent;
     resizingState.current.windowWidth = window.innerWidth;
 
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
 
     e.preventDefault();
   };
 
-  const onMouseMove = (e: MouseEvent) => {
+  const onPointerMove = (e: PointerEvent) => {
     if (!resizingState.current.isResizing) {
       return;
     }
@@ -175,11 +180,20 @@ export const Preview = memo(() => {
     setWidthPercent(newWidthPercent);
   };
 
-  const onMouseUp = () => {
+  const onPointerUp = (e: PointerEvent) => {
     resizingState.current.isResizing = false;
     resizingState.current.side = null;
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
+
+    if (resizingState.current.target) {
+      if (resizingState.current.target.hasPointerCapture(e.pointerId)) {
+        resizingState.current.target.releasePointerCapture(e.pointerId);
+      }
+
+      resizingState.current.target = null;
+    }
+
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
 
     document.body.style.userSelect = '';
   };
@@ -395,7 +409,7 @@ export const Preview = memo(() => {
           {isDeviceModeOn && (
             <>
               <div
-                onMouseDown={(e) => startResizing(e, 'left')}
+                onPointerDown={(e) => startResizing(e, 'left')}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -419,7 +433,7 @@ export const Preview = memo(() => {
               </div>
 
               <div
-                onMouseDown={(e) => startResizing(e, 'right')}
+                onPointerDown={(e) => startResizing(e, 'right')}
                 style={{
                   position: 'absolute',
                   top: 0,
