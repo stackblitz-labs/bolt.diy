@@ -1,6 +1,6 @@
 import type { IProviderSetting } from '~/types/model';
 import { BaseProvider } from './base-provider';
-import type { ModelInfo, ProviderInfo } from './types';
+import type { ModelInfo } from './types';
 import * as providers from './registry';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -88,44 +88,44 @@ export class LLMManager {
     }
 
     // Get dynamic models from all providers that support them
-    const dynamicModels = await Promise.all(
+    const models = await Promise.all(
       Array.from(this._providers.values())
         .filter((provider) => enabledProviders.includes(provider.name))
-        .filter(
-          (provider): provider is BaseProvider & Required<Pick<ProviderInfo, 'getDynamicModels'>> =>
-            !!provider.getDynamicModels,
-        )
         .map(async (provider) => {
-          const cachedModels = provider.getModelsFromCache(options);
+          let dynamicModels: ModelInfo[] | null = [];
 
-          if (cachedModels) {
-            return cachedModels;
+          if (provider.getDynamicModels) {
+            dynamicModels = provider.getModelsFromCache(options);
+
+            if (!dynamicModels) {
+              dynamicModels = await provider
+                .getDynamicModels(apiKeys, providerSettings?.[provider.name], serverEnv)
+                .then((models) => {
+                  logger.info(`Caching ${models.length} dynamic models for ${provider.name}`);
+                  provider.storeDynamicModels(options, models);
+
+                  return models;
+                })
+                .catch((err) => {
+                  logger.error(`Error getting dynamic models ${provider.name} :`, err);
+                  return [];
+                });
+            }
           }
 
-          const dynamicModels = await provider
-            .getDynamicModels(apiKeys, providerSettings?.[provider.name], serverEnv)
-            .then((models) => {
-              logger.info(`Caching ${models.length} dynamic models for ${provider.name}`);
-              provider.storeDynamicModels(options, models);
+          const models = provider.sort([
+            ...dynamicModels,
+            ...provider.staticModels.filter(
+              (staticModel) => !dynamicModels.some((dynamicModel) => dynamicModel.name === staticModel.name),
+            ),
+          ]);
 
-              return models;
-            })
-            .catch((err) => {
-              logger.error(`Error getting dynamic models ${provider.name} :`, err);
-              return [];
-            });
-
-          return dynamicModels;
+          return models;
         }),
     );
-    const staticModels = Array.from(this._providers.values()).flatMap((p) => p.staticModels || []);
-    const dynamicModelsFlat = dynamicModels.flat();
-    const dynamicModelKeys = dynamicModelsFlat.map((d) => `${d.name}-${d.provider}`);
-    const filteredStaticModesl = staticModels.filter((m) => !dynamicModelKeys.includes(`${m.name}-${m.provider}`));
 
     // Combine static and dynamic models
-    const modelList = [...dynamicModelsFlat, ...filteredStaticModesl];
-    modelList.sort((a, b) => a.name.localeCompare(b.name));
+    const modelList = models.flat();
     this._modelList = modelList;
 
     return modelList;
@@ -155,35 +155,35 @@ export class LLMManager {
 
     const { apiKeys, providerSettings, serverEnv } = options;
 
-    const cachedModels = provider.getModelsFromCache({
+    let dynamicModels = provider.getModelsFromCache({
       apiKeys,
       providerSettings,
       serverEnv,
     });
 
-    if (cachedModels) {
-      logger.info(`Found ${cachedModels.length} cached models for ${provider.name}`);
-      return [...cachedModels, ...staticModels];
+    if (!dynamicModels) {
+      logger.info(`Getting dynamic models for ${provider.name}`);
+
+      dynamicModels = await provider
+        .getDynamicModels?.(apiKeys, providerSettings?.[provider.name], serverEnv)
+        .then((models) => {
+          logger.info(`Got ${models.length} dynamic models for ${provider.name}`);
+          provider.storeDynamicModels(options, models);
+
+          return models;
+        })
+        .catch((err) => {
+          logger.error(`Error getting dynamic models ${provider.name} :`, err);
+          return [];
+        });
     }
 
-    logger.info(`Getting dynamic models for ${provider.name}`);
-
-    const dynamicModels = await provider
-      .getDynamicModels?.(apiKeys, providerSettings?.[provider.name], serverEnv)
-      .then((models) => {
-        logger.info(`Got ${models.length} dynamic models for ${provider.name}`);
-        provider.storeDynamicModels(options, models);
-
-        return models;
-      })
-      .catch((err) => {
-        logger.error(`Error getting dynamic models ${provider.name} :`, err);
-        return [];
-      });
-    const dynamicModelsName = dynamicModels.map((d) => d.name);
-    const filteredStaticList = staticModels.filter((m) => !dynamicModelsName.includes(m.name));
-    const modelList = [...dynamicModels, ...filteredStaticList];
-    modelList.sort((a, b) => a.name.localeCompare(b.name));
+    const modelList = provider.sort([
+      ...dynamicModels,
+      ...staticModels.filter(
+        (staticModel) => !dynamicModels.some((dynamicModel) => dynamicModel.name === staticModel.name),
+      ),
+    ]);
 
     return modelList;
   }

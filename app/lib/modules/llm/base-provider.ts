@@ -115,6 +115,10 @@ export abstract class BaseProvider implements ProviderInfo {
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
   }): LanguageModelV1;
+
+  sort(models: ModelInfo[]): ModelInfo[] {
+    return models.sort((a, b) => a.name.localeCompare(b.name));
+  }
 }
 
 type OptionalApiKey = string | undefined;
