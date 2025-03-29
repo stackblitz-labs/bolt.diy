@@ -25,6 +25,7 @@ import { BinaryContent } from './BinaryContent';
 import { getTheme, reconfigureTheme } from './cm-theme';
 import { indentKeyBinding } from './indent';
 import { getLanguage } from './languages';
+import { createEnvMaskingExtension } from './EnvMasking';
 
 const logger = createScopedLogger('CodeMirrorEditor');
 
@@ -134,6 +135,9 @@ export const CodeMirrorEditor = memo(
 
     const [languageCompartment] = useState(new Compartment());
 
+    // Add a compartment for the env masking extension
+    const [envMaskingCompartment] = useState(new Compartment());
+
     const containerRef = useRef<HTMLDivElement | null>(null);
     const viewRef = useRef<EditorView>();
     const themeRef = useRef<Theme>();
@@ -214,6 +218,7 @@ export const CodeMirrorEditor = memo(
       if (!doc) {
         const state = newEditorState('', theme, settings, onScrollRef, debounceScroll, onSaveRef, [
           languageCompartment.of([]),
+          envMaskingCompartment.of([]),
         ]);
 
         view.setState(state);
@@ -236,6 +241,7 @@ export const CodeMirrorEditor = memo(
       if (!state) {
         state = newEditorState(doc.value, theme, settings, onScrollRef, debounceScroll, onSaveRef, [
           languageCompartment.of([]),
+          envMaskingCompartment.of([createEnvMaskingExtension(() => docRef.current?.filePath)]),
         ]);
 
         editorStates.set(doc.filePath, state);

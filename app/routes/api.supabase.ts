@@ -1,5 +1,4 @@
-import { json } from '@remix-run/node';
-import type { ActionFunction } from '@remix-run/node';
+import { json, type ActionFunction } from '@remix-run/cloudflare';
 import type { SupabaseProject } from '~/types/supabase';
 
 export const action: ActionFunction = async ({ request }) => {

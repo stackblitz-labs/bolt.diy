@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import React, { Suspense } from 'react';
+import VercelConnection from './VercelConnection';
 
 // Use React.lazy for dynamic imports
 const GithubConnection = React.lazy(() => import('./GithubConnection'));
@@ -38,6 +39,9 @@ export default function ConnectionsTab() {
         </Suspense>
         <Suspense fallback={<LoadingFallback />}>
           <NetlifyConnection />
+        </Suspense>
+        <Suspense fallback={<LoadingFallback />}>
+          <VercelConnection />
         </Suspense>
       </div>
     </div>
