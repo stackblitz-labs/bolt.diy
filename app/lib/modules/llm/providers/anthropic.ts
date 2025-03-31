@@ -18,28 +18,51 @@ export default class AnthropicProvider extends BaseProvider {
       label: 'Claude 3.7 Sonnet',
       provider: 'Anthropic',
       maxTokenAllowed: 8000,
+      createdAt: '2025-02-24T00:00:00Z',
     },
     {
       name: 'claude-3-5-sonnet-latest',
-      label: 'Claude 3.5 Sonnet (new)',
+      label: 'Claude 3.5 Sonnet (Latest)',
       provider: 'Anthropic',
       maxTokenAllowed: 8000,
+      createdAt: '2024-10-22T00:00:00Z',
     },
     {
       name: 'claude-3-5-sonnet-20240620',
-      label: 'Claude 3.5 Sonnet (old)',
+      label: 'Claude 3.5 Sonnet (Old)',
       provider: 'Anthropic',
       maxTokenAllowed: 8000,
+      createdAt: '2024-06-20T00:00:00Z',
     },
     {
       name: 'claude-3-5-haiku-latest',
-      label: 'Claude 3.5 Haiku (new)',
+      label: 'Claude 3.5 Haiku (Latest)',
       provider: 'Anthropic',
       maxTokenAllowed: 8000,
+      createdAt: '2024-10-22T00:00:00Z',
     },
-    { name: 'claude-3-opus-latest', label: 'Claude 3 Opus', provider: 'Anthropic', maxTokenAllowed: 8000 },
-    { name: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet', provider: 'Anthropic', maxTokenAllowed: 8000 },
-    { name: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku', provider: 'Anthropic', maxTokenAllowed: 8000 },
+
+    {
+      name: 'claude-3-opus-latest',
+      label: 'Claude 3 Opus',
+      provider: 'Anthropic',
+      maxTokenAllowed: 8000,
+      createdAt: '2024-02-29T00:00:00Z',
+    },
+    {
+      name: 'claude-3-sonnet-20240229',
+      label: 'Claude 3 Sonnet',
+      provider: 'Anthropic',
+      maxTokenAllowed: 8000,
+      createdAt: '2024-02-29T00:00:00Z',
+    },
+    {
+      name: 'claude-3-haiku-20240307',
+      label: 'Claude 3 Haiku',
+      provider: 'Anthropic',
+      maxTokenAllowed: 8000,
+      createdAt: '2024-03-07T00:00:00Z',
+    },
   ];
 
   async getDynamicModels(
@@ -76,6 +99,7 @@ export default class AnthropicProvider extends BaseProvider {
       label: `${m.display_name}`,
       provider: this.name,
       maxTokenAllowed: 32000,
+      createdAt: m.created_at ?? '0000-00-00T00:00:00Z',
     }));
   }
 
@@ -99,4 +123,11 @@ export default class AnthropicProvider extends BaseProvider {
 
     return anthropic(model);
   };
+
+  sort(models: ModelInfo[]): ModelInfo[] {
+    return models.sort((a, b) => {
+      const compare = b.createdAt!.localeCompare(a.createdAt!);
+      return compare === 0 ? b.name.localeCompare(a.name) : compare;
+    });
+  }
 }
