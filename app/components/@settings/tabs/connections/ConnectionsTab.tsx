@@ -149,6 +149,48 @@ export default function ConnectionsTab() {
         </div>
       </motion.div>
 
+      {/* Cloudflare Deployment Note - Highly visible */}
+      <motion.div
+        className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/40 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-lg shadow-sm p-4 mb-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <div className="flex items-center gap-2 mb-2 text-blue-700 dark:text-blue-400">
+          <div className="i-ph:cloud-bold w-5 h-5" />
+          <h3 className="text-base font-medium">Using Cloudflare Pages?</h3>
+        </div>
+        <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+          If you're experiencing GitHub connection issues (500 errors) on Cloudflare Pages deployments, you need to
+          configure environment variables in your Cloudflare dashboard:
+        </p>
+        <div className="bg-white/80 dark:bg-slate-900/60 rounded-md p-3 text-sm border border-blue-200 dark:border-blue-800/50">
+          <ol className="list-decimal list-inside pl-2 text-blue-700 dark:text-blue-300 space-y-2">
+            <li>
+              Go to <strong>Cloudflare Pages dashboard → Your project → Settings → Environment variables</strong>
+            </li>
+            <li>
+              Add <strong>both</strong> of these secrets (Production environment):
+              <ul className="list-disc list-inside pl-4 mt-1 mb-1">
+                <li>
+                  <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-800/40 rounded">GITHUB_ACCESS_TOKEN</code>{' '}
+                  (server-side API calls)
+                </li>
+                <li>
+                  <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-800/40 rounded">VITE_GITHUB_ACCESS_TOKEN</code>{' '}
+                  (client-side access)
+                </li>
+              </ul>
+            </li>
+            <li>
+              Add <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-800/40 rounded">VITE_GITHUB_TOKEN_TYPE</code> if
+              using fine-grained tokens
+            </li>
+            <li>Deploy a fresh build after adding these variables</li>
+          </ol>
+        </div>
+      </motion.div>
+
       <div className="grid grid-cols-1 gap-6">
         <Suspense fallback={<LoadingFallback />}>
           <GitHubConnection />

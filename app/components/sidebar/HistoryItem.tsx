@@ -5,15 +5,27 @@ import { type ChatHistoryItem } from '~/lib/persistence';
 import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
 import { forwardRef, type ForwardedRef } from 'react';
+import { Checkbox } from '~/components/ui/Checkbox';
 
 interface HistoryItemProps {
   item: ChatHistoryItem;
   onDelete?: (event: React.UIEvent) => void;
   onDuplicate?: (id: string) => void;
   exportChat: (id?: string) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (id: string) => void;
 }
 
-export function HistoryItem({ item, onDelete, onDuplicate, exportChat }: HistoryItemProps) {
+export function HistoryItem({
+  item,
+  onDelete,
+  onDuplicate,
+  exportChat,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelection,
+}: HistoryItemProps) {
   const { id: urlId } = useParams();
   const isActiveChat = urlId === item.urlId;
 
@@ -31,6 +43,17 @@ export function HistoryItem({ item, onDelete, onDuplicate, exportChat }: History
         { 'text-gray-900 dark:text-white bg-gray-50/80 dark:bg-gray-800/30': isActiveChat },
       )}
     >
+      {selectionMode && (
+        <div className="flex items-center mr-2" onClick={(e) => e.preventDefault()}>
+          <Checkbox
+            id={`select-${item.id}`}
+            checked={isSelected}
+            onCheckedChange={() => onToggleSelection?.(item.id)}
+            className="h-4 w-4"
+          />
+        </div>
+      )}
+
       {editing ? (
         <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2">
           <input
@@ -55,8 +78,7 @@ export function HistoryItem({ item, onDelete, onDuplicate, exportChat }: History
           </WithTooltip>
           <div
             className={classNames(
-              'absolute right-0 top-0 bottom-0 flex items-center bg-white dark:bg-gray-950 group-hover:bg-gray-50/80 dark:group-hover:bg-gray-800/30 px-2',
-              { 'bg-gray-50/80 dark:bg-gray-800/30': isActiveChat },
+              'absolute right-0 top-0 bottom-0 flex items-center bg-transparent px-2 transition-colors',
             )}
           >
             <div className="flex items-center gap-2.5 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -87,7 +109,7 @@ export function HistoryItem({ item, onDelete, onDuplicate, exportChat }: History
                 <ChatActionButton
                   toolTipContent="Delete"
                   icon="i-ph:trash h-4 w-4"
-                  className="hover:text-red-500"
+                  className="hover:text-red-500 dark:hover:text-red-400"
                   onClick={(event) => {
                     event.preventDefault();
                     onDelete?.(event);
