@@ -2,6 +2,10 @@ name: Electron Build and Release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for the release (e.g., v1.0.0). Leave empty if not applicable.'
+        required: false
   push:
     branches:
       - electron
@@ -83,7 +87,12 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          draft: ${{ github.event_name == 'workflow_dispatch' || github.ref_type == 'branch' }}
+          # Use the workflow_dispatch input tag if available, else use the Git ref name.
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+          # Only branch pushes remain drafts. For workflow_dispatch and tag pushes the release is published.
+          draft: ${{ github.event_name != 'workflow_dispatch' && github.ref_type == 'branch' }}
+          # For tag pushes, name the release as "Release <tagname>", otherwise "Electron Release".
+          name: ${{ (github.event_name == 'push' && github.ref_type == 'tag') && format('Release {0}', github.ref_name) || 'Electron Release' }}
           files: |
             dist/*.exe
             dist/*.dmg
