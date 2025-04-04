@@ -1,7 +1,7 @@
 import type { WebContainer } from '@webcontainer/api';
 import { path as nodePath } from '~/utils/path';
 import { atom, map, type MapStore } from 'nanostores';
-import type { ActionAlert, BoltAction, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
+import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
@@ -71,6 +71,7 @@ export class ActionRunner {
   actions: ActionsMap = map({});
   onAlert?: (alert: ActionAlert) => void;
   onSupabaseAlert?: (alert: SupabaseAlert) => void;
+  onDeployAlert?: (alert: DeployAlert) => void;
   buildOutput?: { path: string; exitCode: number; output: string };
 
   constructor(
@@ -78,11 +79,13 @@ export class ActionRunner {
     getShellTerminal: () => BoltShell,
     onAlert?: (alert: ActionAlert) => void,
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
+    onDeployAlert?: (alert: DeployAlert) => void,
   ) {
     this.#webcontainer = webcontainerPromise;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
     this.onSupabaseAlert = onSupabaseAlert;
+    this.onDeployAlert = onDeployAlert;
   }
 
   addAction(data: ActionCallbackData) {
@@ -366,6 +369,17 @@ export class ActionRunner {
       unreachable('Expected build action');
     }
 
+    // Trigger build started alert
+    this.onDeployAlert?.({
+      type: 'info',
+      title: 'Building Application',
+      description: 'Building your application...',
+      stage: 'building',
+      buildStatus: 'running',
+      deployStatus: 'pending',
+      source: 'netlify',
+    });
+
     const webcontainer = await this.#webcontainer;
 
     // Create a new terminal specifically for the build
@@ -383,11 +397,57 @@ export class ActionRunner {
     const exitCode = await buildProcess.exit;
 
     if (exitCode !== 0) {
+      // Trigger build failed alert
+      this.onDeployAlert?.({
+        type: 'error',
+        title: 'Build Failed',
+        description: 'Your application build failed',
+        content: output || 'No build output available',
+        stage: 'building',
+        buildStatus: 'failed',
+        deployStatus: 'pending',
+        source: 'netlify',
+      });
+
       throw new ActionCommandError('Build Failed', output || 'No Output Available');
     }
 
-    // Get the build output directory path
-    const buildDir = nodePath.join(webcontainer.workdir, 'dist');
+    // Trigger build success alert
+    this.onDeployAlert?.({
+      type: 'success',
+      title: 'Build Completed',
+      description: 'Your application was built successfully',
+      stage: 'deploying',
+      buildStatus: 'complete',
+      deployStatus: 'running',
+      source: 'netlify',
+    });
+
+    // Check for common build directories
+    const commonBuildDirs = ['dist', 'build', 'out', 'output', '.next', 'public'];
+
+    let buildDir = '';
+
+    // Try to find the first existing build directory
+    for (const dir of commonBuildDirs) {
+      const dirPath = nodePath.join(webcontainer.workdir, dir);
+
+      try {
+        await webcontainer.fs.readdir(dirPath);
+        buildDir = dirPath;
+        logger.debug(`Found build directory: ${buildDir}`);
+        break;
+      } catch (error) {
+        // Directory doesn't exist, try the next one
+        logger.debug(`Build directory ${dir} not found, trying next option. ${error}`);
+      }
+    }
+
+    // If no build directory was found, use the default (dist)
+    if (!buildDir) {
+      buildDir = nodePath.join(webcontainer.workdir, 'dist');
+      logger.debug(`No build directory found, defaulting to: ${buildDir}`);
+    }
 
     return {
       path: buildDir,
@@ -440,5 +500,56 @@ export class ActionRunner {
       default:
         throw new Error(`Unknown operation: ${operation}`);
     }
+  }
+
+  // Add this method declaration to the class
+  handleDeployAction(
+    stage: 'building' | 'deploying' | 'complete',
+    status: ActionStatus,
+    details?: {
+      url?: string;
+      error?: string;
+      source?: 'netlify' | 'vercel' | 'github';
+    },
+  ): void {
+    if (!this.onDeployAlert) {
+      logger.debug('No deploy alert handler registered');
+      return;
+    }
+
+    const alertType = status === 'failed' ? 'error' : status === 'complete' ? 'success' : 'info';
+
+    const title =
+      stage === 'building'
+        ? 'Building Application'
+        : stage === 'deploying'
+          ? 'Deploying Application'
+          : 'Deployment Complete';
+
+    const description =
+      status === 'failed'
+        ? `${stage === 'building' ? 'Build' : 'Deployment'} failed`
+        : status === 'running'
+          ? `${stage === 'building' ? 'Building' : 'Deploying'} your application...`
+          : status === 'complete'
+            ? `${stage === 'building' ? 'Build' : 'Deployment'} completed successfully`
+            : `Preparing to ${stage === 'building' ? 'build' : 'deploy'} your application`;
+
+    const buildStatus =
+      stage === 'building' ? status : stage === 'deploying' || stage === 'complete' ? 'complete' : 'pending';
+
+    const deployStatus = stage === 'building' ? 'pending' : status;
+
+    this.onDeployAlert({
+      type: alertType,
+      title,
+      description,
+      content: details?.error || '',
+      url: details?.url,
+      stage,
+      buildStatus: buildStatus as any,
+      deployStatus: deployStatus as any,
+      source: details?.source || 'netlify',
+    });
   }
 }

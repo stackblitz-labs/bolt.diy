@@ -29,7 +29,8 @@ import type { ProviderInfo } from '~/types/model';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { toast } from 'react-toastify';
 import StarterTemplates from './StarterTemplates';
-import type { ActionAlert, SupabaseAlert } from '~/types/actions';
+import type { ActionAlert, SupabaseAlert, DeployAlert } from '~/types/actions';
+import DeployChatAlert from '~/components/deploy/DeployAlert';
 import ChatAlert from './ChatAlert';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import ProgressCompilation from './ProgressCompilation';
@@ -73,6 +74,8 @@ interface BaseChatProps {
   clearAlert?: () => void;
   supabaseAlert?: SupabaseAlert;
   clearSupabaseAlert?: () => void;
+  deployAlert?: DeployAlert;
+  clearDeployAlert?: () => void;
   data?: JSONValue[] | undefined;
   actionRunner?: ActionRunner;
 }
@@ -109,6 +112,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       messages,
       actionAlert,
       clearAlert,
+      deployAlert,
+      clearDeployAlert,
       supabaseAlert,
       clearSupabaseAlert,
       data,
@@ -349,6 +354,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   ) : null;
                 }}
               </ClientOnly>
+              {deployAlert && (
+                <DeployChatAlert
+                  alert={deployAlert}
+                  clearAlert={() => clearDeployAlert?.()}
+                  postMessage={(message: string | undefined) => {
+                    sendMessage?.({} as any, message);
+                    clearSupabaseAlert?.();
+                  }}
+                />
+              )}
               {supabaseAlert && (
                 <SupabaseChatAlert
                   alert={supabaseAlert}

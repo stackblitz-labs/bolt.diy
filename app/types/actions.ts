@@ -50,6 +50,18 @@ export interface SupabaseAlert {
   source?: 'supabase';
 }
 
+export interface DeployAlert {
+  type: 'success' | 'error' | 'info';
+  title: string;
+  description: string;
+  content?: string;
+  url?: string;
+  stage?: 'building' | 'deploying' | 'complete';
+  buildStatus?: 'pending' | 'running' | 'complete' | 'failed';
+  deployStatus?: 'pending' | 'running' | 'complete' | 'failed';
+  source?: 'vercel' | 'netlify' | 'github';
+}
+
 export interface FileHistory {
   originalContent: string;
   lastModified: number;
