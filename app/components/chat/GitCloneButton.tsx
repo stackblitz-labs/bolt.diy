@@ -70,7 +70,7 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
           // Skip binary files
           if (
             content instanceof Uint8Array &&
-            !filePath.match(/\.(txt|md|astro|mjs|js|jsx|ts|tsx|json|html|css|scss|less|yml|yaml|xml|svg)$/i)
+            !filePath.match(/\.(txt|md|astro|mjs|js|jsx|ts|tsx|json|html|css|scss|less|yml|yaml|xml|svg|vue|svelte)$/i)
           ) {
             skippedFiles.push(filePath);
             continue;
