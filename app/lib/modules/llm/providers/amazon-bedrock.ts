@@ -21,16 +21,31 @@ export default class AmazonBedrockProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'anthropic.claude-3-7-sonnet-20250219-v1:0',
+      label: 'Claude 3.7 Sonnet (Bedrock)',
+      provider: 'AmazonBedrock',
+      maxTokenAllowed: 200000,
+      features: {
+        reasoning: true,
+      },
+    },
+    {
       name: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
       label: 'Claude 3.5 Sonnet v2 (Bedrock)',
       provider: 'AmazonBedrock',
       maxTokenAllowed: 200000,
+      features: {
+        reasoning: true,
+      },
     },
     {
       name: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
       label: 'Claude 3.5 Sonnet (Bedrock)',
       provider: 'AmazonBedrock',
       maxTokenAllowed: 4096,
+      features: {
+        reasoning: true,
+      },
     },
     {
       name: 'anthropic.claude-3-sonnet-20240229-v1:0',
@@ -61,6 +76,9 @@ export default class AmazonBedrockProvider extends BaseProvider {
       label: 'Mistral Large 24.02 (Bedrock)',
       provider: 'AmazonBedrock',
       maxTokenAllowed: 8192,
+      features: {
+        reasoning: true,
+      },
     },
   ];
 
@@ -112,7 +130,19 @@ export default class AmazonBedrockProvider extends BaseProvider {
     }
 
     const config = this._parseAndValidateConfig(apiKey);
-    const bedrock = createAmazonBedrock(config);
+
+    // Configure model-specific options
+    const bedrockOptions: any = {};
+
+    // Add budget tokens for reasoning models
+    if (model.includes('claude-3-7') || model.includes('claude-3-5')) {
+      bedrockOptions.thinking = { type: 'enabled', budgetTokens: 8000 };
+    }
+
+    const bedrock = createAmazonBedrock({
+      ...config,
+      ...bedrockOptions,
+    });
 
     return bedrock(model);
   }

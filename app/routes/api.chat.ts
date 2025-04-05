@@ -2,7 +2,12 @@ import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { createDataStream, generateId } from 'ai';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
-import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
+import {
+  streamText,
+  type Messages,
+  type StreamingOptions,
+  sanitizeReasoningOutput,
+} from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
@@ -190,13 +195,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const options: StreamingOptions = {
           supabaseConnection: supabase,
           toolChoice: 'none',
-          onFinish: async ({ text: content, finishReason, usage }) => {
+          smoothStreaming: true,
+          onFinish: async ({ text: content, finishReason, usage, reasoning }) => {
             logger.debug('usage', JSON.stringify(usage));
 
             if (usage) {
               cumulativeUsage.completionTokens += usage.completionTokens || 0;
               cumulativeUsage.promptTokens += usage.promptTokens || 0;
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
+            }
+
+            // If reasoning is available, sanitize it before writing to dataStream
+            if (reasoning) {
+              // Sanitize the reasoning output to prevent rendering issues
+              const sanitizedReasoning =
+                typeof sanitizeReasoningOutput === 'function' ? sanitizeReasoningOutput(reasoning) : reasoning;
+
+              dataStream.writeMessageAnnotation({
+                type: 'reasoning',
+                value: sanitizedReasoning,
+              });
             }
 
             if (finishReason !== 'length') {
@@ -255,13 +273,27 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             result.mergeIntoDataStream(dataStream);
 
             (async () => {
-              for await (const part of result.fullStream) {
-                if (part.type === 'error') {
-                  const error: any = part.error;
-                  logger.error(`${error}`);
+              // Reduce timeout to minimum needed
+              await new Promise((resolve) => setTimeout(resolve, 5));
 
-                  return;
+              try {
+                // Process stream parts in batches for more efficient handling
+                const reader = result.fullStream.getReader();
+
+                while (true) {
+                  const { done, value } = await reader.read();
+
+                  if (done) {
+                    break;
+                  }
+
+                  if (value.type === 'error') {
+                    logger.error(`Error in stream: ${value.error}`);
+                    break;
+                  }
                 }
+              } catch (error) {
+                logger.error(`Stream processing error: ${error}`);
               }
             })();
 
@@ -292,52 +324,77 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         });
 
         (async () => {
-          for await (const part of result.fullStream) {
-            if (part.type === 'error') {
-              const error: any = part.error;
-              logger.error(`${error}`);
+          // Reduce timeout to minimum needed
+          await new Promise((resolve) => setTimeout(resolve, 5));
 
-              return;
+          try {
+            // Process stream parts in batches for more efficient handling
+            const reader = result.fullStream.getReader();
+
+            while (true) {
+              const { done, value } = await reader.read();
+
+              if (done) {
+                break;
+              }
+
+              if (value.type === 'error') {
+                logger.error(`Error in stream: ${value.error}`);
+                break;
+              }
             }
+          } catch (error) {
+            logger.error(`Stream processing error: ${error}`);
           }
         })();
+
         result.mergeIntoDataStream(dataStream);
       },
       onError: (error: any) => `Custom error: ${error.message}`,
     }).pipeThrough(
       new TransformStream({
         transform: (chunk, controller) => {
+          // Cache check to avoid recreating on each chunk
           if (!lastChunk) {
             lastChunk = ' ';
           }
 
-          if (typeof chunk === 'string') {
-            if (chunk.startsWith('g') && !lastChunk.startsWith('g')) {
-              controller.enqueue(encoder.encode(`0: "<div class=\\"__boltThought__\\">"\n`));
-            }
-
-            if (lastChunk.startsWith('g') && !chunk.startsWith('g')) {
-              controller.enqueue(encoder.encode(`0: "</div>\\n"\n`));
-            }
+          // Fast path for non-string chunks
+          if (typeof chunk !== 'string') {
+            controller.enqueue(encoder.encode(JSON.stringify(chunk)));
+            return;
           }
 
+          // Handle thought annotations with minimal operations
+          const isThoughtStart = chunk.startsWith('g') && !lastChunk.startsWith('g');
+          const isThoughtEnd = lastChunk.startsWith('g') && !chunk.startsWith('g');
+
+          if (isThoughtStart) {
+            controller.enqueue(encoder.encode(`0: "<div class=\\"__boltThought__\\">"\n`));
+          }
+
+          if (isThoughtEnd) {
+            controller.enqueue(encoder.encode(`0: "</div>\\n"\n`));
+          }
+
+          // Update for next chunk comparison
           lastChunk = chunk;
 
-          let transformedChunk = chunk;
+          // Efficient chunk transformation with minimal string operations
+          if (chunk.startsWith('g')) {
+            const colonIndex = chunk.indexOf(':');
 
-          if (typeof chunk === 'string' && chunk.startsWith('g')) {
-            let content = chunk.split(':').slice(1).join(':');
+            // Fast path if colon is found
+            if (colonIndex >= 0) {
+              const content = chunk.slice(colonIndex + 1, chunk.endsWith('\n') ? chunk.length - 1 : undefined);
+              controller.enqueue(encoder.encode(`0:${content}\n`));
 
-            if (content.endsWith('\n')) {
-              content = content.slice(0, content.length - 1);
+              return;
             }
-
-            transformedChunk = `0:${content}\n`;
           }
 
-          // Convert the string stream to a byte stream
-          const str = typeof transformedChunk === 'string' ? transformedChunk : JSON.stringify(transformedChunk);
-          controller.enqueue(encoder.encode(str));
+          // Default case - direct encoding without JSON.stringify for string data
+          controller.enqueue(encoder.encode(chunk));
         },
       }),
     );

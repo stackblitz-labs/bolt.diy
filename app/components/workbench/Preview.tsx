@@ -4,6 +4,7 @@ import { IconButton } from '~/components/ui/IconButton';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
+import { FiCornerDownRight } from 'react-icons/fi';
 
 type ResizeSide = 'left' | 'right' | null;
 
@@ -14,6 +15,12 @@ interface WindowSize {
   icon: string;
   hasFrame?: boolean;
   frameType?: 'mobile' | 'tablet' | 'laptop' | 'desktop';
+}
+
+interface PreviewProps {
+  source?: string;
+  startingLine?: number;
+  onJumpToLine?: (line: number) => void;
 }
 
 const WINDOW_SIZES: WindowSize[] = [
@@ -45,7 +52,7 @@ const WINDOW_SIZES: WindowSize[] = [
   { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
 ];
 
-export const Preview = memo(() => {
+export const Preview = memo(({ source, startingLine, onJumpToLine }: PreviewProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -593,7 +600,9 @@ export const Preview = memo(() => {
      * Intentionally disabled - we want to maintain scale of 1
      * No dynamic scaling to ensure device frame matches external window exactly
      */
-    return () => {};
+    return () => {
+      // Cleanup function intentionally left empty to maintain fixed scale
+    };
   }, [isDeviceModeOn, showDeviceFrameInPreview, getDeviceScale, isLandscape, selectedWindowSize]);
 
   // Function to get the frame color based on dark mode
@@ -968,6 +977,23 @@ export const Preview = memo(() => {
           )}
         </div>
       </div>
+
+      {/* Jump to line button */}
+      {source && startingLine && startingLine > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            if (onJumpToLine) {
+              onJumpToLine(startingLine);
+            }
+          }}
+          className="absolute right-0 top-0 mr-16 mt-1 flex h-8 items-center rounded-md px-2.5 py-1 text-xs font-medium leading-4"
+          title="Jump to this line in the editor"
+        >
+          <FiCornerDownRight className="mr-1" />
+          Line {startingLine}
+        </button>
+      )}
     </div>
   );
 });

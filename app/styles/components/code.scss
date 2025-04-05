@@ -7,3 +7,27 @@
     background-color: var(--bolt-elements-messages-code-background) !important;
   }
 }
+
+/* Exact colors from the screenshot */
+.shell .line span:first-child {
+  color: #b5bd68 !important; /* npm - bright yellow-green */
+}
+
+.shell .line span:nth-child(2) {
+  color: #de935f !important; /* install/run - reddish */
+}
+
+.shell .line span:nth-child(3) {
+  color: #de935f !important; /* dev - orangish */
+}
+
+/* Fix for dropdown colors in dark mode */
+html[data-theme='dark'] select {
+  color: var(--bolt-elements-textPrimary);
+  background-color: var(--bolt-elements-prompt-background);
+}
+
+html[data-theme='dark'] select option {
+  color: var(--bolt-elements-textPrimary);
+  background-color: var(--bolt-elements-bg-depth-2);
+}

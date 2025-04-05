@@ -1,8 +1,15 @@
+import type { LanguageModelV1 } from 'ai';
 import type { IProviderSetting } from '~/types/model';
 import { BaseProvider } from './base-provider';
 import type { ModelInfo, ProviderInfo } from './types';
 import * as providers from './registry';
 import { createScopedLogger } from '~/utils/logger';
+import {
+  modelSupportsReasoning,
+  modelSupportsStructuredOutput,
+  modelSupportsImageGeneration,
+  modelSupportsCodeDiff,
+} from './middleware';
 
 const logger = createScopedLogger('LLMManager');
 export class LLMManager {
@@ -10,6 +17,7 @@ export class LLMManager {
   private _providers: Map<string, BaseProvider> = new Map();
   private _modelList: ModelInfo[] = [];
   private readonly _env: any = {};
+  private _modelInstanceCache: Map<string, { instance: LanguageModelV1; lastAccessed: number }> = new Map();
 
   private constructor(_env: Record<string, string>) {
     this._registerProvidersFromDirectory();
@@ -25,6 +33,86 @@ export class LLMManager {
   }
   get env() {
     return this._env;
+  }
+
+  clearOldModelInstances(maxAgeMs: number = 5 * 60 * 1000): void {
+    const now = Date.now();
+    const cacheSize = this._modelInstanceCache.size;
+
+    // Delete instances older than maxAgeMs
+    for (const [key, { lastAccessed }] of this._modelInstanceCache.entries()) {
+      if (now - lastAccessed > maxAgeMs) {
+        this._modelInstanceCache.delete(key);
+      }
+    }
+
+    // Log cache cleanup info
+    logger.debug(`Model cache cleaned: ${cacheSize} → ${this._modelInstanceCache.size}`);
+  }
+
+  getModelInstance(options: {
+    model: string;
+    provider: string;
+    serverEnv?: Env;
+    apiKeys?: Record<string, string>;
+    providerSettings?: Record<string, IProviderSetting>;
+  }): LanguageModelV1 {
+    const provider = this.getProvider(options.provider);
+
+    if (!provider) {
+      throw new Error(`Provider "${options.provider}" not found`);
+    }
+
+    // Create a cache key
+    const cacheKey = `${options.provider}:${options.model}`;
+
+    // Check cache first
+    const cached = this._modelInstanceCache.get(cacheKey);
+
+    if (cached) {
+      // Update access time and return cached instance
+      cached.lastAccessed = Date.now();
+      return cached.instance;
+    }
+
+    // Use the middleware-enabled model getter
+    const modelInstance = provider.getModelWithMiddleware({
+      model: options.model,
+      serverEnv: options.serverEnv,
+      apiKeys: options.apiKeys,
+      providerSettings: options.providerSettings,
+    });
+
+    // Cache the instance
+    this._modelInstanceCache.set(cacheKey, {
+      instance: modelInstance,
+
+      lastAccessed: Date.now(),
+    });
+
+    // Run cleanup if cache gets too large
+    if (this._modelInstanceCache.size > 20) {
+      this.clearOldModelInstances();
+    }
+
+    return modelInstance;
+  }
+
+  // Enhance static models with features
+  enhanceStaticModels() {
+    // Update all static models to include features based on detection
+    for (const provider of this._providers.values()) {
+      provider.staticModels = provider.staticModels.map((model) => ({
+        ...model,
+        features: {
+          ...model.features,
+          reasoning: model.features?.reasoning || modelSupportsReasoning(model.name),
+          structuredOutput: model.features?.structuredOutput || modelSupportsStructuredOutput(model.name),
+          imageGeneration: model.features?.imageGeneration || modelSupportsImageGeneration(model.name),
+          codeDiff: model.features?.codeDiff || modelSupportsCodeDiff(model.name),
+        },
+      }));
+    }
   }
 
   private async _registerProvidersFromDirectory() {
@@ -46,6 +134,9 @@ export class LLMManager {
           }
         }
       }
+
+      // Enhance static models with features
+      this.enhanceStaticModels();
     } catch (error) {
       logger.error('Error registering providers:', error);
     }

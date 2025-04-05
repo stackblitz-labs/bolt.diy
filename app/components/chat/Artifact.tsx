@@ -8,9 +8,10 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { WORK_DIR } from '~/utils/constants';
+import { createScopedLogger } from '~/utils/logger';
 
 const highlighterOptions = {
-  langs: ['shell'],
+  langs: ['shell', 'javascript', 'typescript', 'json', 'html', 'css', 'python', 'go', 'rust'],
   themes: ['light-plus', 'dark-plus'],
 };
 
@@ -134,14 +135,13 @@ interface ShellCodeBlockProps {
 }
 
 function ShellCodeBlock({ classsName, code }: ShellCodeBlockProps) {
+  const theme = document.documentElement.classList.contains('dark') ? 'dark-plus' : 'light-plus';
+
   return (
     <div
       className={classNames('text-xs', classsName)}
       dangerouslySetInnerHTML={{
-        __html: shellHighlighter.codeToHtml(code, {
-          lang: 'shell',
-          theme: 'dark-plus',
-        }),
+        __html: safeShellHighlight(code, theme),
       }}
     ></div>
   );
@@ -264,4 +264,94 @@ function getIconColor(status: ActionState['status']) {
       return undefined;
     }
   }
+}
+
+// Add these safety constants and utilities for Shiki
+const artifactLogger = createScopedLogger('Artifact');
+const MAX_SHELL_LENGTH = 50000; // Maximum shell output length to highlight
+const MAX_LINE_LENGTH = 5000; // Maximum line length before truncating
+
+/**
+ * Safely highlight shell code with error handling
+ * @param content Shell content to highlight
+ * @param theme Theme to use for highlighting
+ * @returns HTML string with highlighted shell content or safe fallback
+ */
+function safeShellHighlight(content: string, theme: string): string {
+  try {
+    if (!content || content.length > MAX_SHELL_LENGTH) {
+      artifactLogger.warn(`Shell content too large (${content?.length || 0} chars). Using plain text.`);
+      return escapeHtml(content);
+    }
+
+    // Check for overly long lines that could cause memory issues
+    if (content.includes('\n')) {
+      const lines = content.split('\n');
+      const hasLongLines = lines.some((line) => line.length > MAX_LINE_LENGTH);
+
+      if (hasLongLines) {
+        artifactLogger.warn('Shell content has very long lines. Truncating for safety.');
+        content = lines
+          .map((line) =>
+            line.length > MAX_LINE_LENGTH ? `${line.substring(0, MAX_LINE_LENGTH)}... [truncated]` : line,
+          )
+          .join('\n');
+      }
+    }
+
+    // Detect language based on content
+    let lang = 'shell';
+
+    // Simple language detection based on file extensions or content patterns
+    if (content.includes('npm ') || content.includes('package.json') || content.includes('node')) {
+      // Keep as shell
+    } else if (
+      content.includes('function') ||
+      content.includes('const ') ||
+      content.includes('let ') ||
+      content.includes('var ')
+    ) {
+      if (content.includes('.tsx') || content.includes('React') || content.includes('<div>')) {
+        lang = 'typescript';
+      } else if (content.includes('.ts')) {
+        lang = 'typescript';
+      } else {
+        lang = 'javascript';
+      }
+    } else if (
+      content.includes('{') &&
+      content.includes('}') &&
+      content.includes(':') &&
+      !content.includes('function')
+    ) {
+      lang = 'json';
+    } else if (content.includes('<html>') || content.includes('<!DOCTYPE')) {
+      lang = 'html';
+    } else if (content.includes('.css') || content.includes('@media') || content.includes(':root')) {
+      lang = 'css';
+    } else if (content.includes('def ') || (content.includes('import ') && content.includes('print('))) {
+      lang = 'python';
+    }
+
+    // Apply shell highlighting with error handling
+    const html = shellHighlighter.codeToHtml(content, { lang, theme });
+
+    // Add a 'shell' class to the shiki container for better styling
+    return html.replace('<pre class="shiki', '<pre class="shiki shell');
+  } catch (error) {
+    artifactLogger.error('Shell highlighting error:', error);
+    return `<pre><code>${escapeHtml(content)}</code></pre>`;
+  }
+}
+
+/**
+ * Escape HTML special characters for safe rendering
+ */
+function escapeHtml(text: string): string {
+  return (text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }

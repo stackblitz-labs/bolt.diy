@@ -5,7 +5,7 @@ import { logStore } from '~/lib/stores/logs';
 import { toast } from 'react-toastify';
 import { Dialog, DialogRoot, DialogTitle, DialogDescription, DialogButton } from '~/components/ui/Dialog';
 import { classNames } from '~/utils/classNames';
-import { Markdown } from '~/components/chat/Markdown';
+import Markdown from '~/components/chat/Markdown';
 
 interface UpdateProgress {
   stage: 'fetch' | 'pull' | 'install' | 'build' | 'complete';

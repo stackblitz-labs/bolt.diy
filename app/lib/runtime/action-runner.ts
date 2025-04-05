@@ -6,8 +6,91 @@ import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import type { BoltShell } from '~/utils/shell';
+import { parseErrorMessage } from '~/utils/stacktrace';
 
 const logger = createScopedLogger('ActionRunner');
+
+// Common error patterns in WebContainer actions
+const ACTION_ERROR_PATTERNS = {
+  MISSING_DEPENDENCY: {
+    pattern: /Cannot find module '([^']+)'/,
+    type: 'Missing Dependency',
+    description: (module: string) => `Missing module: ${module}`,
+    solution: (module: string) => `Run "npm install ${module}" in the terminal`,
+  },
+  PORT_IN_USE: {
+    pattern: /EADDRINUSE/,
+    type: 'Port Conflict',
+    description: () => 'Port already in use',
+    solution: () => 'Try changing the port in your application or stop other running servers',
+  },
+  PERMISSION_DENIED: {
+    pattern: /EACCES/,
+    type: 'Permission Denied',
+    description: () => 'Permission denied for operation',
+    solution: () => 'Make sure the file/directory has the correct permissions',
+  },
+  SYNTAX_ERROR: {
+    pattern: /SyntaxError: (.*)/,
+    type: 'Syntax Error',
+    description: (details: string) => `Syntax error: ${details}`,
+    solution: () => 'Check your code for syntax errors like missing brackets, semicolons, etc.',
+  },
+};
+
+// Helper function to analyze error message and provide better information
+function analyzeError(error: any): {
+  type: string;
+  description: string;
+  content: string;
+  solution?: string;
+} {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorStack = error instanceof Error ? error.stack : '';
+
+  // Default values
+  let type = 'Error';
+  let description = errorMessage;
+  let content = errorStack || errorMessage;
+  let solution: string | undefined = undefined;
+
+  // Try to parse the error message
+  const parsedError = parseErrorMessage(errorMessage);
+
+  if (parsedError.type !== 'Error') {
+    type = parsedError.type;
+    description = parsedError.details;
+  }
+
+  // Check for known error patterns
+  for (const [, pattern] of Object.entries(ACTION_ERROR_PATTERNS)) {
+    const match = errorMessage.match(pattern.pattern);
+
+    if (match) {
+      type = pattern.type;
+      description = pattern.description(match[1] || '');
+      solution = pattern.solution(match[1] || '');
+      break;
+    }
+  }
+
+  // If it's an ActionCommandError, use its header and output
+  if (error instanceof ActionCommandError) {
+    type = 'Command Error';
+    description = error.header;
+    content = error.output;
+  }
+
+  // Create the full error content
+  let fullContent = `Error type: ${type}\n\n`;
+  fullContent += content;
+
+  if (solution) {
+    fullContent += `\n\nSuggestion: ${solution}`;
+  }
+
+  return { type, description, content: fullContent, solution };
+}
 
 export type ActionStatus = 'pending' | 'running' | 'complete' | 'aborted' | 'failed';
 
@@ -39,25 +122,28 @@ class ActionCommandError extends Error {
   readonly _header: string;
 
   constructor(message: string, output: string) {
-    // Create a formatted message that includes both the error message and output
-    const formattedMessage = `Failed To Execute Shell Command: ${message}\n\nOutput:\n${output}`;
-    super(formattedMessage);
-
-    // Set the output separately so it can be accessed programmatically
-    this._header = message;
+    super(message);
     this._output = output;
+    this._header = message;
 
-    // Maintain proper prototype chain
+    // Reset prototypes to enable instanceof
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ActionCommandError);
+    } else {
+      this.stack = new Error(message).stack;
+    }
+
+    /*
+     * Extending Error in typescript requires this workaround to maintain prototype chain
+     * If this is not maintained, checking instance will not work.
+     */
     Object.setPrototypeOf(this, ActionCommandError.prototype);
-
-    // Set the name of the error for better debugging
-    this.name = 'ActionCommandError';
   }
 
-  // Optional: Add a method to get just the terminal output
   get output() {
     return this._output;
   }
+
   get header() {
     return this._header;
   }
@@ -170,6 +256,17 @@ export class ActionRunner {
               error: error instanceof Error ? error.message : 'Supabase action failed',
             });
 
+            // Enhanced error reporting for Supabase actions
+            const { type, description, content } = analyzeError(error);
+
+            this.onAlert?.({
+              type: 'error',
+              title: `Supabase Error: ${type}`,
+              description,
+              content,
+              source: 'terminal',
+            });
+
             // Return early without re-throwing
             return;
           }
@@ -195,15 +292,15 @@ export class ActionRunner {
               this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
               logger.error(`[${action.type}]:Action failed\n\n`, err);
 
-              if (!(err instanceof ActionCommandError)) {
-                return;
-              }
+              // Enhanced error handling
+              const { type, description, content } = analyzeError(err);
 
               this.onAlert?.({
                 type: 'error',
-                title: 'Dev Server Failed',
-                description: err.header,
-                content: err.output,
+                title: `Dev Server Error: ${type}`,
+                description,
+                content,
+                source: 'terminal',
               });
             });
 
@@ -228,15 +325,15 @@ export class ActionRunner {
       this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
       logger.error(`[${action.type}]:Action failed\n\n`, error);
 
-      if (!(error instanceof ActionCommandError)) {
-        return;
-      }
+      // Enhanced error analysis
+      const { type, description, content } = analyzeError(error);
 
       this.onAlert?.({
         type: 'error',
-        title: 'Dev Server Failed',
-        description: error.header,
-        content: error.output,
+        title: `${action.type.charAt(0).toUpperCase() + action.type.slice(1)} Error: ${type}`,
+        description,
+        content,
+        source: 'terminal',
       });
 
       // re-throw the error to be caught in the promise chain
@@ -314,7 +411,9 @@ export class ActionRunner {
         await webcontainer.fs.mkdir(folder, { recursive: true });
         logger.debug('Created folder', folder);
       } catch (error) {
+        // Enhanced error logging for folder creation
         logger.error('Failed to create folder\n\n', error);
+        throw new Error(`Failed to create folder ${folder}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
@@ -322,7 +421,11 @@ export class ActionRunner {
       await webcontainer.fs.writeFile(relativePath, action.content);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
+      // Enhanced error logging for file writing
       logger.error('Failed to write file\n\n', error);
+      throw new Error(
+        `Failed to write file ${relativePath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 

@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { Markdown } from './Markdown';
+import { memo, useState, useMemo } from 'react';
+import Markdown from './Markdown';
 import type { JSONValue } from 'ai';
 import Popover from '~/components/ui/Popover';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -35,9 +35,13 @@ function normalizedFilePath(path: string) {
 }
 
 export const AssistantMessage = memo(({ content, annotations }: AssistantMessageProps) => {
+  const [showReasoning, setShowReasoning] = useState(false);
   const filteredAnnotations = (annotations?.filter(
     (annotation: JSONValue) => annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
   ) || []) as { type: string; value: any } & { [key: string]: any }[];
+
+  // Use memoization to prevent unnecessary re-renders during streaming
+  const memoizedContent = useMemo(() => content, [content]);
 
   let chatSummary: string | undefined = undefined;
 
@@ -51,6 +55,10 @@ export const AssistantMessage = memo(({ content, annotations }: AssistantMessage
     codeContext = filteredAnnotations.find((annotation) => annotation.type === 'codeContext')?.files;
   }
 
+  const reasoning: string | undefined = filteredAnnotations.find(
+    (annotation) => annotation.type === 'reasoning',
+  )?.value;
+
   const usage: {
     completionTokens: number;
     promptTokens: number;
@@ -60,7 +68,7 @@ export const AssistantMessage = memo(({ content, annotations }: AssistantMessage
   return (
     <div className="overflow-hidden w-full">
       <>
-        <div className=" flex gap-2 items-center text-sm text-bolt-elements-textSecondary mb-2">
+        <div className="flex gap-2 items-center text-sm text-bolt-elements-textSecondary mb-2">
           {(codeContext || chatSummary) && (
             <Popover side="right" align="start" trigger={<div className="i-ph:info" />}>
               {chatSummary && (
@@ -100,6 +108,15 @@ export const AssistantMessage = memo(({ content, annotations }: AssistantMessage
               <div className="context"></div>
             </Popover>
           )}
+          {reasoning && (
+            <button
+              className="flex items-center gap-1 text-bolt-elements-item-contentAccent"
+              onClick={() => setShowReasoning(!showReasoning)}
+            >
+              <span className="i-ph:brain" />
+              <span>{showReasoning ? 'Hide reasoning' : 'Show reasoning'}</span>
+            </button>
+          )}
           {usage && (
             <div>
               Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
@@ -107,7 +124,13 @@ export const AssistantMessage = memo(({ content, annotations }: AssistantMessage
           )}
         </div>
       </>
-      <Markdown html>{content}</Markdown>
+      {reasoning && showReasoning && (
+        <div className="mb-4 p-3 bg-bolt-elements-artifacts-inlineCode-background rounded-md text-sm">
+          <div className="text-bolt-elements-item-contentAccent font-medium mb-2">AI Reasoning:</div>
+          <Markdown>{reasoning}</Markdown>
+        </div>
+      )}
+      <Markdown html>{memoizedContent}</Markdown>
     </div>
   );
 });

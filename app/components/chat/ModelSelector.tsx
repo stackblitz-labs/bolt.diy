@@ -184,7 +184,11 @@ export const ModelSelector = ({
         className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
       >
         {providerList.map((provider: ProviderInfo) => (
-          <option key={provider.name} value={provider.name}>
+          <option
+            key={provider.name}
+            value={provider.name}
+            className="text-bolt-elements-textPrimary bg-bolt-elements-background-depth-2"
+          >
             {provider.name}
           </option>
         ))}
@@ -213,7 +217,14 @@ export const ModelSelector = ({
           tabIndex={0}
         >
           <div className="flex items-center justify-between">
-            <div className="truncate">{modelList.find((m) => m.name === model)?.label || 'Select model'}</div>
+            <div className="truncate flex items-center gap-2">
+              <span>{modelList.find((m) => m.name === model)?.label || 'Select model'}</span>
+              {modelList.find((m) => m.name === model)?.features?.reasoning && (
+                <span className="px-1.5 py-0.5 text-xs rounded-full bg-purple-500/10 text-purple-500 font-medium whitespace-nowrap">
+                  Reasoning
+                </span>
+              )}
+            </div>
             <div
               className={classNames(
                 'i-ph:caret-down w-4 h-4 text-bolt-elements-textSecondary opacity-75',
@@ -275,31 +286,33 @@ export const ModelSelector = ({
               ) : filteredModels.length === 0 ? (
                 <div className="px-3 py-2 text-sm text-bolt-elements-textTertiary">No models found</div>
               ) : (
-                filteredModels.map((modelOption, index) => (
+                filteredModels.map((model, index) => (
                   <div
+                    key={model.name}
                     ref={(el) => (optionsRef.current[index] = el)}
-                    key={index}
-                    role="option"
-                    aria-selected={model === modelOption.name}
-                    className={classNames(
-                      'px-3 py-2 text-sm cursor-pointer',
-                      'hover:bg-bolt-elements-background-depth-3',
-                      'text-bolt-elements-textPrimary',
-                      'outline-none',
-                      model === modelOption.name || focusedIndex === index
-                        ? 'bg-bolt-elements-background-depth-2'
-                        : undefined,
-                      focusedIndex === index ? 'ring-1 ring-inset ring-bolt-elements-focus' : undefined,
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setModel?.(modelOption.name);
+                    onClick={() => {
+                      setModel?.(model.name);
                       setIsModelDropdownOpen(false);
                       setModelSearchQuery('');
                     }}
-                    tabIndex={focusedIndex === index ? 0 : -1}
+                    onMouseEnter={() => setFocusedIndex(index)}
+                    className={classNames(
+                      'cursor-pointer px-3 py-2 text-sm rounded-md mx-1',
+                      focusedIndex === index
+                        ? 'bg-bolt-elements-focus/20 text-bolt-elements-textPrimary'
+                        : 'hover:bg-bolt-elements-hover text-bolt-elements-textPrimary',
+                    )}
+                    role="option"
+                    aria-selected={focusedIndex === index}
                   >
-                    {modelOption.label}
+                    <div className="flex items-center gap-2">
+                      <div className="truncate">{model.label}</div>
+                      {model.features?.reasoning && (
+                        <span className="px-1.5 py-0.5 text-xs rounded-full bg-purple-500/10 text-purple-500 font-medium whitespace-nowrap">
+                          Reasoning
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))
               )}

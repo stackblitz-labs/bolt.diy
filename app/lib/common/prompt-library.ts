@@ -1,5 +1,6 @@
 import { getSystemPrompt } from './prompts/prompts';
 import optimized from './prompts/optimized';
+import reasoning from './prompts/reasoning';
 
 export interface PromptOptions {
   cwd: string;
@@ -33,6 +34,11 @@ export class PromptLibrary {
       label: 'Optimized Prompt (experimental)',
       description: 'an Experimental version of the prompt for lower token usage',
       get: (options) => optimized(options),
+    },
+    reasoning: {
+      label: 'AI SDK 4.2 Reasoning',
+      description: 'Enhanced prompt that leverages AI SDK 4.2 reasoning capabilities',
+      get: (options) => reasoning(options),
     },
   };
   static getList() {

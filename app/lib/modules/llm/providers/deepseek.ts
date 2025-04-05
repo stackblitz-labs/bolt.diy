@@ -26,11 +26,11 @@ export default class DeepseekProvider extends BaseProvider {
   }): LanguageModelV1 {
     const { model, serverEnv, apiKeys, providerSettings } = options;
 
-    const { apiKey } = this.getProviderBaseUrlAndKey({
+    const { baseUrl, apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
       providerSettings: providerSettings?.[this.name],
       serverEnv: serverEnv as any,
-      defaultBaseUrlKey: '',
+      defaultBaseUrlKey: 'DEEPSEEK_BASE_URL',
       defaultApiTokenKey: 'DEEPSEEK_API_KEY',
     });
 
@@ -38,8 +38,26 @@ export default class DeepseekProvider extends BaseProvider {
       throw new Error(`Missing API key for ${this.name} provider`);
     }
 
+    // Create a fetch function that implements timeout
+    const timeoutMs = providerSettings?.[this.name]?.timeout || 60000;
+    const fetchWithTimeout: typeof fetch = async (url, options) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        return await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(id);
+      }
+    };
+
     const deepseek = createDeepSeek({
       apiKey,
+      baseURL: baseUrl,
+      fetch: fetchWithTimeout as any,
     });
 
     return deepseek(model, {

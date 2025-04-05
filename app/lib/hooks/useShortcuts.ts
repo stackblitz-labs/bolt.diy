@@ -29,31 +29,40 @@ export function useShortcuts(): void {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      // Don't trigger shortcuts when typing in input fields
-      if (
-        document.activeElement &&
-        INPUT_ELEMENTS.includes(document.activeElement.tagName.toLowerCase()) &&
-        !event.altKey && // Allow Alt combinations even in input fields
-        !event.metaKey && // Allow Cmd/Win combinations even in input fields
-        !event.ctrlKey // Allow Ctrl combinations even in input fields
-      ) {
+      try {
+        // Don't trigger shortcuts when typing in input fields
+        const tagName = document.activeElement?.tagName?.toLowerCase();
+
+        if (
+          document.activeElement &&
+          tagName &&
+          INPUT_ELEMENTS.includes(tagName) &&
+          !event.altKey && // Allow Alt combinations even in input fields
+          !event.metaKey && // Allow Cmd/Win combinations even in input fields
+          !event.ctrlKey // Allow Ctrl combinations even in input fields
+        ) {
+          return;
+        }
+
+        // Debug logging in development only
+        if (import.meta.env.DEV) {
+          console.log('Key pressed:', {
+            key: event.key,
+            code: event.code,
+            ctrlKey: event.ctrlKey,
+            shiftKey: event.shiftKey,
+            altKey: event.altKey,
+            metaKey: event.metaKey,
+            target: event.target,
+          });
+        }
+      } catch (error) {
+        console.error('Error in shortcut handler:', error);
         return;
       }
 
-      // Debug logging in development only
-      if (import.meta.env.DEV) {
-        console.log('Key pressed:', {
-          key: event.key,
-          code: event.code,
-          ctrlKey: event.ctrlKey,
-          shiftKey: event.shiftKey,
-          altKey: event.altKey,
-          metaKey: event.metaKey,
-          target: event.target,
-        });
-      }
-
       // Handle shortcuts
+
       for (const [name, shortcut] of Object.entries(shortcuts)) {
         const keyMatches =
           shortcut.key.toLowerCase() === event.key.toLowerCase() || `Key${shortcut.key.toUpperCase()}` === event.code;

@@ -60,19 +60,37 @@ export const allowedHTMLElements = [
 // Add custom rehype plugin
 function remarkThinkRawContent() {
   return (tree: any) => {
-    visit(tree, (node: any) => {
-      if (node.type === 'html' && node.value && node.value.startsWith('<think>')) {
-        const cleanedContent = node.value.slice(7);
-        node.value = `<div class="__boltThought__">${cleanedContent}`;
+    try {
+      visit(tree, (node: any) => {
+        // Skip if node is undefined or doesn't have required properties
+        if (!node || typeof node !== 'object') {
+          return SKIP;
+        }
 
-        return;
-      }
+        // Process opening think tag
+        if (node.type === 'html' && typeof node.value === 'string' && node.value.startsWith('<think>')) {
+          const cleanedContent = node.value.slice(7);
+          node.value = `<div class="__boltThought__">${cleanedContent}`;
 
-      if (node.type === 'html' && node.value && node.value.startsWith('</think>')) {
-        const cleanedContent = node.value.slice(8);
-        node.value = `</div>${cleanedContent}`;
-      }
-    });
+          return SKIP;
+        }
+
+        // Process closing think tag
+        if (node.type === 'html' && typeof node.value === 'string' && node.value.startsWith('</think>')) {
+          const cleanedContent = node.value.slice(8);
+          node.value = `</div>${cleanedContent}`;
+
+          return SKIP;
+        }
+
+        // Continue with other nodes
+        return SKIP;
+      });
+    } catch (error) {
+      console.error('Error in remarkThinkRawContent:', error);
+
+      // Continue processing even if there's an error
+    }
   };
 }
 

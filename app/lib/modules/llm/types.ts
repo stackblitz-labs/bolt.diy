@@ -1,33 +1,32 @@
-import type { LanguageModelV1 } from 'ai';
-import type { IProviderSetting } from '~/types/model';
-
 export interface ModelInfo {
   name: string;
   label: string;
   provider: string;
   maxTokenAllowed: number;
+  features?: {
+    reasoning?: boolean;
+    imageGeneration?: boolean;
+    structuredOutput?: boolean;
+    codeDiff?: boolean;
+  };
 }
 
 export interface ProviderInfo {
   name: string;
   staticModels: ModelInfo[];
-  getDynamicModels?: (
-    apiKeys?: Record<string, string>,
-    settings?: IProviderSetting,
-    serverEnv?: Record<string, string>,
-  ) => Promise<ModelInfo[]>;
-  getModelInstance: (options: {
-    model: string;
-    serverEnv: Env;
-    apiKeys?: Record<string, string>;
-    providerSettings?: Record<string, IProviderSetting>;
-  }) => LanguageModelV1;
+  config: ProviderConfig;
   getApiKeyLink?: string;
   labelForGetApiKey?: string;
   icon?: string;
+  getDynamicModels?(
+    apiKeys?: Record<string, string>,
+    settings?: Record<string, any>,
+    serverEnv?: Record<string, any>,
+  ): Promise<ModelInfo[]>;
 }
+
 export interface ProviderConfig {
   baseUrlKey?: string;
-  baseUrl?: string;
   apiTokenKey?: string;
+  baseUrl?: string;
 }

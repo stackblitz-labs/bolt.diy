@@ -178,18 +178,31 @@ async function getUrlIds(db: IDBDatabase): Promise<string[]> {
   });
 }
 
-export async function forkChat(db: IDBDatabase, chatId: string, messageId: string): Promise<string> {
+export async function forkChat(db: IDBDatabase, chatId: string, messageIdOrIndex: string | number): Promise<string> {
   const chat = await getMessages(db, chatId);
 
   if (!chat) {
     throw new Error('Chat not found');
   }
 
-  // Find the index of the message to fork at
-  const messageIndex = chat.messages.findIndex((msg) => msg.id === messageId);
+  let messageIndex: number;
 
-  if (messageIndex === -1) {
-    throw new Error('Message not found');
+  // Handle either messageId (string) or direct index (number)
+  if (typeof messageIdOrIndex === 'string') {
+    // Find the index of the message to fork at by ID
+    messageIndex = chat.messages.findIndex((msg) => msg.id === messageIdOrIndex);
+
+    if (messageIndex === -1) {
+      throw new Error('Message not found');
+    }
+  } else {
+    // Use the provided index directly
+    messageIndex = messageIdOrIndex;
+
+    // Validate the index is within bounds
+    if (messageIndex < 0 || messageIndex > chat.messages.length) {
+      throw new Error('Invalid message index');
+    }
   }
 
   // Get messages up to and including the selected message

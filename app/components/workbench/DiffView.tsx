@@ -11,6 +11,52 @@ import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { FileHistory } from '~/types/actions';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import { themeStore } from '~/lib/stores/theme';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('DiffView');
+
+// Constants to prevent memory issues
+const MAX_CODE_LENGTH = 100000; // Maximum code length to process with Shiki
+const MAX_LINE_LENGTH = 5000; // Maximum line length before truncating
+
+// Add this helper function before the components
+/**
+ * Safely highlight code with fallbacks for memory issues
+ */
+function safeHighlight(highlighter: any, code: string, options: { lang: string; theme: string }): string {
+  try {
+    // Skip highlighting if code is too large or no highlighter
+    if (!highlighter || !code || code.length > MAX_CODE_LENGTH) {
+      return escapeHtml(code || '');
+    }
+
+    // Check if line is too long
+    if (code.length > MAX_LINE_LENGTH) {
+      return escapeHtml(code.substring(0, MAX_LINE_LENGTH) + '... [truncated]');
+    }
+
+    // Try to highlight with error handling
+    return highlighter
+      .codeToHtml(code, options)
+      .replace(/<\/?pre[^>]*>/g, '')
+      .replace(/<\/?code[^>]*>/g, '');
+  } catch (error) {
+    logger.error('Shiki highlighting error:', error);
+    return escapeHtml(code || '');
+  }
+}
+
+/**
+ * Escape HTML special characters
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 interface CodeComparisonProps {
   beforeCode: string;
@@ -376,14 +422,11 @@ const NoChangesView = memo(
                 <span
                   dangerouslySetInnerHTML={{
                     __html: highlighter
-                      ? highlighter
-                          .codeToHtml(line, {
-                            lang: language,
-                            theme: theme === 'dark' ? 'github-dark' : 'github-light',
-                          })
-                          .replace(/<\/?pre[^>]*>/g, '')
-                          .replace(/<\/?code[^>]*>/g, '')
-                      : line,
+                      ? safeHighlight(highlighter, line, {
+                          lang: language,
+                          theme: theme === 'dark' ? 'github-dark' : 'github-light',
+                        })
+                      : escapeHtml(line),
                   }}
                 />
               </div>
@@ -424,11 +467,11 @@ const CodeLine = memo(
     const renderContent = () => {
       if (type === 'unchanged' || !block.charChanges) {
         const highlightedCode = highlighter
-          ? highlighter
-              .codeToHtml(content, { lang: language, theme: theme === 'dark' ? 'github-dark' : 'github-light' })
-              .replace(/<\/?pre[^>]*>/g, '')
-              .replace(/<\/?code[^>]*>/g, '')
-          : content;
+          ? safeHighlight(highlighter, content, {
+              lang: language,
+              theme: theme === 'dark' ? 'github-dark' : 'github-light',
+            })
+          : escapeHtml(content);
         return <span dangerouslySetInnerHTML={{ __html: highlightedCode }} />;
       }
 
@@ -438,14 +481,11 @@ const CodeLine = memo(
             const changeClass = changeColorStyles[change.type];
 
             const highlightedCode = highlighter
-              ? highlighter
-                  .codeToHtml(change.value, {
-                    lang: language,
-                    theme: theme === 'dark' ? 'github-dark' : 'github-light',
-                  })
-                  .replace(/<\/?pre[^>]*>/g, '')
-                  .replace(/<\/?code[^>]*>/g, '')
-              : change.value;
+              ? safeHighlight(highlighter, change.value, {
+                  lang: language,
+                  theme: theme === 'dark' ? 'github-dark' : 'github-light',
+                })
+              : escapeHtml(change.value);
 
             return <span key={index} className={changeClass} dangerouslySetInnerHTML={{ __html: highlightedCode }} />;
           })}

@@ -7,6 +7,18 @@ export type ContextAnnotation =
       type: 'chatSummary';
       summary: string;
       chatId: string;
+    }
+  | {
+      type: 'reasoning';
+      value: string;
+    }
+  | {
+      type: 'usage';
+      value: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
     };
 
 export type ProgressAnnotation = {

@@ -13,11 +13,57 @@ export default class OpenAIProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
-    { name: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI', maxTokenAllowed: 8000 },
-    { name: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'OpenAI', maxTokenAllowed: 8000 },
-    { name: 'gpt-4-turbo', label: 'GPT-4 Turbo', provider: 'OpenAI', maxTokenAllowed: 8000 },
-    { name: 'gpt-4', label: 'GPT-4', provider: 'OpenAI', maxTokenAllowed: 8000 },
-    { name: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', provider: 'OpenAI', maxTokenAllowed: 8000 },
+    {
+      name: 'gpt-4o',
+      label: 'GPT-4o',
+      provider: 'OpenAI',
+      maxTokenAllowed: 8000,
+      features: {
+        reasoning: true,
+        imageGeneration: true,
+      },
+    },
+    {
+      name: 'gpt-4.5-turbo',
+      label: 'GPT-4.5 Turbo',
+      provider: 'OpenAI',
+      maxTokenAllowed: 16000,
+      features: {
+        reasoning: true,
+        imageGeneration: true,
+      },
+    },
+    {
+      name: 'gpt-4o-mini',
+      label: 'GPT-4o Mini',
+      provider: 'OpenAI',
+      maxTokenAllowed: 8000,
+      features: {
+        imageGeneration: true,
+      },
+    },
+    {
+      name: 'gpt-4-turbo',
+      label: 'GPT-4 Turbo',
+      provider: 'OpenAI',
+      maxTokenAllowed: 8000,
+      features: {
+        reasoning: true,
+        imageGeneration: true,
+      },
+    },
+    {
+      name: 'gpt-4',
+      label: 'GPT-4',
+      provider: 'OpenAI',
+      maxTokenAllowed: 8000,
+    },
+    {
+      name: 'gpt-3.5-turbo',
+      label: 'GPT-3.5 Turbo',
+      provider: 'OpenAI',
+      maxTokenAllowed: 4000,
+    },
   ];
 
   async getDynamicModels(
@@ -53,12 +99,20 @@ export default class OpenAIProvider extends BaseProvider {
         !staticModelIds.includes(model.id),
     );
 
-    return data.map((m: any) => ({
-      name: m.id,
-      label: `${m.id}`,
-      provider: this.name,
-      maxTokenAllowed: m.context_window || 32000,
-    }));
+    return data.map((m: any) => {
+      // Check if model supports reasoning
+      const supportsReasoning = m.id.includes('gpt-4o') || m.id.includes('gpt-4.5') || m.id.includes('gpt-4-turbo');
+
+      return {
+        name: m.id,
+        label: `${m.id}`,
+        provider: this.name,
+        maxTokenAllowed: m.context_window || 16000,
+        features: {
+          reasoning: supportsReasoning,
+        },
+      };
+    });
   }
 
   getModelInstance(options: {
@@ -81,9 +135,24 @@ export default class OpenAIProvider extends BaseProvider {
       throw new Error(`Missing API key for ${this.name} provider`);
     }
 
-    const openai = createOpenAI({
+    // Configure model options
+    const openaiOptions: any = {
       apiKey,
-    });
+    };
+
+    // Enable responses API for newer models
+    if (model.includes('gpt-4o') || model.includes('gpt-4.5')) {
+      openaiOptions.useResponses = true;
+    }
+
+    // Configure reasoning for supported models
+    if (model.includes('gpt-4o') || model.includes('gpt-4.5') || model.includes('gpt-4-turbo')) {
+      openaiOptions.providerOptions = {
+        reasoning_effort: 'high',
+      };
+    }
+
+    const openai = createOpenAI(openaiOptions);
 
     return openai(model);
   }
