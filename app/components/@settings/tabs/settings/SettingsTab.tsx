@@ -5,6 +5,8 @@ import { classNames } from '~/utils/classNames';
 import { Switch } from '~/components/ui/Switch';
 import type { UserProfile } from '~/components/@settings/core/types';
 import { isMac } from '~/utils/os';
+import { useSettings } from '~/lib/hooks/useSettings';
+import { NOTIFICATION_SOUNDS, getSelectedSound, setSelectedSound, playTestSound as playTestAudio } from '~/utils/audio';
 
 // Helper to get modifier key symbols/text
 const getModifierSymbol = (modifier: string): string => {
@@ -22,6 +24,8 @@ const getModifierSymbol = (modifier: string): string => {
 
 export default function SettingsTab() {
   const [currentTimezone, setCurrentTimezone] = useState('');
+  const { chatSoundEnabled, setChatSoundEnabled, chatSoundVolume, setChatSoundVolume } = useSettings();
+  const [selectedSound, setSelectedSoundState] = useState(() => getSelectedSound());
   const [settings, setSettings] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('bolt_user_profile');
     return saved
@@ -58,6 +62,22 @@ export default function SettingsTab() {
       toast.error('Failed to update settings');
     }
   }, [settings]);
+
+  // Play a test sound for audio preview
+  const playTestSound = () => {
+    playTestAudio();
+    toast.info('Playing test sound');
+  };
+
+  // Handle sound selection change
+  const handleSoundChange = (soundPath: string) => {
+    setSelectedSoundState(soundPath);
+    setSelectedSound(soundPath);
+
+    // Play the selected sound for preview
+    playTestAudio(soundPath);
+    toast.success('Sound changed');
+  };
 
   return (
     <div className="space-y-4">
@@ -139,6 +159,93 @@ export default function SettingsTab() {
             />
           </div>
         </div>
+      </motion.div>
+
+      {/* Sound Settings */}
+      <motion.div
+        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4 space-y-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div className="i-ph:speaker-high-fill w-4 h-4 text-purple-500" />
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">Sound Settings</span>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="i-ph:bell-simple-fill w-4 h-4 text-bolt-elements-textSecondary" />
+            <label className="block text-sm text-bolt-elements-textSecondary">Chat Completion Sound</label>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-bolt-elements-textSecondary">
+              {chatSoundEnabled ? 'Sound notification when chat completes' : 'No sound when chat completes'}
+            </span>
+            <Switch
+              checked={chatSoundEnabled}
+              onCheckedChange={(checked) => {
+                setChatSoundEnabled(checked);
+                toast.success(`Chat sound ${checked ? 'enabled' : 'disabled'}`);
+              }}
+            />
+          </div>
+        </div>
+
+        {chatSoundEnabled && (
+          <>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="i-ph:music-notes-fill w-4 h-4 text-bolt-elements-textSecondary" />
+                <label className="block text-sm text-bolt-elements-textSecondary">Sound Selection</label>
+              </div>
+              <div className="flex items-center gap-4">
+                <select
+                  value={selectedSound}
+                  onChange={(e) => handleSoundChange(e.target.value)}
+                  className={classNames(
+                    'flex-1 px-3 py-2 rounded-lg text-sm',
+                    'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
+                    'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                    'text-bolt-elements-textPrimary',
+                    'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
+                    'transition-all duration-200',
+                  )}
+                >
+                  <option value={NOTIFICATION_SOUNDS.BOLT}>Default (Bolt)</option>
+                  {/* Add more sound options here as they become available */}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="i-ph:speaker-simple-fill w-4 h-4 text-bolt-elements-textSecondary" />
+                <label className="block text-sm text-bolt-elements-textSecondary">Sound Volume</label>
+              </div>
+              <div className="flex items-center gap-4">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={chatSoundVolume}
+                  onChange={(e) => setChatSoundVolume(parseFloat(e.target.value))}
+                  className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                />
+                <span className="text-sm font-medium text-bolt-elements-textSecondary min-w-[40px] text-center">
+                  {Math.round(chatSoundVolume * 100)}%
+                </span>
+                <button
+                  onClick={playTestSound}
+                  className="px-3 py-1 text-xs font-medium text-white bg-purple-500 rounded-md hover:bg-purple-600 transition-colors"
+                >
+                  Test
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </motion.div>
 
       {/* Timezone */}
