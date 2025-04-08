@@ -26,7 +26,8 @@ type ProviderName =
   | 'OpenRouter'
   | 'Perplexity'
   | 'Together'
-  | 'XAI';
+  | 'XAI'
+  | 'Pollinations';
 
 type ServiceStatus = {
   provider: ProviderName;
@@ -170,6 +171,14 @@ const PROVIDER_STATUS_URLS: Record<ProviderName, ProviderConfig> = {
     },
     testModel: 'deepseek-chat',
   },
+  Pollinations: {
+    statusUrl: 'https://text.pollinations.ai/openai/models',
+    apiUrl: 'https://text.pollinations.ai/openai',
+    headers: {
+      Authorization: 'Bearer dummy-key',
+    },
+    testModel: 'pollinations-base',
+  },
 };
 
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
@@ -186,6 +195,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   Together: BsCloud,
   XAI: BsRobot,
   Deepseek: BiCodeBlock,
+  Pollinations: BiChip,
 };
 
 const ServiceStatusTab = () => {
@@ -220,6 +230,7 @@ const ServiceStatusTab = () => {
         OpenRouter: 'OPEN_ROUTER_API_KEY',
         XAI: 'XAI_API_KEY',
         Deepseek: 'DEEPSEEK_API_KEY',
+        Pollinations: 'POLLINATIONS_API_KEY',
       };
 
       const envKey = envKeyMap[provider];
