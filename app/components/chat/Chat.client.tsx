@@ -27,6 +27,7 @@ import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
+import { playChatCompletionSound } from '~/utils/audio';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -203,6 +204,9 @@ export const ChatImpl = memo(
             usage,
             messageLength: message.content.length,
           });
+
+          // Play sound notification when chat completes
+          playChatCompletionSound();
         }
 
         logger.debug('Finished streaming');

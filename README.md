@@ -88,7 +88,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - ⬜ Have LLM plan the project in a MD file for better results/transparency
 - ⬜ VSCode Integration with git-like confirmations
 - ⬜ Upload documents for knowledge - UI design templates, a code base to reference coding style, etc.
-- ⬜ Voice prompting
+- ✅ Voice prompting
 - ⬜ Azure Open AI API Integration
 - ⬜ Vertex AI Integration
 - ⬜ Granite Integration

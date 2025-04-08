@@ -16,6 +16,10 @@ import {
   updateContextOptimization,
   updateEventLogs,
   updatePromptId,
+  chatSoundEnabledStore,
+  chatSoundVolumeStore,
+  updateChatSoundEnabled,
+  updateChatSoundVolume,
 } from '~/lib/stores/settings';
 import { useCallback, useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
@@ -31,6 +35,8 @@ export interface Settings {
   eventLogs: boolean;
   timezone: string;
   tabConfiguration: TabWindowConfig;
+  chatSoundEnabled: boolean;
+  chatSoundVolume: number;
 }
 
 export interface UseSettingsReturn {
@@ -64,6 +70,12 @@ export interface UseSettingsReturn {
   tabConfiguration: TabWindowConfig;
   updateTabConfiguration: (config: TabVisibilityConfig) => void;
   resetTabConfiguration: () => void;
+
+  // Chat sound settings
+  chatSoundEnabled: boolean;
+  setChatSoundEnabled: (enabled: boolean) => void;
+  chatSoundVolume: number;
+  setChatSoundVolume: (volume: number) => void;
 }
 
 // Add interface to match ProviderSetting type
@@ -81,6 +93,8 @@ export function useSettings(): UseSettingsReturn {
   const [activeProviders, setActiveProviders] = useState<ProviderInfo[]>([]);
   const contextOptimizationEnabled = useStore(enableContextOptimizationStore);
   const tabConfiguration = useStore(tabConfigurationStore);
+  const chatSoundEnabled = useStore(chatSoundEnabledStore);
+  const chatSoundVolume = useStore(chatSoundVolumeStore);
   const [settings, setSettings] = useState<Settings>(() => {
     const storedSettings = getLocalStorage('settings');
     return {
@@ -90,6 +104,8 @@ export function useSettings(): UseSettingsReturn {
       eventLogs: storedSettings?.eventLogs ?? true,
       timezone: storedSettings?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       tabConfiguration,
+      chatSoundEnabled,
+      chatSoundVolume,
     };
   });
 
@@ -173,6 +189,16 @@ export function useSettings(): UseSettingsReturn {
     [saveSettings],
   );
 
+  const setChatSoundEnabled = useCallback((enabled: boolean) => {
+    updateChatSoundEnabled(enabled);
+    logStore.logSystem(`Chat sound notifications ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setChatSoundVolume = useCallback((volume: number) => {
+    updateChatSoundVolume(volume);
+    logStore.logSystem(`Chat sound volume set to ${volume}`);
+  }, []);
+
   useEffect(() => {
     const providers = providersStore.get();
     const providerSetting: Record<string, IProviderSetting> = {}; // preserve the entire settings object for each provider
@@ -207,5 +233,9 @@ export function useSettings(): UseSettingsReturn {
     tabConfiguration,
     updateTabConfiguration: updateTabConfig,
     resetTabConfiguration: resetTabConfig,
+    chatSoundEnabled,
+    setChatSoundEnabled,
+    chatSoundVolume,
+    setChatSoundVolume,
   };
 }
