@@ -513,6 +513,10 @@ export class WorkbenchStore {
 
       this.#editorStore.updateFile(fullPath, data.action.content);
 
+      if (!isStreaming && data.action.content) {
+        await this.saveFile(fullPath);
+      }
+
       if (!isStreaming) {
         await artifact.runner.runAction(data);
         this.resetAllFileModifications();

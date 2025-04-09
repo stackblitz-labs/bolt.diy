@@ -25,6 +25,7 @@ import { Preview } from './Preview';
 import useViewport from '~/lib/hooks';
 import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { usePreviewStore } from '~/lib/stores/previews';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -301,10 +302,10 @@ export const Workbench = memo(
     };
 
     useEffect(() => {
-      if (hasPreview) {
+      if (!isStreaming && hasPreview) {
         setSelectedView('preview');
       }
-    }, [hasPreview]);
+    }, [hasPreview, isStreaming]);
 
     useEffect(() => {
       workbenchStore.setDocuments(files);
@@ -323,9 +324,16 @@ export const Workbench = memo(
     }, []);
 
     const onFileSave = useCallback(() => {
-      workbenchStore.saveCurrentDocument().catch(() => {
-        toast.error('Failed to update file content');
-      });
+      workbenchStore
+        .saveCurrentDocument()
+        .then(() => {
+          // Explicitly refresh all previews after a file save
+          const previewStore = usePreviewStore();
+          previewStore.refreshAllPreviews();
+        })
+        .catch(() => {
+          toast.error('Failed to update file content');
+        });
     }, []);
 
     const onFileReset = useCallback(() => {
