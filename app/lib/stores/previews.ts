@@ -154,7 +154,7 @@ export class PreviewsStore {
     try {
       // Watch for file changes
       webcontainer.internal.watchPaths(
-        { include: ['**/*'], exclude: ['**/node_modules', '.git'], includeContent: true },
+        { include: ['**/*'], exclude: ['**/node_modules', '.git'], includeContent: false },
         async (_events) => {
           const previews = this.previews.get();
 
