@@ -44,11 +44,26 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
     setIsExecuting(true);
 
     try {
+      // Use authenticated user's access token if available
+      let accessToken = connection.token;
+      if (connection.credentials?.supabaseUrl && connection.credentials?.anonKey) {
+        try {
+          const { getSupabaseClient } = require("~/lib/supabaseClient");
+          const supabase = getSupabaseClient(connection.credentials.supabaseUrl, connection.credentials.anonKey);
+          const session = await supabase.auth.getSession();
+          if (session.data?.session?.access_token) {
+            accessToken = session.data.session.access_token;
+          }
+        } catch (e) {
+          // fallback to connection.token
+        }
+      }
+
       const response = await fetch('/api/supabase/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${connection.token}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           projectId: connection.selectedProjectId,
