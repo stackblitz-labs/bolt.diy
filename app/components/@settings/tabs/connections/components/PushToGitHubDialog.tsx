@@ -431,7 +431,7 @@ export function PushToGitHubDialog({ isOpen, onClose, onPush }: PushToGitHubDial
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <div className="i-ph:git-repository w-4 h-4 text-purple-500" />
+                                <div className="i-ph:git-branch w-4 h-4 text-purple-500" />
                                 <span className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-purple-500">
                                   {repo.name}
                                 </span>

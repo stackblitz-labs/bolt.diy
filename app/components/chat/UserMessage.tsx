@@ -16,7 +16,7 @@ export function UserMessage({ content }: UserMessageProps) {
     const images = content.filter((item) => item.type === 'image' && item.image);
 
     return (
-      <div className="overflow-hidden pt-[4px]">
+      <div className="overflow-hidden flex items-center">
         <div className="flex flex-col gap-4">
           {textContent && <Markdown html>{textContent}</Markdown>}
           {images.map((item, index) => (

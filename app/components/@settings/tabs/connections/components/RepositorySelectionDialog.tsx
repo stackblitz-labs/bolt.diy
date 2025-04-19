@@ -1058,7 +1058,7 @@ function RepositoryCard({ repo, onSelect }: { repo: GitHubRepoInfo; onSelect: ()
     <div className="p-4 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive/70 transition-colors">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="i-ph:git-repository text-bolt-elements-textTertiary" />
+          <span className="i-ph:git-branch text-bolt-elements-textTertiary" />
           <h3 className="font-medium text-bolt-elements-textPrimary dark:text-white">{repo.name}</h3>
         </div>
         <button

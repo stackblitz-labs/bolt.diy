@@ -1142,7 +1142,7 @@ export default function DebugTab() {
     {
       id: 'json',
       label: 'Export as JSON',
-      icon: 'i-ph:file-json',
+      icon: 'i-ph:file-js',
       handler: exportDebugInfo,
     },
     {
@@ -1652,7 +1652,7 @@ export default function DebugTab() {
                     <span className="text-bolt-elements-textPrimary">{systemInfo.platform}</span>
                   </div>
                   <div className="text-sm flex items-center gap-2">
-                    <div className="i-ph:microchip text-bolt-elements-textSecondary w-4 h-4" />
+                    <div className="i-ph:circuitry text-bolt-elements-textSecondary w-4 h-4" />
                     <span className="text-bolt-elements-textSecondary">Architecture: </span>
                     <span className="text-bolt-elements-textPrimary">{systemInfo.arch}</span>
                   </div>
@@ -1662,7 +1662,7 @@ export default function DebugTab() {
                     <span className="text-bolt-elements-textPrimary">{systemInfo.cpus}</span>
                   </div>
                   <div className="text-sm flex items-center gap-2">
-                    <div className="i-ph:node text-bolt-elements-textSecondary w-4 h-4" />
+                    <div className="i-ph:graph text-bolt-elements-textSecondary w-4 h-4" />
                     <span className="text-bolt-elements-textSecondary">Node Version: </span>
                     <span className="text-bolt-elements-textPrimary">{systemInfo.node}</span>
                   </div>
@@ -1917,7 +1917,7 @@ export default function DebugTab() {
                       <span className="text-bolt-elements-textPrimary">{webAppInfo.environment}</span>
                     </div>
                     <div className="text-sm flex items-center gap-2">
-                      <div className="i-ph:node text-bolt-elements-textSecondary w-4 h-4" />
+                      <div className="i-ph:graph text-bolt-elements-textSecondary w-4 h-4" />
                       <span className="text-bolt-elements-textSecondary">Node Version:</span>
                       <span className="text-bolt-elements-textPrimary">{webAppInfo.runtimeInfo.nodeVersion}</span>
                     </div>
@@ -1952,7 +1952,7 @@ export default function DebugTab() {
                       <>
                         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                           <div className="text-sm flex items-center gap-2">
-                            <div className="i-ph:git-repository text-bolt-elements-textSecondary w-4 h-4" />
+                            <div className="i-ph:git-fork text-bolt-elements-textSecondary w-4 h-4" />
                             <span className="text-bolt-elements-textSecondary">Repository:</span>
                             <span className="text-bolt-elements-textPrimary">
                               {webAppInfo.gitInfo.github.currentRepo.fullName}

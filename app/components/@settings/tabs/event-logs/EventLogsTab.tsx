@@ -763,7 +763,7 @@ export function EventLogsTab() {
     {
       id: 'json',
       label: 'Export as JSON',
-      icon: 'i-ph:file-json',
+      icon: 'i-ph:file-js',
       handler: exportAsJSON,
     },
     {

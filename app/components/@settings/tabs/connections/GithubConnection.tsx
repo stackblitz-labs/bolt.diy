@@ -688,7 +688,7 @@ export default function GitHubConnection() {
                     onClick={() => window.open('https://github.com/dashboard', '_blank', 'noopener,noreferrer')}
                     className="flex items-center gap-2 hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-colors"
                   >
-                    <div className="i-ph:layout-dashboard w-4 h-4" />
+                    <div className="i-ph:layout w-4 h-4" />
                     Dashboard
                   </Button>
                   <Button
@@ -912,7 +912,7 @@ export default function GitHubConnection() {
                           <div className="space-y-3">
                             <div className="flex items-start justify-between">
                               <div className="flex items-center gap-2">
-                                <div className="i-ph:git-repository w-4 h-4 text-bolt-elements-icon-info dark:text-bolt-elements-icon-info" />
+                                <div className="i-ph:git-branch w-4 h-4 text-bolt-elements-icon-info dark:text-bolt-elements-icon-info" />
                                 <h5 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-bolt-elements-item-contentAccent transition-colors">
                                   {repo.name}
                                 </h5>

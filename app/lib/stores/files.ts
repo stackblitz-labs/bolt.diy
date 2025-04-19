@@ -181,29 +181,52 @@ export class FilesStore {
     }
 
     const currentFiles = this.files.get();
+    const pathsToDelete = new Set<string>();
 
-    for (const deletedPath of this.#deletedPaths) {
-      if (currentFiles[deletedPath]) {
-        this.files.setKey(deletedPath, undefined);
+    // Precompute prefixes for efficient checking
+    const deletedPrefixes = [...this.#deletedPaths].map((p) => p + '/');
 
-        if (currentFiles[deletedPath]?.type === 'file') {
+    // Iterate through all current files/folders once
+    for (const [path, dirent] of Object.entries(currentFiles)) {
+      // Skip if dirent is already undefined (shouldn't happen often but good practice)
+      if (!dirent) {
+        continue;
+      }
+
+      // Check for exact match in deleted paths
+      if (this.#deletedPaths.has(path)) {
+        pathsToDelete.add(path);
+        continue; // No need to check prefixes if it's an exact match
+      }
+
+      // Check if the path starts with any of the deleted folder prefixes
+      for (const prefix of deletedPrefixes) {
+        if (path.startsWith(prefix)) {
+          pathsToDelete.add(path);
+          break; // Found a match, no need to check other prefixes for this path
+        }
+      }
+    }
+
+    // Perform the deletions and updates based on the collected paths
+    if (pathsToDelete.size > 0) {
+      const updates: FileMap = {};
+
+      for (const pathToDelete of pathsToDelete) {
+        const dirent = currentFiles[pathToDelete];
+        updates[pathToDelete] = undefined; // Mark for deletion in the map update
+
+        if (dirent?.type === 'file') {
           this.#size--;
-        }
-      }
 
-      for (const [path, dirent] of Object.entries(currentFiles)) {
-        if (path.startsWith(deletedPath + '/')) {
-          this.files.setKey(path, undefined);
-
-          if (dirent?.type === 'file') {
-            this.#size--;
-          }
-
-          if (dirent?.type === 'file' && this.#modifiedFiles.has(path)) {
-            this.#modifiedFiles.delete(path);
+          if (this.#modifiedFiles.has(pathToDelete)) {
+            this.#modifiedFiles.delete(pathToDelete);
           }
         }
       }
+
+      // Apply all deletions to the store at once for potential efficiency
+      this.files.set({ ...currentFiles, ...updates });
     }
   }
 

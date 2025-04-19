@@ -296,7 +296,7 @@ export function SupabaseConnection() {
                     <DialogButton type="secondary">Close</DialogButton>
                   </DialogClose>
                   <DialogButton type="danger" onClick={handleDisconnect}>
-                    <div className="i-ph:plug-x w-4 h-4" />
+                    <div className="i-ph:plugs w-4 h-4" />
                     Disconnect
                   </DialogButton>
                 </div>
