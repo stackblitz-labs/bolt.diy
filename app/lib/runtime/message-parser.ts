@@ -53,27 +53,66 @@ interface MessageState {
 }
 
 function cleanoutMarkdownSyntax(content: string) {
-  const codeBlockRegex = /^\s*```\w*\n([\s\S]*?)\n\s*```\s*$/;
+  // Handle multiple code block formats with different language tags
+  const codeBlockRegex = /^\s*```(?:xml|html|typescript|javascript|jsx|tsx|\w*)?\n([\s\S]*?)\n\s*```\s*$/;
   const match = content.match(codeBlockRegex);
 
-  // console.log('matching', !!match, content);
-
   if (match) {
-    return match[1]; // Remove common leading 4-space indent
-  } else {
-    return content;
+    return match[1];
   }
+
+  // Check for XML-style code blocks that some models produce
+  const xmlCodeBlockRegex = /<code(?:\s+[^>]*)?>([\s\S]*?)<\/code>/;
+  const xmlMatch = content.match(xmlCodeBlockRegex);
+
+  if (xmlMatch) {
+    return xmlMatch[1];
+  }
+
+  return content;
 }
 
 function cleanEscapedTags(content: string) {
-  return content.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  // Handle all common HTML entity encodings for angle brackets
+  return content
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#x3C;/g, '<')
+    .replace(/&#x3E;/g, '>')
+    .replace(/&#60;/g, '<')
+    .replace(/&#62;/g, '>')
+    .replace(/&amp;lt;/g, '<')
+    .replace(/&amp;gt;/g, '>');
 }
+
+// Add a new preprocessing function to handle the entire input before parsing
+function preprocessInput(input: string) {
+  // Remove XML declaration if present
+  input = input.replace(/^\s*<\?xml[^>]*>\s*/m, '');
+
+  // Remove outer XML/HTML wrapper tags that some models add
+  input = input.replace(/^\s*<(html|body|xml|div|pre)[^>]*>([\s\S]*?)<\/\1>\s*$/i, '$2');
+
+  // Remove outer code block if it contains our artifact tags
+  const outerCodeBlockRegex = /^\s*```(?:xml|html|\w*)\n([\s\S]*?)\n```\s*$/;
+  const outerMatch = input.match(outerCodeBlockRegex);
+
+  if (outerMatch && (outerMatch[1].includes(ARTIFACT_TAG_OPEN) || outerMatch[1].includes(ARTIFACT_ACTION_TAG_OPEN))) {
+    input = outerMatch[1];
+  }
+
+  return input;
+}
+
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();
 
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
   parse(messageId: string, input: string) {
+    // Preprocess the input to handle various model output formats
+    input = preprocessInput(input);
+
     let state = this.#messages.get(messageId);
 
     if (!state) {
