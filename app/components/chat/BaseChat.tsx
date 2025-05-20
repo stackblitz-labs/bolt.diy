@@ -21,6 +21,7 @@ import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportCh
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 import GitCloneButton from './GitCloneButton';
+import { McpConnection } from './MCPConnection';
 
 import FilePreview from './FilePreview';
 import { ModelSelector } from '~/components/chat/ModelSelector';
@@ -587,6 +588,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </ClientOnly>
                     <div className="flex justify-between items-center text-sm p-4 pt-2">
                       <div className="flex gap-1 items-center">
+                        {!chatStarted && <McpConnection />}
                         <IconButton title="Upload file" className="transition-all" onClick={() => handleFileUpload()}>
                           <div className="i-ph:paperclip text-xl"></div>
                         </IconButton>

@@ -16,3 +16,10 @@ export type ProgressAnnotation = {
   order: number;
   message: string;
 };
+
+export type ToolInvocationAnnotation = {
+  type: 'toolInvocation';
+  toolName: string;
+  parameters: Record<string, unknown>;
+  result: unknown;
+};
