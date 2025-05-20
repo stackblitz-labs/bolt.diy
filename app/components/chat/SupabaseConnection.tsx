@@ -288,6 +288,19 @@ export function SupabaseConnection() {
                         )}
                       </>
                     )}
+
+                    {/* Supabase Auth UI */}
+                    {supabaseConn.credentials?.supabaseUrl && supabaseConn.credentials?.anonKey && (
+                      <div className="mt-6">
+                        {/* Dynamically import to avoid SSR issues if needed */}
+                        {typeof window !== "undefined" && (
+                          <>{require("./SupabaseAuth").SupabaseAuth({
+                            supabaseUrl: supabaseConn.credentials.supabaseUrl,
+                            supabaseAnonKey: supabaseConn.credentials.anonKey,
+                          })}</>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
