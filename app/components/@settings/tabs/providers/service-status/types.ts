@@ -11,6 +11,7 @@ export type ProviderName =
   | 'Mistral'
   | 'OpenRouter'
   | 'Perplexity'
+  | 'Pollinations'
   | 'Together'
   | 'XAI';
 

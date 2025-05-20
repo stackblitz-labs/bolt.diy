@@ -460,7 +460,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           />
                           {(providerList || []).length > 0 &&
                             provider &&
-                            (!LOCAL_PROVIDERS.includes(provider.name) || 'OpenAILike') && (
+                            (!LOCAL_PROVIDERS.includes(provider.name) || provider.name === 'OpenAILike') &&
+                            provider.name !== 'Pollinations' && (
                               <APIKeyManager
                                 provider={provider}
                                 apiKey={apiKeys[provider.name] || ''}

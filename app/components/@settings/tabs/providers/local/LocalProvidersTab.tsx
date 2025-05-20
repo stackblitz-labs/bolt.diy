@@ -14,15 +14,17 @@ import { providerBaseUrlEnvKeys } from '~/utils/constants';
 import { useToast } from '~/components/ui/use-toast';
 import { Progress } from '~/components/ui/Progress';
 import OllamaModelInstaller from './OllamaModelInstaller';
+import { FaRegLemon } from 'react-icons/fa';
 
 // Add type for provider names to ensure type safety
-type ProviderName = 'Ollama' | 'LMStudio' | 'OpenAILike';
+type ProviderName = 'Ollama' | 'LMStudio' | 'OpenAILike' | 'Pollinations';
 
 // Update the PROVIDER_ICONS type to use the ProviderName type
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   Ollama: BsRobot,
   LMStudio: BsRobot,
   OpenAILike: TbBrandOpenai,
+  Pollinations: FaRegLemon,
 };
 
 // Update PROVIDER_DESCRIPTIONS to use the same type
@@ -30,6 +32,7 @@ const PROVIDER_DESCRIPTIONS: Record<ProviderName, string> = {
   Ollama: 'Run open-source models locally on your machine',
   LMStudio: 'Local model inference with LM Studio',
   OpenAILike: 'Connect to OpenAI-compatible API endpoints',
+  Pollinations: 'Free public AI API with no authentication required',
 };
 
 // Add a constant for the Ollama API base URL

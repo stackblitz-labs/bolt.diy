@@ -7,7 +7,7 @@ import { SiAmazon, SiGoogle, SiHuggingface, SiPerplexity, SiOpenai } from 'react
 import { BsRobot, BsCloud } from 'react-icons/bs';
 import { TbBrain } from 'react-icons/tb';
 import { BiChip, BiCodeBlock } from 'react-icons/bi';
-import { FaCloud, FaBrain } from 'react-icons/fa';
+import { FaCloud, FaBrain, FaRegLemon } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { useToast } from '~/components/ui/use-toast';
@@ -25,6 +25,7 @@ type ProviderName =
   | 'OpenAI'
   | 'OpenRouter'
   | 'Perplexity'
+  | 'Pollinations'
   | 'Together'
   | 'XAI';
 
@@ -170,6 +171,12 @@ const PROVIDER_STATUS_URLS: Record<ProviderName, ProviderConfig> = {
     },
     testModel: 'deepseek-chat',
   },
+  Pollinations: {
+    statusUrl: 'https://pollinations.ai/',
+    apiUrl: 'https://text.pollinations.ai/openai/v1/models',
+    headers: {},
+    testModel: 'haiku',
+  },
 };
 
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
@@ -186,6 +193,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   Together: BsCloud,
   XAI: BsRobot,
   Deepseek: BiCodeBlock,
+  Pollinations: FaRegLemon,
 };
 
 const ServiceStatusTab = () => {
@@ -220,6 +228,7 @@ const ServiceStatusTab = () => {
         OpenRouter: 'OPEN_ROUTER_API_KEY',
         XAI: 'XAI_API_KEY',
         Deepseek: 'DEEPSEEK_API_KEY',
+        Pollinations: 'POLLINATIONS_API_BASE_URL',
       };
 
       const envKey = envKeyMap[provider];

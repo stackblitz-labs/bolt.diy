@@ -11,6 +11,7 @@ import { HyperbolicStatusChecker } from './providers/hyperbolic';
 import { MistralStatusChecker } from './providers/mistral';
 import { OpenRouterStatusChecker } from './providers/openrouter';
 import { PerplexityStatusChecker } from './providers/perplexity';
+import { PollinationsStatusChecker } from './providers/pollinations';
 import { TogetherStatusChecker } from './providers/together';
 import { XAIStatusChecker } from './providers/xai';
 
@@ -76,6 +77,12 @@ export class ProviderStatusCheckerFactory {
       headers: {},
       testModel: 'pplx-7b-chat',
     },
+    Pollinations: {
+      statusUrl: 'https://pollinations.ai/',
+      apiUrl: 'https://www.pollinations.ai/api/v1/models',
+      headers: {},
+      testModel: 'haiku',
+    },
     Together: {
       statusUrl: 'https://status.together.ai/',
       apiUrl: 'https://api.together.xyz/v1/models',
@@ -118,6 +125,8 @@ export class ProviderStatusCheckerFactory {
         return new OpenRouterStatusChecker(config);
       case 'Perplexity':
         return new PerplexityStatusChecker(config);
+      case 'Pollinations':
+        return new PollinationsStatusChecker(config);
       case 'Together':
         return new TogetherStatusChecker(config);
       case 'XAI':

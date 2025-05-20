@@ -29,8 +29,8 @@ export interface Shortcuts {
   toggleTerminal: Shortcut;
 }
 
-export const URL_CONFIGURABLE_PROVIDERS = ['Ollama', 'LMStudio', 'OpenAILike'];
-export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama'];
+export const URL_CONFIGURABLE_PROVIDERS = ['Ollama', 'LMStudio', 'OpenAILike', 'Pollinations'];
+export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama', 'Pollinations'];
 
 export type ProviderSetting = Record<string, IProviderConfig>;
 
@@ -71,8 +71,8 @@ const getInitialProviderSettings = (): ProviderSetting => {
     initialSettings[provider.name] = {
       ...provider,
       settings: {
-        // Local providers should be disabled by default
-        enabled: !LOCAL_PROVIDERS.includes(provider.name),
+        // Local providers should be disabled by default, except Pollinations
+        enabled: !LOCAL_PROVIDERS.includes(provider.name) || provider.name === 'Pollinations',
       },
     };
   });

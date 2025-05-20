@@ -12,7 +12,7 @@ import { SiAmazon, SiGoogle, SiHuggingface, SiPerplexity, SiOpenai } from 'react
 import { BsRobot, BsCloud } from 'react-icons/bs';
 import { TbBrain, TbCloudComputing } from 'react-icons/tb';
 import { BiCodeBlock, BiChip } from 'react-icons/bi';
-import { FaCloud, FaBrain } from 'react-icons/fa';
+import { FaCloud, FaBrain, FaRegLemon } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
 
 // Add type for provider names to ensure type safety
@@ -29,6 +29,7 @@ type ProviderName =
   | 'OpenAI'
   | 'OpenRouter'
   | 'Perplexity'
+  | 'Pollinations'
   | 'Together'
   | 'XAI';
 
@@ -46,6 +47,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   OpenAI: SiOpenai,
   OpenRouter: FaCloud,
   Perplexity: SiPerplexity,
+  Pollinations: FaRegLemon,
   Together: BsCloud,
   XAI: BsRobot,
 };

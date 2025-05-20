@@ -1,5 +1,14 @@
 # bolt.diy
 
+> ## 📢 Add A free API from [Pollinations.ai] in the Bolt DIY!
+> **A free API from [Pollinations.ai](https://pollinations.ai) has been added to the project.**  
+> This API provides access to several models that can be used to enhance and expand the functionalities of the project.
+>
+> 🔗 **API Link**: [Pollinations.ai](https://pollinations.ai)  
+> You can now access a variety of models to integrate into your project.
+>
+> 💬 *If you have any feedback or questions, feel free to reach out!*
+
 [![bolt.diy: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.diy)
 
 Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, or Groq models - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
