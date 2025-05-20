@@ -110,15 +110,46 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
       }
     })();
 
-    // Return the text stream directly since it's already text data
-    return new Response(result.textStream, {
+    const returnStream = new ReadableStream({
+      async start(controller) {
+        try {
+          const reader = result.textStream.getReader();
+          const encoder = new TextEncoder();
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) {
+              controller.close();
+              break;
+            }
+            
+            const chunk: any = value;
+            
+            if (typeof chunk === 'string') {
+              controller.enqueue(encoder.encode(chunk));
+            } else if (chunk && typeof chunk === 'object' && 'byteLength' in chunk) {
+              controller.enqueue(chunk);
+            } else if (chunk) {
+              controller.enqueue(encoder.encode(String(chunk)));
+            }
+          }
+        } catch (error) {
+          logger.error('Enhanced stream error:', error);
+          controller.error(error);
+        }
+      }
+    });
+
+    return new Response(returnStream, {
       status: 200,
       headers: {
         'Content-Type': 'text/event-stream',
-        Connection: 'keep-alive',
+        'Connection': 'keep-alive',
         'Cache-Control': 'no-cache',
       },
     });
+
   } catch (error: unknown) {
     console.log(error);
 
