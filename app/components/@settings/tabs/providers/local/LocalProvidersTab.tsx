@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Switch } from '~/components/ui/Switch';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { LOCAL_PROVIDERS, URL_CONFIGURABLE_PROVIDERS } from '~/lib/stores/settings';
@@ -33,7 +33,7 @@ const PROVIDER_DESCRIPTIONS: Record<ProviderName, string> = {
 };
 
 // Add a constant for the Ollama API base URL
-const OLLAMA_API_URL = 'http://127.0.0.1:11434';
+const DEFAULT_OLLAMA_API_URL = 'http://127.0.0.1:11434';
 
 interface OllamaModel {
   name: string;
@@ -140,20 +140,16 @@ export default function LocalProvidersTab() {
     setCategoryEnabled(newCategoryState);
   }, [filteredProviders]);
 
-  // Fetch Ollama models when enabled
-  useEffect(() => {
-    const ollamaProvider = filteredProviders.find((p) => p.name === 'Ollama');
-
-    if (ollamaProvider?.settings.enabled) {
-      fetchOllamaModels();
-    }
-  }, [filteredProviders]);
+  /* Ollama */
+  const ollamaProvider = useMemo(() => filteredProviders.find((p) => p.name === 'Ollama'), [filteredProviders]);
+  const OLLAMA_API_URL = ollamaProvider?.settings.baseUrl || DEFAULT_OLLAMA_API_URL;
+  console.log(ollamaProvider);
 
   const fetchOllamaModels = async () => {
     try {
       setIsLoadingModels(true);
 
-      const response = await fetch('http://127.0.0.1:11434/api/tags');
+      const response = await fetch(`${OLLAMA_API_URL}/api/tags`);
       const data = (await response.json()) as { models: OllamaModel[] };
 
       setOllamaModels(
@@ -168,6 +164,13 @@ export default function LocalProvidersTab() {
       setIsLoadingModels(false);
     }
   };
+
+  // Fetch Ollama models when enabled
+  useEffect(() => {
+    if (ollamaProvider?.settings.enabled) {
+      fetchOllamaModels();
+    }
+  }, [ollamaProvider]);
 
   const updateOllamaModel = async (modelName: string): Promise<boolean> => {
     try {
@@ -223,7 +226,7 @@ export default function LocalProvidersTab() {
         }
       }
 
-      const updatedResponse = await fetch('http://127.0.0.1:11434/api/tags');
+      const updatedResponse = await fetch(`${OLLAMA_API_URL}/api/tags`);
       const updatedData = (await updatedResponse.json()) as { models: OllamaModel[] };
       const updatedModel = updatedData.models.find((m) => m.name === modelName);
 
@@ -485,7 +488,7 @@ export default function LocalProvidersTab() {
                       {editingProvider === provider.name ? (
                         <input
                           type="text"
-                          defaultValue={provider.settings.baseUrl || OLLAMA_API_URL}
+                          defaultValue={OLLAMA_API_URL}
                           placeholder="Enter Ollama base URL"
                           className={classNames(
                             'w-full px-3 py-2 rounded-lg text-sm',
@@ -516,7 +519,7 @@ export default function LocalProvidersTab() {
                         >
                           <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
                             <div className="i-ph:link text-sm" />
-                            <span>{provider.settings.baseUrl || OLLAMA_API_URL}</span>
+                            <span>{OLLAMA_API_URL}</span>
                           </div>
                         </div>
                       )}
