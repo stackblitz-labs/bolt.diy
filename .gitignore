@@ -10,6 +10,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.pnpm-store
 
 .vscode/*
 .vscode/launch.json
