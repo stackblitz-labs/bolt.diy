@@ -3,11 +3,10 @@ import { createDataStream, generateId } from 'ai';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
-import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
-import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
+import type { ContextAnnotation, DataStreamError, ProgressAnnotation } from '~/types/context';
 import { WORK_DIR } from '~/utils/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
@@ -58,7 +57,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     parseCookies(cookieHeader || '').providers || '{}',
   );
 
-  const stream = new SwitchableStream();
+  let responseSegments = 0;
 
   const cumulativeUsage = {
     completionTokens: 0,
@@ -217,15 +216,30 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               } satisfies ProgressAnnotation);
               await new Promise((resolve) => setTimeout(resolve, 0));
 
-              // stream.close();
               return;
             }
 
-            if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
-              throw Error('Cannot continue message: Maximum segments reached');
+            responseSegments++;
+
+            if (responseSegments >= MAX_RESPONSE_SEGMENTS) {
+              dataStream.writeData({
+                type: 'error',
+                id: generateId(),
+                message: 'Cannot continue message: Maximum segments reached.',
+              } satisfies DataStreamError);
+              dataStream.writeData({
+                type: 'progress',
+                label: 'summary',
+                status: 'error',
+                order: progressCounter++,
+                message: 'Error: maximum segments reached.',
+              } satisfies ProgressAnnotation);
+              await new Promise((resolve) => setTimeout(resolve, 0));
+
+              return;
             }
 
-            const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
+            const switchesLeft = MAX_RESPONSE_SEGMENTS - responseSegments;
 
             logger.info(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
 
