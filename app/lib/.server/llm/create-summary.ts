@@ -15,8 +15,9 @@ export async function createSummary(props: {
   promptId?: string;
   contextOptimization?: boolean;
   onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
+  abortSignal?: AbortSignal;
 }) {
-  const { messages, env: serverEnv, apiKeys, providerSettings, onFinish } = props;
+  const { messages, env: serverEnv, apiKeys, providerSettings, onFinish, abortSignal } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
   const processedMessages = messages.map((message) => {
@@ -75,8 +76,8 @@ export async function createSummary(props: {
 
   if (summary && summary.type === 'chatSummary') {
     chatId = summary.chatId;
-    summaryText = `Below is the Chat Summary till now, this is chat summary before the conversation provided by the user 
-you should also use this as historical message while providing the response to the user.        
+    summaryText = `Below is the Chat Summary till now, this is chat summary before the conversation provided by the user
+you should also use this as historical message while providing the response to the user.
 ${summary.summary}`;
 
     if (chatId) {
@@ -152,7 +153,7 @@ Note:
 
 
 ---
-        
+
         RULES:
         * Only provide the whole summary of the chat till now.
         * Do not provide any new information.
@@ -163,7 +164,7 @@ Note:
 
 Here is the previous summary of the chat:
 <old_summary>
-${summaryText} 
+${summaryText}
 </old_summary>
 
 Below is the chat after that:
@@ -185,6 +186,7 @@ Please provide a summary of the chat till now including the hitorical summary of
       apiKeys,
       providerSettings,
     }),
+    abortSignal,
   });
 
   const response = resp.text;
