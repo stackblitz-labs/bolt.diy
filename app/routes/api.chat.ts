@@ -11,6 +11,7 @@ import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
 import { WORK_DIR } from '~/utils/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
+import { createMCPClients, closeMCPClients } from '~/lib/services/mcp';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
@@ -37,7 +38,7 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, files, promptId, contextOptimization, supabase } = await request.json<{
+  const { messages, files, promptId, contextOptimization, supabase, mcpConfig } = await request.json<{
     messages: Messages;
     files: any;
     promptId?: string;
@@ -49,6 +50,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         anonKey?: string;
         supabaseUrl?: string;
       };
+    };
+    mcpConfig?: {
+      mcpServers: Record<string, any>;
     };
   }>();
 
@@ -67,6 +71,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   };
   const encoder: TextEncoder = new TextEncoder();
   let progressCounter: number = 1;
+
+  // Initialize MCP clients if configuration is provided
+  const { tools, clients } = await createMCPClients(mcpConfig);
 
   try {
     const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
@@ -189,7 +196,67 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const options: StreamingOptions = {
           supabaseConnection: supabase,
-          toolChoice: 'none',
+          tools,
+          maxSteps: 6,
+          onStepFinish: ({ toolCalls, toolResults }) => {
+            if (toolCalls && toolCalls.length > 0) {
+              toolCalls.forEach((toolCall, index) => {
+                const toolName = toolCall.toolName;
+                const toolResult = toolResults?.[index];
+
+                logger.debug(`MCP Tool '${toolName}' executed with args: ${JSON.stringify(toolCall.args)}`);
+
+                // Add progress indicator to frontend that tool is running
+                dataStream.writeData({
+                  type: 'progress',
+                  label: 'tool',
+                  status: 'in-progress',
+                  order: progressCounter++,
+                  message: `Running tool: ${toolName}`,
+                } satisfies ProgressAnnotation);
+
+                if (toolResult) {
+                  logger.debug(`MCP Tool '${toolName}' result: ${JSON.stringify(toolResult)}`);
+
+                  // Add progress indicator that tool completed
+                  dataStream.writeData({
+                    type: 'progress',
+                    label: 'tool',
+                    status: 'complete',
+                    order: progressCounter++,
+                    message: `Tool executed: ${toolName}`,
+                  } satisfies ProgressAnnotation);
+
+                  // Add tool invocation annotation
+                  dataStream.writeMessageAnnotation({
+                    type: 'toolInvocation',
+                    toolName,
+                    parameters: toolCall.args,
+                    result: toolResult,
+                  });
+                } else {
+                  logger.warn(`MCP Tool '${toolName}' didn't return a result`);
+
+                  // Add progress indicator that tool failed
+                  dataStream.writeData({
+                    type: 'progress',
+                    label: 'tool',
+                    status: 'complete',
+                    order: progressCounter++,
+                    message: `Tool executed with no result: ${toolName}`,
+                  } satisfies ProgressAnnotation);
+
+                  // Add tool invocation annotation even without result
+                  dataStream.writeMessageAnnotation({
+                    type: 'toolInvocation',
+                    toolName,
+                    parameters: toolCall.args,
+                    result: null,
+                  });
+                }
+              });
+            }
+          },
           onFinish: async ({ text: content, finishReason, usage }) => {
             logger.debug('usage', JSON.stringify(usage));
 
@@ -216,6 +283,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 message: 'Response Generated',
               } satisfies ProgressAnnotation);
               await new Promise((resolve) => setTimeout(resolve, 0));
+
+              // Close MCP clients
+              if (clients.length > 0) {
+                await closeMCPClients(clients);
+              }
 
               // stream.close();
               return;
@@ -353,6 +425,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     });
   } catch (error: any) {
     logger.error(error);
+
+    // Clean up MCP clients if they exist
+    if (clients && clients.length > 0) {
+      await closeMCPClients(clients).catch((e) => logger.error('Error closing MCP clients during error handling:', e));
+    }
 
     if (error.message?.includes('API key')) {
       throw new Response('Invalid or missing API key', {

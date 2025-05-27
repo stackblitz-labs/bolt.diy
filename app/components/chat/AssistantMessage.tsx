@@ -5,6 +5,8 @@ import Popover from '~/components/ui/Popover';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
 import WithTooltip from '~/components/ui/Tooltip';
+import { ToolInvocation } from './ToolInvocation';
+import type { ToolInvocationAnnotation } from '~/types/context';
 
 interface AssistantMessageProps {
   content: string;
@@ -60,6 +62,11 @@ export const AssistantMessage = memo(({ content, annotations, messageId, onRewin
     promptTokens: number;
     totalTokens: number;
   } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value;
+
+  // Extract tool invocations from annotations
+  const toolInvocations = filteredAnnotations.filter(
+    (annotation) => annotation.type === 'toolInvocation',
+  ) as ToolInvocationAnnotation[];
 
   return (
     <div className="overflow-hidden w-full">
@@ -136,6 +143,9 @@ export const AssistantMessage = memo(({ content, annotations, messageId, onRewin
         </div>
       </>
       <Markdown html>{content}</Markdown>
+
+      {/* Display tool invocations if present */}
+      {toolInvocations.length > 0 && <ToolInvocation toolInvocations={toolInvocations} />}
     </div>
   );
 });
