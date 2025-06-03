@@ -7,7 +7,7 @@ import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
-import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
+import type { ContextAnnotation, ProgressAnnotation, SegmentsGroupAnnotation } from '~/types/context';
 import { WORK_DIR } from '~/utils/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
@@ -62,6 +62,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   );
 
   const stream = new SwitchableStream();
+  const segmentsGroupId = generateId();
 
   const cumulativeUsage = {
     completionTokens: 0,
@@ -240,6 +241,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               role: 'user',
               content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${CONTINUE_PROMPT}`,
             });
+
+            dataStream.writeMessageAnnotation({
+              type: 'segmentsGroup',
+              segmentsGroupId,
+            } satisfies SegmentsGroupAnnotation);
 
             const result = await streamText({
               messages,

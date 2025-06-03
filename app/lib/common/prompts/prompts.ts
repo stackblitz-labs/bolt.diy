@@ -708,7 +708,12 @@ Here are some examples of correct usage of artifacts:
 </examples>
 `;
 
-export const CONTINUE_PROMPT = stripIndents`
-  Continue your prior response. IMPORTANT: Immediately begin from where you left off without any interruptions.
-  Do not repeat any content, including artifact and action tags.
-`;
+export const CONTINUE_PROMPT = `Continue your prior response.
+Important: continue your last message without any interruptions, even if you're in the middle of a thought. You are continuing a document that will be re-assembled later. Never repeat any text that has already been sent.
+Example:
+  Previous message:
+    <boltAction filePath="index.html"><!DOCTYPE html><html lang
+  Bad: Repeats the previous message. This creates an unreadable document.
+    <boltAction filePath="index.html"><!DOCTYPE html><html lang="en"><body>
+  Good: Continues from where the previous message left off:
+      ="en"><body>`;
