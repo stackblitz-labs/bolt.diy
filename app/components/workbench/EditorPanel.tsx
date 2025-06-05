@@ -17,6 +17,8 @@ import type { FileHistory } from '~/types/actions';
 import { themeStore } from '~/lib/stores/theme';
 import { WORK_DIR } from '~/utils/constants';
 import { renderLogger } from '~/utils/logger';
+import { InlineDiffComparison } from '~/components/workbench/DiffView';
+import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import { isMobile } from '~/utils/mobile';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
@@ -62,6 +64,8 @@ export const EditorPanel = memo(
 
     const theme = useStore(themeStore);
     const showTerminal = useStore(workbenchStore.showTerminal);
+    const currentView = useStore(workbenchStore.currentView);
+    const pendingChange = useStore(workbenchStore.pendingFileChange);
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {
@@ -164,16 +168,30 @@ export const EditorPanel = memo(
                 )}
               </PanelHeader>
               <div className="h-full flex-1 overflow-hidden modern-scrollbar">
-                <CodeMirrorEditor
-                  theme={theme}
-                  editable={!isStreaming && editorDocument !== undefined}
-                  settings={editorSettings}
-                  doc={editorDocument}
-                  autoFocusOnDocumentChange={!isMobile()}
-                  onScroll={onEditorScroll}
-                  onChange={onEditorChange}
-                  onSave={onFileSave}
-                />
+                {currentView === 'diff' && pendingChange !== null ? (
+                  <InlineDiffComparison
+                    beforeCode={pendingChange.originalContent}
+                    afterCode={pendingChange.newContent}
+                    filename={pendingChange.relativePath}
+                    language={getLanguageFromExtension(pendingChange.relativePath.split('.').pop() || '')}
+                    lightTheme="github-light" // TODO: derive from themeStore if more dynamic themes are supported
+                    darkTheme="github-dark"   // TODO: derive from themeStore if more dynamic themes are supported
+                    showAcceptRejectButtons={true}
+                    onAccept={() => workbenchStore.acceptPendingFileChange()}
+                    onReject={() => workbenchStore.rejectPendingFileChange()}
+                  />
+                ) : (
+                  <CodeMirrorEditor
+                    theme={theme}
+                    editable={!isStreaming && editorDocument !== undefined}
+                    settings={editorSettings}
+                    doc={editorDocument}
+                    autoFocusOnDocumentChange={!isMobile()}
+                    onScroll={onEditorScroll}
+                    onChange={onEditorChange}
+                    onSave={onFileSave}
+                  />
+                )}
               </div>
             </Panel>
           </PanelGroup>

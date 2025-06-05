@@ -2,6 +2,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { memo, useEffect, useRef, useState } from 'react';
 import type { FileMap } from '~/lib/stores/files';
+import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { WORK_DIR } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
@@ -99,6 +100,21 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
                 >
                   {isLast && <div className="i-ph:file-duotone" />}
                   {segment}
+                  {isLast && (() => {
+                    const fullPath = '/' + pathSegments.join('/'); // Construct full path for the current item
+                    const dirent = files?.get(fullPath);
+                    if (dirent) {
+                      const isLocked = dirent.type === 'file'
+                        ? workbenchStore.isFileLocked(fullPath)
+                        : dirent.type === 'directory'
+                          ? workbenchStore.isFolderLocked(fullPath)
+                          : false;
+                      if (isLocked) {
+                        return <div className="i-ph:lock-simple text-red-500 ml-1" title="Locked" />;
+                      }
+                    }
+                    return null;
+                  })()}
                 </span>
               </DropdownMenu.Trigger>
               {index > 0 && !isLast && <span className="i-ph:caret-right inline-block mx-1" />}
@@ -124,10 +140,10 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
                             <FileTree
                               files={files}
                               hideRoot
-                              rootFolder={path}
+                              rootFolder={'/' + path}
                               collapsed
                               allowFolderSelection
-                              selectedFile={`${path}/${segment}`}
+                              selectedFile={'/' + pathSegments.slice(0, index + 1).join('/')}
                               onFileSelect={(filePath) => {
                                 setActiveIndex(null);
                                 onFileSelect?.(filePath);

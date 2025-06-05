@@ -19,6 +19,9 @@ interface CodeComparisonProps {
   filename: string;
   lightTheme: string;
   darkTheme: string;
+  showAcceptRejectButtons?: boolean;
+  onAccept?: () => void;
+  onReject?: () => void;
 }
 
 interface DiffBlock {
@@ -478,6 +481,9 @@ const FileInfo = memo(
     isFullscreen,
     beforeCode,
     afterCode,
+    showAcceptRejectButtons,
+    onAccept,
+    onReject,
   }: {
     filename: string;
     hasChanges: boolean;
@@ -485,6 +491,9 @@ const FileInfo = memo(
     isFullscreen: boolean;
     beforeCode: string;
     afterCode: string;
+    showAcceptRejectButtons?: boolean;
+    onAccept?: () => void;
+    onReject?: () => void;
   }) => {
     // Calculate additions and deletions from the current document
     const { additions, deletions } = useMemo(() => {
@@ -534,6 +543,22 @@ const FileInfo = memo(
             </>
           ) : (
             <span className="text-green-700 dark:text-green-400">No Changes</span>
+          )}
+          {showAcceptRejectButtons && (
+            <>
+              <button
+                onClick={onAccept}
+                className="px-3 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ml-2"
+              >
+                Accept Changes
+              </button>
+              <button
+                onClick={onReject}
+                className="px-3 py-1 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ml-2"
+              >
+                Reject Changes
+              </button>
+            </>
           )}
           <FullscreenButton onClick={onToggleFullscreen} isFullscreen={isFullscreen} />
         </span>
@@ -585,7 +610,7 @@ const getSharedHighlighter = async () => {
   return highlighterInstance;
 };
 
-const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }: CodeComparisonProps) => {
+const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language, showAcceptRejectButtons, onAccept, onReject }: CodeComparisonProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Use state to hold the shared highlighter instance
@@ -635,6 +660,9 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
           isFullscreen={isFullscreen}
           beforeCode={beforeCode}
           afterCode={afterCode}
+          showAcceptRejectButtons={showAcceptRejectButtons}
+          onAccept={onAccept}
+          onReject={onReject}
         />
         <div className={diffPanelStyles}>
           {hasChanges ? (
@@ -781,6 +809,9 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
           filename={selectedFile}
           lightTheme="github-light"
           darkTheme="github-dark"
+          // showAcceptRejectButtons, onAccept, onReject are not passed here as this is the file history DiffView
+          // not the pending changes diff. If this DiffView were to be used for pending changes,
+          // these props would need to be plumbed through.
         />
       </div>
     );

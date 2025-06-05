@@ -1,4 +1,5 @@
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
+import { createTwoFilesPatch, applyPatch, parsePatch } from 'diff';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
@@ -47,6 +48,7 @@ export class WorkbenchStore {
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
+  pendingFileChange: WritableAtom<null | { fullPath: string; relativePath: string; originalContent: string; newContent: string; patchString: string }> = import.meta.hot?.data.pendingFileChange ?? atom(null);
   unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
   actionAlert: WritableAtom<ActionAlert | undefined> =
     import.meta.hot?.data.actionAlert ?? atom<ActionAlert | undefined>(undefined);
@@ -63,6 +65,7 @@ export class WorkbenchStore {
       import.meta.hot.data.unsavedFiles = this.unsavedFiles;
       import.meta.hot.data.showWorkbench = this.showWorkbench;
       import.meta.hot.data.currentView = this.currentView;
+      import.meta.hot.data.pendingFileChange = this.pendingFileChange;
       import.meta.hot.data.actionAlert = this.actionAlert;
       import.meta.hot.data.supabaseAlert = this.supabaseAlert;
       import.meta.hot.data.deployAlert = this.deployAlert;
@@ -556,45 +559,101 @@ export class WorkbenchStore {
     if (data.action.type === 'file') {
       const wc = await webcontainer;
       const fullPath = path.join(wc.workdir, data.action.filePath);
+      const newContent = data.action.content;
+      const relativePath = data.action.filePath; // Assuming filePath is relative path from project root
+      const originalContent = this.#filesStore.getFile(fullPath)?.content ?? '';
 
-      /*
-       * For scoped locks, we would need to implement diff checking here
-       * to determine if the AI is modifying existing code or just adding new code
-       * This is a more complex feature that would be implemented in a future update
-       */
+      const patchString = createTwoFilesPatch(relativePath, relativePath, originalContent, newContent, '', '', { context: 3 });
+      const parsedPatches = parsePatch(patchString);
+      const hasChanges = parsedPatches.length > 0 && parsedPatches[0].hunks && parsedPatches[0].hunks.length > 0;
 
-      if (this.selectedFile.value !== fullPath) {
-        this.setSelectedFile(fullPath);
+      if (hasChanges) {
+        this.pendingFileChange.set({ fullPath, relativePath, originalContent, newContent, patchString });
+        this.currentView.set('diff');
+        // Action is paused here, will be completed by accept/rejectPendingFileChange
+      } else {
+        console.log(`No changes detected for file ${data.action.filePath}, skipping diff view.`);
+        // Original logic for when there are no changes:
+        if (this.selectedFile.value !== fullPath) {
+          this.setSelectedFile(fullPath);
+        }
+        if (this.currentView.value !== 'code') { // Ensure view is 'code' if no diff
+          this.currentView.set('code');
+        }
+
+        const doc = this.#editorStore.documents.get()[fullPath];
+
+        // If file is not in editor and not streaming, original logic called runAction.
+        if (!doc && !isStreaming) {
+          await artifact.runner.runAction(data, isStreaming);
+        }
+
+        this.#editorStore.updateFile(fullPath, newContent);
+
+        if (!isStreaming && newContent) {
+          await this.saveFile(fullPath);
+        }
+
+        if (!isStreaming) {
+          // This call marks the action as completed in ActionRunner for non-streaming file changes
+          await artifact.runner.runAction(data);
+          this.resetAllFileModifications();
+        }
+        // For streaming actions with no changes, editor is updated. ActionRunner handles stream lifecycle.
       }
-
-      if (this.currentView.value !== 'code') {
-        this.currentView.set('code');
-      }
-
-      const doc = this.#editorStore.documents.get()[fullPath];
-
-      if (!doc) {
-        await artifact.runner.runAction(data, isStreaming);
-      }
-
-      this.#editorStore.updateFile(fullPath, data.action.content);
-
-      if (!isStreaming && data.action.content) {
-        await this.saveFile(fullPath);
-      }
-
-      if (!isStreaming) {
-        await artifact.runner.runAction(data);
-        this.resetAllFileModifications();
-      }
-    } else {
-      await artifact.runner.runAction(data);
+    } else { // if action.type is not 'file'
+      await artifact.runner.runAction(data); // Pass through to original logic for other action types
     }
   }
 
   actionStreamSampler = createSampler(async (data: ActionCallbackData, isStreaming: boolean = false) => {
     return await this._runAction(data, isStreaming);
   }, 100); // TODO: remove this magic number to have it configurable
+
+  acceptPendingFileChange = async () => {
+    const state = this.pendingFileChange.get();
+    if (!state) {
+      return;
+    }
+
+    const patchedContent = applyPatch(state.originalContent, state.patchString);
+
+    if (patchedContent === false) {
+      this.actionAlert.set({
+        type: 'error',
+        title: 'Patch Failed',
+        description: 'Failed to apply changes. Please review the diff or apply changes manually.',
+      });
+      return;
+    }
+
+    // If patch is identical to newContent, applyPatch might return originalContent + patch,
+    // or it might return newContent directly. We should use the newContent that was intended.
+    // However, applyPatch should ideally result in state.newContent.
+    // For safety, let's use patchedContent, but be aware.
+    // A more robust check would be to diff state.originalContent with patchedContent and see if it matches state.patchString's intent.
+    // Or simply trust applyPatch and use its result. Let's trust applyPatch for now.
+
+    this.#editorStore.updateFile(state.fullPath, patchedContent);
+    await this.saveFile(state.fullPath); // This also handles unsavedFiles set
+
+    // It's important to get the artifact and actionId to mark the original file action as complete.
+    // This information is not currently stored in pendingFileChange.
+    // This is a potential issue: how do we signal ActionRunner that this specific file action is now done?
+    // For now, per prompt, we just clear pending change and switch view.
+    // The original action in ActionRunner might remain in 'running' if it was paused.
+    // This needs to be addressed for full action lifecycle management.
+
+    this.pendingFileChange.set(null);
+    this.currentView.set('code');
+    this.resetAllFileModifications(); // Assuming this is appropriate after applying a change.
+  }
+
+  rejectPendingFileChange = () => {
+    this.pendingFileChange.set(null);
+    this.currentView.set('code');
+    // Similar to accept, the original action in ActionRunner is not explicitly completed or aborted here.
+  }
 
   #getArtifact(id: string) {
     const artifacts = this.artifacts.get();

@@ -1,6 +1,7 @@
 import type { WebContainer } from '@webcontainer/api';
 import { path as nodePath } from '~/utils/path';
 import { atom, map, type MapStore } from 'nanostores';
+import { isFileLocked } from '~/utils/fileLocks';
 import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
@@ -322,6 +323,17 @@ export class ActionRunner {
     }
 
     try {
+      if (isFileLocked(action.filePath, this.runnerId.get())) {
+        logger.warn(`[${action.type}]: Attempted to write to locked file ${action.filePath}`);
+        if (this.onAlert) {
+          this.onAlert({
+            type: 'warning',
+            title: 'File Locked',
+            description: `The LLM tried to modify the locked file "${action.filePath}". The changes were not applied.`,
+          });
+        }
+        return;
+      }
       await webcontainer.fs.writeFile(relativePath, action.content);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
