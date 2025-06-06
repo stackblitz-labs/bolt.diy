@@ -66,6 +66,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
             content: `${message}`,
           },
         ],
+        userNotes: undefined,
         env: context.cloudflare?.env as any,
         apiKeys,
         providerSettings,

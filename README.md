@@ -5,7 +5,7 @@
 Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, or Groq models - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
 -----
-Check the [bolt.diy Docs](https://stackblitz-labs.github.io/bolt.diy/) for more offical installation instructions and more informations.
+Check the [bolt.diy Docs](https://stackblitz-labs.github.io/bolt.diy/) for more official installation instructions and more information.
 
 -----
 Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos-tutorial-helpful-content/3243) has a bunch of incredible resources for running and deploying bolt.diy yourself!
@@ -80,13 +80,15 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - ✅ Perplexity Integration (@meetpateltech)
 - ✅ AWS Bedrock Integration (@kunjabijukchhe)
 - ✅ Add a "Diff View" to see the changes (@toddyclipsgg)
-- ⬜ **HIGH PRIORITY** - Prevent bolt from rewriting files as often (file locking and diffs)
-- ⬜ **HIGH PRIORITY** - Better prompting for smaller LLMs (code window sometimes doesn't start)
+- ✅ **HIGH PRIORITY** - Prevent bolt from rewriting files as often (file locking and diffs)
+- ✅ **HIGH PRIORITY** - Better prompting for smaller LLMs (code window sometimes doesn't start)
 - ⬜ **HIGH PRIORITY** - Run agents in the backend as opposed to a single model call
 - ✅ Deploy directly to Netlify (@xKevIsDev)
+- ✅ Deploy directly to Vercel
+- ✅ Deploy directly to Cloudflare Pages
 - ✅ Supabase Integration (@xKevIsDev)
-- ⬜ Have LLM plan the project in a MD file for better results/transparency
-- ⬜ VSCode Integration with git-like confirmations
+- ✅ Have LLM plan the project in a MD file for better results/transparency
+- ✅ VSCode Integration with git-like confirmations
 - ⬜ Upload documents for knowledge - UI design templates, a code base to reference coding style, etc.
 - ✅ Voice prompting
 - ⬜ Azure Open AI API Integration
@@ -94,6 +96,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - ⬜ Granite Integration
 - ✅ Popout Window for Web Container(@stijnus)
 - ✅ Ability to change Popout window size (@stijnus)
+- ✅ Import from Figma (@open-source)
 
 ## Features
 
@@ -104,7 +107,11 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - **Revert code to earlier versions** for easier debugging and quicker changes.
 - **Download projects as ZIP** for easy portability Sync to a folder on the host.
 - **Integration-ready Docker support** for a hassle-free setup.
-- **Deploy** directly to **Netlify**
+- **Deploy** directly to **Netlify**, **Vercel**, or **Cloudflare Pages**
+- **Guided Setup Wizard** for Supabase and Firebase connections
+- **Import Figma designs** to generate starter UI code.
+ - **Mobile starter templates** for React Native and Expo with [QR-code previews](docs/docs/mobile-preview.md) via Expo Go.
+- **Project templates** to kickstart your app with examples like a Blog, SaaS dashboard, or Ecommerce site. ([learn more](docs/docs/project-templates.md))
 
 ## Setup
 

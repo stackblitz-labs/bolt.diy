@@ -20,6 +20,7 @@ import {
   migrateLegacyLocks,
   clearCache,
 } from '~/lib/persistence/lockedFiles';
+import { getTargetedFilesForChat, addTargetedFile, removeTargetedFile } from '~/lib/persistence/targetedFiles';
 import { getCurrentChatId } from '~/utils/fileLocks';
 
 const logger = createScopedLogger('FilesStore');
@@ -31,6 +32,7 @@ export interface File {
   content: string;
   isBinary: boolean;
   isLocked?: boolean;
+  isTargeted?: boolean;
   lockedByFolder?: string; // Path of the folder that locked this file
 }
 
@@ -95,6 +97,9 @@ export class FilesStore {
 
     // Load locked files from localStorage
     this.#loadLockedFiles();
+
+    // Load targeted files from localStorage
+    this.#loadTargetedFiles();
 
     if (import.meta.hot) {
       // Persist our state across hot reloads
@@ -190,6 +195,38 @@ export class FilesStore {
       logger.info(`Loaded locked items in ${Math.round(endTime - startTime)}ms`);
     } catch (error) {
       logger.error('Failed to load locked files from localStorage', error);
+    }
+  }
+
+  /**
+   * Load targeted files from localStorage and mark them in the store
+   * @param chatId Optional chat ID (defaults to current chat)
+   */
+  #loadTargetedFiles(chatId?: string) {
+    try {
+      const currentChatId = chatId || getCurrentChatId();
+      const targeted = getTargetedFilesForChat(currentChatId);
+
+      if (targeted.length === 0) {
+        return;
+      }
+
+      const currentFiles = this.files.get();
+      const updates: FileMap = {};
+
+      for (const path of targeted) {
+        const file = currentFiles[path];
+
+        if (file?.type === 'file') {
+          updates[path] = { ...file, isTargeted: true };
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        this.files.set({ ...currentFiles, ...updates });
+      }
+    } catch (error) {
+      logger.error('Failed to load targeted files from localStorage', error);
     }
   }
 
@@ -324,6 +361,42 @@ export class FilesStore {
   }
 
   /**
+   * Mark a file as targeted for AI edits
+   */
+  targetFile(filePath: string, chatId?: string) {
+    const file = this.getFile(filePath);
+    const currentChatId = chatId || getCurrentChatId();
+
+    if (!file) {
+      logger.error(`Cannot target non-existent file: ${filePath}`);
+      return false;
+    }
+
+    this.files.setKey(filePath, { ...file, isTargeted: true });
+    addTargetedFile(currentChatId, filePath);
+
+    return true;
+  }
+
+  /**
+   * Remove a file from targeted list
+   */
+  unTargetFile(filePath: string, chatId?: string) {
+    const file = this.getFile(filePath);
+    const currentChatId = chatId || getCurrentChatId();
+
+    if (!file) {
+      logger.error(`Cannot untarget non-existent file: ${filePath}`);
+      return false;
+    }
+
+    this.files.setKey(filePath, { ...file, isTargeted: false });
+    removeTargetedFile(currentChatId, filePath);
+
+    return true;
+  }
+
+  /**
    * Unlock a folder and all its contents
    * @param folderPath Path to the folder to unlock
    * @param chatId Optional chat ID (defaults to current chat)
@@ -438,6 +511,20 @@ export class FilesStore {
     }
 
     return { locked: false };
+  }
+
+  /**
+   * Check if a file is targeted for AI edits
+   */
+  isFileTargeted(filePath: string, chatId?: string): boolean {
+    const currentChatId = chatId || getCurrentChatId();
+    const file = this.getFile(filePath);
+
+    if (file?.isTargeted) {
+      return true;
+    }
+
+    return getTargetedFilesForChat(currentChatId).includes(filePath);
   }
 
   /**
@@ -563,7 +650,17 @@ export class FilesStore {
         unreachable('Expected content to be defined');
       }
 
-      await webcontainer.fs.writeFile(relativePath, content);
+      try {
+        const existing = await webcontainer.fs.readFile(relativePath, 'utf-8');
+
+        if (existing === content) {
+          logger.debug(`Skipped writing ${relativePath} (no changes)`);
+        } else {
+          await webcontainer.fs.writeFile(relativePath, content);
+        }
+      } catch {
+        await webcontainer.fs.writeFile(relativePath, content);
+      }
 
       if (!this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.set(filePath, oldContent);

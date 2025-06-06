@@ -25,8 +25,10 @@ import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
-import { filesToArtifacts } from '~/utils/fileUtils';
+import { filesToArtifacts, uploadedFilesToArtifacts } from '~/utils/fileUtils';
+import { escapeBoltTags } from '~/utils/projectCommands';
 import { supabaseConnection } from '~/lib/stores/supabase';
+import { notesStore } from '~/lib/stores/notes';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 
@@ -123,6 +125,7 @@ export const ChatImpl = memo(
     const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [imageDataList, setImageDataList] = useState<string[]>([]);
+    const [textDataList, setTextDataList] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
     const [fakeLoading, setFakeLoading] = useState(false);
     const files = useStore(workbenchStore.files);
@@ -148,6 +151,7 @@ export const ChatImpl = memo(
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
+    const notes = useStore(notesStore);
     const {
       messages,
       isLoading,
@@ -170,6 +174,7 @@ export const ChatImpl = memo(
         contextOptimization: contextOptimizationEnabled,
         chatMode,
         designScheme,
+        userNotes: notes.map((n) => n.text).join('\n'),
         supabase: {
           isConnected: supabaseConn.isConnected,
           hasSelectedProject: !!selectedProject,
@@ -314,6 +319,8 @@ export const ChatImpl = memo(
 
       let finalMessageContent = messageContent;
 
+      let uploadArtifact = '';
+
       if (selectedElement) {
         console.log('Selected Element:', selectedElement);
 
@@ -353,7 +360,7 @@ export const ChatImpl = memo(
                   content: [
                     {
                       type: 'text',
-                      text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
+                      text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${uploadArtifact}${finalMessageContent}`,
                     },
                     ...imageDataList.map((imageData) => ({
                       type: 'image',
@@ -379,6 +386,7 @@ export const ChatImpl = memo(
 
               setUploadedFiles([]);
               setImageDataList([]);
+              setTextDataList([]);
 
               resetEnhancer();
 
@@ -398,7 +406,7 @@ export const ChatImpl = memo(
             content: [
               {
                 type: 'text',
-                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
+                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${uploadArtifact}${finalMessageContent}`,
               },
               ...imageDataList.map((imageData) => ({
                 type: 'image',
@@ -414,6 +422,7 @@ export const ChatImpl = memo(
 
         setUploadedFiles([]);
         setImageDataList([]);
+        setTextDataList([]);
 
         resetEnhancer();
 
@@ -430,6 +439,17 @@ export const ChatImpl = memo(
 
       chatStore.setKey('aborted', false);
 
+      const uploadedMap: { [path: string]: string } = {};
+      uploadedFiles.forEach((file, idx) => {
+        const text = textDataList[idx];
+
+        if (text) {
+          uploadedMap[file.name] = escapeBoltTags(text);
+        }
+      });
+      uploadArtifact =
+        Object.keys(uploadedMap).length > 0 ? uploadedFilesToArtifacts(uploadedMap, `uploaded-${Date.now()}`) : '';
+
       if (modifiedFiles !== undefined) {
         const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
         append({
@@ -437,7 +457,7 @@ export const ChatImpl = memo(
           content: [
             {
               type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${finalMessageContent}`,
+              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${uploadArtifact}${userUpdateArtifact}${finalMessageContent}`,
             },
             ...imageDataList.map((imageData) => ({
               type: 'image',
@@ -453,7 +473,7 @@ export const ChatImpl = memo(
           content: [
             {
               type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
+              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${uploadArtifact}${finalMessageContent}`,
             },
             ...imageDataList.map((imageData) => ({
               type: 'image',
@@ -468,6 +488,7 @@ export const ChatImpl = memo(
 
       setUploadedFiles([]);
       setImageDataList([]);
+      setTextDataList([]);
 
       resetEnhancer();
 
@@ -549,8 +570,8 @@ export const ChatImpl = memo(
             content: parsedMessages[i] || '',
           };
         })}
-        enhancePrompt={() => {
-          enhancePrompt(
+        enhancePrompt={async () => {
+          await enhancePrompt(
             input,
             (input) => {
               setInput(input);
@@ -565,6 +586,8 @@ export const ChatImpl = memo(
         setUploadedFiles={setUploadedFiles}
         imageDataList={imageDataList}
         setImageDataList={setImageDataList}
+        textDataList={textDataList}
+        setTextDataList={setTextDataList}
         actionAlert={actionAlert}
         clearAlert={() => workbenchStore.clearAlert()}
         supabaseAlert={supabaseAlert}

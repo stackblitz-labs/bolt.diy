@@ -1,4 +1,4 @@
-import { rm, existsSync } from 'fs';
+import { promises as fs, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -11,23 +11,23 @@ const dirsToRemove = ['node_modules/.vite', 'node_modules/.cache', '.cache', 'di
 
 console.log('🧹 Cleaning project...');
 
-// Remove directories
-for (const dir of dirsToRemove) {
-  const fullPath = join(__dirname, '..', dir);
+// Remove directories sequentially
+async function removeDirectories() {
+  for (const dir of dirsToRemove) {
+    const fullPath = join(__dirname, '..', dir);
 
-  try {
-    if (existsSync(fullPath)) {
-      console.log(`Removing ${dir}...`);
-      rm(fullPath, { recursive: true, force: true }, (err) => {
-        if (err) {
-          console.error(`Error removing ${dir}:`, err.message);
-        }
-      });
+    try {
+      if (existsSync(fullPath)) {
+        console.log(`Removing ${dir}...`);
+        await fs.rm(fullPath, { recursive: true, force: true });
+      }
+    } catch (err) {
+      console.error(`Error removing ${dir}:`, err.message);
     }
-  } catch (err) {
-    console.error(`Error removing ${dir}:`, err.message);
   }
 }
+
+await removeDirectories();
 
 // Run pnpm commands
 console.log('\n📦 Reinstalling dependencies...');

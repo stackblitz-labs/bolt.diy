@@ -6,6 +6,8 @@ import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import type { BoltShell } from '~/utils/shell';
+import { isFileLocked } from '~/utils/fileLocks';
+import { isFileTargeted, hasTargetedFiles } from '~/utils/targetFiles';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -304,6 +306,16 @@ export class ActionRunner {
       unreachable('Expected file action');
     }
 
+    if (isFileLocked(action.filePath).locked) {
+      logger.warn(`Skipping locked file ${action.filePath}`);
+      return;
+    }
+
+    if (hasTargetedFiles() && !isFileTargeted(action.filePath)) {
+      logger.info(`Skipping non-targeted file ${action.filePath}`);
+      return;
+    }
+
     const webcontainer = await this.#webcontainer;
     const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
 
@@ -322,6 +334,19 @@ export class ActionRunner {
     }
 
     try {
+      let existing: string | null = null;
+
+      try {
+        existing = await webcontainer.fs.readFile(relativePath, 'utf-8');
+      } catch {
+        existing = null;
+      }
+
+      if (existing !== null && existing === action.content) {
+        logger.debug(`Skipped writing ${relativePath} (no changes)`);
+        return;
+      }
+
       await webcontainer.fs.writeFile(relativePath, action.content);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
@@ -509,7 +534,7 @@ export class ActionRunner {
     details?: {
       url?: string;
       error?: string;
-      source?: 'netlify' | 'vercel' | 'github';
+      source?: 'netlify' | 'vercel' | 'cloudflare' | 'github';
     },
   ): void {
     if (!this.onDeployAlert) {

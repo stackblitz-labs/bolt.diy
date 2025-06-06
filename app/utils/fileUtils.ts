@@ -119,3 +119,19 @@ ${files[filePath].content}
 </boltArtifact>
   `;
 };
+
+export const uploadedFilesToArtifacts = (files: { [path: string]: string }, id: string): string => {
+  return `
+<boltArtifact id="${id}" title="Uploaded Files">
+${Object.keys(files)
+  .map(
+    (filePath) => `
+<boltAction type="file" filePath="${filePath}">
+${files[filePath]}
+</boltAction>
+`,
+  )
+  .join('\n')}
+</boltArtifact>
+  `;
+};

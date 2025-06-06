@@ -1,0 +1,20 @@
+[
+  {
+    "id": "lock-files",
+    "name": "File Locking",
+    "description": "Protect important files from accidental changes by locking them",
+    "releaseDate": "2024-05-01"
+  },
+  {
+    "id": "code-search",
+    "name": "Code Search",
+    "description": "Quickly search your project files using the new search bar",
+    "releaseDate": "2024-05-15"
+  },
+  {
+    "id": "vercel-deploy",
+    "name": "Vercel Deploy",
+    "description": "Deploy your project to Vercel directly from the interface",
+    "releaseDate": "2024-05-22"
+  }
+]

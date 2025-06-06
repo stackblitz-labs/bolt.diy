@@ -196,17 +196,23 @@ const getFs = (
       }
 
       try {
-        // Handle encoding properly based on data type
         if (data instanceof Uint8Array) {
-          // For binary data, don't pass encoding
-          const result = await webcontainer.fs.writeFile(relativePath, data);
-          return result;
-        } else {
-          // For text data, use the encoding if provided
-          const encoding = options?.encoding || 'utf8';
-          const result = await webcontainer.fs.writeFile(relativePath, data, encoding);
+          const existing = await webcontainer.fs.readFile(relativePath).catch(() => null);
 
-          return result;
+          if (existing && Buffer.compare(existing, data) === 0) {
+            return;
+          }
+
+          await webcontainer.fs.writeFile(relativePath, data);
+        } else {
+          const encoding = options?.encoding || 'utf8';
+          const existing = await webcontainer.fs.readFile(relativePath, encoding).catch(() => null);
+
+          if (typeof existing === 'string' && existing === data) {
+            return;
+          }
+
+          await webcontainer.fs.writeFile(relativePath, data, encoding);
         }
       } catch (error) {
         throw error;

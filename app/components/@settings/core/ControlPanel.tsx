@@ -38,6 +38,7 @@ import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/Cloud
 import ServiceStatusTab from '~/components/@settings/tabs/providers/status/ServiceStatusTab';
 import LocalProvidersTab from '~/components/@settings/tabs/providers/local/LocalProvidersTab';
 import TaskManagerTab from '~/components/@settings/tabs/task-manager/TaskManagerTab';
+import NotesTab from '~/components/@settings/tabs/notes/NotesTab';
 
 interface ControlPanelProps {
   open: boolean;
@@ -78,6 +79,7 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
   connection: 'Check connection status and settings',
   debug: 'Debug tools and system information',
   'event-logs': 'View system events and logs',
+  notes: 'Persistent notes for the AI',
   update: 'Check for updates and release notes',
   'task-manager': 'Monitor system resources and processes',
   'tab-management': 'Configure visible tabs and their order',
@@ -329,6 +331,8 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         return <DebugTab />;
       case 'event-logs':
         return <EventLogsTab />;
+      case 'notes':
+        return <NotesTab />;
       case 'update':
         return <UpdateTab />;
       case 'task-manager':

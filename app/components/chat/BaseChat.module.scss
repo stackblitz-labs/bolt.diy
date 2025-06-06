@@ -45,3 +45,33 @@
   fill: url(#shine-gradient);
   mix-blend-mode: overlay;
 }
+
+[data-prompt-enhanced='true'] .PromptEffectLine {
+  animation: prompt-line 1s ease-out;
+}
+
+[data-prompt-enhanced='true'] .PromptShine {
+  animation: prompt-shine 1s ease-out;
+}
+
+@keyframes prompt-line {
+  from {
+    stroke-dashoffset: 100;
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes prompt-shine {
+  from {
+    opacity: 0;
+    transform: translateX(-20%);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}

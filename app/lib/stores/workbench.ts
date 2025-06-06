@@ -17,6 +17,7 @@ import { extractRelativePath } from '~/utils/diff';
 import { description } from '~/lib/persistence';
 import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
+import { ACTION_STREAM_SAMPLE_INTERVAL } from '~/utils/constants';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
 const { saveAs } = fileSaver;
@@ -312,6 +313,14 @@ export class WorkbenchStore {
     return this.#filesStore.unlockFile(filePath);
   }
 
+  targetFile(filePath: string) {
+    return this.#filesStore.targetFile(filePath);
+  }
+
+  unTargetFile(filePath: string) {
+    return this.#filesStore.unTargetFile(filePath);
+  }
+
   /**
    * Unlock a folder and all its contents to allow edits
    * @param folderPath Path to the folder to unlock
@@ -328,6 +337,10 @@ export class WorkbenchStore {
    */
   isFileLocked(filePath: string) {
     return this.#filesStore.isFileLocked(filePath);
+  }
+
+  isFileTargeted(filePath: string) {
+    return this.#filesStore.isFileTargeted(filePath);
   }
 
   /**
@@ -454,7 +467,31 @@ export class WorkbenchStore {
   }
 
   abortAllActions() {
-    // TODO: what do we wanna do and how do we wanna recover from this?
+    // Reset any queued actions so nothing new runs
+    this.#globalExecutionQueue = Promise.resolve();
+
+    // Abort currently running command in the shell if there is one
+    const execution = this.boltTerminal.executionState.get();
+
+    if (execution?.active) {
+      execution.abort?.();
+
+      // Send CTRL+C to ensure the process is interrupted
+      this.boltTerminal.terminal?.input('\x03');
+    }
+
+    // Abort all actions for every artifact
+    const artifacts = this.artifacts.get();
+
+    for (const artifact of Object.values(artifacts)) {
+      const actions = artifact.runner.actions.get();
+
+      for (const action of Object.values(actions)) {
+        if (action.status === 'running' || action.status === 'pending') {
+          action.abort();
+        }
+      }
+    }
   }
 
   setReloadedMessages(messages: string[]) {
@@ -594,7 +631,7 @@ export class WorkbenchStore {
 
   actionStreamSampler = createSampler(async (data: ActionCallbackData, isStreaming: boolean = false) => {
     return await this._runAction(data, isStreaming);
-  }, 100); // TODO: remove this magic number to have it configurable
+  }, ACTION_STREAM_SAMPLE_INTERVAL);
 
   #getArtifact(id: string) {
     const artifacts = this.artifacts.get();

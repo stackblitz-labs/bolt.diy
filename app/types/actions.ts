@@ -59,7 +59,7 @@ export interface DeployAlert {
   stage?: 'building' | 'deploying' | 'complete';
   buildStatus?: 'pending' | 'running' | 'complete' | 'failed';
   deployStatus?: 'pending' | 'running' | 'complete' | 'failed';
-  source?: 'vercel' | 'netlify' | 'github';
+  source?: 'vercel' | 'netlify' | 'cloudflare' | 'github';
 }
 
 export interface FileHistory {

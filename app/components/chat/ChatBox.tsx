@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
@@ -9,9 +9,12 @@ import FilePreview from './FilePreview';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { SendButton } from './SendButton.client';
 import { IconButton } from '~/components/ui/IconButton';
+import { Tooltip } from '~/components/ui/Tooltip';
 import { toast } from 'react-toastify';
+import { extractTextFromFile } from '~/utils/fileExtract';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import { SupabaseConnection } from './SupabaseConnection';
+import { SetupWizard } from '~/components/setup/SetupWizard';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import styles from './BaseChat.module.scss';
 import type { ProviderInfo } from '~/types/model';
@@ -50,9 +53,12 @@ interface ChatBoxProps {
   setModel?: ((model: string) => void) | undefined;
   setUploadedFiles?: ((files: File[]) => void) | undefined;
   setImageDataList?: ((dataList: string[]) => void) | undefined;
+  textDataList: string[];
+  setTextDataList?: ((dataList: string[]) => void) | undefined;
   handleInputChange?: ((event: React.ChangeEvent<HTMLTextAreaElement>) => void) | undefined;
   handleStop?: (() => void) | undefined;
   enhancingPrompt?: boolean | undefined;
+  promptEnhanced?: boolean | undefined;
   enhancePrompt?: (() => void) | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
@@ -63,8 +69,20 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  useEffect(() => {
+    (window as any).__BOLT_ASK_SNIPPET__ = (code: string, lang: string) => {
+      const message = `*What does this code do?*\n\`\`\`${lang || 'plaintext'}\n${code}\n\`\`\`\n`;
+      props.handleSendMessage?.({} as any, message);
+    };
+
+    return () => {
+      delete (window as any).__BOLT_ASK_SNIPPET__;
+    };
+  }, [props.handleSendMessage]);
+
   return (
     <div
+      data-prompt-enhanced={props.promptEnhanced}
       className={classNames(
         'relative bg-bolt-elements-background-depth-2 backdrop-blur p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt',
 
@@ -134,9 +152,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       <FilePreview
         files={props.uploadedFiles}
         imageDataList={props.imageDataList}
+        textDataList={props.textDataList}
         onRemove={(index) => {
           props.setUploadedFiles?.(props.uploadedFiles.filter((_, i) => i !== index));
           props.setImageDataList?.(props.imageDataList.filter((_, i) => i !== index));
+          props.setTextDataList?.(props.textDataList.filter((_, i) => i !== index));
         }}
       />
       <ClientOnly>
@@ -192,16 +212,22 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
 
             const files = Array.from(e.dataTransfer.files);
-            files.forEach((file) => {
+            files.forEach(async (file) => {
               if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
 
-                reader.onload = (e) => {
-                  const base64Image = e.target?.result as string;
+                reader.onload = (ev) => {
+                  const base64Image = ev.target?.result as string;
                   props.setUploadedFiles?.([...props.uploadedFiles, file]);
                   props.setImageDataList?.([...props.imageDataList, base64Image]);
+                  props.setTextDataList?.([...props.textDataList, '']);
                 };
                 reader.readAsDataURL(file);
+              } else {
+                const text = await extractTextFromFile(file);
+                props.setUploadedFiles?.([...props.uploadedFiles, file]);
+                props.setImageDataList?.([...props.imageDataList, '']);
+                props.setTextDataList?.([...props.textDataList, text]);
               }
             });
           }}
@@ -263,21 +289,23 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
-            <IconButton
-              title="Enhance prompt"
-              disabled={props.input.length === 0 || props.enhancingPrompt}
-              className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
-              onClick={() => {
-                props.enhancePrompt?.();
-                toast.success('Prompt enhanced!');
-              }}
-            >
-              {props.enhancingPrompt ? (
-                <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-              ) : (
-                <div className="i-bolt:stars text-xl"></div>
-              )}
-            </IconButton>
+            <Tooltip content="Improve your prompt for better results">
+              <IconButton
+                title="Enhance prompt"
+                disabled={props.input.length === 0 || props.enhancingPrompt}
+                className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
+                onClick={() => {
+                  props.enhancePrompt?.();
+                  toast.success('Prompt enhanced!');
+                }}
+              >
+                {props.enhancingPrompt ? (
+                  <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                ) : (
+                  <div className="i-bolt:stars text-xl"></div>
+                )}
+              </IconButton>
+            </Tooltip>
 
             <SpeechRecognitionButton
               isListening={props.isListening}
@@ -285,6 +313,19 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               onStop={props.stopListening}
               disabled={props.isStreaming}
             />
+            <IconButton
+              title="Plan project in MD file"
+              className="transition-all flex items-center gap-1 px-1.5"
+              onClick={(event) =>
+                props.handleSendMessage?.(
+                  event,
+                  'Plan the project in a plan.md file with sections: Files/components needed, Data flow, Deployment plan.',
+                )
+              }
+            >
+              <div className="i-ph:map-trifold text-xl" />
+              <span>Plan</span>
+            </IconButton>
             {props.chatStarted && (
               <IconButton
                 title="Discuss"
@@ -324,6 +365,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             </div>
           ) : null}
           <SupabaseConnection />
+          <SetupWizard />
           <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
         </div>
       </div>

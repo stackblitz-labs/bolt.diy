@@ -23,6 +23,7 @@ const TAB_ICONS: Record<TabType, string> = {
   connection: 'i-ph:wifi-high-fill',
   debug: 'i-ph:bug-fill',
   'event-logs': 'i-ph:list-bullets-fill',
+  notes: 'i-ph:note-pencil',
   update: 'i-ph:arrow-clockwise-fill',
   'task-manager': 'i-ph:chart-line-fill',
   'tab-management': 'i-ph:squares-four-fill',
@@ -37,6 +38,7 @@ const DEFAULT_USER_TABS: TabType[] = [
   'connection',
   'notifications',
   'event-logs',
+  'notes',
 ];
 
 // Define which tabs can be added to user mode

@@ -2,14 +2,17 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useStore } from '@nanostores/react';
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { vercelConnection } from '~/lib/stores/vercel';
+import { cloudflareConnection } from '~/lib/stores/cloudflare';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { streamingState } from '~/lib/stores/streaming';
 import { classNames } from '~/utils/classNames';
 import { useState } from 'react';
 import { NetlifyDeploymentLink } from '~/components/chat/NetlifyDeploymentLink.client';
 import { VercelDeploymentLink } from '~/components/chat/VercelDeploymentLink.client';
+import { CloudflareDeploymentLink } from '~/components/chat/CloudflareDeploymentLink.client';
 import { useVercelDeploy } from '~/components/deploy/VercelDeploy.client';
 import { useNetlifyDeploy } from '~/components/deploy/NetlifyDeploy.client';
+import { useCloudflareDeploy } from '~/components/deploy/CloudflareDeploy.client';
 
 interface DeployButtonProps {
   onVercelDeploy?: () => Promise<void>;
@@ -19,14 +22,16 @@ interface DeployButtonProps {
 export const DeployButton = ({ onVercelDeploy, onNetlifyDeploy }: DeployButtonProps) => {
   const netlifyConn = useStore(netlifyConnection);
   const vercelConn = useStore(vercelConnection);
+  const cloudflareConn = useStore(cloudflareConnection);
   const [activePreviewIndex] = useState(0);
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployingTo, setDeployingTo] = useState<'netlify' | 'vercel' | null>(null);
+  const [deployingTo, setDeployingTo] = useState<'netlify' | 'vercel' | 'cloudflare' | null>(null);
   const isStreaming = useStore(streamingState);
   const { handleVercelDeploy } = useVercelDeploy();
   const { handleNetlifyDeploy } = useNetlifyDeploy();
+  const { handleCloudflareDeploy } = useCloudflareDeploy();
 
   const handleVercelDeployClick = async () => {
     setIsDeploying(true);
@@ -54,6 +59,18 @@ export const DeployButton = ({ onVercelDeploy, onNetlifyDeploy }: DeployButtonPr
       } else {
         await handleNetlifyDeploy();
       }
+    } finally {
+      setIsDeploying(false);
+      setDeployingTo(null);
+    }
+  };
+
+  const handleCloudflareDeployClick = async () => {
+    setIsDeploying(true);
+    setDeployingTo('cloudflare');
+
+    try {
+      await handleCloudflareDeploy();
     } finally {
       setIsDeploying(false);
       setDeployingTo(null);
@@ -126,8 +143,15 @@ export const DeployButton = ({ onVercelDeploy, onNetlifyDeploy }: DeployButtonPr
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
-            disabled
-            className="flex items-center w-full rounded-md px-4 py-2 text-sm text-bolt-elements-textTertiary gap-2 opacity-60 cursor-not-allowed"
+            className={classNames(
+              'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+              {
+                'opacity-60 cursor-not-allowed':
+                  isDeploying || !activePreview || !cloudflareConn.token || !cloudflareConn.accountId,
+              },
+            )}
+            disabled={isDeploying || !activePreview || !cloudflareConn.token || !cloudflareConn.accountId}
+            onClick={handleCloudflareDeployClick}
           >
             <img
               className="w-5 h-5"
@@ -137,7 +161,8 @@ export const DeployButton = ({ onVercelDeploy, onNetlifyDeploy }: DeployButtonPr
               src="https://cdn.simpleicons.org/cloudflare"
               alt="cloudflare"
             />
-            <span className="mx-auto">Deploy to Cloudflare (Coming Soon)</span>
+            <span className="mx-auto">{!cloudflareConn.token ? 'No Cloudflare Token' : 'Deploy to Cloudflare'}</span>
+            {cloudflareConn.token && cloudflareConn.accountId && <CloudflareDeploymentLink />}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Root>

@@ -442,6 +442,40 @@ function FileContextMenu({
     }
   };
 
+  const handleTargetFile = () => {
+    try {
+      if (isFolder) {
+        return;
+      }
+
+      const success = workbenchStore.targetFile(fullPath);
+
+      if (success) {
+        toast.success(`File targeted`);
+      }
+    } catch (error) {
+      toast.error('Error targeting file');
+      logger.error(error);
+    }
+  };
+
+  const handleUnTargetFile = () => {
+    try {
+      if (isFolder) {
+        return;
+      }
+
+      const success = workbenchStore.unTargetFile(fullPath);
+
+      if (success) {
+        toast.success(`File un-targeted`);
+      }
+    } catch (error) {
+      toast.error('Error removing target');
+      logger.error(error);
+    }
+  };
+
   // Handler for locking a folder with full lock
   const handleLockFolder = () => {
     try {
@@ -535,6 +569,18 @@ function FileContextMenu({
                     <div className="flex items-center gap-2">
                       <div className="i-ph:lock-key-open" />
                       Unlock File
+                    </div>
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={handleTargetFile}>
+                    <div className="flex items-center gap-2">
+                      <div className="i-ph:crosshair" />
+                      Target File
+                    </div>
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={handleUnTargetFile}>
+                    <div className="flex items-center gap-2">
+                      <div className="i-ph:target" />
+                      Un-target File
                     </div>
                   </ContextMenuItem>
                 </>
@@ -643,6 +689,7 @@ function File({
 
   // Check if the file is locked
   const { locked } = workbenchStore.isFileLocked(fullPath);
+  const isTargeted = workbenchStore.isFileTargeted(fullPath);
 
   const fileModifications = fileHistory[fullPath];
 
@@ -716,6 +763,7 @@ function File({
                 title={'File is locked'}
               />
             )}
+            {isTargeted && <span className="shrink-0 i-ph:crosshair text-green-500 scale-80" title="Targeted file" />}
             {unsavedChanges && <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />}
           </div>
         </div>

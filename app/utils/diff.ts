@@ -35,13 +35,8 @@ export function computeFileModifications(files: FileMap, modifiedFiles: Map<stri
 
     hasModifiedFiles = true;
 
-    if (unifiedDiff.length > file.content.length) {
-      // if there are lots of changes we simply grab the current file content since it's smaller than the diff
-      modifications[filePath] = { type: 'file', content: file.content };
-    } else {
-      // otherwise we use the diff since it's smaller
-      modifications[filePath] = { type: 'diff', content: unifiedDiff };
-    }
+    // always send a diff so that only the changed lines are rewritten
+    modifications[filePath] = { type: 'diff', content: unifiedDiff };
   }
 
   if (!hasModifiedFiles) {
@@ -59,7 +54,8 @@ export function computeFileModifications(files: FileMap, modifiedFiles: Map<stri
  * @see https://www.gnu.org/software/diffutils/manual/html_node/Unified-Format.html
  */
 export function diffFiles(fileName: string, oldFileContent: string, newFileContent: string) {
-  let unifiedDiff = createTwoFilesPatch(fileName, fileName, oldFileContent, newFileContent);
+  // use 0 lines of context to keep the diff as small as possible
+  let unifiedDiff = createTwoFilesPatch(fileName, fileName, oldFileContent, newFileContent, '', '', { context: 0 });
 
   const patchHeaderEnd = `--- ${fileName}\n+++ ${fileName}\n`;
   const headerEndIndex = unifiedDiff.indexOf(patchHeaderEnd);

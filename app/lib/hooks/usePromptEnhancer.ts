@@ -19,7 +19,7 @@ export function usePromptEnhancer() {
     model: string,
     provider: ProviderInfo,
     apiKeys?: Record<string, string>,
-  ) => {
+  ): Promise<string> => {
     setEnhancingPrompt(true);
     setPromptEnhanced(false);
 
@@ -41,11 +41,13 @@ export function usePromptEnhancer() {
     const reader = response.body?.getReader();
 
     const originalInput = input;
+    let _input = input;
 
     if (reader) {
       const decoder = new TextDecoder();
 
-      let _input = '';
+      _input = '';
+
       let _error;
 
       try {
@@ -67,6 +69,7 @@ export function usePromptEnhancer() {
       } catch (error) {
         _error = error;
         setInput(originalInput);
+        _input = originalInput;
       } finally {
         if (_error) {
           logger.error(_error);
@@ -80,6 +83,8 @@ export function usePromptEnhancer() {
         });
       }
     }
+
+    return _input;
   };
 
   return { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer };

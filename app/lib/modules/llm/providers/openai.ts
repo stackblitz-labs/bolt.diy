@@ -43,7 +43,19 @@ export default class OpenAIProvider extends BaseProvider {
       },
     });
 
-    const res = (await response.json()) as any;
+    let res: any;
+
+    try {
+      res = await response.json();
+    } catch (error) {
+      throw new Error(`Failed to parse response from ${this.name}: ${(error as Error).message}`);
+    }
+
+    if (!response.ok) {
+      const message = res?.error?.message || response.statusText;
+      throw new Error(`Failed to fetch models from ${this.name}: ${message}`);
+    }
+
     const staticModelIds = this.staticModels.map((m) => m.name);
 
     const data = res.data.filter(

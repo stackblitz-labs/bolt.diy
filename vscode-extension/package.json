@@ -1,0 +1,24 @@
+{
+  "name": "bolt-diy-git-confirmation",
+  "displayName": "Bolt.diy Git Confirmation",
+  "description": "Show git-like confirmations for file changes inside VS Code",
+  "version": "0.0.1",
+  "publisher": "bolt-diy",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "activationEvents": [
+    "onCommand:bolt.gitConfirm"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "prepublishOnly": "npm run compile"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^20.0.0",
+    "vscode": "^1.1.37"
+  }
+}

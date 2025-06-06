@@ -90,3 +90,23 @@ This implementation adds persistent file and folder locking functionality to the
 2. **Contextual Icons**: Different icons and colors for different types of alerts
 3. **Improved Error Details**: Better formatting of error details with monospace font and left border
 4. **Responsive Buttons**: Better positioned and styled buttons with appropriate hover effects
+
+# Built-in Figma Import Feature
+
+## Overview
+
+This update adds the ability to import a Figma URL directly into BoltDIY. The application fetches the Figma file and generates starter React component files for each top-level frame, creating a new chat with the generated code ready for editing.
+
+## New Files
+
+### 1. `app/utils/figmaImport.ts`
+
+- Fetches Figma files and converts frames to simple React components
+
+### 2. `app/components/figma/FigmaImport.client.tsx`
+
+- Client component that imports a Figma design using query parameters
+
+### 3. `app/routes/figma.tsx`
+
+- Route to initiate the Figma import flow

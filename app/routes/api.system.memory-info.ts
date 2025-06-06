@@ -8,8 +8,8 @@ try {
   // Check if we're in a Node.js environment
   if (typeof process !== 'undefined' && process.platform) {
     // Using dynamic import to avoid require()
-    const childProcess = { execSync: null };
-    execSync = childProcess.execSync;
+    const { execSync: importedExecSync } = await import('child_process');
+    execSync = importedExecSync;
   }
 } catch {
   // In Cloudflare environment, this will fail, which is expected

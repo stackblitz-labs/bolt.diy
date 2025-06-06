@@ -400,9 +400,12 @@ ${value.content}
 
 function navigateChat(nextId: string) {
   /**
-   * FIXME: Using the intended navigate function causes a rerender for <Chat /> that breaks the app.
+   * We intentionally avoid using Remix's `navigate` helper here.
    *
-   * `navigate(`/chat/${nextId}`, { replace: true });`
+   * Calling `navigate(`/chat/${nextId}`, { replace: true })` triggers a full
+   * route transition. That unmounts `<Chat />` which loses the in-memory chat
+   * state and results in a broken UI. Updating the history directly keeps the
+   * component mounted while still reflecting the new chat ID in the URL.
    */
   const url = new URL(window.location.href);
   url.pathname = `/chat/${nextId}`;

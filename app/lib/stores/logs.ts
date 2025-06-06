@@ -67,14 +67,29 @@ class LogStore {
   }
 
   private _loadLogs() {
-    const savedLogs = Cookies.get('eventLogs');
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    let savedLogs = localStorage.getItem('eventLogs');
+
+    // Migrate from cookies if localStorage is empty but cookie data exists
+    if (!savedLogs) {
+      const cookieLogs = Cookies.get('eventLogs');
+
+      if (cookieLogs) {
+        savedLogs = cookieLogs;
+        localStorage.setItem('eventLogs', cookieLogs);
+        Cookies.remove('eventLogs');
+      }
+    }
 
     if (savedLogs) {
       try {
         const parsedLogs = JSON.parse(savedLogs);
         this._logs.set(parsedLogs);
       } catch (error) {
-        logger.error('Failed to parse logs from cookies:', error);
+        logger.error('Failed to parse logs from storage:', error);
       }
     }
   }
@@ -97,8 +112,12 @@ class LogStore {
   }
 
   private _saveLogs() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const currentLogs = this._logs.get();
-    Cookies.set('eventLogs', JSON.stringify(currentLogs));
+    localStorage.setItem('eventLogs', JSON.stringify(currentLogs));
   }
 
   private _saveReadLogs() {
