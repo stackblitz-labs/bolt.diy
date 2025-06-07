@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist/cli",
+    "rootDir": "cli",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  },
+  "include": [
+    "cli/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "app",
+    "dist"
+  ]
+}
