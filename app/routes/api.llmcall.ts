@@ -1,13 +1,13 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { streamText } from '~/lib/.server/llm/stream-text';
-import type { IProviderSetting, ProviderInfo } from '~/types/model';
+import { streamText } from '~/shared/lib/.server/llm/stream-text';
+import type { IProviderSetting, ProviderInfo } from '~/shared/types/model';
 import { generateText } from 'ai';
-import { PROVIDER_LIST } from '~/utils/constants';
-import { MAX_TOKENS } from '~/lib/.server/llm/constants';
-import { LLMManager } from '~/lib/modules/llm/manager';
-import type { ModelInfo } from '~/lib/modules/llm/types';
-import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
-import { createScopedLogger } from '~/utils/logger';
+import { PROVIDER_LIST } from '~/shared/utils/constants';
+import { MAX_TOKENS } from '~/shared/lib/.server/llm/constants';
+import { LLMManager } from '~/shared/lib/providers/manager';
+import type { ModelInfo } from '~/shared/lib/providers/types';
+import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/shared/lib/api/cookies';
+import { createScopedLogger } from '~/shared/utils/logger';
 
 export async function action(args: ActionFunctionArgs) {
   return llmCallAction(args);

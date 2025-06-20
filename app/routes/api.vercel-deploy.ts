@@ -1,5 +1,5 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, json } from '@remix-run/cloudflare';
-import type { VercelProjectInfo } from '~/types/vercel';
+import type { VercelProjectInfo } from '~/shared/types/vercel';
 
 // Add loader function to handle GET requests
 export async function loader({ request }: LoaderFunctionArgs) {

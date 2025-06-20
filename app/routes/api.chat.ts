@@ -1,17 +1,17 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { createDataStream, generateId } from 'ai';
-import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
-import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
-import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
-import SwitchableStream from '~/lib/.server/llm/switchable-stream';
-import type { IProviderSetting } from '~/types/model';
-import { createScopedLogger } from '~/utils/logger';
-import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
-import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
-import { WORK_DIR } from '~/utils/constants';
-import { createSummary } from '~/lib/.server/llm/create-summary';
-import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
-import type { DesignScheme } from '~/types/design-scheme';
+import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/shared/lib/.server/llm/constants';
+import { CONTINUE_PROMPT } from '~/shared/lib/prompts/prompt-variants/prompts';
+import { streamText, type Messages, type StreamingOptions } from '~/shared/lib/.server/llm/stream-text';
+import SwitchableStream from '~/shared/lib/.server/llm/switchable-stream';
+import type { IProviderSetting } from '~/shared/types/model';
+import { createScopedLogger } from '~/shared/utils/logger';
+import { getFilePaths, selectContext } from '~/shared/lib/.server/llm/select-context';
+import type { ContextAnnotation, ProgressAnnotation } from '~/shared/types/context';
+import { WORK_DIR } from '~/shared/utils/constants';
+import { createSummary } from '~/shared/lib/.server/llm/create-summary';
+import { extractPropertiesFromMessage } from '~/shared/lib/.server/llm/utils';
+import type { DesignScheme } from '~/shared/types/design-scheme';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);

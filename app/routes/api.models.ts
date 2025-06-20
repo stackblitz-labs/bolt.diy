@@ -1,8 +1,8 @@
 import { json } from '@remix-run/cloudflare';
-import { LLMManager } from '~/lib/modules/llm/manager';
-import type { ModelInfo } from '~/lib/modules/llm/types';
-import type { ProviderInfo } from '~/types/model';
-import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
+import { LLMManager } from '~/shared/lib/providers/manager';
+import type { ModelInfo } from '~/shared/lib/providers/types';
+import type { ProviderInfo } from '~/shared/types/model';
+import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/shared/lib/api/cookies';
 
 interface ModelsResponse {
   modelList: ModelInfo[];

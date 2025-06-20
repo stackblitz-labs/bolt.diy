@@ -214,11 +214,87 @@ This ensures that you're running the latest version of bolt.diy and can take adv
 
 ## Adding New LLMs:
 
-To make new LLMs available to use in this version of bolt.diy, head on over to `app/utils/constants.ts` and find the constant MODEL_LIST. Each element in this array is an object that has the model ID for the name (get this from the provider's API documentation), a label for the frontend model dropdown, and the provider.
+To make new LLMs available in bolt.diy, you need to create a new provider adapter. The system uses a provider-based architecture where each LLM service is implemented as a separate adapter.
 
-By default, Anthropic, OpenAI, Groq, and Ollama are implemented as providers, but the YouTube video for this repo covers how to extend this to work with more providers if you wish!
+### Step 1: Create a New Provider Adapter
 
-When you add a new model to the MODEL_LIST array, it will immediately be available to use when you run the app locally or reload it. For Ollama models, make sure you have the model installed already before trying to use it here!
+1. Navigate to `app/shared/lib/providers/adapters/`
+2. Create a new file for your provider (e.g., `my-provider.ts`)
+3. Implement the provider class extending `BaseProvider`:
+
+```typescript
+import { BaseProvider } from '../base-provider';
+import type { ModelInfo } from '../types';
+import type { IProviderSetting } from '~/shared/types/model';
+import type { LanguageModelV1 } from 'ai';
+
+export default class MyProvider extends BaseProvider {
+  name = 'MyProvider';
+  getApiKeyLink = 'https://my-provider.com/api-keys';
+
+  config = {
+    apiTokenKey: 'MY_PROVIDER_API_KEY',
+    baseUrl: 'https://api.my-provider.com', // optional
+  };
+
+  staticModels: ModelInfo[] = [
+    { 
+      name: 'my-model-1', 
+      label: 'My Model 1', 
+      provider: 'MyProvider', 
+      maxTokenAllowed: 8000 
+    },
+    // Add more models as needed
+  ];
+
+  async getDynamicModels(
+    apiKeys?: Record<string, string>,
+    settings?: IProviderSetting,
+    serverEnv?: Record<string, string>,
+  ): Promise<ModelInfo[]> {
+    // Optional: Implement if your provider supports dynamic model discovery
+    // Return additional models fetched from the provider's API
+    return [];
+  }
+
+  getModelInstance(options: {
+    model: string;
+    serverEnv: Env;
+    apiKeys?: Record<string, string>;
+    providerSettings?: Record<string, IProviderSetting>;
+  }): LanguageModelV1 {
+    const { model, serverEnv, apiKeys, providerSettings } = options;
+    
+    const { baseUrl, apiKey } = this.getProviderBaseUrlAndKey({
+      apiKeys,
+      providerSettings: providerSettings?.[this.name],
+      serverEnv: serverEnv as any,
+      defaultBaseUrlKey: 'MY_PROVIDER_BASE_URL',
+      defaultApiTokenKey: 'MY_PROVIDER_API_KEY',
+    });
+
+    if (!apiKey) {
+      throw new Error(`Missing API key for ${this.name}`);
+    }
+
+    // Return your provider's model instance
+    // This example uses a generic OpenAI-compatible client
+    return createOpenAI({
+      baseURL: baseUrl,
+      apiKey,
+    })(model);
+  }
+}
+```
+
+  ### Step 2: Register the Provider
+  - Open app/shared/lib/providers/registry.ts
+  - Import your new provider:
+  ```typescript
+  import MyProvider from './
+  adapters/my-provider';
+  ```
+  - Add it to the exports:
 
 ---
 

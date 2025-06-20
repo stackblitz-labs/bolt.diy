@@ -1,5 +1,5 @@
 import { json, type ActionFunction } from '@remix-run/cloudflare';
-import type { SupabaseProject } from '~/types/supabase';
+import type { SupabaseProject } from '~/shared/types/supabase';
 
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== 'POST') {

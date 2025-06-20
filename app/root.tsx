@@ -2,8 +2,8 @@ import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
-import { themeStore } from './lib/stores/theme';
-import { stripIndents } from './utils/stripIndent';
+import { themeStore } from './shared/stores/theme';
+import { stripIndents } from './shared/utils/stripIndent';
 import { createHead } from 'remix-island';
 import { useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
@@ -81,7 +81,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-import { logStore } from './lib/stores/logs';
+import { logStore } from './shared/stores/logs';
 
 export default function App() {
   const theme = useStore(themeStore);

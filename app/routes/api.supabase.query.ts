@@ -1,5 +1,5 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { createScopedLogger } from '~/utils/logger';
+import { createScopedLogger } from '~/shared/utils/logger';
 
 const logger = createScopedLogger('api.supabase.query');
 

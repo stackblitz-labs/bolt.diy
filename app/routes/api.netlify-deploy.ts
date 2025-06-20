@@ -1,6 +1,6 @@
 import { type ActionFunctionArgs, json } from '@remix-run/cloudflare';
 import crypto from 'crypto';
-import type { NetlifySiteInfo } from '~/types/netlify';
+import type { NetlifySiteInfo } from '~/shared/types/netlify';
 
 interface DeployRequestBody {
   siteId?: string;
