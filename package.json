@@ -13,7 +13,7 @@
   "scripts": {
     "deploy": "npm run build && wrangler pages deploy",
     "build": "remix vite:build",
-    "dev": "node pre-start.cjs  && remix vite:dev",
+    "dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_EXTRA_CA_CERTS=C:/cert/certadmin.crt node pre-start.cjs  && remix vite:dev",
     "test": "vitest --run",
     "test:watch": "vitest",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint app",
@@ -182,6 +182,7 @@
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
     "fast-glob": "^3.3.2",
+    "http-proxy-middleware": "^3.0.5",
     "husky": "9.1.7",
     "is-ci": "^3.0.1",
     "jsdom": "^26.0.0",
