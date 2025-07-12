@@ -176,6 +176,9 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
+        <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
+          {content}
+        </Markdown>
         {toolInvocations && toolInvocations.length > 0 && (
           <ToolInvocations
             toolInvocations={toolInvocations}
@@ -183,9 +186,6 @@ export const AssistantMessage = memo(
             addToolResult={addToolResult}
           />
         )}
-        <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
-          {content}
-        </Markdown>
       </div>
     );
   },
