@@ -15,6 +15,26 @@ export default defineConfig((config) => {
     },
     build: {
       target: 'esnext',
+      rollupOptions: {
+        output: {
+          format: 'esm',
+        },
+      },
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      },
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        define: {
+          global: 'globalThis',
+        },
+      },
+    },
+    resolve: {
+      alias: {
+        buffer: 'vite-plugin-node-polyfills/polyfills/buffer',
+      },
     },
     plugins: [
       nodePolyfills({

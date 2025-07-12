@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Switch } from '~/components/ui/Switch';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { URL_CONFIGURABLE_PROVIDERS } from '~/lib/stores/settings';
-import type { IProviderConfig } from '~/types/model';
+import type { IProviderConfig, ProviderInfo } from '~/types/model';
 import { logStore } from '~/lib/stores/logs';
 import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
@@ -14,6 +14,9 @@ import { TbBrain, TbCloudComputing } from 'react-icons/tb';
 import { BiCodeBlock, BiChip } from 'react-icons/bi';
 import { FaCloud, FaBrain } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
+import { APIKeyManager, getApiKeysFromCookies } from '~/components/chat/APIKeyManager';
+import { ModelManager } from '~/components/@settings/tabs/providers/ModelManager';
+import { HeaderManager } from '~/components/@settings/tabs/providers/HeaderManager';
 
 // Add type for provider names to ensure type safety
 type ProviderName =
@@ -30,7 +33,8 @@ type ProviderName =
   | 'OpenRouter'
   | 'Perplexity'
   | 'Together'
-  | 'XAI';
+  | 'XAI'
+  | 'Portkey';
 
 // Update the PROVIDER_ICONS type to use the ProviderName type
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
@@ -48,12 +52,14 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   Perplexity: SiPerplexity,
   Together: BsCloud,
   XAI: BsRobot,
+  Portkey: BsCloud,
 };
 
 // Update PROVIDER_DESCRIPTIONS to use the same type
 const PROVIDER_DESCRIPTIONS: Partial<Record<ProviderName, string>> = {
   Anthropic: 'Access Claude and other Anthropic models',
   OpenAI: 'Use GPT-4, GPT-3.5, and other OpenAI models',
+  Portkey: 'AI gateway with custom model configuration',
 };
 
 const CloudProvidersTab = () => {
@@ -61,6 +67,13 @@ const CloudProvidersTab = () => {
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [filteredProviders, setFilteredProviders] = useState<IProviderConfig[]>([]);
   const [categoryEnabled, setCategoryEnabled] = useState<boolean>(false);
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+
+  // Load API keys from cookies on mount
+  useEffect(() => {
+    const savedApiKeys = getApiKeysFromCookies();
+    setApiKeys(savedApiKeys);
+  }, []);
 
   // Load and filter providers
   useEffect(() => {
@@ -281,6 +294,38 @@ const CloudProvidersTab = () => {
                           </div>
                         </div>
                       )}
+                    </motion.div>
+                  )}
+
+                  {/* Special Portkey configuration */}
+                  {provider.settings.enabled && provider.name === 'Portkey' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-4 space-y-4 border-t border-bolt-elements-borderColor pt-4"
+                    >
+                      {/* API Key Manager */}
+                      <APIKeyManager
+                        provider={provider as ProviderInfo}
+                        apiKey={apiKeys[provider.name] || ''}
+                        setApiKey={(key) => setApiKeys((prev) => ({ ...prev, [provider.name]: key }))}
+                      />
+
+                      {/* Model Manager */}
+                      <ModelManager
+                        provider={provider.name}
+                        settings={provider.settings}
+                        onUpdateSettings={(newSettings) => settings.updateProviderSettings(provider.name, newSettings)}
+                      />
+
+                      {/* Header Manager */}
+                      <HeaderManager
+                        provider={provider.name}
+                        settings={provider.settings}
+                        onUpdateSettings={(newSettings) => settings.updateProviderSettings(provider.name, newSettings)}
+                      />
                     </motion.div>
                   )}
                 </div>

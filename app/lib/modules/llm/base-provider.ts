@@ -119,10 +119,16 @@ export abstract class BaseProvider implements ProviderInfo {
 
 type OptionalApiKey = string | undefined;
 
-export function getOpenAILikeModel(baseURL: string, apiKey: OptionalApiKey, model: string) {
+export function getOpenAILikeModel(
+  baseURL: string,
+  apiKey: OptionalApiKey,
+  model: string,
+  customHeaders?: Record<string, string>,
+) {
   const openai = createOpenAI({
     baseURL,
     apiKey,
+    headers: customHeaders,
   });
 
   return openai(model);

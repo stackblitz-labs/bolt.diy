@@ -17,6 +17,8 @@ export type ProviderInfo = {
 export interface IProviderSetting {
   enabled?: boolean;
   baseUrl?: string;
+  customModels?: ModelInfo[];
+  customHeaders?: Record<string, string>;
 }
 
 export type IProviderConfig = ProviderInfo & {
