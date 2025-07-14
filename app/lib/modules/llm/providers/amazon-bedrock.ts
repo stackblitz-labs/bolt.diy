@@ -2,14 +2,7 @@ import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { LanguageModelV1 } from 'ai';
 import type { IProviderSetting } from '~/types/model';
-import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
-
-interface AWSBedRockConfig {
-  region: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  sessionToken?: string;
-}
+import { createAmazonBedrock, type AmazonBedrockProviderSettings } from '@ai-sdk/amazon-bedrock';
 
 export default class AmazonBedrockProvider extends BaseProvider {
   name = 'AmazonBedrock';
@@ -64,8 +57,8 @@ export default class AmazonBedrockProvider extends BaseProvider {
     },
   ];
 
-  private _parseAndValidateConfig(apiKey: string): AWSBedRockConfig {
-    let parsedConfig: AWSBedRockConfig;
+  private _parseAndValidateConfig(apiKey: string): AmazonBedrockProviderSettings {
+    let parsedConfig: AmazonBedrockProviderSettings;
 
     try {
       parsedConfig = JSON.parse(apiKey);
@@ -75,7 +68,7 @@ export default class AmazonBedrockProvider extends BaseProvider {
       );
     }
 
-    const { region, accessKeyId, secretAccessKey, sessionToken } = parsedConfig;
+    const { region, accessKeyId, secretAccessKey, sessionToken, bedrockOptions } = parsedConfig;
 
     if (!region || !accessKeyId || !secretAccessKey) {
       throw new Error(
@@ -88,6 +81,7 @@ export default class AmazonBedrockProvider extends BaseProvider {
       accessKeyId,
       secretAccessKey,
       ...(sessionToken && { sessionToken }),
+      ...(bedrockOptions && { bedrockOptions }),
     };
   }
 
