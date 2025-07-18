@@ -34,11 +34,11 @@
     "electron:build:main": "vite build --config ./electron/main/vite.config.ts",
     "electron:build:preload": "vite build --config ./electron/preload/vite.config.ts",
     "electron:build:renderer": "remix vite:build --config vite-electron.config.js",
-    "electron:build:unpack": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --dir",
-    "electron:build:mac": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mac",
-    "electron:build:win": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --win",
-    "electron:build:linux": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --linux",
-    "electron:build:dist": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mwl"
+    "electron:build:unpack": "rimraf -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --dir",
+    "electron:build:mac": "rimraf -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mac",
+    "electron:build:win": "rimraf -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --win",
+    "electron:build:linux": "rimraf -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --linux",
+    "electron:build:dist": "rimraf -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mwl"
   },
   "engines": {
     "node": ">=18.18.0"
