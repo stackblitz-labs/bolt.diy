@@ -6,6 +6,7 @@ import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import type { BoltShell } from '~/utils/shell';
+import { applyPatch } from '~/utils/diff';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -161,6 +162,10 @@ export class ActionRunner {
         }
         case 'file': {
           await this.#runFileAction(action);
+          break;
+        }
+        case 'edit': {
+          await this.#runEditAction(action);
           break;
         }
         case 'supabase': {
@@ -326,6 +331,69 @@ export class ActionRunner {
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
+    }
+  }
+
+  async #runEditAction(action: ActionState) {
+    if (action.type !== 'edit') {
+      unreachable('Expected edit action');
+    }
+
+    const webcontainer = await this.#webcontainer;
+    const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
+
+    // Check if the file exists
+    try {
+      await webcontainer.fs.readFile(relativePath, 'utf-8');
+    } catch {
+      throw new Error(`File ${relativePath} does not exist. Use 'file' action to create new files.`);
+    }
+
+    // Read the current file content
+    const currentContent = await webcontainer.fs.readFile(relativePath, 'utf-8');
+
+    logger.debug(`Applying patch to ${relativePath}`, {
+      originalLines: currentContent.split('\n').length,
+      diffContent: action.content,
+    });
+
+    // Apply the diff/patch to the current content
+    let newContent: string;
+
+    if (action.diffType === 'unified') {
+      // Handle unified diff format
+      newContent = this.#applyUnifiedDiff(currentContent, action.content);
+    } else {
+      // Handle structured diff or default to unified
+      newContent = this.#applyUnifiedDiff(currentContent, action.content);
+    }
+
+    logger.debug(`Patch applied successfully to ${relativePath}`, {
+      newLines: newContent.split('\n').length,
+      changed: newContent !== currentContent,
+      newContent,
+    });
+
+    // Write the modified content back to the file
+    try {
+      await webcontainer.fs.writeFile(relativePath, newContent);
+      logger.debug(`File edited ${relativePath}`);
+    } catch (error) {
+      logger.error('Failed to write edited file\n\n', error);
+      throw error;
+    }
+  }
+
+  #applyUnifiedDiff(originalContent: string, diffContent: string): string {
+    try {
+      // Use the existing applyPatch utility from utils/diff
+      const result = applyPatch(originalContent, diffContent);
+
+      // applyPatch now always returns a string (original content if it fails)
+      return result;
+    } catch (error) {
+      logger.error('Failed to apply diff patch\n\n', error);
+      throw new Error(`Failed to apply diff patch: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
