@@ -10,6 +10,19 @@ dotenv.config();
 
 export default defineConfig((config) => {
   return {
+    server: {
+      host: '0.0.0.0',
+      port: 5173,
+      hmr: {
+        host: 'bolt.openweb.live',
+        protocol: 'wss'
+      },
+      headers: {
+        'Cross-Origin-Embedder-Policy': 'credentialless',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+      },
+      allowedHosts: ['bolt.openweb.live', 'localhost']
+    },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },

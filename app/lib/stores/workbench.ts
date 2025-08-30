@@ -223,10 +223,13 @@ export class WorkbenchStore {
   }
 
   async saveFile(filePath: string) {
+    console.log(`[WorkbenchStore] saveFile called for: ${filePath}`);
+
     const documents = this.#editorStore.documents.get();
     const document = documents[filePath];
 
     if (document === undefined) {
+      console.warn(`[WorkbenchStore] No document found for: ${filePath}`);
       return;
     }
 
@@ -236,21 +239,39 @@ export class WorkbenchStore {
      * This is a more complex feature that would be implemented in a future update
      */
 
-    await this.#filesStore.saveFile(filePath, document.value);
+    try {
+      console.log(`[WorkbenchStore] Saving to file system: ${filePath}`);
+      await this.#filesStore.saveFile(filePath, document.value);
+      console.log(`[WorkbenchStore] File saved successfully: ${filePath}`);
 
-    const newUnsavedFiles = new Set(this.unsavedFiles.get());
-    newUnsavedFiles.delete(filePath);
+      const newUnsavedFiles = new Set(this.unsavedFiles.get());
+      const wasUnsaved = newUnsavedFiles.has(filePath);
+      newUnsavedFiles.delete(filePath);
 
-    this.unsavedFiles.set(newUnsavedFiles);
+      console.log(`[WorkbenchStore] Updating unsaved files:`, {
+        filePath,
+        wasUnsaved,
+        previousCount: this.unsavedFiles.get().size,
+        newCount: newUnsavedFiles.size,
+        remainingFiles: Array.from(newUnsavedFiles),
+      });
+
+      this.unsavedFiles.set(newUnsavedFiles);
+    } catch (error) {
+      console.error(`[WorkbenchStore] Failed to save file ${filePath}:`, error);
+      throw error;
+    }
   }
 
   async saveCurrentDocument() {
     const currentDocument = this.currentDocument.get();
 
     if (currentDocument === undefined) {
+      console.warn('[WorkbenchStore] No current document to save');
       return;
     }
 
+    console.log(`[WorkbenchStore] Saving current document: ${currentDocument.filePath}`);
     await this.saveFile(currentDocument.filePath);
   }
 
@@ -272,9 +293,14 @@ export class WorkbenchStore {
   }
 
   async saveAllFiles() {
-    for (const filePath of this.unsavedFiles.get()) {
+    const filesToSave = Array.from(this.unsavedFiles.get());
+    console.log(`[WorkbenchStore] saveAllFiles called for ${filesToSave.length} files:`, filesToSave);
+
+    for (const filePath of filesToSave) {
       await this.saveFile(filePath);
     }
+
+    console.log('[WorkbenchStore] saveAllFiles complete. Remaining unsaved:', Array.from(this.unsavedFiles.get()));
   }
 
   getFileModifcations() {
