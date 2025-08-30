@@ -1,0 +1,30 @@
+# Code Owners for bolt.diy
+# These users/teams will automatically be requested for review when files are modified
+
+# Global ownership - repository maintainers
+* @stackblitz-labs/bolt-maintainers
+
+# GitHub workflows and CI/CD configuration - require maintainer review
+/.github/ @stackblitz-labs/bolt-maintainers
+/package.json @stackblitz-labs/bolt-maintainers
+/pnpm-lock.yaml @stackblitz-labs/bolt-maintainers
+
+# Security-sensitive configurations - require maintainer review
+/.env* @stackblitz-labs/bolt-maintainers
+/wrangler.toml @stackblitz-labs/bolt-maintainers  
+/Dockerfile @stackblitz-labs/bolt-maintainers
+/docker-compose.yaml @stackblitz-labs/bolt-maintainers
+
+# Core application architecture - require maintainer review
+/app/lib/.server/ @stackblitz-labs/bolt-maintainers
+/app/routes/api.* @stackblitz-labs/bolt-maintainers
+
+# Build and deployment configuration - require maintainer review
+/vite*.config.ts @stackblitz-labs/bolt-maintainers
+/tsconfig.json @stackblitz-labs/bolt-maintainers
+/uno.config.ts @stackblitz-labs/bolt-maintainers
+/eslint.config.mjs @stackblitz-labs/bolt-maintainers
+
+# Documentation (optional review)
+/*.md
+/docs/

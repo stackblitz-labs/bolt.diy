@@ -26,12 +26,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.18.0'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: latest
+          version: '9.14.4'
           run_install: false
 
       - name: Get pnpm store directory

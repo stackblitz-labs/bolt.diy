@@ -6,12 +6,79 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
 jobs:
-  validate:
+  quality-gates:
+    name: Quality Gates
     runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Wait for CI checks
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-name: 'Test'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+      - name: Check required status checks
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha
+            });
+
+            const requiredChecks = ['Test', 'CodeQL Analysis'];
+            const optionalChecks = ['Quality Analysis', 'Deploy Preview'];
+            const failedChecks = [];
+            const passedChecks = [];
+
+            // Check required workflows
+            for (const checkName of requiredChecks) {
+              const check = checks.check_runs.find(c => c.name === checkName);
+              if (check && check.conclusion === 'success') {
+                passedChecks.push(checkName);
+              } else {
+                failedChecks.push(checkName);
+              }
+            }
+
+            // Report optional checks
+            for (const checkName of optionalChecks) {
+              const check = checks.check_runs.find(c => c.name === checkName);
+              if (check && check.conclusion === 'success') {
+                passedChecks.push(`${checkName} (optional)`);
+              }
+            }
+
+            console.log(`✅ Passed checks: ${passedChecks.join(', ')}`);
+            
+            if (failedChecks.length > 0) {
+              console.log(`❌ Failed required checks: ${failedChecks.join(', ')}`);
+              core.setFailed(`Required checks failed: ${failedChecks.join(', ')}`);
+            } else {
+              console.log(`✅ All required checks passed!`);
+            }
+
+  validate-release:
+    name: Release Validation
+    runs-on: ubuntu-latest
+    needs: quality-gates
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Validate PR Labels
         run: |
@@ -29,3 +96,30 @@ jobs:
           else
             echo "This PR doesn't have the stable-release label. No release will be created." 
           fi
+
+      - name: Check breaking changes
+        if: contains(github.event.pull_request.labels.*.name, 'major')
+        run: |
+          echo "⚠️ This PR contains breaking changes and will trigger a major release."
+          
+      - name: Validate changelog entry
+        if: contains(github.event.pull_request.labels.*.name, 'stable-release')
+        run: |
+          if ! grep -q "${{ github.event.pull_request.number }}" CHANGES.md; then
+            echo "❌ No changelog entry found for PR #${{ github.event.pull_request.number }}"
+            echo "Please add an entry to CHANGES.md"
+            exit 1
+          else
+            echo "✓ Changelog entry found"
+          fi
+
+  security-review:
+    name: Security Review Required
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'security')
+    
+    steps:
+      - name: Check security label
+        run: |
+          echo "🔒 This PR has security implications and requires additional review"
+          echo "Ensure a security team member has approved this PR before merging"

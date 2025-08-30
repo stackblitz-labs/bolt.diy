@@ -4,11 +4,11 @@ inputs:
   pnpm-version:
     required: false
     type: string
-    default: '9.4.0'
+    default: '9.14.4'
   node-version:
     required: false
     type: string
-    default: '20.15.1'
+    default: '20.18.0'
 
 runs:
   using: composite
