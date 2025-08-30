@@ -99,7 +99,11 @@ ANTHROPIC_API_KEY=XXX
 
 Once you've set your keys, you can proceed with running the app. You will set these keys up during the initial setup, and you can revisit and update them later after the app is running.
 
-**Note**: Never commit your `.env.local` file to version control. It’s already included in the `.gitignore`.
+**Important for Docker users**: Docker Compose needs a `.env` file for variable substitution. After creating `.env.local`:
+- Run `./scripts/setup-env.sh` to automatically sync the files, or  
+- Manually copy: `cp .env.local .env`
+
+**Note**: Never commit your `.env.local` or `.env` files to version control. They're already included in the `.gitignore`.
 
 #### 2. Configure API Keys Directly in the Application
 
