@@ -22,7 +22,7 @@ import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
 import useViewport from '~/lib/hooks';
-
+import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { usePreviewStore } from '~/lib/stores/previews';
 import { chatStore } from '~/lib/stores/chat';
@@ -279,18 +279,46 @@ const FileModifiedDropdown = memo(
 );
 
 export const Workbench = memo(
-  ({
-    chatStarted,
-    isStreaming,
-    metadata: _metadata,
-    updateChatMestaData: _updateChatMestaData,
-    setSelectedElement,
-  }: WorkspaceProps) => {
+  ({ chatStarted, isStreaming, metadata, updateChatMestaData, setSelectedElement }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
     const [isSyncing, setIsSyncing] = useState(false);
-
+    const [isPushDialogOpen, setIsPushDialogOpen] = useState(false);
     const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
+
+    // Keyboard shortcut for Save All (Ctrl+Shift+S)
+    useEffect(() => {
+      const handleKeyPress = async (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 's') {
+          e.preventDefault();
+
+          const unsavedFiles = workbenchStore.unsavedFiles.get();
+
+          if (unsavedFiles.size > 0) {
+            try {
+              await workbenchStore.saveAllFiles();
+              toast.success(`Saved ${unsavedFiles.size} file${unsavedFiles.size > 1 ? 's' : ''}`, {
+                position: 'bottom-right',
+                autoClose: 2000,
+              });
+            } catch {
+              toast.error('Failed to save some files', {
+                position: 'bottom-right',
+                autoClose: 3000,
+              });
+            }
+          } else {
+            toast.info('All files are already saved', {
+              position: 'bottom-right',
+              autoClose: 2000,
+            });
+          }
+        }
+      };
+      window.addEventListener('keydown', handleKeyPress);
+
+      return () => window.removeEventListener('keydown', handleKeyPress);
+    }, []);
 
     // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
 
@@ -356,8 +384,8 @@ export const Workbench = memo(
         const directoryHandle = await window.showDirectoryPicker();
         await workbenchStore.syncFiles(directoryHandle);
         toast.success('Files synced successfully');
-      } catch (error) {
-        console.error('Error syncing files:', error);
+      } catch {
+        console.error('Error syncing files');
         toast.error('Failed to sync files');
       } finally {
         setIsSyncing(false);
@@ -406,6 +434,42 @@ export const Workbench = memo(
                     <div className="flex overflow-y-auto">
                       <PanelHeaderButton
                         className="mr-1 text-sm"
+                        onClick={async () => {
+                          console.log('[SaveAll] Button clicked');
+
+                          const unsavedFiles = workbenchStore.unsavedFiles.get();
+                          console.log('[SaveAll] Unsaved files:', Array.from(unsavedFiles));
+
+                          if (unsavedFiles.size > 0) {
+                            try {
+                              console.log('[SaveAll] Starting save...');
+                              await workbenchStore.saveAllFiles();
+                              toast.success(`Saved ${unsavedFiles.size} file${unsavedFiles.size > 1 ? 's' : ''}`, {
+                                position: 'bottom-right',
+                                autoClose: 2000,
+                              });
+                              console.log('[SaveAll] Save successful');
+                            } catch {
+                              console.error('[SaveAll] Save failed');
+                              toast.error('Failed to save files', {
+                                position: 'bottom-right',
+                                autoClose: 3000,
+                              });
+                            }
+                          } else {
+                            console.log('[SaveAll] No unsaved files');
+                            toast.info('All files are already saved', {
+                              position: 'bottom-right',
+                              autoClose: 2000,
+                            });
+                          }
+                        }}
+                      >
+                        <div className="i-ph:floppy-disk" />
+                        Save All
+                      </PanelHeaderButton>
+                      <PanelHeaderButton
+                        className="mr-1 text-sm"
                         onClick={() => {
                           workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
                         }}
@@ -440,6 +504,17 @@ export const Workbench = memo(
                             <div className="flex items-center gap-2">
                               {isSyncing ? <div className="i-ph:spinner" /> : <div className="i-ph:cloud-arrow-down" />}
                               <span>{isSyncing ? 'Syncing...' : 'Sync Files'}</span>
+                            </div>
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            className={classNames(
+                              'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                            )}
+                            onClick={() => setIsPushDialogOpen(true)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="i-ph:git-branch" />
+                              Push to GitHub
                             </div>
                           </DropdownMenu.Item>
                         </DropdownMenu.Content>
@@ -488,6 +563,31 @@ export const Workbench = memo(
               </div>
             </div>
           </div>
+          <PushToGitHubDialog
+            isOpen={isPushDialogOpen}
+            onClose={() => setIsPushDialogOpen(false)}
+            onPush={async (repoName, username, token, isPrivate) => {
+              try {
+                console.log('Dialog onPush called with isPrivate =', isPrivate);
+
+                const commitMessage = prompt('Please enter a commit message:', 'Initial commit') || 'Initial commit';
+                const repoUrl = await workbenchStore.pushToGitHub(repoName, commitMessage, username, token, isPrivate);
+
+                if (updateChatMestaData && !metadata?.gitUrl) {
+                  updateChatMestaData({
+                    ...(metadata || {}),
+                    gitUrl: repoUrl,
+                  });
+                }
+
+                return repoUrl;
+              } catch {
+                console.error('Error pushing to GitHub');
+                toast.error('Failed to push to GitHub');
+                throw new Error('Failed to push to GitHub');
+              }
+            }}
+          />
         </motion.div>
       )
     );

@@ -72,6 +72,7 @@ function cleanEscapedTags(content: string) {
 }
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();
+  #artifactCounter = 0;
 
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
@@ -300,6 +301,69 @@ export class StreamingMessageParser {
           break;
         }
       } else {
+        // Check for code blocks outside of artifacts
+        if (!state.insideArtifact && input[i] === '`' && input[i + 1] === '`' && input[i + 2] === '`') {
+          // Find the end of the code block
+          const languageEnd = input.indexOf('\n', i + 3);
+
+          if (languageEnd !== -1) {
+            const codeBlockEnd = input.indexOf('\n```', languageEnd + 1);
+
+            if (codeBlockEnd !== -1) {
+              // Extract language and code content
+              const language = input.slice(i + 3, languageEnd).trim();
+              const codeContent = input.slice(languageEnd + 1, codeBlockEnd);
+
+              // Determine file extension based on language
+              const fileExtension = this.#getFileExtension(language);
+              const fileName = `code_${++this.#artifactCounter}${fileExtension}`;
+
+              // Auto-generate artifact and action tags
+              const artifactId = `artifact_${Date.now()}_${this.#artifactCounter}`;
+              const autoArtifact = {
+                id: artifactId,
+                title: fileName,
+                type: 'code',
+              };
+
+              // Emit artifact open callback
+              this._options.callbacks?.onArtifactOpen?.({ messageId, ...autoArtifact });
+
+              // Add artifact element to output
+              const artifactFactory = this._options.artifactElement ?? createArtifactElement;
+              output += artifactFactory({ messageId });
+
+              // Emit action for file creation
+              const fileAction = {
+                type: 'file' as const,
+                filePath: fileName,
+                content: codeContent + '\n',
+              };
+
+              this._options.callbacks?.onActionOpen?.({
+                artifactId,
+                messageId,
+                actionId: String(state.actionId++),
+                action: fileAction,
+              });
+
+              this._options.callbacks?.onActionClose?.({
+                artifactId,
+                messageId,
+                actionId: String(state.actionId - 1),
+                action: fileAction,
+              });
+
+              // Emit artifact close callback
+              this._options.callbacks?.onArtifactClose?.({ messageId, ...autoArtifact });
+
+              // Move position past the code block
+              i = codeBlockEnd + 4; // +4 for \n```
+              continue;
+            }
+          }
+        }
+
         output += input[i];
         i++;
       }
@@ -366,6 +430,78 @@ export class StreamingMessageParser {
   #extractAttribute(tag: string, attributeName: string): string | undefined {
     const match = tag.match(new RegExp(`${attributeName}="([^"]*)"`, 'i'));
     return match ? match[1] : undefined;
+  }
+
+  #getFileExtension(language: string): string {
+    const languageMap: Record<string, string> = {
+      javascript: '.js',
+      js: '.js',
+      typescript: '.ts',
+      ts: '.ts',
+      jsx: '.jsx',
+      tsx: '.tsx',
+      python: '.py',
+      py: '.py',
+      java: '.java',
+      c: '.c',
+      cpp: '.cpp',
+      'c++': '.cpp',
+      csharp: '.cs',
+      'c#': '.cs',
+      php: '.php',
+      ruby: '.rb',
+      rb: '.rb',
+      go: '.go',
+      rust: '.rs',
+      rs: '.rs',
+      kotlin: '.kt',
+      kt: '.kt',
+      swift: '.swift',
+      html: '.html',
+      css: '.css',
+      scss: '.scss',
+      sass: '.sass',
+      less: '.less',
+      xml: '.xml',
+      json: '.json',
+      yaml: '.yaml',
+      yml: '.yml',
+      toml: '.toml',
+      markdown: '.md',
+      md: '.md',
+      sql: '.sql',
+      sh: '.sh',
+      bash: '.sh',
+      zsh: '.sh',
+      fish: '.fish',
+      powershell: '.ps1',
+      ps1: '.ps1',
+      dockerfile: '.dockerfile',
+      docker: '.dockerfile',
+      makefile: '.makefile',
+      make: '.makefile',
+      vim: '.vim',
+      lua: '.lua',
+      perl: '.pl',
+      r: '.r',
+      matlab: '.m',
+      julia: '.jl',
+      scala: '.scala',
+      clojure: '.clj',
+      haskell: '.hs',
+      erlang: '.erl',
+      elixir: '.ex',
+      nim: '.nim',
+      crystal: '.cr',
+      dart: '.dart',
+      vue: '.vue',
+      svelte: '.svelte',
+      astro: '.astro',
+    };
+
+    const normalized = language.toLowerCase();
+
+    return languageMap[normalized] || '.txt';
   }
 }
 
