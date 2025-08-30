@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { streamingState } from '~/lib/stores/streaming';
 import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
 import { useChatHistory } from '~/lib/persistence';
-import { DeployButton } from '~/components/deploy/DeployButton';
+import { EnhancedDeployButton } from '~/components/deploy/EnhancedDeployButton';
 
 interface HeaderActionButtonsProps {
   chatStarted: boolean;
@@ -22,7 +22,7 @@ export function HeaderActionButtons({ chatStarted }: HeaderActionButtonsProps) {
   return (
     <div className="flex items-center">
       {chatStarted && shouldShowButtons && <ExportChatButton exportChat={exportChat} />}
-      {shouldShowButtons && <DeployButton />}
+      {shouldShowButtons && <EnhancedDeployButton />}
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import type { LanguageModelV1 } from 'ai';
 import type { IProviderSetting } from '~/types/model';
+import type { LanguageModelV1 } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 
-export default class AnthropicProvider extends BaseProvider {
+export class AnthropicProvider extends BaseProvider {
   name = 'Anthropic';
   getApiKeyLink = 'https://console.anthropic.com/settings/keys';
 
@@ -17,6 +17,27 @@ export default class AnthropicProvider extends BaseProvider {
      * Essential fallback models - only the most stable/reliable ones
      * Claude 3.5 Sonnet: 200k context, excellent for complex reasoning and coding
      */
+    {
+      name: 'claude-sonnet-4-20250514',
+      label: 'Claude Sonnet 4',
+      provider: 'Anthropic',
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 128000,
+    },
+    {
+      name: 'claude-opus-4-1-20250805',
+      label: 'Claude Opus 4.1',
+      provider: 'Anthropic',
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 128000,
+    },
+    {
+      name: 'claude-3-7-sonnet-20250219',
+      label: 'Claude 3.7 Sonnet',
+      provider: 'Anthropic',
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 128000,
+    },
     {
       name: 'claude-3-5-sonnet-20241022',
       label: 'Claude 3.5 Sonnet',
@@ -55,7 +76,8 @@ export default class AnthropicProvider extends BaseProvider {
     const response = await fetch(`https://api.anthropic.com/v1/models`, {
       headers: {
         'x-api-key': `${apiKey}`,
-        'anthropic-version': '2023-06-01',
+        ['anthropic-version']: '2023-06-01',
+        ['Content-Type']: 'application/json',
       },
     });
 
@@ -97,17 +119,22 @@ export default class AnthropicProvider extends BaseProvider {
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
   }) => LanguageModelV1 = (options) => {
-    const { apiKeys, providerSettings, serverEnv, model } = options;
-    const { apiKey } = this.getProviderBaseUrlAndKey({
+    const { model, serverEnv, apiKeys, providerSettings } = options;
+    const { apiKey, baseUrl } = this.getProviderBaseUrlAndKey({
       apiKeys,
-      providerSettings,
+      providerSettings: providerSettings?.[this.name],
       serverEnv: serverEnv as any,
       defaultBaseUrlKey: '',
       defaultApiTokenKey: 'ANTHROPIC_API_KEY',
     });
+
+    if (!apiKey) {
+      throw `Missing API key for ${this.name} provider`;
+    }
+
     const anthropic = createAnthropic({
       apiKey,
-      headers: { 'anthropic-beta': 'output-128k-2025-02-19' },
+      baseURL: baseUrl || 'https://api.anthropic.com/v1',
     });
 
     return anthropic(model);
