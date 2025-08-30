@@ -1,7 +1,7 @@
 import type { WebContainer, WebContainerProcess } from '@webcontainer/api';
 import { atom, type WritableAtom } from 'nanostores';
 import type { ITerminal } from '~/types/terminal';
-import { newBoltShellProcess, newShellProcess } from '~/utils/shell';
+import { newBoltShellProcess, newShellProcess, terminalErrorAtom } from '~/utils/shell';
 import { coloredText } from '~/utils/terminal';
 
 export class TerminalStore {
@@ -10,6 +10,7 @@ export class TerminalStore {
   #boltTerminal = newBoltShellProcess();
 
   showTerminal: WritableAtom<boolean> = import.meta.hot?.data.showTerminal ?? atom(true);
+  errorAtom = terminalErrorAtom;
 
   constructor(webcontainerPromise: Promise<WebContainer>) {
     this.#webcontainer = webcontainerPromise;
@@ -25,19 +26,29 @@ export class TerminalStore {
   toggleTerminal(value?: boolean) {
     this.showTerminal.set(value !== undefined ? value : !this.showTerminal.get());
   }
-  async attachBoltTerminal(terminal: ITerminal) {
+
+  // Allow subscribing to terminal errors
+  onError(callback: (msg: string) => void) {
+    return terminalErrorAtom.subscribe((err) => {
+      if (err) {
+        callback(err);
+      }
+    });
+  }
+
+  async attachBoltTerminal(terminal: ITerminal, onError?: (msg: string) => void) {
     try {
       const wc = await this.#webcontainer;
-      await this.#boltTerminal.init(wc, terminal);
+      await this.#boltTerminal.init(wc, terminal, onError);
     } catch (error: any) {
       terminal.write(coloredText.red('Failed to spawn bolt shell\n\n') + error.message);
       return;
     }
   }
 
-  async attachTerminal(terminal: ITerminal) {
+  async attachTerminal(terminal: ITerminal, onError?: (msg: string) => void) {
     try {
-      const shellProcess = await newShellProcess(await this.#webcontainer, terminal);
+      const shellProcess = await newShellProcess(await this.#webcontainer, terminal, onError);
       this.#terminals.push({ terminal, process: shellProcess });
     } catch (error: any) {
       terminal.write(coloredText.red('Failed to spawn shell\n\n') + error.message);

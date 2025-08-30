@@ -4,7 +4,28 @@ import { withResolvers } from './promises';
 import { atom } from 'nanostores';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 
-export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
+// Atom to store the last terminal error message
+export const terminalErrorAtom = atom<string | null>(null);
+
+// Helper to detect error output
+function detectTerminalError(data: string): string | null {
+  // Simple heuristics for npm and runtime errors
+  if (
+    /npm ERR!|npm error|Error:|failed|Failed|UnhandledPromiseRejection|Traceback|Exception|Cannot find module|Module not found|SyntaxError|TypeError|ReferenceError|Segmentation fault|EADDRINUSE|ECONNREFUSED|EACCES|EPIPE|ENOSPC|FATAL|panic/i.test(
+      data,
+    )
+  ) {
+    return data;
+  }
+
+  return null;
+}
+
+export async function newShellProcess(
+  webcontainer: WebContainer,
+  terminal: ITerminal,
+  onError?: (msg: string) => void,
+) {
   const args: string[] = [];
 
   // we spawn a JSH process with a fallback cols and rows in case the process is not attached yet to a visible terminal
@@ -35,6 +56,17 @@ export async function newShellProcess(webcontainer: WebContainer, terminal: ITer
           }
         }
 
+        // Error detection
+        const err = detectTerminalError(data);
+
+        if (err) {
+          terminalErrorAtom.set(err);
+
+          if (onError) {
+            onError(err);
+          }
+        }
+
         terminal.write(data);
       },
     }),
@@ -60,6 +92,7 @@ export class BoltShell {
   #readyPromise: Promise<void>;
   #webcontainer: WebContainer | undefined;
   #terminal: ITerminal | undefined;
+  onError?: (msg: string) => void;
   #process: WebContainerProcess | undefined;
   executionState = atom<
     { sessionId: string; active: boolean; executionPrms?: Promise<any>; abort?: () => void } | undefined
@@ -77,12 +110,13 @@ export class BoltShell {
     return this.#readyPromise;
   }
 
-  async init(webcontainer: WebContainer, terminal: ITerminal) {
+  async init(webcontainer: WebContainer, terminal: ITerminal, onError?: (msg: string) => void) {
     this.#webcontainer = webcontainer;
     this.#terminal = terminal;
+    this.onError = onError;
 
     // Use all three streams from tee: one for terminal, one for command execution, one for Expo URL detection
-    const { process, commandStream, expoUrlStream } = await this.newBoltShellProcess(webcontainer, terminal);
+    const { process, commandStream, expoUrlStream } = await this.newBoltShellProcess(webcontainer, terminal, onError);
     this.#process = process;
     this.#outputStream = commandStream.getReader();
 
@@ -93,7 +127,7 @@ export class BoltShell {
     this.#initialized?.();
   }
 
-  async newBoltShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
+  async newBoltShellProcess(webcontainer: WebContainer, terminal: ITerminal, onError?: (msg: string) => void) {
     const args: string[] = [];
     const process = await webcontainer.spawn('/bin/jsh', ['--osc', ...args], {
       terminal: {
@@ -120,6 +154,17 @@ export class BoltShell {
             if (osc === 'interactive') {
               isInteractive = true;
               jshReady.resolve();
+            }
+          }
+
+          // Error detection
+          const err = detectTerminalError(data);
+
+          if (err) {
+            terminalErrorAtom.set(err);
+
+            if (onError) {
+              onError(err);
             }
           }
 
@@ -273,6 +318,14 @@ export class BoltShell {
 
       if (osc === 'exit') {
         exitCode = parseInt(code, 10);
+
+        // Only call this.onError if an error is detected
+        const err = detectTerminalError(fullOutput);
+        terminalErrorAtom.set(fullOutput);
+
+        if (err && typeof this.onError === 'function') {
+          this.onError(err);
+        }
       }
 
       if (osc === waitCode) {
