@@ -105,14 +105,14 @@ export const ToolInvocations = memo(({ toolInvocations, toolCallAnnotations, add
     <div className="tool-invocation border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150">
       <div className="flex">
         <button
-          className="flex items-stretch bg-bolt-elements-artifacts-background hover:bg-bolt-elements-artifacts-backgroundHover w-full overflow-hidden"
+          className="flex items-stretch bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-artifacts-backgroundHover w-full overflow-hidden"
           onClick={toggleDetails}
           aria-label={showDetails ? 'Collapse details' : 'Expand details'}
         >
           <div className="p-2.5">
             <div className="i-ph:wrench text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"></div>
           </div>
-          <div className="border-l border-bolt-elements-borderColor p-2.5 w-full text-left">
+          <div className="p-2.5 w-full text-left">
             <div className="w-full text-bolt-elements-textPrimary font-medium leading-5 text-sm">
               MCP Tool Invocations{' '}
               {hasToolResults && (
@@ -153,7 +153,7 @@ export const ToolInvocations = memo(({ toolInvocations, toolCallAnnotations, add
           >
             <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
 
-            <div className="px-3 py-3 text-left bg-bolt-elements-actions-background">
+            <div className="px-3 py-3 text-left bg-bolt-elements-background-depth-2">
               <ToolCallsList
                 toolInvocations={toolCalls}
                 toolCallAnnotations={toolCallAnnotations}
@@ -273,18 +273,11 @@ interface ToolCallsListProps {
   theme: Theme;
 }
 
-const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResult, theme }: ToolCallsListProps) => {
+const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolCallsListProps) => {
   const [expanded, setExpanded] = useState<{ [id: string]: boolean }>({});
 
   // OS detection for shortcut display
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-
-  const toggleExpand = (toolCallId: string) => {
-    setExpanded((prev) => ({
-      ...prev,
-      [toolCallId]: !prev[toolCallId],
-    }));
-  };
 
   useEffect(() => {
     const expandedState: { [id: string]: boolean } = {};
@@ -360,51 +353,20 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
               animate="visible"
               transition={{ duration: 0.2, ease: cubicEasingFn }}
             >
-              <div className="">
-                <div key={toolCallId} className="flex flex-col gap-1">
-                  <div className="flex items-center text-bolt-elements-textSecondary font-semibold text-sm">
-                    <button
-                      onClick={() => toggleExpand(toolCallId)}
-                      className="mr-1 focus:outline-none bg-transparent"
-                      aria-label={expanded[toolCallId] ? 'Collapse' : 'Expand'}
-                      tabIndex={0}
-                      type="button"
-                    >
-                      <span
-                        className={`i-ph:caret-down-bold inline-block transition-transform duration-150 ${expanded[toolCallId] ? '' : '-rotate-90'}`}
-                      />
-                    </button>
-                    Calling MCP tool{' '}
-                    <span className="ml-0.5 font-light font-mono text-bolt-elements-textPrimary bg-bolt-elements-background-depth-3 px-1.5 py-0.5 rounded-md">
+              <div className="bg-bolt-elements-background-depth-3 rounded-lg p-2">
+                <div key={toolCallId} className="flex gap-1">
+                  <div className="flex flex-col items-center ">
+                    <span className="mr-auto font-light font-normal text-md text-bolt-elements-textPrimary rounded-md">
                       {toolName}
                     </span>
+                    <span className="text-xs text-bolt-elements-textSecondary font-light break-words max-w-64">
+                      {annotation?.toolDescription}
+                    </span>
                   </div>
-                  {expanded[toolCallId] && (
-                    <div className="flex gap-3">
-                      <div className="w-[0.1px] min-h-[40px] bg-bolt-elements-background-depth-3 ml-1.5" />
-                      <div className="flex flex-col gap-1 w-full">
-                        <div className="text-bolt-elements-textSecondary text-xs mb-1">
-                          Description:{' '}
-                          <span className="text-bolt-elements-textPrimary font-semibold">
-                            {annotation?.toolDescription}
-                          </span>
-                        </div>
-                        <div className="flex w-full items-stretch space-x-2">
-                          <div className="w-full rounded-md bg-bolt-elements-background-depth-3 p-3 ml-0 border-l-2 border-bolt-elements-borderColor">
-                            <JsonCodeBlock
-                              className="mb-0"
-                              code={JSON.stringify(tool.toolInvocation.args, null, 2)}
-                              theme={theme}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex justify-end gap-2 pt-2.5">
+                  <div className="flex items-center justify-end gap-2 ml-auto">
                     <button
                       className={classNames(
-                        'px-2.5 py-1.5 rounded-lg text-xs',
+                        'h-10 px-2.5 py-1.5 rounded-lg text-xs h-auto',
                         'bg-transparent',
                         'text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary',
                         'transition-all duration-200',
@@ -421,9 +383,9 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                     </button>
                     <button
                       className={classNames(
-                        'inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-normal rounded-lg transition-colors',
-                        'bg-accent-500 hover:bg-accent-600',
-                        'text-black',
+                        'h-10 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-normal rounded-lg transition-colors',
+                        'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
+                        'text-accent-500 hover:text-bolt-elements-textPrimary',
                         'disabled:opacity-50 disabled:cursor-not-allowed',
                       )}
                       onClick={() =>
