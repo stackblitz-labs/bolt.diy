@@ -73,7 +73,7 @@ export function createFilesContext(files: FileMap, useRelativePath?: boolean) {
 
       const codeWithLinesNumbers = dirent.content
         .split('\n')
-        // .map((v, i) => `${i + 1}|${v}`)
+        .map((v, i) => `${i + 1}|${v}`)
         .join('\n');
 
       let filePath = path;

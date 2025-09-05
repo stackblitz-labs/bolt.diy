@@ -1,4 +1,12 @@
-import type { ActionType, BoltAction, BoltActionData, FileAction, ShellAction, SupabaseAction } from '~/types/actions';
+import type {
+  ActionType,
+  BoltAction,
+  BoltActionData,
+  FileAction,
+  EditAction,
+  ShellAction,
+  SupabaseAction,
+} from '~/types/actions';
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
@@ -191,6 +199,24 @@ export class StreamingMessageParser {
                 actionId: String(state.actionId - 1),
                 action: {
                   ...(currentAction as FileAction),
+                  content,
+                  filePath: currentAction.filePath,
+                },
+              });
+            } else if ('type' in currentAction && currentAction.type === 'edit') {
+              let content = input.slice(i);
+
+              if (!currentAction.filePath.endsWith('.md')) {
+                content = cleanoutMarkdownSyntax(content);
+                content = cleanEscapedTags(content);
+              }
+
+              this._options.callbacks?.onActionStream?.({
+                artifactId: currentArtifact.id,
+                messageId,
+                actionId: String(state.actionId - 1),
+                action: {
+                  ...(currentAction as EditAction),
                   content,
                   filePath: currentAction.filePath,
                 },
@@ -420,11 +446,25 @@ export class StreamingMessageParser {
       }
 
       (actionAttributes as FileAction).filePath = filePath;
+    } else if (actionType === 'edit') {
+      const filePath = this.#extractAttribute(actionTag, 'filePath') as string;
+      const diffType = this.#extractAttribute(actionTag, 'diffType') as 'unified' | 'structured';
+
+      if (!filePath) {
+        logger.warn('Edit action requires a filePath');
+        throw new Error('Edit action requires a filePath');
+      }
+
+      (actionAttributes as EditAction).filePath = filePath;
+
+      if (diffType) {
+        (actionAttributes as EditAction).diffType = diffType;
+      }
     } else if (!['shell', 'start'].includes(actionType)) {
       logger.warn(`Unknown action type '${actionType}'`);
     }
 
-    return actionAttributes as FileAction | ShellAction;
+    return actionAttributes as FileAction | EditAction | ShellAction;
   }
 
   #extractAttribute(tag: string, attributeName: string): string | undefined {
