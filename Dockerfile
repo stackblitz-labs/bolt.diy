@@ -20,6 +20,10 @@ EXPOSE 5173
 # Production image
 FROM base AS bolt-ai-production
 
+
+# Build prefix argument - defaults to empty string, can be set to 'code:' for CodeBuild
+ARG BUILD_PREFIX=""
+
 # Define environment variables with default values or let them be overridden
 ARG GROQ_API_KEY
 ARG HuggingFace_API_KEY
@@ -55,7 +59,7 @@ ENV WRANGLER_SEND_METRICS=false \
 RUN mkdir -p /root/.config/.wrangler && \
     echo '{"enabled":false}' > /root/.config/.wrangler/metrics.json
 
-RUN pnpm run build
+RUN pnpm run ${BUILD_PREFIX}build
 
 CMD [ "pnpm", "run", "dockerstart"]
 
@@ -64,7 +68,7 @@ FROM base AS bolt-ai-development
 
 # Define the same environment variables for development
 ARG GROQ_API_KEY
-ARG HuggingFace 
+ARG HuggingFace
 ARG OPENAI_API_KEY
 ARG ANTHROPIC_API_KEY
 ARG OPEN_ROUTER_API_KEY

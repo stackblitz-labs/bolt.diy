@@ -1,0 +1,46 @@
+# ========================
+# SENSITIVE VARIABLES
+# ========================
+
+aws_access_key_id     =
+aws_secret_access_key =
+github_token          =
+docker_access_token   =
+
+# ========================
+# PROJECT CONFIGURATION
+# ========================
+project_name = "bolt"
+aws_region   = "us-east-1"
+image_tag    = "production"
+environment  = "dev" # Options: dev, staging, prod
+
+
+# ========================
+# GITHUB CONFIGURATION
+# ========================
+github_owner  = "gafitescu"
+github_repo   = "bolt"
+github_branch = "codebuild-ecr-to-ecs"
+
+# ========================
+# DOCKER CONFIGURATION
+# ========================
+docker_username = "gafitescu"
+
+# ========================
+# CONTAINER CONFIGURATION
+# ========================
+container_cpu    = 2048 # CPU units (1024 = 1 vCPU)
+container_memory = 4096 # Memory in MiB
+desired_count    = 2    # Number of ECS tasks
+
+# ========================
+# COMMON TAGS
+# ========================
+common_tags = {
+  Owner       = "John Doe"
+  Team        = "DevOps"
+  CostCenter  = "engineering"
+  Application = "bolt-ai"
+}
