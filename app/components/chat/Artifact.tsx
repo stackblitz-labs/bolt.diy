@@ -225,13 +225,23 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                     <div className="i-ph:circle-duotone"></div>
                   ) : status === 'complete' ? (
                     <div className="i-ph:check"></div>
-                  ) : status === 'failed' || status === 'aborted' ? (
+                  ) : status === 'aborted' || status === 'failed' ? (
                     <div className="i-ph:x"></div>
                   ) : null}
                 </div>
                 {type === 'file' ? (
                   <div>
                     Create{' '}
+                    <code
+                      className="bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
+                      onClick={() => openArtifactInWorkbench(action.filePath)}
+                    >
+                      {action.filePath}
+                    </code>
+                  </div>
+                ) : type === 'edit' ? (
+                  <div>
+                    Edit{' '}
                     <code
                       className="bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
                       onClick={() => openArtifactInWorkbench(action.filePath)}
@@ -255,7 +265,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                   </a>
                 ) : null}
               </div>
-              {(type === 'shell' || type === 'start') && (
+              {(type === 'shell' || type === 'start' || type === 'edit') && (
                 <ShellCodeBlock
                   classsName={classNames('mt-1', {
                     'mb-3.5': !isLast,
