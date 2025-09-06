@@ -21,6 +21,18 @@ export default class AmazonBedrockProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'anthropic.claude-sonnet-4-20250514-v1:0',
+      label: 'Claude Sonnet 4 (Bedrock)',
+      provider: 'AmazonBedrock',
+      maxTokenAllowed: 200000,
+    },
+    {
+      name: 'anthropic.claude-opus-4-1-20250805-v1:0',
+      label: 'Claude Opus 4.1 (Bedrock)',
+      provider: 'AmazonBedrock',
+      maxTokenAllowed: 200000,
+    },
+    {
       name: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
       label: 'Claude 3.5 Sonnet v2 (Bedrock)',
       provider: 'AmazonBedrock',

@@ -12,26 +12,72 @@ export default class PerplexityProvider extends BaseProvider {
     apiTokenKey: 'PERPLEXITY_API_KEY',
   };
 
+  /*
+   * Updated list of current Perplexity models as of 2025
+   * Legacy models removed as they are no longer supported
+   */
   staticModels: ModelInfo[] = [
     {
       name: 'sonar',
-      label: 'Sonar',
+      label: 'Sonar (Llama 3.3 70B)',
       provider: 'Perplexity',
-      maxTokenAllowed: 8192,
+      maxTokenAllowed: 127072,
     },
     {
       name: 'sonar-pro',
-      label: 'Sonar Pro',
+      label: 'Sonar Pro (Enhanced)',
       provider: 'Perplexity',
-      maxTokenAllowed: 8192,
+      maxTokenAllowed: 200000,
     },
     {
-      name: 'sonar-reasoning-pro',
-      label: 'Sonar Reasoning Pro',
+      name: 'sonar-reasoning',
+      label: 'Sonar Reasoning',
       provider: 'Perplexity',
-      maxTokenAllowed: 8192,
+      maxTokenAllowed: 127072,
     },
   ];
+
+  // List of deprecated models that should show warnings
+  deprecatedModels = [
+    'llama-3.1-sonar-small-128k-online',
+    'llama-3.1-sonar-large-128k-online',
+    'llama-3.1-sonar-huge-128k-online',
+    'llama-3.1-8b-instruct',
+    'llama-3.1-70b-instruct',
+  ];
+
+  // Validate model name and provide suggestions
+  validateModel(modelName: string): { valid: boolean; message?: string; suggestion?: string } {
+    // Check if it's a valid current model
+    const validModel = this.staticModels.find((m) => m.name === modelName);
+
+    if (validModel) {
+      return { valid: true };
+    }
+
+    // Check if it's a deprecated model
+    if (this.deprecatedModels.includes(modelName)) {
+      const suggestion = modelName.includes('small')
+        ? 'sonar'
+        : modelName.includes('large')
+          ? 'sonar-pro'
+          : modelName.includes('huge')
+            ? 'sonar-reasoning'
+            : 'sonar';
+      return {
+        valid: false,
+        message: `Model '${modelName}' is deprecated and no longer supported by Perplexity API.`,
+        suggestion,
+      };
+    }
+
+    // Unknown model
+    return {
+      valid: false,
+      message: `Unknown model '${modelName}'. Please use one of the supported models.`,
+      suggestion: 'sonar',
+    };
+  }
 
   getModelInstance(options: {
     model: string;
@@ -40,6 +86,22 @@ export default class PerplexityProvider extends BaseProvider {
     providerSettings?: Record<string, IProviderSetting>;
   }): LanguageModelV1 {
     const { model, serverEnv, apiKeys, providerSettings } = options;
+
+    // Validate model before making API call
+    const validation = this.validateModel(model);
+
+    if (!validation.valid) {
+      console.warn(`[Perplexity] ${validation.message}`);
+
+      if (validation.suggestion) {
+        console.warn(`[Perplexity] Using suggested model: ${validation.suggestion}`);
+
+        // Use the suggested model instead
+        const suggestedModel = validation.suggestion;
+
+        return this.getModelInstance({ ...options, model: suggestedModel });
+      }
+    }
 
     const { apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,

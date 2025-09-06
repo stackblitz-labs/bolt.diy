@@ -17,7 +17,23 @@ export default class OpenAIProvider extends BaseProvider {
      * Essential fallback models - only the most stable/reliable ones
      * GPT-4o: 128k context, 4k standard output (64k with long output mode)
      */
-    { name: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI', maxTokenAllowed: 128000, maxCompletionTokens: 4096 },
+    {
+      name: 'gpt-4o',
+      label: 'GPT-4o',
+      provider: 'OpenAI',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 4096,
+      supportsSmartAI: false, // Base model without SmartAI
+    },
+    {
+      name: 'gpt-4o-smartai',
+      label: 'GPT-4o (SmartAI)',
+      provider: 'OpenAI',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 4096,
+      supportsSmartAI: true,
+      isSmartAIEnabled: true,
+    },
 
     // GPT-4o Mini: 128k context, cost-effective alternative
     {
@@ -26,6 +42,16 @@ export default class OpenAIProvider extends BaseProvider {
       provider: 'OpenAI',
       maxTokenAllowed: 128000,
       maxCompletionTokens: 4096,
+      supportsSmartAI: false, // Base model without SmartAI
+    },
+    {
+      name: 'gpt-4o-mini-smartai',
+      label: 'GPT-4o Mini (SmartAI)',
+      provider: 'OpenAI',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 4096,
+      supportsSmartAI: true,
+      isSmartAIEnabled: true,
     },
 
     // GPT-3.5-turbo: 16k context, fast and cost-effective
@@ -35,6 +61,16 @@ export default class OpenAIProvider extends BaseProvider {
       provider: 'OpenAI',
       maxTokenAllowed: 16000,
       maxCompletionTokens: 4096,
+      supportsSmartAI: false, // Base model without SmartAI
+    },
+    {
+      name: 'gpt-3.5-turbo-smartai',
+      label: 'GPT-3.5 Turbo (SmartAI)',
+      provider: 'OpenAI',
+      maxTokenAllowed: 16000,
+      maxCompletionTokens: 4096,
+      supportsSmartAI: true,
+      isSmartAIEnabled: true,
     },
 
     // o1-preview: 128k context, 32k output limit (reasoning model)
@@ -44,10 +80,36 @@ export default class OpenAIProvider extends BaseProvider {
       provider: 'OpenAI',
       maxTokenAllowed: 128000,
       maxCompletionTokens: 32000,
+      supportsSmartAI: false, // Base model without SmartAI
+    },
+    {
+      name: 'o1-preview-smartai',
+      label: 'o1-preview (SmartAI)',
+      provider: 'OpenAI',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 32000,
+      supportsSmartAI: true,
+      isSmartAIEnabled: true,
     },
 
     // o1-mini: 128k context, 65k output limit (reasoning model)
-    { name: 'o1-mini', label: 'o1-mini', provider: 'OpenAI', maxTokenAllowed: 128000, maxCompletionTokens: 65000 },
+    {
+      name: 'o1-mini',
+      label: 'o1-mini',
+      provider: 'OpenAI',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 65000,
+      supportsSmartAI: false, // Base model without SmartAI
+    },
+    {
+      name: 'o1-mini-smartai',
+      label: 'o1-mini (SmartAI)',
+      provider: 'OpenAI',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 65000,
+      supportsSmartAI: true,
+      isSmartAIEnabled: true,
+    },
   ];
 
   async getDynamicModels(
@@ -125,6 +187,7 @@ export default class OpenAIProvider extends BaseProvider {
         provider: this.name,
         maxTokenAllowed: Math.min(contextWindow, 128000), // Cap at 128k for safety
         maxCompletionTokens,
+        supportsSmartAI: true, // All OpenAI models support SmartAI
       };
     });
   }
@@ -153,6 +216,9 @@ export default class OpenAIProvider extends BaseProvider {
       apiKey,
     });
 
-    return openai(model);
+    // Handle SmartAI variant by using the base model name
+    const actualModel = model.replace('-smartai', '');
+
+    return openai(actualModel);
   }
 }
