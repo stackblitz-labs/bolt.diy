@@ -73,20 +73,28 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                     {isUserMessage ? (
                       <UserMessage content={content} parts={parts} />
                     ) : (
-                      <AssistantMessage
-                        content={content}
-                        annotations={message.annotations}
-                        messageId={messageId}
-                        onRewind={handleRewind}
-                        onFork={handleFork}
-                        append={props.append}
-                        chatMode={props.chatMode}
-                        setChatMode={props.setChatMode}
-                        model={props.model}
-                        provider={props.provider}
-                        parts={parts}
-                        addToolResult={props.addToolResult}
-                      />
+                      <>
+                        {props.model?.includes('smartai') && index === messages.length - 1 && isStreaming && (
+                          <div className="flex items-center gap-2 mb-2 text-sm text-blue-400">
+                            <span className="i-ph:sparkle animate-pulse" />
+                            <span className="font-medium">SmartAI is explaining the process...</span>
+                          </div>
+                        )}
+                        <AssistantMessage
+                          content={content}
+                          annotations={message.annotations}
+                          messageId={messageId}
+                          onRewind={handleRewind}
+                          onFork={handleFork}
+                          append={props.append}
+                          chatMode={props.chatMode}
+                          setChatMode={props.setChatMode}
+                          model={props.model}
+                          provider={props.provider}
+                          parts={parts}
+                          addToolResult={props.addToolResult}
+                        />
+                      </>
                     )}
                   </div>
                 </div>

@@ -8,6 +8,7 @@ export function extractPropertiesFromMessage(message: Omit<Message, 'id'>): {
   model: string;
   provider: string;
   content: string;
+  smartAI?: boolean;
 } {
   const textContent = Array.isArray(message.content)
     ? message.content.find((item) => item.type === 'text')?.text || ''
@@ -15,6 +16,10 @@ export function extractPropertiesFromMessage(message: Omit<Message, 'id'>): {
 
   const modelMatch = textContent.match(MODEL_REGEX);
   const providerMatch = textContent.match(PROVIDER_REGEX);
+
+  // Check for SmartAI toggle in the message
+  const smartAIMatch = textContent.match(/\[SmartAI:(true|false)\]/);
+  const smartAI = smartAIMatch ? smartAIMatch[1] === 'true' : undefined;
 
   /*
    * Extract model
@@ -33,15 +38,21 @@ export function extractPropertiesFromMessage(message: Omit<Message, 'id'>): {
         if (item.type === 'text') {
           return {
             type: 'text',
-            text: item.text?.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, ''),
+            text: item.text
+              ?.replace(MODEL_REGEX, '')
+              .replace(PROVIDER_REGEX, '')
+              .replace(/\[SmartAI:(true|false)\]/g, ''),
           };
         }
 
         return item; // Preserve image_url and other types as is
       })
-    : textContent.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, '');
+    : textContent
+        .replace(MODEL_REGEX, '')
+        .replace(PROVIDER_REGEX, '')
+        .replace(/\[SmartAI:(true|false)\]/g, '');
 
-  return { model, provider, content: cleanedContent };
+  return { model, provider, content: cleanedContent, smartAI };
 }
 
 export function simplifyBoltActions(input: string): string {

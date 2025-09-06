@@ -13,6 +13,7 @@ import { createSummary } from '~/lib/.server/llm/create-summary';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import type { DesignScheme } from '~/types/design-scheme';
 import { MCPService } from '~/lib/services/mcpService';
+import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
@@ -73,6 +74,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   };
   const encoder: TextEncoder = new TextEncoder();
   let progressCounter: number = 1;
+
+  // Initialize stream recovery manager
+  const recovery = new StreamRecoveryManager({
+    maxRetries: 3,
+    retryDelay: 2000,
+    timeout: 45000, // 45 seconds timeout
+    onTimeout: () => {
+      logger.warn('Stream timeout detected - attempting recovery');
+    },
+    onRetry: (attempt) => {
+      logger.info(`Stream recovery attempt ${attempt}`);
+    },
+    onError: (error) => {
+      logger.error('Stream error in recovery:', error);
+    },
+  });
 
   try {
     const mcpService = MCPService.getInstance();
@@ -313,27 +330,76 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         });
 
         (async () => {
-          for await (const part of result.fullStream) {
-            if (part.type === 'error') {
-              const error: any = part.error;
-              logger.error('Streaming error:', error);
+          try {
+            recovery.startMonitoring();
 
-              // Enhanced error handling for common streaming issues
-              if (error.message?.includes('Invalid JSON response')) {
-                logger.error('Invalid JSON response detected - likely malformed API response');
-              } else if (error.message?.includes('token')) {
-                logger.error('Token-related error detected - possible token limit exceeded');
+            let lastActivityTime = Date.now();
+            const activityCheckInterval = 5000; // Check every 5 seconds
+
+            // Set up activity monitoring
+            const activityChecker = setInterval(() => {
+              const timeSinceLastActivity = Date.now() - lastActivityTime;
+
+              if (timeSinceLastActivity > 30000) {
+                logger.warn(`No stream activity for ${timeSinceLastActivity}ms`);
+
+                // Attempt to recover if stream appears stuck
+                recovery.attemptRecovery();
               }
+            }, activityCheckInterval);
 
-              return;
+            for await (const part of result.fullStream) {
+              // Record activity
+              lastActivityTime = Date.now();
+              recovery.recordActivity();
+
+              if (part.type === 'error') {
+                const error: any = part.error;
+                logger.error('Streaming error:', error);
+
+                // Enhanced error handling for common streaming issues
+                if (error.message?.includes('Invalid JSON response')) {
+                  logger.error('Invalid JSON response detected - likely malformed API response');
+                } else if (error.message?.includes('token')) {
+                  logger.error('Token-related error detected - possible token limit exceeded');
+                }
+
+                // Attempt recovery for certain errors
+                const canRecover = await recovery.handleError(error);
+
+                if (!canRecover) {
+                  clearInterval(activityChecker);
+                  recovery.stop();
+
+                  return;
+                }
+              }
             }
+
+            // Clean up
+            clearInterval(activityChecker);
+            recovery.stop();
+          } catch (streamError) {
+            logger.error('Fatal stream error:', streamError);
+            recovery.stop();
+            throw streamError;
           }
         })();
         result.mergeIntoDataStream(dataStream);
       },
       onError: (error: any) => {
+        // Stop recovery manager on error
+        recovery.stop();
+
         // Provide more specific error messages for common issues
         const errorMessage = error.message || 'Unknown error';
+
+        // Log detailed error for debugging
+        logger.error('Chat API error:', {
+          message: errorMessage,
+          stack: error.stack,
+          code: error.code,
+        });
 
         if (errorMessage.includes('model') && errorMessage.includes('not found')) {
           return 'Custom error: Invalid model selected. Please check that the model name is correct and available.';
@@ -360,7 +426,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         }
 
         if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
-          return 'Custom error: Network error. Please check your internet connection and try again.';
+          return 'Custom error: Network error or timeout. The connection was interrupted. Please try again or switch to a different AI model.';
+        }
+
+        if (errorMessage.includes('stream') || errorMessage.includes('hang')) {
+          return 'Custom error: The conversation stream was interrupted. Please refresh the page and try again.';
         }
 
         return `Custom error: ${errorMessage}`;
@@ -403,17 +473,32 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       }),
     );
 
-    return new Response(dataStream, {
+    // Set up cleanup for recovery manager
+    const cleanupStream = dataStream.pipeThrough(
+      new TransformStream({
+        flush() {
+          recovery.stop();
+        },
+      }),
+    );
+
+    return new Response(cleanupStream, {
       status: 200,
       headers: {
         'Content-Type': 'text/event-stream; charset=utf-8',
         Connection: 'keep-alive',
         'Cache-Control': 'no-cache',
         'Text-Encoding': 'chunked',
+        'X-Accel-Buffering': 'no', // Disable nginx buffering
       },
     });
   } catch (error: any) {
-    logger.error(error);
+    logger.error('Fatal error in chat API:', error);
+
+    // Ensure recovery manager is stopped on error
+    if (typeof recovery !== 'undefined') {
+      recovery.stop();
+    }
 
     const errorResponse = {
       error: true,
