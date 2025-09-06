@@ -1,83 +1,8 @@
 import type { ProviderInfo } from '~/types/model';
-import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { classNames } from '~/utils/classNames';
-
-// Fuzzy search utilities
-const levenshteinDistance = (str1: string, str2: string): number => {
-  const matrix = [];
-
-  for (let i = 0; i <= str2.length; i++) {
-    matrix[i] = [i];
-  }
-
-  for (let j = 0; j <= str1.length; j++) {
-    matrix[0][j] = j;
-  }
-
-  for (let i = 1; i <= str2.length; i++) {
-    for (let j = 1; j <= str1.length; j++) {
-      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
-      }
-    }
-  }
-
-  return matrix[str2.length][str1.length];
-};
-
-const fuzzyMatch = (query: string, text: string): { score: number; matches: boolean } => {
-  if (!query) {
-    return { score: 0, matches: true };
-  }
-
-  if (!text) {
-    return { score: 0, matches: false };
-  }
-
-  const queryLower = query.toLowerCase();
-  const textLower = text.toLowerCase();
-
-  // Exact substring match gets highest score
-  if (textLower.includes(queryLower)) {
-    return { score: 100 - (textLower.indexOf(queryLower) / textLower.length) * 20, matches: true };
-  }
-
-  // Fuzzy match with reasonable threshold
-  const distance = levenshteinDistance(queryLower, textLower);
-  const maxLen = Math.max(queryLower.length, textLower.length);
-  const similarity = 1 - distance / maxLen;
-
-  return {
-    score: similarity > 0.6 ? similarity * 80 : 0,
-    matches: similarity > 0.6,
-  };
-};
-
-const highlightText = (text: string, query: string): string => {
-  if (!query) {
-    return text;
-  }
-
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-
-  return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 text-current">$1</mark>');
-};
-
-const formatContextSize = (tokens: number): string => {
-  if (tokens >= 1000000) {
-    return `${(tokens / 1000000).toFixed(1)}M`;
-  }
-
-  if (tokens >= 1000) {
-    return `${(tokens / 1000).toFixed(0)}K`;
-  }
-
-  return tokens.toString();
-};
 
 interface ModelSelectorProps {
   model?: string;
@@ -115,37 +40,18 @@ export const ModelSelector = ({
   modelLoading,
 }: ModelSelectorProps) => {
   const [modelSearchQuery, setModelSearchQuery] = useState('');
-  const [debouncedModelSearchQuery, setDebouncedModelSearchQuery] = useState('');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [focusedModelIndex, setFocusedModelIndex] = useState(-1);
   const modelSearchInputRef = useRef<HTMLInputElement>(null);
   const modelOptionsRef = useRef<(HTMLDivElement | null)[]>([]);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
   const [providerSearchQuery, setProviderSearchQuery] = useState('');
-  const [debouncedProviderSearchQuery, setDebouncedProviderSearchQuery] = useState('');
   const [isProviderDropdownOpen, setIsProviderDropdownOpen] = useState(false);
   const [focusedProviderIndex, setFocusedProviderIndex] = useState(-1);
   const providerSearchInputRef = useRef<HTMLInputElement>(null);
   const providerOptionsRef = useRef<(HTMLDivElement | null)[]>([]);
   const providerDropdownRef = useRef<HTMLDivElement>(null);
   const [showFreeModelsOnly, setShowFreeModelsOnly] = useState(false);
-
-  // Debounce search queries
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedModelSearchQuery(modelSearchQuery);
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [modelSearchQuery]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedProviderSearchQuery(providerSearchQuery);
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [providerSearchQuery]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -165,64 +71,24 @@ export const ModelSelector = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredModels = useMemo(() => {
-    const baseModels = [...modelList].filter((e) => e.provider === provider?.name && e.name);
+  const filteredModels = [...modelList]
+    .filter((e) => e.provider === provider?.name && e.name)
+    .filter((model) => {
+      // Apply free models filter
+      if (showFreeModelsOnly && !isModelLikelyFree(model, provider?.name)) {
+        return false;
+      }
 
-    return baseModels
-      .filter((model) => {
-        // Apply free models filter
-        if (showFreeModelsOnly && !isModelLikelyFree(model, provider?.name)) {
-          return false;
-        }
+      // Apply search filter
+      return (
+        model.label.toLowerCase().includes(modelSearchQuery.toLowerCase()) ||
+        model.name.toLowerCase().includes(modelSearchQuery.toLowerCase())
+      );
+    });
 
-        return true;
-      })
-      .map((model) => {
-        // Calculate search scores for fuzzy matching
-        const labelMatch = fuzzyMatch(debouncedModelSearchQuery, model.label);
-        const nameMatch = fuzzyMatch(debouncedModelSearchQuery, model.name);
-        const contextMatch = fuzzyMatch(debouncedModelSearchQuery, formatContextSize(model.maxTokenAllowed));
-
-        const bestScore = Math.max(labelMatch.score, nameMatch.score, contextMatch.score);
-        const matches = labelMatch.matches || nameMatch.matches || contextMatch.matches || !debouncedModelSearchQuery; // Show all if no query
-
-        return {
-          ...model,
-          searchScore: bestScore,
-          searchMatches: matches,
-          highlightedLabel: highlightText(model.label, debouncedModelSearchQuery),
-          highlightedName: highlightText(model.name, debouncedModelSearchQuery),
-        };
-      })
-      .filter((model) => model.searchMatches)
-      .sort((a, b) => {
-        // Sort by search score (highest first), then by label
-        if (debouncedModelSearchQuery) {
-          return b.searchScore - a.searchScore;
-        }
-
-        return a.label.localeCompare(b.label);
-      });
-  }, [modelList, provider?.name, showFreeModelsOnly, debouncedModelSearchQuery]);
-
-  const filteredProviders = useMemo(() => {
-    if (!debouncedProviderSearchQuery) {
-      return providerList;
-    }
-
-    return providerList
-      .map((provider) => {
-        const match = fuzzyMatch(debouncedProviderSearchQuery, provider.name);
-        return {
-          ...provider,
-          searchScore: match.score,
-          searchMatches: match.matches,
-          highlightedName: highlightText(provider.name, debouncedProviderSearchQuery),
-        };
-      })
-      .filter((provider) => provider.searchMatches)
-      .sort((a, b) => b.searchScore - a.searchScore);
-  }, [providerList, debouncedProviderSearchQuery]);
+  const filteredProviders = providerList.filter((p) =>
+    p.name.toLowerCase().includes(providerSearchQuery.toLowerCase()),
+  );
 
   // Reset free models filter when provider changes
   useEffect(() => {
@@ -231,30 +97,11 @@ export const ModelSelector = ({
 
   useEffect(() => {
     setFocusedModelIndex(-1);
-  }, [debouncedModelSearchQuery, isModelDropdownOpen, showFreeModelsOnly]);
+  }, [modelSearchQuery, isModelDropdownOpen, showFreeModelsOnly]);
 
   useEffect(() => {
     setFocusedProviderIndex(-1);
-  }, [debouncedProviderSearchQuery, isProviderDropdownOpen]);
-
-  // Clear search functions
-  const clearModelSearch = useCallback(() => {
-    setModelSearchQuery('');
-    setDebouncedModelSearchQuery('');
-
-    if (modelSearchInputRef.current) {
-      modelSearchInputRef.current.focus();
-    }
-  }, []);
-
-  const clearProviderSearch = useCallback(() => {
-    setProviderSearchQuery('');
-    setDebouncedProviderSearchQuery('');
-
-    if (providerSearchInputRef.current) {
-      providerSearchInputRef.current.focus();
-    }
-  }, []);
+  }, [providerSearchQuery, isProviderDropdownOpen]);
 
   useEffect(() => {
     if (isModelDropdownOpen && modelSearchInputRef.current) {
@@ -290,7 +137,6 @@ export const ModelSelector = ({
           setModel?.(selectedModel.name);
           setIsModelDropdownOpen(false);
           setModelSearchQuery('');
-          setDebouncedModelSearchQuery('');
         }
 
         break;
@@ -298,18 +144,10 @@ export const ModelSelector = ({
         e.preventDefault();
         setIsModelDropdownOpen(false);
         setModelSearchQuery('');
-        setDebouncedModelSearchQuery('');
         break;
       case 'Tab':
         if (!e.shiftKey && focusedModelIndex === filteredModels.length - 1) {
           setIsModelDropdownOpen(false);
-        }
-
-        break;
-      case 'k':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          clearModelSearch();
         }
 
         break;
@@ -348,7 +186,6 @@ export const ModelSelector = ({
 
           setIsProviderDropdownOpen(false);
           setProviderSearchQuery('');
-          setDebouncedProviderSearchQuery('');
         }
 
         break;
@@ -356,18 +193,10 @@ export const ModelSelector = ({
         e.preventDefault();
         setIsProviderDropdownOpen(false);
         setProviderSearchQuery('');
-        setDebouncedProviderSearchQuery('');
         break;
       case 'Tab':
         if (!e.shiftKey && focusedProviderIndex === filteredProviders.length - 1) {
           setIsProviderDropdownOpen(false);
-        }
-
-        break;
-      case 'k':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          clearProviderSearch();
         }
 
         break;
@@ -463,9 +292,9 @@ export const ModelSelector = ({
                   type="text"
                   value={providerSearchQuery}
                   onChange={(e) => setProviderSearchQuery(e.target.value)}
-                  placeholder="Search providers... (⌘K to clear)"
+                  placeholder="Search providers..."
                   className={classNames(
-                    'w-full pl-8 pr-8 py-1.5 rounded-md text-sm',
+                    'w-full pl-2 py-1.5 rounded-md text-sm',
                     'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
                     'text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary',
                     'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
@@ -478,19 +307,6 @@ export const ModelSelector = ({
                 <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
                   <span className="i-ph:magnifying-glass text-bolt-elements-textTertiary" />
                 </div>
-                {providerSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearProviderSearch();
-                    }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-bolt-elements-background-depth-3 transition-colors"
-                    aria-label="Clear search"
-                  >
-                    <span className="i-ph:x text-bolt-elements-textTertiary text-xs" />
-                  </button>
-                )}
               </div>
             </div>
 
@@ -511,18 +327,7 @@ export const ModelSelector = ({
               )}
             >
               {filteredProviders.length === 0 ? (
-                <div className="px-3 py-3 text-sm">
-                  <div className="text-bolt-elements-textTertiary mb-1">
-                    {debouncedProviderSearchQuery
-                      ? `No providers match "${debouncedProviderSearchQuery}"`
-                      : 'No providers found'}
-                  </div>
-                  {debouncedProviderSearchQuery && (
-                    <div className="text-xs text-bolt-elements-textTertiary">
-                      Try searching for provider names like "OpenAI", "Anthropic", or "Google"
-                    </div>
-                  )}
-                </div>
+                <div className="px-3 py-2 text-sm text-bolt-elements-textTertiary">No providers found</div>
               ) : (
                 filteredProviders.map((providerOption, index) => (
                   <div
@@ -555,15 +360,10 @@ export const ModelSelector = ({
 
                       setIsProviderDropdownOpen(false);
                       setProviderSearchQuery('');
-                      setDebouncedProviderSearchQuery('');
                     }}
                     tabIndex={focusedProviderIndex === index ? 0 : -1}
                   >
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: (providerOption as any).highlightedName || providerOption.name,
-                      }}
-                    />
+                    {providerOption.name}
                   </div>
                 ))
               )}
@@ -596,7 +396,15 @@ export const ModelSelector = ({
           tabIndex={0}
         >
           <div className="flex items-center justify-between">
-            <div className="truncate">{modelList.find((m) => m.name === model)?.label || 'Select model'}</div>
+            <div className="flex items-center gap-2 truncate">
+              <span className="truncate">{modelList.find((m) => m.name === model)?.label || 'Select model'}</span>
+              {modelList.find((m) => m.name === model)?.isSmartAIEnabled && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30">
+                  <span className="i-ph:sparkle text-xs text-blue-400" />
+                  <span className="text-xs text-blue-400 font-medium">Active</span>
+                </span>
+              )}
+            </div>
             <div
               className={classNames(
                 'i-ph:caret-down w-4 h-4 text-bolt-elements-textSecondary opacity-75',
@@ -641,14 +449,6 @@ export const ModelSelector = ({
                 </div>
               )}
 
-              {/* Search Result Count */}
-              {debouncedModelSearchQuery && filteredModels.length > 0 && (
-                <div className="text-xs text-bolt-elements-textTertiary px-1">
-                  {filteredModels.length} model{filteredModels.length !== 1 ? 's' : ''} found
-                  {filteredModels.length > 5 && ' (showing best matches)'}
-                </div>
-              )}
-
               {/* Search Input */}
               <div className="relative">
                 <input
@@ -656,9 +456,9 @@ export const ModelSelector = ({
                   type="text"
                   value={modelSearchQuery}
                   onChange={(e) => setModelSearchQuery(e.target.value)}
-                  placeholder="Search models... (⌘K to clear)"
+                  placeholder="Search models..."
                   className={classNames(
-                    'w-full pl-8 pr-8 py-1.5 rounded-md text-sm',
+                    'w-full pl-2 py-1.5 rounded-md text-sm',
                     'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
                     'text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary',
                     'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
@@ -671,19 +471,6 @@ export const ModelSelector = ({
                 <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
                   <span className="i-ph:magnifying-glass text-bolt-elements-textTertiary" />
                 </div>
-                {modelSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearModelSearch();
-                    }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-bolt-elements-background-depth-3 transition-colors"
-                    aria-label="Clear search"
-                  >
-                    <span className="i-ph:x text-bolt-elements-textTertiary text-xs" />
-                  </button>
-                )}
               </div>
             </div>
 
@@ -704,37 +491,16 @@ export const ModelSelector = ({
               )}
             >
               {modelLoading === 'all' || modelLoading === provider?.name ? (
-                <div className="px-3 py-3 text-sm">
-                  <div className="flex items-center gap-2 text-bolt-elements-textTertiary">
-                    <span className="i-ph:spinner animate-spin" />
-                    Loading models...
-                  </div>
-                </div>
+                <div className="px-3 py-2 text-sm text-bolt-elements-textTertiary">Loading...</div>
               ) : filteredModels.length === 0 ? (
-                <div className="px-3 py-3 text-sm">
-                  <div className="text-bolt-elements-textTertiary mb-1">
-                    {debouncedModelSearchQuery
-                      ? `No models match "${debouncedModelSearchQuery}"${showFreeModelsOnly ? ' (free only)' : ''}`
-                      : showFreeModelsOnly
-                        ? 'No free models available'
-                        : 'No models available'}
-                  </div>
-                  {debouncedModelSearchQuery && (
-                    <div className="text-xs text-bolt-elements-textTertiary">
-                      Try searching for model names, context sizes (e.g., "128k", "1M"), or capabilities
-                    </div>
-                  )}
-                  {showFreeModelsOnly && !debouncedModelSearchQuery && (
-                    <div className="text-xs text-bolt-elements-textTertiary">
-                      Try disabling the "Free models only" filter to see all available models
-                    </div>
-                  )}
+                <div className="px-3 py-2 text-sm text-bolt-elements-textTertiary">
+                  {showFreeModelsOnly ? 'No free models found' : 'No models found'}
                 </div>
               ) : (
                 filteredModels.map((modelOption, index) => (
                   <div
                     ref={(el) => (modelOptionsRef.current[index] = el)}
-                    key={modelOption.name}
+                    key={index} // Consider using modelOption.name if unique
                     role="option"
                     aria-selected={model === modelOption.name}
                     className={classNames(
@@ -752,38 +518,22 @@ export const ModelSelector = ({
                       setModel?.(modelOption.name);
                       setIsModelDropdownOpen(false);
                       setModelSearchQuery('');
-                      setDebouncedModelSearchQuery('');
                     }}
                     tabIndex={focusedModelIndex === index ? 0 : -1}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate">
-                          <span
-                            dangerouslySetInnerHTML={{
-                              __html: (modelOption as any).highlightedLabel || modelOption.label,
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-bolt-elements-textTertiary">
-                            {formatContextSize(modelOption.maxTokenAllowed)} tokens
+                      <span className="flex items-center gap-2">
+                        {modelOption.label}
+                        {modelOption.isSmartAIEnabled && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30">
+                            <span className="i-ph:sparkle text-xs text-blue-400" />
+                            <span className="text-xs text-blue-400 font-medium">SmartAI</span>
                           </span>
-                          {debouncedModelSearchQuery && (modelOption as any).searchScore > 70 && (
-                            <span className="text-xs text-green-500 font-medium">
-                              {(modelOption as any).searchScore.toFixed(0)}% match
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 ml-2">
-                        {isModelLikelyFree(modelOption, provider?.name) && (
-                          <span className="i-ph:gift text-xs text-purple-400" title="Free model" />
                         )}
-                        {model === modelOption.name && (
-                          <span className="i-ph:check text-xs text-green-500" title="Selected" />
-                        )}
-                      </div>
+                      </span>
+                      {isModelLikelyFree(modelOption, provider?.name) && (
+                        <span className="i-ph:gift text-xs text-purple-400 ml-2" title="Free model" />
+                      )}
                     </div>
                   </div>
                 ))

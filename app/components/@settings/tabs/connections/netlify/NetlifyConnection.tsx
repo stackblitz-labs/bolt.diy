@@ -3,7 +3,8 @@ import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
-import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
+import type { NetlifySite, NetlifyDeploy, NetlifyBuild } from '~/types/netlify';
+import { NetlifyQuickConnect } from './NetlifyQuickConnect';
 import {
   CloudIcon,
   BuildingLibraryIcon,
@@ -42,29 +43,16 @@ interface SiteAction {
 }
 
 export default function NetlifyConnection() {
-  console.log('NetlifyConnection component mounted');
-
   const connection = useStore(netlifyConnection);
-  const [tokenInput, setTokenInput] = useState('');
   const [fetchingStats, setFetchingStats] = useState(false);
   const [sites, setSites] = useState<NetlifySite[]>([]);
   const [deploys, setDeploys] = useState<NetlifyDeploy[]>([]);
   const [builds, setBuilds] = useState<NetlifyBuild[]>([]);
-
-  console.log('NetlifyConnection initial state:', {
-    connection: {
-      user: connection.user,
-      token: connection.token ? '[TOKEN_EXISTS]' : '[NO_TOKEN]',
-    },
-    envToken: import.meta.env?.VITE_NETLIFY_ACCESS_TOKEN ? '[ENV_TOKEN_EXISTS]' : '[NO_ENV_TOKEN]',
-  });
-
   const [deploymentCount, setDeploymentCount] = useState(0);
   const [lastUpdated, setLastUpdated] = useState('');
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [activeSiteIndex, setActiveSiteIndex] = useState(0);
   const [isActionLoading, setIsActionLoading] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
 
   // Add site actions
   const siteActions: SiteAction[] = [
@@ -151,8 +139,6 @@ export default function NetlifyConnection() {
   };
 
   useEffect(() => {
-    console.log('Netlify: Running initialization useEffect');
-
     // Initialize connection with environment token if available
     initializeNetlifyConnection();
   }, []);
@@ -172,46 +158,6 @@ export default function NetlifyConnection() {
       setLastUpdated(connection.stats.lastDeployTime || '');
     }
   }, [connection]);
-
-  const handleConnect = async () => {
-    if (!tokenInput) {
-      toast.error('Please enter a Netlify API token');
-      return;
-    }
-
-    setIsConnecting(true);
-
-    try {
-      const response = await fetch('https://api.netlify.com/api/v1/user', {
-        headers: {
-          Authorization: `Bearer ${tokenInput}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const userData = (await response.json()) as NetlifyUser;
-
-      // Update the connection store
-      updateNetlifyConnection({
-        user: userData,
-        token: tokenInput,
-      });
-
-      toast.success('Connected to Netlify successfully');
-
-      // Fetch stats after successful connection
-      fetchNetlifyStats(tokenInput);
-    } catch (error) {
-      console.error('Error connecting to Netlify:', error);
-      toast.error(`Failed to connect to Netlify: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsConnecting(false);
-      setTokenInput('');
-    }
-  };
 
   const handleDisconnect = () => {
     // Clear from localStorage
@@ -662,76 +608,15 @@ export default function NetlifyConnection() {
 
         {!connection.user ? (
           <div className="mt-4">
-            <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2">
-              API Token
-            </label>
-            <input
-              type="password"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="Enter your Netlify API token"
-              className={classNames(
-                'w-full px-3 py-2 rounded-lg text-sm',
-                'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
-                'border border-[#E5E5E5] dark:border-[#333333]',
-                'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
-                'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
-                'disabled:opacity-50',
-              )}
+            <NetlifyQuickConnect
+              onSuccess={() => {
+                // Fetch stats after successful connection
+                if (connection.token) {
+                  fetchNetlifyStats(connection.token);
+                }
+              }}
+              showInstructions={true}
             />
-            <div className="mt-2 text-sm text-bolt-elements-textSecondary">
-              <a
-                href="https://app.netlify.com/user/applications#personal-access-tokens"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-bolt-elements-borderColorActive hover:underline inline-flex items-center gap-1"
-              >
-                Get your token
-                <div className="i-ph:arrow-square-out w-4 h-4" />
-              </a>
-            </div>
-            {/* Debug info - remove this later */}
-            <div className="mt-2 text-xs text-gray-500">
-              <p>Debug: Token present: {connection.token ? '✅' : '❌'}</p>
-              <p>Debug: User present: {connection.user ? '✅' : '❌'}</p>
-              <p>Debug: Env token: {import.meta.env?.VITE_NETLIFY_ACCESS_TOKEN ? '✅' : '❌'}</p>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleConnect}
-                disabled={isConnecting || !tokenInput}
-                className={classNames(
-                  'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                  'bg-[#303030] text-white',
-                  'hover:bg-[#5E41D0] hover:text-white',
-                  'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
-                  'transform active:scale-95',
-                )}
-              >
-                {isConnecting ? (
-                  <>
-                    <div className="i-ph:spinner-gap animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <div className="i-ph:plug-charging w-4 h-4" />
-                    Connect
-                  </>
-                )}
-              </button>
-
-              {/* Debug button - remove this later */}
-              <button
-                onClick={async () => {
-                  console.log('Manual Netlify auto-connect test');
-                  await initializeNetlifyConnection();
-                }}
-                className="px-3 py-2 rounded-lg text-xs bg-blue-500 text-white hover:bg-blue-600"
-              >
-                Test Auto-Connect
-              </button>
-            </div>
           </div>
         ) : (
           <div className="flex flex-col w-full gap-4 mt-4">
