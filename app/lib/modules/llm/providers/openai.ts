@@ -17,7 +17,14 @@ export default class OpenAIProvider extends BaseProvider {
      * Essential fallback models - only the most stable/reliable ones
      * GPT-4o: 128k context, 4k standard output (64k with long output mode)
      */
-    { name: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI', maxTokenAllowed: 128000, maxCompletionTokens: 4096 },
+    {
+      name: 'gpt-4o',
+      label: 'GPT-4o',
+      provider: 'OpenAI',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 4096,
+      supportsSmartAI: true,
+    },
 
     // GPT-4o Mini: 128k context, cost-effective alternative
     {
@@ -26,6 +33,7 @@ export default class OpenAIProvider extends BaseProvider {
       provider: 'OpenAI',
       maxTokenAllowed: 128000,
       maxCompletionTokens: 4096,
+      supportsSmartAI: true,
     },
 
     // GPT-3.5-turbo: 16k context, fast and cost-effective
@@ -35,6 +43,7 @@ export default class OpenAIProvider extends BaseProvider {
       provider: 'OpenAI',
       maxTokenAllowed: 16000,
       maxCompletionTokens: 4096,
+      supportsSmartAI: true,
     },
 
     // o1-preview: 128k context, 32k output limit (reasoning model)
@@ -44,10 +53,18 @@ export default class OpenAIProvider extends BaseProvider {
       provider: 'OpenAI',
       maxTokenAllowed: 128000,
       maxCompletionTokens: 32000,
+      supportsSmartAI: true,
     },
 
     // o1-mini: 128k context, 65k output limit (reasoning model)
-    { name: 'o1-mini', label: 'o1-mini', provider: 'OpenAI', maxTokenAllowed: 128000, maxCompletionTokens: 65000 },
+    {
+      name: 'o1-mini',
+      label: 'o1-mini',
+      provider: 'OpenAI',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 65000,
+      supportsSmartAI: true,
+    },
   ];
 
   async getDynamicModels(
@@ -125,6 +142,7 @@ export default class OpenAIProvider extends BaseProvider {
         provider: this.name,
         maxTokenAllowed: Math.min(contextWindow, 128000), // Cap at 128k for safety
         maxCompletionTokens,
+        supportsSmartAI: true, // All OpenAI models support SmartAI
       };
     });
   }

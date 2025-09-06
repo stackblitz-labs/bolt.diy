@@ -8,6 +8,7 @@ interface ModelsResponse {
   modelList: ModelInfo[];
   providers: ProviderInfo[];
   defaultProvider: ProviderInfo;
+  configuredProviders?: string[];
 }
 
 let cachedProviders: ProviderInfo[] | null = null;
@@ -82,9 +83,28 @@ export async function loader({
     });
   }
 
+  // Check which local providers are configured in environment
+  const configuredProviders: string[] = [];
+
+  // Check Ollama
+  if (context.cloudflare?.env?.OLLAMA_API_BASE_URL || process.env?.OLLAMA_API_BASE_URL) {
+    configuredProviders.push('Ollama');
+  }
+
+  // Check LMStudio
+  if (context.cloudflare?.env?.LMSTUDIO_API_BASE_URL || process.env?.LMSTUDIO_API_BASE_URL) {
+    configuredProviders.push('LMStudio');
+  }
+
+  // Check OpenAILike
+  if (context.cloudflare?.env?.OPENAI_LIKE_API_BASE_URL || process.env?.OPENAI_LIKE_API_BASE_URL) {
+    configuredProviders.push('OpenAILike');
+  }
+
   return json<ModelsResponse>({
     modelList,
     providers,
     defaultProvider,
+    configuredProviders,
   });
 }
