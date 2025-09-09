@@ -21,7 +21,7 @@ export const PROVIDER_COMPLETION_LIMITS: Record<string, number> = {
   Mistral: 8192,
   Ollama: 8192,
   OpenRouter: 8192,
-  Perplexity: 8192,
+  Perplexity: 127072, // Sonar models support 128k context
   Together: 8192,
   xAI: 8192,
   LMStudio: 8192,
