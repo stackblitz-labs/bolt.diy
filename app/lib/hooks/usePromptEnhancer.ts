@@ -33,7 +33,10 @@ export function usePromptEnhancer() {
       requestBody.apiKeys = apiKeys;
     }
 
-    const response = await fetch('/api/enhancer', {
+    const envBasePath = import.meta.env.VITE_BASE_PATH;
+    const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+    const apiUrl = `${basePath}/api/enhancer`.replace(/\/+/g, '/');
+    const response = await fetch(apiUrl, {
       method: 'POST',
       body: JSON.stringify(requestBody),
     });

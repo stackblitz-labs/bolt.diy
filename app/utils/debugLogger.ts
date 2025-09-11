@@ -906,7 +906,7 @@ class DebugLogger {
   private async _getGitInfo(): Promise<AppInfo['gitInfo']> {
     try {
       // Try to fetch git info from existing API endpoint
-      const response = await fetch('/api/system/git-info');
+      const response = await fetch(`${import.meta.env.VITE_BASE_PATH || ''}/api/system/git-info`);
 
       if (response.ok) {
         const gitInfo = await response.json();

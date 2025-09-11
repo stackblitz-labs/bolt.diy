@@ -55,7 +55,10 @@ export function BranchSelector({
       let response: Response;
 
       if (provider === 'github') {
-        response = await fetch('/api/github-branches', {
+        const envBasePath = import.meta.env.VITE_BASE_PATH;
+        const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+        const apiUrl = `${basePath}/api/github-branches`.replace(/\/+/g, '/');
+        response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -70,7 +73,7 @@ export function BranchSelector({
           throw new Error('Project ID is required for GitLab repositories');
         }
 
-        response = await fetch('/api/gitlab-branches', {
+        response = await fetch(`${import.meta.env.VITE_BASE_PATH || ''}/api/gitlab-branches`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

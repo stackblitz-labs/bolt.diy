@@ -176,7 +176,10 @@ export function useVercelDeploy() {
       // Use chatId instead of artifact.id
       const existingProjectId = localStorage.getItem(`vercel-project-${currentChatId}`);
 
-      const response = await fetch('/api/vercel-deploy', {
+      const envBasePath = import.meta.env.VITE_BASE_PATH;
+      const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+      const apiUrl = `${basePath}/api/vercel-deploy`.replace(/\/+/g, '/');
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

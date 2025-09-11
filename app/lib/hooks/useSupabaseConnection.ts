@@ -67,7 +67,10 @@ export function useSupabaseConnection() {
     try {
       const cleanToken = connection.token.trim();
 
-      const response = await fetch('/api/supabase', {
+      const envBasePath = import.meta.env.VITE_BASE_PATH;
+      const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+      const apiUrl = `${basePath}/api/supabase`.replace(/\/+/g, '/');
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

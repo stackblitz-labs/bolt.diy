@@ -8,6 +8,11 @@ import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 export function Header() {
   const chat = useStore(chatStore);
 
+  // Ensure asset URLs always start with a leading slash
+  const envBasePath = import.meta.env.VITE_BASE_PATH;
+  const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+  const assetUrl = (file: string) => `${basePath}/${file}`.replace(/\/+/g, '/');
+
   return (
     <header
       className={classNames('flex items-center px-4 border-b h-[var(--header-height)]', {
@@ -17,10 +22,10 @@ export function Header() {
     >
       <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
         <div className="i-ph:sidebar-simple-duotone text-xl" />
-        <a href="/" className="text-2xl font-semibold text-accent flex items-center">
+        <a href={basePath || '/'} className="text-2xl font-semibold text-accent flex items-center">
           {/* <span className="i-bolt:logo-text?mask w-[46px] inline-block" /> */}
-          <img src="/logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
-          <img src="/logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
+          <img src={assetUrl('logo-light-styled.png')} alt="logo" className="w-[90px] inline-block dark:hidden" />
+          <img src={assetUrl('logo-dark-styled.png')} alt="logo" className="w-[90px] inline-block hidden dark:block" />
         </a>
       </div>
       {chat.started && ( // Display ChatDescription and HeaderActionButtons only when the chat has started.

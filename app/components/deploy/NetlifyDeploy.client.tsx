@@ -139,7 +139,10 @@ export function useNetlifyDeploy() {
       // Use chatId instead of artifact.id
       const existingSiteId = localStorage.getItem(`netlify-site-${currentChatId}`);
 
-      const response = await fetch('/api/netlify-deploy', {
+      const envBasePath = import.meta.env.VITE_BASE_PATH;
+      const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+      const apiUrl = `${basePath}/api/netlify-deploy`.replace(/\/+/g, '/');
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

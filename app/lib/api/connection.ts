@@ -18,10 +18,11 @@ export const checkConnection = async (): Promise<ConnectionStatus> => {
     }
 
     // Try multiple endpoints in case one fails
+    const BASE_PATH = (import.meta.env.VITE_BASE_PATH || '').replace(/\/$/, '');
     const endpoints = [
-      '/api/health',
-      '/', // Fallback to root route
-      '/favicon.ico', // Another common fallback
+      `${BASE_PATH}/api/health`.replace(/\/+/g, '/'),
+      `${BASE_PATH}/`, // Fallback to root route
+      `${BASE_PATH}/favicon.ico`, // Another common fallback
     ];
 
     let latency = 0;

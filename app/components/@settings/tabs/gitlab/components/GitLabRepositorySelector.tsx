@@ -42,7 +42,10 @@ export function GitLabRepositorySelector({ onClone, className }: GitLabRepositor
     setError(null);
 
     try {
-      const response = await fetch('/api/gitlab-projects', {
+      const envBasePath = import.meta.env.VITE_BASE_PATH;
+      const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+      const apiUrl = `${basePath}/api/gitlab-projects`.replace(/\/+/g, '/');
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

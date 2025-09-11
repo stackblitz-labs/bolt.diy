@@ -73,7 +73,7 @@ export async function fetchGitHubStatsViaAPI() {
   try {
     isFetchingStats.set(true);
 
-    const response = await fetch('/api/github-user', {
+    const response = await fetch(`${import.meta.env.VITE_BASE_PATH || ''}/api/github-user`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

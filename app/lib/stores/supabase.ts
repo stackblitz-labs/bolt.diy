@@ -151,7 +151,7 @@ export async function fetchSupabaseStats(token: string) {
 
   try {
     // Use the internal API route instead of direct Supabase API call
-    const response = await fetch('/api/supabase', {
+    const response = await fetch(`${import.meta.env.VITE_BASE_PATH || ''}/api/supabase`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -183,7 +183,7 @@ export async function fetchProjectApiKeys(projectId: string, token: string) {
   isFetchingApiKeys.set(true);
 
   try {
-    const response = await fetch('/api/supabase/variables', {
+    const response = await fetch(`${import.meta.env.VITE_BASE_PATH || ''}/api/supabase/variables`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
