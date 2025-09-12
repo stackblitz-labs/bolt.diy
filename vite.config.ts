@@ -13,6 +13,10 @@ dotenv.config();
 
 export default defineConfig((config) => {
   return {
+    server: {
+      host: true,
+      allowedHosts: ['bolt.openweb.live', 'localhost', '127.0.0.1'],
+    },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },

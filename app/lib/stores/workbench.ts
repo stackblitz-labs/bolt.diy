@@ -555,6 +555,13 @@ export class WorkbenchStore {
       unreachable('Artifact not found');
     }
 
+    // Set user request context for optimization if available
+    const currentUserMessage = this.#getCurrentUserMessage();
+
+    if (currentUserMessage) {
+      artifact.runner.setUserRequest(currentUserMessage);
+    }
+
     const action = artifact.runner.actions.get()[data.actionId];
 
     if (!action || action.executed) {
@@ -593,10 +600,18 @@ export class WorkbenchStore {
 
       if (!isStreaming) {
         await artifact.runner.runAction(data);
+
+        // Flush any pending file changes before resetting modifications
+        await artifact.runner.flushPendingFileChanges();
         this.resetAllFileModifications();
       }
     } else {
       await artifact.runner.runAction(data);
+
+      // For non-file actions, also flush pending changes
+      if ((data.action as any).type !== 'file') {
+        await artifact.runner.flushPendingFileChanges();
+      }
     }
   }
 
@@ -607,6 +622,22 @@ export class WorkbenchStore {
   #getArtifact(id: string) {
     const artifacts = this.artifacts.get();
     return artifacts[id];
+  }
+
+  #getCurrentUserMessage(): string | null {
+    /*
+     * Get the last user message from the current context
+     * This is a placeholder - you may need to adjust based on your message store
+     */
+    try {
+      /*
+       * Attempt to get the current user message from various sources
+       * You might need to adjust this based on your actual message flow
+       */
+      return null; // Will be implemented based on actual message flow
+    } catch {
+      return null;
+    }
   }
 
   async downloadZip() {
