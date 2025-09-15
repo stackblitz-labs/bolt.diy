@@ -73,9 +73,26 @@ export enum AppFeatureStatus {
   ValidationFailed = 'ValidationFailed',
 }
 
+export enum AppFeatureKind {
+  // Build the app's mockup.
+  BuildMockup = "BuildMockup",
+
+  // Initial design work for the database and backend/reducer APIs.
+  DesignAPIs = "DesignAPIs",
+
+  // Build the backend and components for the first functional version of the app.
+  BuildInitialApp = "BuildInitialApp",
+
+  // Write one or more integration tests and get them to pass.
+  IntegrationTests = "IntegrationTests",
+}
+
 export interface AppFeature {
   // Short name for the feature.
   name: string;
+
+  // Kind of feature.
+  kind?: AppFeatureKind;
 
   // Current status of the feature.
   status: AppFeatureStatus;
