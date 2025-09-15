@@ -40,7 +40,7 @@ const PreviewLoad = () => {
   const currentMessage = messages[messageIndex];
 
   return (
-    <div className="w-full h-full relative bg-black">
+    <div className="w-full h-full relative bg-bolt-elements-background-depth-1">
       {/* Animated rainbow gradient border */}
       <div className="absolute inset-0 p-[3px] animate-focus-border opacity-60 rounded-b-xl">
         <div className="w-full h-full bg-bolt-elements-background-depth-2 rounded-b-[9px]" />
