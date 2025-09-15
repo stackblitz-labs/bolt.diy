@@ -1,17 +1,17 @@
 import { ClientOnly } from 'remix-utils/client-only';
 import { VideoSection, HeroSection, HowItWorksSection, FaqSection } from './components';
 import { Menu } from '~/components/sidebar/Menu.client';
-import { userStore } from '~/lib/stores/userAuth';
 import { useStore } from '@nanostores/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { authStatusStore } from '~/lib/stores/auth';
 
 const LandingPage = () => {
-  const user = useStore(userStore.user);
+  const isLoggedIn = useStore(authStatusStore.isLoggedIn);
 
   return (
     <Tooltip.Provider>
       <div className="w-full h-full overflow-y-auto bg-bolt-elements-background-depth-1 relative">
-        {!user && (
+        {!isLoggedIn && (
           <div className="fixed top-2 left-3 z-[1000] cursor-pointer">
             <a
               href="/"
@@ -22,7 +22,7 @@ const LandingPage = () => {
           </div>
         )}
         <main className="pt-6 sm:pt-20 pb-8">
-          {user && <ClientOnly>{() => <Menu />}</ClientOnly>}
+          {isLoggedIn && <ClientOnly>{() => <Menu />}</ClientOnly>}
           <div className="max-w-6xl mx-auto px-6">
             <VideoSection />
 
