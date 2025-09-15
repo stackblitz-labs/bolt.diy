@@ -22,7 +22,6 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { useStore } from '@nanostores/react';
 import useViewport from '~/lib/hooks';
 import { chatStore } from '~/lib/stores/chat';
-import { StatusModal } from '~/components/status-modal/StatusModal';
 import { userStore } from '~/lib/stores/userAuth';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
@@ -104,6 +103,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         sendMessage({ chatMode: ChatMode.DevelopApp });
       }
     };
+
+    // Listen for continue building events from the global status modal
+    useEffect(() => {
+      const handleContinueBuildingEvent = () => {
+        handleContinueBuilding();
+      };
+
+      window.addEventListener('continueBuilding', handleContinueBuildingEvent);
+      return () => {
+        window.removeEventListener('continueBuilding', handleContinueBuildingEvent);
+      };
+    }, [sendMessage]);
 
     const handleSendMessage = (params: ChatMessageParams) => {
       if (sendMessage) {
@@ -252,7 +263,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <ClientOnly>{() => <Workbench chatStarted={chatStarted} handleSendMessage={handleSendMessage} />}</ClientOnly>
         </div>
         {isSmallViewport && (appSummary || showMobileNav) && <ClientOnly>{() => <MobileNav />}</ClientOnly>}
-        {appSummary && <StatusModal appSummary={appSummary} onContinueBuilding={handleContinueBuilding} />}
       </div>
     );
 

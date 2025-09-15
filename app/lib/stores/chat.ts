@@ -249,3 +249,10 @@ export async function doListenAppResponses(wasStatusModalOpen = false) {
 
   statusModalStore.open();
 }
+
+export function continueBuilding() {
+  // This will trigger the continue building action
+  // We'll need to emit an event or call a function that the BaseChat can listen to
+  const event = new CustomEvent('continueBuilding');
+  window.dispatchEvent(event);
+}

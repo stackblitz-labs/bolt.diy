@@ -3,7 +3,7 @@ import { useStore } from '@nanostores/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { statusModalStore } from '~/lib/stores/statusModal';
 import { classNames } from '~/utils/classNames';
-import { isFeatureStatusImplemented, type AppSummary } from '~/lib/persistence/messageAppSummary';
+import { AppFeatureStatus, type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { peanutsStore } from '~/lib/stores/peanuts';
 import WithTooltip from '~/components/ui/Tooltip';
 
@@ -18,7 +18,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
   const peanutsErrorInfo = useStore(peanutsStore.peanutsErrorInfo);
 
   const features = appSummary.features || [];
-  const completedFeatures = features.filter(({ status }) => isFeatureStatusImplemented(status)).length;
+  const completedFeatures = features.filter(({ status }) => status === AppFeatureStatus.Validated).length;
   const totalFeatures = features.length;
   const isFullyComplete = completedFeatures === totalFeatures && totalFeatures > 0;
 
@@ -91,7 +91,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[1001] flex items-center justify-center p-2 sm:p-4"
+          className="fixed inset-0 z-[1002] flex items-center justify-center p-2 sm:p-4"
           variants={overlayVariants}
           initial="hidden"
           animate="visible"
@@ -183,24 +183,32 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                         <div
                           className={classNames(
                             'flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-medium border shadow-sm',
-                            feature.status === 'Implemented' || feature.status === 'Validated'
+                            feature.status === AppFeatureStatus.Validated
                               ? 'text-green-700 bg-green-50 border-green-200'
-                              : feature.status === 'ValidationFailed'
-                                ? 'text-yellow-700 bg-yellow-50 border-yellow-200'
-                                : 'text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor',
+                              : feature.status === AppFeatureStatus.Implemented
+                                ? 'text-blue-700 bg-blue-50 border-blue-200'
+                                : feature.status === AppFeatureStatus.ValidationFailed
+                                  ? 'text-yellow-700 bg-yellow-50 border-yellow-200'
+                                  : 'text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor',
                           )}
                         >
-                          {(feature.status === 'Implemented' || feature.status === 'Validated') && (
-                            <div className="i-ph:check-circle-fill text-sm transition-transform duration-200 hover:scale-110" />
+                          {feature.status === AppFeatureStatus.Validated && (
+                            <div className="i-ph:check-circle-fill text-sm text-green-600 transition-transform duration-200 hover:scale-110" />
                           )}
-                          {feature.status === 'ValidationFailed' && (
-                            <div className="i-ph:warning-circle-fill text-sm transition-transform duration-200 hover:scale-110" />
+                          {feature.status === AppFeatureStatus.Implemented && (
+                            <div className="i-ph:gear text-sm text-blue-600 transition-transform duration-200 hover:scale-110" />
                           )}
-                          {(feature.status === 'NotStarted' || feature.status === 'ImplementationInProgress') && (
-                            <div className="i-ph:circle text-sm transition-transform duration-200 hover:scale-110" />
+                          {feature.status === AppFeatureStatus.ValidationFailed && (
+                            <div className="i-ph:warning-circle-fill text-sm text-yellow-600 transition-transform duration-200 hover:scale-110" />
+                          )}
+                          {(feature.status === AppFeatureStatus.NotStarted ||
+                            feature.status === AppFeatureStatus.ImplementationInProgress) && (
+                            <div className="i-ph:circle text-sm text-bolt-elements-textSecondary transition-transform duration-200 hover:scale-110" />
                           )}
                           <span className="capitalize">
-                            {feature.status === 'ImplementationInProgress' ? 'In Progress' : feature.status}
+                            {feature.status === AppFeatureStatus.ImplementationInProgress
+                              ? 'In Progress'
+                              : feature.status}
                           </span>
                         </div>
                       </div>

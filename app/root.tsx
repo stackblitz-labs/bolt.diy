@@ -20,6 +20,8 @@ import AppHistoryModal from './components/workbench/VesionHistory/AppHistoryModa
 import { GlobalSubscriptionModal } from './components/subscription/GlobalSubscriptionModal';
 import { GlobalStripeStatusModal } from './components/stripe/GlobalStripeStatusModal';
 import { GlobalAppCardModal } from './components/chat/Messages/components/GlobalAppCardModal';
+import { GlobalStatusModal } from './components/status-modal/GlobalStatusModal';
+import { GlobalDeployChatModal } from './components/header/DeployChat/components/GlobalDeployChatModal';
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
@@ -234,6 +236,8 @@ export default function App() {
         <GlobalSubscriptionModal />
         <GlobalStripeStatusModal />
         <GlobalAppCardModal />
+        <GlobalStatusModal />
+        <GlobalDeployChatModal />
       </ClientOnly>
       <ScrollRestoration />
       <Scripts />
