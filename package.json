@@ -99,6 +99,7 @@
     "jose": "^5.9.6",
     "js-cookie": "^3.0.5",
     "jszip": "^3.10.1",
+    "lucide-react": "^0.487.0",
     "nanostores": "^0.10.3",
     "ollama-ai-provider": "^0.15.2",
     "react": "^18.3.1",

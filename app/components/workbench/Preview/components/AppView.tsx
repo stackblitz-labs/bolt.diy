@@ -6,6 +6,9 @@ import { useStore } from '@nanostores/react';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { useState } from 'react';
 import { useVibeAppAuthQuery } from '~/lib/hooks/useVibeAppAuth';
+import { chatStore } from '~/lib/stores/chat';
+import PreviewLoad from './PreviewLoad/PreviewLoad';
+import { isFeatureStatusImplemented } from '~/lib/persistence/messageAppSummary';
 
 export type ResizeSide = 'left' | 'right' | null;
 
@@ -36,6 +39,8 @@ const AppView = ({
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const repositoryId = useStore(workbenchStore.repositoryId);
   const isSmallViewport = useViewport(1024);
+  const appSummary = useStore(chatStore.appSummary);
+  const isMockupImplemented = isFeatureStatusImplemented(appSummary?.features?.[0]?.status);
 
   const handleTokenOrRepoChange = (params: URLSearchParams) => {
     setRedirectUrl(`https://${repositoryId}.http.replay.io/auth/callback#${params.toString()}`);
@@ -49,8 +54,8 @@ const AppView = ({
     onTokenOrRepoChange: handleTokenOrRepoChange,
   });
 
-  // Determine the actual iframe URL to use
   const actualIframeUrl = redirectUrl || iframeUrl;
+
   return (
     <div
       style={{
@@ -85,9 +90,7 @@ const AppView = ({
           )}
         </>
       ) : (
-        <div className="w-full h-full">
-          <ProgressStatus />
-        </div>
+        <div className="w-full h-full">{isMockupImplemented ? <PreviewLoad /> : <ProgressStatus />}</div>
       )}
 
       {isDeviceModeOn && previewURL && (
