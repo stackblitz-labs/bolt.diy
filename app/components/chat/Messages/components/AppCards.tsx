@@ -23,7 +23,7 @@ const getVisibleCardTypes = (appSummary: AppSummary): string[] => {
   const visibleCards: string[] = [];
 
   // 1. Mockup Card - show if mockupStatus exists (any status)
-  if (appSummary.mockupStatus) {
+  if (appSummary.features?.[0]?.status) {
     visibleCards.push('mockup');
   }
 
@@ -31,7 +31,8 @@ const getVisibleCardTypes = (appSummary: AppSummary): string[] => {
   const hasFeatureContent = appSummary.description && appSummary.features && appSummary.features.length > 0;
 
   // Show features card when mockup is complete OR when features are actually ready to be implemented
-  const mockupComplete = appSummary.mockupStatus && appSummary.mockupStatus === AppFeatureStatus.Validated;
+  const mockupComplete =
+    appSummary.features?.[0]?.status && appSummary.features?.[0]?.status === AppFeatureStatus.Validated;
   const featuresReadyToStart = appSummary.features?.some(
     (f) => f.status === AppFeatureStatus.ImplementationInProgress || isStatusComplete(f.status),
   );
@@ -73,7 +74,7 @@ export const AppCards: React.FC = () => {
     cards.push(
       <MockupCard
         key="mockup"
-        mockupStatus={appSummary.mockupStatus!}
+        mockupStatus={appSummary.features?.[0]?.status || AppFeatureStatus.NotStarted}
         appSummary={appSummary}
         onViewDetails={() => openModal('mockup')}
       />,

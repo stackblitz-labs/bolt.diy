@@ -75,16 +75,16 @@ export enum AppFeatureStatus {
 
 export enum AppFeatureKind {
   // Build the app's mockup.
-  BuildMockup = "BuildMockup",
+  BuildMockup = 'BuildMockup',
 
   // Initial design work for the database and backend/reducer APIs.
-  DesignAPIs = "DesignAPIs",
+  DesignAPIs = 'DesignAPIs',
 
   // Build the backend and components for the first functional version of the app.
-  BuildInitialApp = "BuildInitialApp",
+  BuildInitialApp = 'BuildInitialApp',
 
   // Write one or more integration tests and get them to pass.
-  IntegrationTests = "IntegrationTests",
+  IntegrationTests = 'IntegrationTests',
 }
 
 export interface AppFeature {

@@ -8,7 +8,7 @@ interface FeaturesCardProps {
 }
 
 export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDetails }) => {
-  const features = appSummary.features || [];
+  const features = appSummary.features?.slice(1) || [];
 
   const getStatusCounts = () => {
     const counts = {

@@ -17,7 +17,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
   const peanutsErrorButton = useStore(peanutsStore.peanutsErrorButton);
   const peanutsErrorInfo = useStore(peanutsStore.peanutsErrorInfo);
 
-  const features = appSummary.features || [];
+  const features = appSummary.features?.slice(1) || [];
   const completedFeatures = features.filter(({ status }) => status === AppFeatureStatus.Validated).length;
   const totalFeatures = features.length;
   const isFullyComplete = completedFeatures === totalFeatures && totalFeatures > 0;
