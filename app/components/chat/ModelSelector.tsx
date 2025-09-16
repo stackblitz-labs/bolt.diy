@@ -573,7 +573,15 @@ export const ModelSelector = ({
       </div>
 
       {/* Model Combobox */}
-      <div className="relative flex w-full min-w-[70%]" onKeyDown={handleModelKeyDown} ref={modelDropdownRef}>
+      <div
+        className={classNames(
+          'relative flex w-full',
+          // Prevent overflow when provider name is long (e.g., DockerModelRunner)
+          provider?.name === 'DockerModelRunner' ? 'min-w-0 sm:min-w-[60%]' : 'min-w-[70%]'
+        )}
+        onKeyDown={handleModelKeyDown}
+        ref={modelDropdownRef}
+      >
         <div
           className={classNames(
             'w-full p-2 rounded-lg border border-bolt-elements-borderColor',

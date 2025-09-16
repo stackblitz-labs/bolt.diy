@@ -1,4 +1,3 @@
-// Simple EventEmitter implementation for browser compatibility
 class SimpleEventEmitter {
   private _events: Record<string, ((...args: any[]) => void)[]> = {};
 
@@ -32,7 +31,7 @@ class SimpleEventEmitter {
 }
 
 export interface ModelHealthStatus {
-  provider: 'Ollama' | 'LMStudio' | 'OpenAILike';
+  provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner';
   baseUrl: string;
   status: 'healthy' | 'unhealthy' | 'checking' | 'unknown';
   lastChecked: Date;
@@ -63,7 +62,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
   /**
    * Start monitoring a local provider
    */
-  startMonitoring(provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string, checkInterval?: number): void {
+  startMonitoring(provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string, checkInterval?: number): void {
     const key = this._getProviderKey(provider, baseUrl);
 
     // Stop existing monitoring if any
@@ -91,7 +90,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
   /**
    * Stop monitoring a local provider
    */
-  stopMonitoring(provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string): void {
+  stopMonitoring(provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string): void {
     const key = this._getProviderKey(provider, baseUrl);
 
     const interval = this._checkIntervals.get(key);
@@ -107,7 +106,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
   /**
    * Get current health status for a provider
    */
-  getHealthStatus(provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string): ModelHealthStatus | undefined {
+  getHealthStatus(provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string): ModelHealthStatus | undefined {
     const key = this._getProviderKey(provider, baseUrl);
     return this._healthStatuses.get(key);
   }
@@ -122,8 +121,8 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
   /**
    * Perform a manual health check
    */
-  async performHealthCheck(
-    provider: 'Ollama' | 'LMStudio' | 'OpenAILike',
+async performHealthCheck(
+    provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner',
     baseUrl: string,
   ): Promise<HealthCheckResult> {
     const key = this._getProviderKey(provider, baseUrl);
@@ -191,8 +190,8 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
   /**
    * Check health of a specific provider
    */
-  private async _checkProviderHealth(
-    provider: 'Ollama' | 'LMStudio' | 'OpenAILike',
+private async _checkProviderHealth(
+    provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner',
     baseUrl: string,
   ): Promise<HealthCheckResult> {
     const controller = new AbortController();
@@ -206,11 +205,59 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
           return await this._checkLMStudioHealth(baseUrl, controller.signal);
         case 'OpenAILike':
           return await this._checkOpenAILikeHealth(baseUrl, controller.signal);
+        case 'DockerModelRunner':
+          return await this._checkDockerModelRunnerHealth(baseUrl, controller.signal);
         default:
           throw new Error(`Unsupported provider: ${provider}`);
       }
     } finally {
       clearTimeout(timeoutId);
+    }
+  }
+
+  /**
+   * Check Docker Model Runner health
+   */
+  private async _checkDockerModelRunnerHealth(baseUrl: string, signal: AbortSignal): Promise<HealthCheckResult> {
+    try {
+      // DMR uses OpenAI-compatible endpoints under /engines/v1
+      const normalizedUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+      // Use server-side local proxy to avoid browser CORS issues
+      const proxyUrl = `/api/local-proxy?url=${encodeURIComponent(`${normalizedUrl}/engines/v1/models`)}`;
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal,
+      });
+
+      if (!response.ok) {
+        // Handle potential CORS/network issues as generic error
+        if (response.type === 'opaque' || response.status === 0) {
+          throw new Error('CORS_ERROR: Docker Model Runner is blocking requests from this origin. Ensure host TCP support is enabled or use the desktop app.');
+        }
+
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = (await response.json()) as { data?: Array<{ id: string }>; [key: string]: any };
+      const models = (data.data || []).map((m) => m.id);
+
+      // Optionally pick a version string if exposed under 'version' or 'dmr_version'
+      const version: string | undefined = (data as any).version || (data as any).dmr_version;
+
+      return {
+        isHealthy: true,
+        responseTime: 0,
+        availableModels: models,
+        version,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        isHealthy: false,
+        responseTime: 0,
+        error: message,
+      };
     }
   }
 

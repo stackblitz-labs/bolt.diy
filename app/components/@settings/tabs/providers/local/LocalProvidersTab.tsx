@@ -32,6 +32,8 @@ export default function LocalProvidersTab() {
   const [isLoadingLMStudioModels, setIsLoadingLMStudioModels] = useState(false);
   const { toast } = useToast();
   const { startMonitoring, stopMonitoring } = useLocalModelHealth();
+  const [dmrModels, setDmrModels] = useState<string[]>([]);
+  const [isLoadingDmrModels, setIsLoadingDmrModels] = useState(false);
 
   // Memoized filtered providers to prevent unnecessary re-renders
   const filteredProviders = useMemo(() => {
@@ -45,13 +47,15 @@ export default function LocalProvidersTab() {
         // Set default base URLs for local providers
         let defaultBaseUrl = provider.settings.baseUrl || envUrl;
 
-        if (!defaultBaseUrl) {
-          if (key === 'Ollama') {
-            defaultBaseUrl = 'http://127.0.0.1:11434';
-          } else if (key === 'LMStudio') {
-            defaultBaseUrl = 'http://127.0.0.1:1234';
+          if (!defaultBaseUrl) {
+            if (key === 'Ollama') {
+              defaultBaseUrl = 'http://127.0.0.1:11434';
+            } else if (key === 'LMStudio') {
+              defaultBaseUrl = 'http://127.0.0.1:1234';
+            } else if (key === 'DockerModelRunner') {
+              defaultBaseUrl = 'http://127.0.0.1:12434';
+            }
           }
-        }
 
         return {
           name: key,
@@ -84,10 +88,10 @@ export default function LocalProvidersTab() {
 
       if (provider.settings.enabled && baseUrl) {
         console.log(`[LocalProvidersTab] Starting monitoring for ${provider.name} at ${baseUrl}`);
-        startMonitoring(provider.name as 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl);
+        startMonitoring(provider.name as 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl);
       } else if (!provider.settings.enabled && baseUrl) {
         console.log(`[LocalProvidersTab] Stopping monitoring for ${provider.name} at ${baseUrl}`);
-        stopMonitoring(provider.name as 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl);
+        stopMonitoring(provider.name as 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl);
       }
     });
   }, [filteredProviders, startMonitoring, stopMonitoring]);
@@ -109,6 +113,16 @@ export default function LocalProvidersTab() {
       fetchLMStudioModels(lmStudioProvider.settings.baseUrl);
     }
   }, [filteredProviders]);
+
+  // Fetch Docker Model Runner models when enabled
+  useEffect(() => {
+    const dmrProvider = filteredProviders.find((p) => p.name === 'DockerModelRunner');
+
+    if (dmrProvider?.settings.enabled && dmrProvider.settings.baseUrl) {
+      fetchDMRModels(dmrProvider.settings.baseUrl);
+    }
+  }, [filteredProviders]);
+
 
   const fetchOllamaModels = async () => {
     try {
@@ -190,6 +204,28 @@ export default function LocalProvidersTab() {
     [updateProviderSettings, toast],
   );
 
+  // Fetch Docker Model Runner models using local proxy to avoid CORS
+  const fetchDMRModels = async (baseUrl: string) => {
+    try {
+      setIsLoadingDmrModels(true);
+      const normalized = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+      const proxyUrl = `/api/local-proxy?url=${encodeURIComponent(`${normalized}/engines/v1/models`)}`;
+      const response = await fetch(proxyUrl);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch Docker Model Runner models');
+      }
+
+      const data = (await response.json()) as { data?: Array<{ id: string }> };
+      setDmrModels((data.data || []).map((m) => m.id));
+    } catch (e) {
+      console.error('Error fetching Docker Model Runner models', e);
+      setDmrModels([]);
+    } finally {
+      setIsLoadingDmrModels(false);
+    }
+  };
+
   const handleUpdateOllamaModel = async (modelName: string) => {
     try {
       setOllamaModels((prev) => prev.map((m) => (m.name === modelName ? { ...m, status: 'updating' } : m)));
@@ -258,6 +294,7 @@ export default function LocalProvidersTab() {
       toast(`Failed to update ${modelName}`, { type: 'error' });
     }
   };
+
 
   const handleDeleteOllamaModel = async (modelName: string) => {
     if (!window.confirm(`Are you sure you want to delete ${modelName}?`)) {
@@ -433,6 +470,69 @@ export default function LocalProvidersTab() {
                             onUpdate={() => handleUpdateOllamaModel(model.name)}
                             onDelete={() => handleDeleteOllamaModel(model.name)}
                           />
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+
+              {/* Docker Model Runner Models Section */}
+              {provider.name === 'DockerModelRunner' && provider.settings.enabled && (
+                <Card className="mt-4 bg-bolt-elements-background-depth-2">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Server className="w-5 h-5 text-cyan-500" />
+                        <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">Available Models</h3>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchDMRModels(provider.settings.baseUrl!)}
+                        disabled={isLoadingDmrModels}
+                        className="bg-transparent hover:bg-bolt-elements-background-depth-2"
+                      >
+                        {isLoadingDmrModels ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <RotateCw className="w-4 h-4 mr-2" />
+                        )}
+                        Refresh
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {isLoadingDmrModels ? (
+                      <div className="space-y-4">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <ModelCardSkeleton key={i} />
+                        ))}
+                      </div>
+                    ) : dmrModels.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Server className="w-16 h-16 mx-auto text-bolt-elements-textTertiary mb-4" />
+                        <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">No Models Available</h3>
+                        <p className="text-sm text-bolt-elements-textSecondary">
+                          Pull a model with Docker (e.g., "docker model pull ai/smollm2") and ensure DMR is enabled.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4">
+                        {dmrModels.map((id) => (
+                          <Card key={id} className="bg-bolt-elements-background-depth-3">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-sm font-medium text-bolt-elements-textPrimary font-mono truncate">
+                                  {id}
+                                </h4>
+                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-500">
+                                  Available
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
                         ))}
                       </div>
                     )}

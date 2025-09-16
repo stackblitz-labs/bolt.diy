@@ -8,11 +8,11 @@ export interface UseLocalModelHealthOptions {
 
 export interface UseLocalModelHealthReturn {
   healthStatuses: ModelHealthStatus[];
-  getHealthStatus: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string) => ModelHealthStatus | undefined;
-  startMonitoring: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string, checkInterval?: number) => void;
-  stopMonitoring: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string) => void;
-  performHealthCheck: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string) => Promise<void>;
-  isHealthy: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string) => boolean;
+  getHealthStatus: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string) => ModelHealthStatus | undefined;
+  startMonitoring: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string, checkInterval?: number) => void;
+  stopMonitoring: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string) => void;
+  performHealthCheck: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string) => Promise<void>;
+  isHealthy: (provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string) => boolean;
   getOverallHealth: () => { healthy: number; unhealthy: number; checking: number; unknown: number };
 }
 
@@ -51,13 +51,13 @@ export function useLocalModelHealth(options: UseLocalModelHealthOptions = {}): U
   }, []);
 
   // Get health status for a specific provider
-  const getHealthStatus = useCallback((provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string) => {
+const getHealthStatus = useCallback((provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string) => {
     return localModelHealthMonitor.getHealthStatus(provider, baseUrl);
   }, []);
 
   // Start monitoring a provider
-  const startMonitoring = useCallback(
-    (provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string, interval?: number) => {
+const startMonitoring = useCallback(
+    (provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string, interval?: number) => {
       console.log(`[Health Monitor] Starting monitoring for ${provider} at ${baseUrl}`);
       localModelHealthMonitor.startMonitoring(provider, baseUrl, interval || checkInterval);
     },
@@ -65,7 +65,7 @@ export function useLocalModelHealth(options: UseLocalModelHealthOptions = {}): U
   );
 
   // Stop monitoring a provider
-  const stopMonitoring = useCallback((provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string) => {
+const stopMonitoring = useCallback((provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string) => {
     console.log(`[Health Monitor] Stopping monitoring for ${provider} at ${baseUrl}`);
     localModelHealthMonitor.stopMonitoring(provider, baseUrl);
 
@@ -74,13 +74,13 @@ export function useLocalModelHealth(options: UseLocalModelHealthOptions = {}): U
   }, []);
 
   // Perform manual health check
-  const performHealthCheck = useCallback(async (provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string) => {
+const performHealthCheck = useCallback(async (provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string) => {
     await localModelHealthMonitor.performHealthCheck(provider, baseUrl);
   }, []);
 
   // Check if a provider is healthy
   const isHealthy = useCallback(
-    (provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string) => {
+(provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner', baseUrl: string) => {
       const status = getHealthStatus(provider, baseUrl);
       return status?.status === 'healthy';
     },
@@ -113,7 +113,7 @@ export function useLocalModelHealth(options: UseLocalModelHealthOptions = {}): U
  * Hook for monitoring a specific provider
  */
 export function useProviderHealth(
-  provider: 'Ollama' | 'LMStudio' | 'OpenAILike',
+  provider: 'Ollama' | 'LMStudio' | 'OpenAILike' | 'DockerModelRunner',
   baseUrl: string,
   options: UseLocalModelHealthOptions = {},
 ) {

@@ -68,7 +68,8 @@ const CloudProvidersTab = () => {
   // Load and filter providers
   useEffect(() => {
     const newFilteredProviders = Object.entries(settings.providers || {})
-      .filter(([key]) => !['Ollama', 'LMStudio', 'OpenAILike'].includes(key))
+      // Exclude local providers from the cloud list
+      .filter(([key]) => !['Ollama', 'LMStudio', 'OpenAILike', 'DockerModelRunner'].includes(key))
       .map(([key, value]) => ({
         name: key,
         settings: value.settings,

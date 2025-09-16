@@ -449,6 +449,97 @@ function SetupGuide({ onBack }: { onBack: () => void }) {
         </CardContent>
       </Card>
 
+      {/* Docker Model Runner Setup Section */}
+      <Card className="bg-bolt-elements-background-depth-2 shadow-sm">
+        <CardHeader className="pb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center ring-1 ring-cyan-500/30">
+              <Server className="w-6 h-6 text-cyan-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-bolt-elements-textPrimary">Docker Model Runner (DMR) Setup</h3>
+              <p className="text-sm text-bolt-elements-textSecondary">OpenAI-compatible API via Docker Desktop</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Requirements */}
+          <div className="p-4 rounded-lg bg-bolt-elements-background-depth-3">
+            <h4 className="font-medium text-bolt-elements-textPrimary mb-2">Requirements</h4>
+            <ul className="text-sm text-bolt-elements-textSecondary list-disc list-inside space-y-1">
+              <li>Docker Desktop 4.41+ (Windows) or 4.40+ (macOS) or Docker Engine (Linux)</li>
+              <li>Enable GPU for Windows (NVIDIA drivers 576.57+) if using GPU models</li>
+            </ul>
+          </div>
+
+          {/* Enable DMR and TCP */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-bolt-elements-textPrimary flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              1. Enable DMR + Host TCP (12434)
+            </h4>
+            <div className="text-xs bg-bolt-elements-background-depth-4 p-3 rounded font-mono text-bolt-elements-textPrimary space-y-2">
+              <div># Docker Desktop CLI</div>
+              <div>docker desktop enable model-runner --tcp 12434</div>
+            </div>
+            <p className="text-xs text-bolt-elements-textSecondary">Alternatively, enable in Docker Desktop: Settings → Features in development → Model Runner → Enable host-side TCP support.</p>
+          </div>
+
+          {/* Pull a model */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-bolt-elements-textPrimary flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              2. Pull a model
+            </h4>
+            <div className="text-xs bg-bolt-elements-background-depth-4 p-3 rounded font-mono text-bolt-elements-textPrimary space-y-1">
+              <div>docker model pull ai/smollm2</div>
+            </div>
+            <p className="text-xs text-bolt-elements-textSecondary">Models are pulled from Docker Hub and cached locally.</p>
+          </div>
+
+          {/* Verify API */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-bolt-elements-textPrimary flex items-center gap-2">
+              <Terminal className="w-4 h-4" />
+              3. Verify OpenAI-compatible API
+            </h4>
+            <div className="text-xs bg-bolt-elements-background-depth-4 p-3 rounded font-mono text-bolt-elements-textPrimary space-y-1">
+              <div># List models</div>
+              <div>curl http://localhost:12434/engines/v1/models</div>
+              <div></div>
+              <div># Create chat completion</div>
+              <div>{`curl http://localhost:12434/engines/v1/chat/completions -H "Content-Type: application/json" -d '{"model":"ai/smollm2","messages":[{"role":"user","content":"hello"}]}'`}</div>
+            </div>
+            <p className="text-xs text-bolt-elements-textSecondary">From containers, use http://model-runner.docker.internal/engines/v1/…</p>
+          </div>
+
+          {/* Configure in Bolt DIY */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-bolt-elements-textPrimary flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              4. Configure in Bolt DIY
+            </h4>
+            <ul className="text-sm text-bolt-elements-textSecondary list-disc list-inside space-y-1">
+              <li>Enable provider: Settings → Providers → Local → Docker Model Runner</li>
+              <li>Base URL: http://127.0.0.1:12434 (we route to /engines/v1 automatically)</li>
+              <li>If Bolt runs in Docker, we automatically use host.docker.internal</li>
+            </ul>
+          </div>
+
+          {/* Known issues */}
+          <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-yellow-500" />
+              <span className="font-medium text-yellow-500">Known issues</span>
+            </div>
+            <ul className="text-xs text-bolt-elements-textSecondary space-y-1">
+              <li>docker: 'model' is not a docker command → ensure the plugin is detected by Docker Desktop.</li>
+              <li>Linux containers in Compose may need extra_hosts: "model-runner.docker.internal:host-gateway"</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* LocalAI Setup Section */}
       <Card className="bg-bolt-elements-background-depth-2 shadow-sm">
         <CardHeader className="pb-6">
