@@ -267,7 +267,7 @@ export function ClientAuth() {
 
                 <button
                   onClick={handleShowAccountModal}
-                  className="w-full px-4 py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium shadow-sm hover:shadow-md"
+                  className="w-full px-4 py-3 bg-gradient-to-br from-blue-500 to-indigo-500 text-white hover:bg-gradient-to-br hover:from-blue-600 hover:to-indigo-600 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium shadow-sm hover:shadow-md"
                 >
                   <div className="i-ph:gear text-lg" />
                   <span>Account Settings</span>
