@@ -6,7 +6,7 @@ import { mobileNavStore } from '~/lib/stores/mobileNav';
 
 interface StartBuildingCardProps {
   startPlanningRating: number;
-  sendMessage?: (params: { messageInput: string; chatMode?: any }) => void;
+  sendMessage?: (params: { messageInput: string; chatMode: ChatMode }) => void;
   onMount?: () => void;
 }
 
@@ -38,7 +38,7 @@ export const StartBuildingCard: React.FC<StartBuildingCardProps> = ({ startPlann
               onClick={() => {
                 if (sendMessage) {
                   const message = 'Start building the app based on these requirements.';
-                  sendMessage({ messageInput: message, chatMode: ChatMode.BuildApp });
+                  sendMessage({ messageInput: message, chatMode: ChatMode.DevelopApp });
                   setTimeout(() => {
                     workbenchStore.setShowWorkbench(true);
                     mobileNavStore.setShowMobileNav(true);

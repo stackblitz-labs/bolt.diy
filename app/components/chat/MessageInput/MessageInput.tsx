@@ -190,7 +190,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 return;
               }
 
-              handleSendMessage({ messageInput: fullInput });
+              handleSendMessage({ messageInput: fullInput, chatMode: ChatMode.UserMessage });
             }
           }}
           value={input}
@@ -227,7 +227,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                         }
 
                         if (fullInput.length > 0 || uploadedFiles.length > 0) {
-                          handleSendMessage({ messageInput: fullInput });
+                          handleSendMessage({ messageInput: fullInput, chatMode: ChatMode.UserMessage });
                         }
                       }}
                     />
@@ -241,7 +241,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                     <StartBuildingButton
                       onClick={() => {
                         const message = (fullInput + '\n\nStart building the app based on these requirements.').trim();
-                        handleSendMessage({ messageInput: message, chatMode: ChatMode.BuildApp });
+                        handleSendMessage({ messageInput: message, chatMode: ChatMode.DevelopApp });
                         setTimeout(() => {
                           workbenchStore.setShowWorkbench(true);
                           mobileNavStore.setShowMobileNav(true);

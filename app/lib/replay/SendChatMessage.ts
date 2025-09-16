@@ -26,8 +26,7 @@ export type ChatReference = ChatReferenceElement;
 export type ChatResponseCallback = (response: ChatResponse) => void;
 
 export enum ChatMode {
-  BuildApp = 'BuildApp',
-  Discovery = 'Discovery',
+  UserMessage = 'UserMessage',
   DevelopApp = 'DevelopApp',
   FixDetectedError = 'FixDetectedError',
 }

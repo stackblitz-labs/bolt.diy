@@ -21,14 +21,14 @@ import { chatStore } from '~/lib/stores/chat';
 import { pendingMessageStatusStore } from '~/lib/stores/status';
 import { userStore } from '~/lib/stores/auth';
 import { peanutsStore } from '~/lib/stores/peanuts';
-import { shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
+import { ChatMode, shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
 import { AppFeatureStatus } from '~/lib/persistence/messageAppSummary';
 
 interface MessagesProps {
   id?: string;
   className?: string;
   onLastMessageCheckboxChange?: (contents: string, checked: boolean) => void;
-  sendMessage?: (params: { messageInput: string; chatMode?: any }) => void;
+  sendMessage?: (params: { messageInput: string; chatMode: ChatMode }) => void;
 }
 
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(

@@ -28,7 +28,7 @@ function clearActiveChat() {
 
 export interface ChatMessageParams {
   messageInput?: string;
-  chatMode?: ChatMode;
+  chatMode: ChatMode;
   sessionRepositoryId?: string;
   simulationData?: SimulationData;
   detectedError?: DetectedError;
@@ -44,7 +44,6 @@ const ChatImplementer = memo(() => {
   const [input, setInput] = useState('');
 
   const showChat = useStore(chatStore.showChat);
-  const hasAppSummary = !!useStore(chatStore.appSummary);
 
   const [animationScope, animate] = useAnimate();
 
@@ -164,17 +163,6 @@ const ChatImplementer = memo(() => {
 
     const messages = chatStore.messages.get().filter(shouldDisplayMessage);
 
-    let mode = chatMode;
-    if (!mode) {
-      // If we don't have a plan yet, stay in Discovery mode until the user
-      // forces us to start planning.
-      if (!hasAppSummary) {
-        mode = ChatMode.Discovery;
-      } else {
-        mode = ChatMode.BuildApp;
-      }
-    }
-
     const numAbortsAtStart = chatStore.numAborts.get();
 
     let visit: VisitData | undefined;
@@ -189,7 +177,7 @@ const ChatImplementer = memo(() => {
 
     await doSendMessage({
       appId,
-      mode,
+      mode: chatMode,
       messages,
       visit,
     });
