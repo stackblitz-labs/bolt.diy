@@ -2,7 +2,7 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
-import React, { type RefCallback, useCallback, useEffect, useState } from 'react';
+import React, { type RefCallback, useCallback, useEffect, useRef, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { Workbench } from '~/components/workbench/Workbench.client';
@@ -91,10 +91,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [checkedBoxes, setCheckedBoxes] = useState<string[]>([]);
 
+    const hasShownWorkbench = useRef(false);
     useEffect(() => {
-      if (appSummary && !workbenchStore.showWorkbench.get()) {
+      if (appSummary && !showWorkbench && !hasShownWorkbench.current) {
         workbenchStore.setShowWorkbench(true);
         mobileNavStore.setActiveTab('preview');
+        hasShownWorkbench.current = true;
       }
     }, [appSummary]);
 
@@ -202,18 +204,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           ref={scrollRef}
           className={classNames('w-full h-full flex flex-col lg:flex-row overflow-hidden', {
             'overflow-y-auto': !chatStarted,
-            'pt-2 pb-2 px-4': isSmallViewport && !appSummary,
-            'pt-2 pb-15 px-4': isSmallViewport && !!appSummary,
+            'pt-2 pb-2 px-4': isSmallViewport && !appSummary && !showMobileNav,
+            'pt-2 pb-15 px-4': isSmallViewport && (!!appSummary || showMobileNav),
             'p-6': !isSmallViewport && chatStarted,
-            'p-6 pb-16': !isSmallViewport && !chatStarted, // Add extra bottom padding on landing page to show footer
+            'p-6 pb-16': !isSmallViewport && !chatStarted,
           })}
         >
           <div
             className={classNames(styles.Chat, 'flex flex-col h-full', {
-              'flex-grow': isSmallViewport, // Full width on mobile
-              'flex-shrink-0': !isSmallViewport, // Fixed width on desktop
+              'flex-grow': isSmallViewport,
+              'flex-shrink-0': !isSmallViewport,
               'pb-2': isSmallViewport,
-              'landing-page-layout': !chatStarted, // Custom CSS class for responsive centering
+              'landing-page-layout': !chatStarted,
             })}
             style={!isSmallViewport && showWorkbench ? { width: `${chatWidth}px` } : { width: '100%' }}
           >
