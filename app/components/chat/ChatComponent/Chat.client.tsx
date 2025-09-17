@@ -131,7 +131,7 @@ export function Chat() {
 
   return (
     <>
-      {!ready && initialAppId && <AppLoadingScreen appId={initialAppId} />}
+      {!ready && initialAppId && !unauthorized && <AppLoadingScreen appId={initialAppId} />}
       {ready && <ChatImplementer />}
       {unauthorized && <Unauthorized handleCopyApp={handleCopyApp} isCopying={isCopying} />}
     </>
