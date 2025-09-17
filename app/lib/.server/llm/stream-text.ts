@@ -1,6 +1,5 @@
 import { convertToCoreMessages, streamText as _streamText, type Message } from 'ai';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel, type FileMap } from './constants';
-import { getSystemPrompt } from '~/lib/common/prompts/prompts';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
 import type { IProviderSetting } from '~/types/model';
 import { PromptLibrary } from '~/lib/common/prompt-library';
@@ -43,8 +42,25 @@ function getCompletionTokenLimit(modelDetails: any): number {
   return Math.min(MAX_TOKENS, 16384);
 }
 
-function sanitizeText(text: string): string {
-  let sanitized = text.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/s, '');
+function sanitizeText(text: unknown): string {
+  let source: string;
+
+  if (typeof text === 'string') {
+    source = text;
+  } else if (Array.isArray(text)) {
+    const firstText = (text as any[]).find((p) => p && typeof p === 'object' && p.type === 'text');
+    source = (firstText?.text as string) || '';
+  } else if (text == null) {
+    source = '';
+  } else {
+    try {
+      source = String(text);
+    } catch {
+      source = '';
+    }
+  }
+
+  let sanitized = source.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/s, '');
   sanitized = sanitized.replace(/<think>.*?<\/think>/s, '');
   sanitized = sanitized.replace(/<boltAction type="file" filePath="package-lock\.json">[\s\S]*?<\/boltAction>/g, '');
 
@@ -149,18 +165,24 @@ export async function streamText(props: {
     `Token limits for model ${modelDetails.name}: maxTokens=${safeMaxTokens}, maxTokenAllowed=${modelDetails.maxTokenAllowed}, maxCompletionTokens=${modelDetails.maxCompletionTokens}`,
   );
 
-  let systemPrompt =
-    PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
+  let systemPrompt = PromptLibrary.getPromptFromLibraryWithProvider(
+    promptId || 'default',
+    {
       cwd: WORK_DIR,
       allowedHtmlElements: allowedHTMLElements,
       modificationTagName: MODIFICATIONS_TAG_NAME,
       designScheme,
+      chatMode,
+      contextOptimization,
       supabase: {
         isConnected: options?.supabaseConnection?.isConnected || false,
         hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
         credentials: options?.supabaseConnection?.credentials || undefined,
       },
-    }) ?? getSystemPrompt();
+    },
+    currentProvider,
+    modelDetails,
+  );
 
   if (chatMode === 'build' && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);

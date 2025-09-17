@@ -1,5 +1,15 @@
-import type { Message } from 'ai';
+import type { Message } from '@ai-sdk/ui-utils';
 import { generateId } from './fileUtils';
+import {
+  detectPackageManager,
+  createInstallCommand,
+  createRunCommand,
+  createShadcnInitCommand,
+  createFallbackInstallCommand,
+  detectExpoProject,
+  createExpoStartCommand,
+  createExpoSetupCommand,
+} from './platformUtils';
 
 export interface ProjectCommands {
   type: string;
@@ -13,35 +23,8 @@ interface FileContent {
   path: string;
 }
 
-// Helper function to make any command non-interactive
-function makeNonInteractive(command: string): string {
-  // Set environment variables for non-interactive mode
-  const envVars = 'export CI=true DEBIAN_FRONTEND=noninteractive FORCE_COLOR=0';
-
-  // Common interactive packages and their non-interactive flags
-  const interactivePackages = [
-    { pattern: /npx\s+([^@\s]+@?[^\s]*)\s+init/g, replacement: 'echo "y" | npx --yes $1 init --defaults --yes' },
-    { pattern: /npx\s+create-([^\s]+)/g, replacement: 'npx --yes create-$1 --template default' },
-    { pattern: /npx\s+([^@\s]+@?[^\s]*)\s+add/g, replacement: 'npx --yes $1 add --defaults --yes' },
-    { pattern: /npm\s+install(?!\s+--)/g, replacement: 'npm install --yes --no-audit --no-fund --silent' },
-    { pattern: /yarn\s+add(?!\s+--)/g, replacement: 'yarn add --non-interactive' },
-    { pattern: /pnpm\s+add(?!\s+--)/g, replacement: 'pnpm add --yes' },
-  ];
-
-  let processedCommand = command;
-
-  // Apply replacements for known interactive patterns
-  interactivePackages.forEach(({ pattern, replacement }) => {
-    processedCommand = processedCommand.replace(pattern, replacement);
-  });
-
-  return `${envVars} && ${processedCommand}`;
-}
-
 export async function detectProjectCommands(files: FileContent[]): Promise<ProjectCommands> {
   const hasFile = (name: string) => files.some((f) => f.path.endsWith(name));
-  const hasFileContent = (name: string, content: string) =>
-    files.some((f) => f.path.endsWith(name) && f.content.includes(content));
 
   if (hasFile('package.json')) {
     const packageJsonFile = files.find((f) => f.path.endsWith('package.json'));
@@ -55,32 +38,71 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
       const scripts = packageJson?.scripts || {};
       const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
 
-      // Check if this is a shadcn project
-      const isShadcnProject =
-        hasFileContent('components.json', 'shadcn') ||
-        Object.keys(dependencies).some((dep) => dep.includes('shadcn')) ||
-        hasFile('components.json');
+      // Check if this is an Expo project first
+      const expoInfo = detectExpoProject(hasFile, dependencies);
+
+      if (expoInfo.isExpo) {
+        const { pm } = detectPackageManager(hasFile);
+        const setupCommand = createExpoSetupCommand(pm, expoInfo);
+        const startCommand = createExpoStartCommand(expoInfo, { mode: 'tunnel' });
+
+        const workflowText = expoInfo.workflowType === 'bare' ? 'bare workflow' : 'managed workflow';
+        const followupMessage = `Detected Expo project (${workflowText}). Starting development server with tunnel mode for mobile testing. Scan QR code with Expo Go app.`;
+
+        return {
+          type: 'Expo',
+          setupCommand,
+          startCommand,
+          followupMessage,
+        };
+      }
+
+      // Check if this is a shadcn project (more specific detection)
+      const isShadcnProject = hasFile('components.json') || dependencies['@shadcn/ui'] || dependencies['shadcn-ui'];
 
       // Check for preferred commands in priority order
       const preferredCommands = ['dev', 'start', 'preview'];
       const availableCommand = preferredCommands.find((cmd) => scripts[cmd]);
 
-      // Build setup command with non-interactive handling
-      let baseSetupCommand = 'npx update-browserslist-db@latest && npm install';
+      // Detect package manager based on lock files with confidence scoring
+      const { pm, confidence } = detectPackageManager(hasFile);
 
-      // Add shadcn init if it's a shadcn project
-      if (isShadcnProject) {
-        baseSetupCommand += ' && npx shadcn@latest init';
+      // Create cross-platform install command with proper error handling
+      const installCmd = createInstallCommand(
+        pm,
+        {},
+        {
+          silent: true,
+          production: false,
+          offline: true,
+          legacyPeerDeps: true,
+          noAudit: true,
+          noFund: true,
+          retries: confidence === 'high' ? 3 : 1,
+        },
+      );
+
+      // Create fallback install command for edge cases
+      const fallbackInstallCmd = createFallbackInstallCommand(pm);
+
+      // Build setup command with fallback strategy
+      let baseSetupCommand = confidence === 'high' ? installCmd : fallbackInstallCmd;
+
+      // Add shadcn init if it's a shadcn project (cross-platform with timeout)
+      if (isShadcnProject && !hasFile('components.json')) {
+        const shadcnCmd = createShadcnInitCommand();
+        baseSetupCommand += ` && ${shadcnCmd}`;
       }
 
-      const setupCommand = makeNonInteractive(baseSetupCommand);
+      const setupCommand = baseSetupCommand;
 
       if (availableCommand) {
+        const startCommand = createRunCommand(pm, availableCommand);
         return {
           type: 'Node.js',
           setupCommand,
-          startCommand: `npm run ${availableCommand}`,
-          followupMessage: `Found "${availableCommand}" script in package.json. Running "npm run ${availableCommand}" after installation.`,
+          startCommand,
+          followupMessage: `Found "${availableCommand}" script in package.json. Using ${pm} (${confidence} confidence) for package management.`,
         };
       }
 
@@ -92,15 +114,28 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
       };
     } catch (error) {
       console.error('Error parsing package.json:', error);
-      return { type: '', setupCommand: '', followupMessage: '' };
+
+      // Fallback to basic npm install if package.json is corrupted
+      const fallbackInstall = createFallbackInstallCommand('npm');
+
+      return {
+        type: 'Node.js',
+        setupCommand: fallbackInstall,
+        followupMessage:
+          'package.json parsing failed, using fallback npm install. Please check your package.json for syntax errors.',
+      };
     }
   }
 
   if (hasFile('index.html')) {
+    const serveCommand = createFallbackInstallCommand('npm').includes('npm')
+      ? 'npx --yes serve'
+      : 'python -m http.server 8000 || python3 -m http.server 8000';
+
     return {
       type: 'Static',
-      startCommand: 'npx --yes serve',
-      followupMessage: '',
+      startCommand: serveCommand,
+      followupMessage: 'Detected static HTML project. Starting local server.',
     };
   }
 
@@ -141,7 +176,7 @@ export function escapeBoltArtifactTags(input: string) {
   // Regular expression to match boltArtifact tags and their content
   const regex = /(<boltArtifact[^>]*>)([\s\S]*?)(<\/boltArtifact>)/g;
 
-  return input.replace(regex, (match, openTag, content, closeTag) => {
+  return input.replace(regex, (_match, openTag, content, closeTag) => {
     // Escape the opening tag
     const escapedOpenTag = openTag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -157,7 +192,7 @@ export function escapeBoltAActionTags(input: string) {
   // Regular expression to match boltArtifact tags and their content
   const regex = /(<boltAction[^>]*>)([\s\S]*?)(<\/boltAction>)/g;
 
-  return input.replace(regex, (match, openTag, content, closeTag) => {
+  return input.replace(regex, (_match, openTag, content, closeTag) => {
     // Escape the opening tag
     const escapedOpenTag = openTag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 

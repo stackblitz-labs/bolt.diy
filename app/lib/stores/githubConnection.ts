@@ -209,6 +209,54 @@ export const githubConnectionStore = {
     localStorage.setItem('github_connection', JSON.stringify(updatedConnection));
   },
 
+  // Auto-connect using environment token
+  async autoConnect(): Promise<{ success: boolean; error?: string }> {
+    // Check if token exists and is not empty
+    if (!envToken || envToken.trim() === '') {
+      return { success: false, error: 'No GitHub token found in environment' };
+    }
+
+    // Don't auto-connect if already connected
+    if (githubConnectionAtom.get().user) {
+      return { success: true };
+    }
+
+    try {
+      await this.connect(envToken, (envTokenType as 'classic' | 'fine-grained') || 'classic');
+
+      logStore.logInfo('Auto-connected to GitHub', {
+        type: 'system',
+        message: `Auto-connected to GitHub using environment token`,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to auto-connect to GitHub:', error);
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logStore.logError(`GitHub auto-connection failed: ${errorMessage}`, {
+        type: 'system',
+        message: 'GitHub auto-connection failed',
+      });
+
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  },
+
+  // Initialize connection with auto-connect
+  async initialize(): Promise<void> {
+    // First, try to load saved connection
+    initializeConnection();
+
+    // If no saved connection and env token exists, try auto-connect
+    if (!githubConnectionAtom.get().user && envToken) {
+      await this.autoConnect();
+    }
+  },
+
   // Clear stats cache
   clearCache(): void {
     const connection = githubConnectionAtom.get();

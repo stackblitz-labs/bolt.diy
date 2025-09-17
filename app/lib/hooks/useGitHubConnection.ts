@@ -5,6 +5,7 @@ import Cookies from 'js-cookie';
 import type { GitHubUserResponse, GitHubConnection } from '~/types/GitHub';
 import { useGitHubAPI } from './useGitHubAPI';
 import { githubConnection, isConnecting, updateGitHubConnection } from '~/lib/stores/github';
+import { githubConnectionStore } from '~/lib/stores/githubConnection';
 
 export interface ConnectionState {
   isConnected: boolean;
@@ -43,27 +44,15 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
     setError(null);
 
     try {
-      // Check if connection already exists in store (likely from initialization)
-      if (connection?.user) {
-        setIsLoading(false);
-        return;
-      }
-
-      // If we have a token but no user, or incomplete data, refresh
-      if (connection?.token && (!connection.user || !connection.stats)) {
-        await refreshConnectionData(connection);
-      }
-
+      // Use the store's initialize method which handles both saved connections and auto-connect
+      await githubConnectionStore.initialize();
       setIsLoading(false);
     } catch (error) {
-      console.error('Error loading saved connection:', error);
-      setError('Failed to load saved connection');
+      console.error('Error initializing GitHub connection:', error);
+      setError('Failed to initialize connection');
       setIsLoading(false);
-
-      // Clean up corrupted data
-      localStorage.removeItem(STORAGE_KEY);
     }
-  }, [connection]);
+  }, []);
 
   const refreshConnectionData = useCallback(async (connection: GitHubConnection) => {
     if (!connection.token) {

@@ -129,14 +129,25 @@ export async function autoConnectVercel() {
   }
 }
 
-export function initializeVercelConnection() {
-  // Auto-connect using environment variable if available
-  const envToken = import.meta.env?.VITE_VERCEL_ACCESS_TOKEN;
+// Initialize connection with auto-connect
+export async function initializeVercelConnection() {
+  // If already have a user, just fetch stats if needed
+  const currentConnection = vercelConnection.get();
 
-  if (envToken && !vercelConnection.get().token) {
-    updateVercelConnection({ token: envToken });
-    fetchVercelStats(envToken).catch(console.error);
+  if (currentConnection.user && currentConnection.token) {
+    if (!currentConnection.stats) {
+      await fetchVercelStats(currentConnection.token);
+    }
+
+    return { success: true };
   }
+
+  // If environment token exists and no user, try auto-connect
+  if (envToken && !currentConnection.user) {
+    return await autoConnectVercel();
+  }
+
+  return { success: false, error: 'No token available for auto-connection' };
 }
 
 export const fetchVercelStatsViaAPI = fetchVercelStats;

@@ -140,6 +140,9 @@ export default class GoogleProvider extends BaseProvider {
 
     const google = createGoogleGenerativeAI({
       apiKey,
+      headers: {
+        'x-goog-api-version': 'v1beta', // Enable beta features for enhanced capabilities
+      },
     });
 
     return google(model);

@@ -26,7 +26,7 @@ export async function selectContext(props: {
   const { messages, env: serverEnv, apiKeys, files, providerSettings, summary, onFinish } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
-  const processedMessages = messages.map((message) => {
+  const processedMessages: Message[] = messages.map((message) => {
     if (message.role === 'user') {
       const { model, provider, content } = extractPropertiesFromMessage(message);
       currentModel = model;
@@ -34,7 +34,9 @@ export async function selectContext(props: {
 
       return { ...message, content };
     } else if (message.role == 'assistant') {
-      let content = message.content;
+      let content = Array.isArray(message.content)
+        ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
+        : (message.content as string);
 
       content = simplifyBoltActions(content);
 
@@ -45,7 +47,7 @@ export async function selectContext(props: {
     }
 
     return message;
-  });
+  }) as unknown as Message[];
 
   const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) || DEFAULT_PROVIDER;
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);

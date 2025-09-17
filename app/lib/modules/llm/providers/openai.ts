@@ -151,6 +151,9 @@ export default class OpenAIProvider extends BaseProvider {
 
     const openai = createOpenAI({
       apiKey,
+      headers: {
+        'OpenAI-Beta': 'assistants=v2', // Enable latest features
+      },
     });
 
     return openai(model);

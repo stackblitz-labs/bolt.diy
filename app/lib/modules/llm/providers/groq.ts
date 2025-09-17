@@ -49,7 +49,7 @@ export default class GroqProvider extends BaseProvider {
     });
 
     if (!apiKey) {
-      throw `Missing Api Key configuration for ${this.name} provider`;
+      throw new Error(`Missing API key for ${this.name} provider`);
     }
 
     const response = await fetch(`https://api.groq.com/openai/v1/models`, {
@@ -64,13 +64,29 @@ export default class GroqProvider extends BaseProvider {
       (model: any) => model.object === 'model' && model.active && model.context_window > 8000,
     );
 
-    return data.map((m: any) => ({
-      name: m.id,
-      label: `${m.id} - context ${m.context_window ? Math.floor(m.context_window / 1000) + 'k' : 'N/A'} [ by ${m.owned_by}]`,
-      provider: this.name,
-      maxTokenAllowed: Math.min(m.context_window || 8192, 16384),
-      maxCompletionTokens: 8192,
-    }));
+    return data.map((m: any) => {
+      // Use actual context window from API, no artificial caps
+      const contextWindow = m.context_window || 8192;
+
+      // Determine appropriate completion token limit based on context size
+      let maxCompletionTokens = 8192; // default
+
+      if (contextWindow >= 128000) {
+        maxCompletionTokens = 8192; // Keep reasonable completion limit for large context models
+      } else if (contextWindow >= 32000) {
+        maxCompletionTokens = 8192;
+      } else {
+        maxCompletionTokens = Math.min(4096, Math.floor(contextWindow * 0.5)); // Conservative for smaller models
+      }
+
+      return {
+        name: m.id,
+        label: `${m.id} - ${Math.floor(contextWindow / 1000)}k context [by ${m.owned_by}]`,
+        provider: this.name,
+        maxTokenAllowed: contextWindow,
+        maxCompletionTokens,
+      };
+    });
   }
 
   getModelInstance(options: {

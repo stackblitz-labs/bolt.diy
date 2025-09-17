@@ -80,6 +80,10 @@ export default class AnthropicProvider extends BaseProvider {
       // Anthropic provides max_tokens in their API response
       if (m.max_tokens) {
         contextWindow = m.max_tokens;
+      } else if (m.id?.includes('claude-sonnet-4')) {
+        contextWindow = 64000; // Claude Sonnet 4 has 64k context
+      } else if (m.id?.includes('claude-opus-4')) {
+        contextWindow = 32000; // Claude Opus 4 has 32k context
       } else if (m.id?.includes('claude-3-5-sonnet')) {
         contextWindow = 200000; // Claude 3.5 Sonnet has 200k context
       } else if (m.id?.includes('claude-3-haiku')) {

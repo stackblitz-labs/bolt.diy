@@ -48,38 +48,15 @@ export function useGitLabConnection(): UseGitLabConnectionReturn {
     setError(null);
 
     try {
-      // Check if connection already exists in store (likely from initialization)
-      if (connection?.user) {
-        setIsLoading(false);
-        return;
-      }
-
-      // Load saved connection from localStorage
-      const savedConnection = localStorage.getItem(STORAGE_KEY);
-
-      if (savedConnection) {
-        const parsed = JSON.parse(savedConnection);
-
-        if (parsed.user && parsed.token) {
-          // Update the store with saved connection
-          gitlabConnectionStore.setGitLabUrl(parsed.gitlabUrl || 'https://gitlab.com');
-          gitlabConnectionStore.setToken(parsed.token);
-
-          // Test the connection to make sure it's still valid
-          await refreshConnectionData(parsed);
-        }
-      }
-
+      // Use the store's initialize method which handles both saved connections and auto-connect
+      await gitlabConnectionStore.initialize();
       setIsLoading(false);
     } catch (error) {
-      console.error('Error loading saved connection:', error);
-      setError('Failed to load saved connection');
+      console.error('Error initializing GitLab connection:', error);
+      setError('Failed to initialize connection');
       setIsLoading(false);
-
-      // Clean up corrupted data
-      localStorage.removeItem(STORAGE_KEY);
     }
-  }, [connection]);
+  }, []);
 
   const refreshConnectionData = useCallback(async (connection: GitLabConnection) => {
     if (!connection.token) {

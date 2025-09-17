@@ -94,6 +94,15 @@ export default function App() {
       timestamp: new Date().toISOString(),
     });
 
+    // Initialize storage monitoring
+    import('./lib/utils/storage')
+      .then(({ initializeStorageMonitoring }) => {
+        initializeStorageMonitoring();
+      })
+      .catch((error) => {
+        console.warn('Failed to initialize storage monitoring:', error);
+      });
+
     // Initialize debug logging with improved error handling
     import('./utils/debugLogger')
       .then(({ debugLogger }) => {

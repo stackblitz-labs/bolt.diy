@@ -7,6 +7,9 @@ import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import type { BoltShell } from '~/utils/shell';
 
+import { fileChangeOptimizer } from './file-change-optimizer';
+import type { FileMap } from '~/lib/stores/files';
+
 const logger = createScopedLogger('ActionRunner');
 
 export type ActionStatus = 'pending' | 'running' | 'complete' | 'aborted' | 'failed';
@@ -70,6 +73,24 @@ export class ActionRunner {
   runnerId = atom<string>(`${Date.now()}`);
   actions: ActionsMap = map({});
   onAlert?: (alert: ActionAlert) => void;
+
+  // File optimization tracking
+  #fileOptimizationEnabled = true;
+  #pendingFileChanges: Map<string, string> = new Map();
+  #existingFiles: Map<string, string> = new Map();
+  #userRequest: string = '';
+  #optDebounceTimer: number | undefined;
+  #isStreamingMode: boolean = false;
+
+  #optimizationStats = {
+    totalFilesAnalyzed: 0,
+    filesSkipped: 0,
+    filesModified: 0,
+    filesCreated: 0,
+    optimizationRate: 0,
+    lastOptimization: null as Date | null,
+  };
+
   onSupabaseAlert?: (alert: SupabaseAlert) => void;
   onDeployAlert?: (alert: DeployAlert) => void;
   buildOutput?: { path: string; exitCode: number; output: string };
@@ -160,9 +181,17 @@ export class ActionRunner {
           break;
         }
         case 'file': {
-          await this.#runFileAction(action);
+          const prevStreaming = this.#isStreamingMode;
+          this.#isStreamingMode = isStreaming;
+
+          try {
+            await this.#runFileAction(action);
+          } finally {
+            this.#isStreamingMode = prevStreaming;
+          }
           break;
         }
+
         case 'supabase': {
           try {
             await this.handleSupabaseAction(action as SupabaseAction);
@@ -316,32 +345,97 @@ export class ActionRunner {
     const webcontainer = await this.#webcontainer;
     const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
 
-    let folder = nodePath.dirname(relativePath);
-
-    // remove trailing slashes
-    folder = folder.replace(/\/+$/g, '');
-
-    if (folder !== '.') {
+    // In streaming mode, write through immediately to avoid UI stalls and timer starvation
+    if (this.#isStreamingMode) {
+      // Track pending change for end-of-stream optimization/statistics
       try {
-        await webcontainer.fs.mkdir(folder, { recursive: true });
-        logger.debug('Created folder', folder);
-      } catch (error) {
-        logger.error('Failed to create folder\n\n', error);
+        if (!this.#existingFiles.has(relativePath)) {
+          const existing = await webcontainer.fs.readFile(relativePath, 'utf-8');
+          this.#existingFiles.set(relativePath, existing);
+        }
+      } catch {
+        // file doesn't exist -> creation
       }
+      this.#pendingFileChanges.set(relativePath, action.content);
+
+      await this.#writeFileWithLogging(webcontainer, relativePath, action.content);
+
+      return;
     }
 
-    try {
-      await webcontainer.fs.writeFile(relativePath, action.content);
-      logger.debug(`File written ${relativePath}`);
-    } catch (error) {
-      logger.error('Failed to write file\n\n', error);
+    if (this.#fileOptimizationEnabled) {
+      // Track proposed change
+      this.#pendingFileChanges.set(relativePath, action.content);
+
+      // Capture existing content if any
+      try {
+        const existing = await webcontainer.fs.readFile(relativePath, 'utf-8');
+        this.#existingFiles.set(relativePath, existing);
+      } catch {
+        // file doesn't exist -> creation
+      }
+
+      logger.debug(`📝 Queued file change: ${relativePath} (len=${action.content.length})`);
+
+      // Optimize immediately for certain cases; otherwise debounce
+      if (this.#shouldOptimizeNow(relativePath, action.content)) {
+        await this.#performFileOptimization();
+      } else {
+        this.#scheduleOptimizationDebounce(120);
+      }
+
+      return;
     }
+
+    // Fallback: optimization disabled => write directly
+    await this.#writeFileWithLogging(webcontainer, relativePath, action.content);
   }
 
   #updateAction(id: string, newState: ActionStateUpdate) {
     const actions = this.actions.get();
 
     this.actions.setKey(id, { ...actions[id], ...newState });
+  }
+
+  /** Set user request context for better optimization */
+  setUserRequest(request: string) {
+    this.#userRequest = request;
+    logger.debug(`User request context set: "${request.substring(0, 120)}..."`);
+  }
+
+  /** Get optimization statistics */
+  getOptimizationStats() {
+    return { ...this.#optimizationStats };
+  }
+
+  /** Enable or disable file optimization */
+  setFileOptimizationEnabled(enabled: boolean) {
+    this.#fileOptimizationEnabled = enabled;
+    logger.info(`File optimization ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /** Force optimization of pending file changes */
+  async flushPendingFileChanges() {
+    if (this.#optDebounceTimer) {
+      clearTimeout(this.#optDebounceTimer);
+      this.#optDebounceTimer = undefined;
+    }
+
+    if (this.#pendingFileChanges.size > 0) {
+      logger.info(`Flushing ${this.#pendingFileChanges.size} pending file changes...`);
+      await this.#performFileOptimization();
+    }
+  }
+
+  #scheduleOptimizationDebounce(delayMs: number = 120) {
+    if (this.#optDebounceTimer) {
+      clearTimeout(this.#optDebounceTimer);
+    }
+
+    this.#optDebounceTimer = setTimeout(() => {
+      this.#performFileOptimization().catch((e) => logger.error('Optimization failed', e));
+      this.#optDebounceTimer = undefined;
+    }, delayMs) as unknown as number;
   }
 
   async getFileHistory(filePath: string): Promise<FileHistory | null> {
@@ -369,6 +463,107 @@ export class ActionRunner {
     } as any);
   }
 
+  async #writeFileWithLogging(webcontainer: WebContainer, relativePath: string, content: string) {
+    const folder = nodePath.dirname(relativePath).replace(/\/+$/g, '');
+
+    if (folder !== '.') {
+      try {
+        await webcontainer.fs.mkdir(folder, { recursive: true });
+        logger.debug('Created folder', folder);
+      } catch (error) {
+        logger.error('Failed to create folder', folder, error);
+      }
+    }
+
+    try {
+      await webcontainer.fs.writeFile(relativePath, content);
+      logger.debug(`File written ${relativePath}`);
+    } catch (error) {
+      logger.error('Failed to write file', relativePath, error);
+    }
+  }
+
+  #shouldOptimizeNow(path: string, content: string) {
+    // Heuristics: Write immediately if very large or likely to be needed right away
+
+    // 1MB+ files should be written immediately to avoid memory issues
+    if (content.length > 1024 * 1024) {
+      return true;
+    }
+
+    // Binary and asset files should be written immediately
+    if (/\.(lock|png|jpg|jpeg|gif|webp|svg|ico|woff2?|pdf|zip|tar|gz)$/i.test(path)) {
+      return true;
+    }
+
+    // Build outputs and critical files should be written immediately
+    if (/^(dist|build|out|\.next)\//.test(path)) {
+      return true;
+    }
+
+    // Package manager files should be written immediately
+    if (/(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb)$/.test(path)) {
+      return true;
+    }
+
+    // Configuration files that might affect builds
+    if (/(tsconfig\.json|webpack\.config\.|vite\.config\.|rollup\.config\.)/.test(path)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  async #performFileOptimization() {
+    const webcontainer = await this.#webcontainer;
+
+    // Build maps expected by optimizer
+    const proposed: FileMap = {};
+    const existing: FileMap = {};
+
+    for (const [p, c] of this.#pendingFileChanges.entries()) {
+      proposed[p] = { type: 'file', name: p.split('/').pop() || p, path: p, content: c } as any;
+    }
+
+    for (const [p, c] of this.#existingFiles.entries()) {
+      existing[p] = { type: 'file', name: p.split('/').pop() || p, path: p, content: c } as any;
+    }
+
+    const { optimizedFiles, analysis, skippedFiles, modifiedFiles, createdFiles, optimizationRate } =
+      await fileChangeOptimizer.optimizeFileChanges(proposed, existing, this.#userRequest);
+
+    // Write the optimized set
+    for (const [p, dirent] of Object.entries(optimizedFiles)) {
+      const content = (dirent as any).content ?? '';
+      await this.#writeFileWithLogging(webcontainer, p, content);
+    }
+
+    // Stats
+    this.#optimizationStats.totalFilesAnalyzed += this.#pendingFileChanges.size;
+    this.#optimizationStats.filesSkipped += skippedFiles.length;
+    this.#optimizationStats.filesModified += modifiedFiles.length;
+    this.#optimizationStats.filesCreated += createdFiles.length;
+    this.#optimizationStats.optimizationRate = optimizationRate;
+    this.#optimizationStats.lastOptimization = new Date();
+
+    // Clear queues
+    this.#pendingFileChanges.clear();
+    this.#existingFiles.clear();
+
+    // Debug log a few analyses
+    let shown = 0;
+
+    for (const [p, a] of analysis.entries()) {
+      if (shown++ > 5) {
+        break;
+      }
+
+      logger.debug(
+        `[opt] ${p} -> ${a.changeType} (${(a.similarity * 100).toFixed(1)}% sim, ${a.changePercentage.toFixed(1)}% change) :: ${a.reason}`,
+      );
+    }
+  }
+
   #getHistoryPath(filePath: string) {
     return nodePath.join('.history', filePath);
   }
@@ -377,6 +572,9 @@ export class ActionRunner {
     if (action.type !== 'build') {
       unreachable('Expected build action');
     }
+
+    // Ensure pending file changes are written before building
+    await this.flushPendingFileChanges();
 
     // Trigger build started alert
     this.onDeployAlert?.({

@@ -222,6 +222,19 @@ class GitLabConnectionStore {
     });
   }
 
+  // Initialize connection with auto-connect
+  async initialize() {
+    // First, try to load saved connection
+    this.loadSavedConnection();
+
+    // If no saved connection and env token exists, try auto-connect
+    if (!gitlabConnectionAtom.get().user && envToken) {
+      return await this.autoConnect();
+    }
+
+    return { success: true };
+  }
+
   // Auto-connect using environment token
   async autoConnect() {
     // Check if token exists and is not empty

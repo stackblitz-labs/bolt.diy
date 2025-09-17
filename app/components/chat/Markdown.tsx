@@ -87,7 +87,12 @@ export const Markdown = memo(
             return <ThoughtBox title="Thought process">{children}</ThoughtBox>;
           }
 
-          if (className?.includes('__boltQuickAction__') || dataProps?.dataBoltQuickAction) {
+          if (
+            className?.includes('__boltQuickAction__') ||
+            dataProps?.dataBoltQuickAction === 'true' ||
+            (dataProps &&
+              (dataProps['data-bolt-quick-action'] === 'true' || dataProps['data-bolt-quick-action'] === true))
+          ) {
             return <div className="flex items-center gap-2 flex-wrap mt-3.5">{children}</div>;
           }
 
@@ -121,7 +126,8 @@ export const Markdown = memo(
 
           if (
             dataProps?.class?.toString().includes('__boltQuickAction__') ||
-            dataProps?.dataBoltQuickAction === 'true'
+            dataProps?.dataBoltQuickAction === 'true' ||
+            dataProps?.['data-bolt-quick-action'] === 'true'
           ) {
             const type = dataProps['data-type'] || dataProps.dataType;
             const message = dataProps['data-message'] || dataProps.dataMessage;

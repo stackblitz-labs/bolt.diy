@@ -64,13 +64,29 @@ export default class TogetherProvider extends BaseProvider {
     const res = (await response.json()) as any;
     const data = (res || []).filter((model: any) => model.type === 'chat');
 
-    return data.map((m: any) => ({
-      name: m.id,
-      label: `${m.display_name} - in:$${m.pricing.input.toFixed(2)} out:$${m.pricing.output.toFixed(2)} - context ${Math.floor(m.context_length / 1000)}k`,
-      provider: this.name,
-      maxTokenAllowed: 8000,
-      maxCompletionTokens: 8192,
-    }));
+    return data.map((m: any) => {
+      // Use actual context length from API
+      const contextLength = m.context_length || 8000;
+
+      // Determine completion token limit based on context size and model type
+      let maxCompletionTokens = 8192; // default
+
+      if (contextLength >= 128000) {
+        maxCompletionTokens = 8192; // Large context models
+      } else if (contextLength >= 32000) {
+        maxCompletionTokens = 8192; // Medium context models
+      } else {
+        maxCompletionTokens = Math.min(4096, Math.floor(contextLength * 0.25)); // Conservative for smaller models
+      }
+
+      return {
+        name: m.id,
+        label: `${m.display_name} - in:$${m.pricing.input.toFixed(2)} out:$${m.pricing.output.toFixed(2)} - ${Math.floor(contextLength / 1000)}k context`,
+        provider: this.name,
+        maxTokenAllowed: contextLength,
+        maxCompletionTokens,
+      };
+    });
   }
 
   getModelInstance(options: {

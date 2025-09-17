@@ -13,6 +13,26 @@
   --bolt-elements-textSecondary: theme('colors.gray.600');
   --bolt-elements-textTertiary: theme('colors.gray.500');
 
+  /* Enhanced semantic colors */
+  --bolt-elements-success-50: theme('colors.green.50');
+  --bolt-elements-success-500: theme('colors.green.500');
+  --bolt-elements-success-600: theme('colors.green.600');
+  --bolt-elements-warning-50: theme('colors.yellow.50');
+  --bolt-elements-warning-500: theme('colors.yellow.500');
+  --bolt-elements-warning-600: theme('colors.yellow.600');
+  --bolt-elements-error-50: theme('colors.red.50');
+  --bolt-elements-error-500: theme('colors.red.500');
+  --bolt-elements-error-600: theme('colors.red.600');
+  --bolt-elements-info-50: theme('colors.blue.50');
+  --bolt-elements-info-500: theme('colors.blue.500');
+  --bolt-elements-info-600: theme('colors.blue.600');
+
+  /* Focus and interaction states */
+  --bolt-elements-focus-ring: theme('colors.accent.500');
+  --bolt-elements-focus-ring-offset: theme('colors.white');
+  --bolt-elements-hover-overlay: rgba(0, 0, 0, 0.05);
+  --bolt-elements-active-overlay: rgba(0, 0, 0, 0.1);
+
   --bolt-elements-code-background: theme('colors.gray.100');
   --bolt-elements-code-text: theme('colors.gray.950');
 
@@ -120,6 +140,26 @@
   --bolt-elements-textPrimary: theme('colors.white');
   --bolt-elements-textSecondary: theme('colors.gray.400');
   --bolt-elements-textTertiary: theme('colors.gray.500');
+
+  /* Enhanced semantic colors (dark theme) */
+  --bolt-elements-success-50: theme('colors.green.950');
+  --bolt-elements-success-500: theme('colors.green.400');
+  --bolt-elements-success-600: theme('colors.green.300');
+  --bolt-elements-warning-50: theme('colors.yellow.950');
+  --bolt-elements-warning-500: theme('colors.yellow.400');
+  --bolt-elements-warning-600: theme('colors.yellow.300');
+  --bolt-elements-error-50: theme('colors.red.950');
+  --bolt-elements-error-500: theme('colors.red.400');
+  --bolt-elements-error-600: theme('colors.red.300');
+  --bolt-elements-info-50: theme('colors.blue.950');
+  --bolt-elements-info-500: theme('colors.blue.400');
+  --bolt-elements-info-600: theme('colors.blue.300');
+
+  /* Focus and interaction states (dark theme) */
+  --bolt-elements-focus-ring: theme('colors.accent.400');
+  --bolt-elements-focus-ring-offset: theme('colors.gray.950');
+  --bolt-elements-hover-overlay: rgba(255, 255, 255, 0.05);
+  --bolt-elements-active-overlay: rgba(255, 255, 255, 0.1);
 
   --bolt-elements-code-background: theme('colors.gray.800');
   --bolt-elements-code-text: theme('colors.white');

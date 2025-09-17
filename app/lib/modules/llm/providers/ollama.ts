@@ -92,12 +92,48 @@ export default class OllamaProvider extends BaseProvider {
 
     // console.log({ ollamamodels: data.models });
 
-    return data.models.map((model: OllamaModel) => ({
-      name: model.name,
-      label: `${model.name} (${model.details.parameter_size})`,
-      provider: this.name,
-      maxTokenAllowed: 8000,
-    }));
+    return data.models.map((model: OllamaModel) => {
+      // Estimate context window based on model family and size
+      let maxTokenAllowed = 8000; // default fallback
+      let maxCompletionTokens = 4096; // default completion limit
+
+      // Determine context window based on model family
+      const modelName = model.name.toLowerCase();
+
+      if (modelName.includes('llama-3.1') || modelName.includes('llama3.1')) {
+        maxTokenAllowed = 128000; // Llama 3.1 has 128k context
+        maxCompletionTokens = 8192;
+      } else if (modelName.includes('llama-3.2') || modelName.includes('llama3.2')) {
+        maxTokenAllowed = 128000; // Llama 3.2 has 128k context
+        maxCompletionTokens = 8192;
+      } else if (modelName.includes('llama-3') || modelName.includes('llama3')) {
+        maxTokenAllowed = 8192; // Llama 3 base has 8k context
+        maxCompletionTokens = 4096;
+      } else if (modelName.includes('codestral') || modelName.includes('mistral')) {
+        maxTokenAllowed = 32000; // Mistral family typically 32k
+        maxCompletionTokens = 8192;
+      } else if (modelName.includes('gemma-2')) {
+        maxTokenAllowed = 8192; // Gemma 2 has 8k context
+        maxCompletionTokens = 4096;
+      } else if (modelName.includes('qwen')) {
+        maxTokenAllowed = 32000; // Qwen models typically 32k
+        maxCompletionTokens = 8192;
+      } else if (modelName.includes('phi-3')) {
+        maxTokenAllowed = 128000; // Phi-3 can handle 128k
+        maxCompletionTokens = 8192;
+      } else if (modelName.includes('deepseek')) {
+        maxTokenAllowed = 64000; // DeepSeek models typically 64k+
+        maxCompletionTokens = 8192;
+      }
+
+      return {
+        name: model.name,
+        label: `${model.name} (${model.details.parameter_size}) - ${Math.floor(maxTokenAllowed / 1000)}k context`,
+        provider: this.name,
+        maxTokenAllowed,
+        maxCompletionTokens,
+      };
+    });
   }
 
   getModelInstance: (options: {

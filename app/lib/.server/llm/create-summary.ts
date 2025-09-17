@@ -27,7 +27,9 @@ export async function createSummary(props: {
 
       return { ...message, content };
     } else if (message.role == 'assistant') {
-      let content = message.content;
+      let content = Array.isArray(message.content)
+        ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
+        : (message.content as string);
 
       content = simplifyBoltActions(content);
       content = content.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/s, '');

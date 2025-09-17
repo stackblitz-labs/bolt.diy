@@ -13,26 +13,45 @@ export default class DeepseekProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
-    {
-      name: 'deepseek-coder',
-      label: 'Deepseek-Coder',
-      provider: 'Deepseek',
-      maxTokenAllowed: 8000,
-      maxCompletionTokens: 8192,
-    },
+    // V3 Models (Latest and most powerful) - 128k context, enhanced reasoning
     {
       name: 'deepseek-chat',
-      label: 'Deepseek-Chat',
+      label: 'DeepSeek V3 Chat',
       provider: 'Deepseek',
-      maxTokenAllowed: 8000,
+      maxTokenAllowed: 128000, // V3 supports 128k context
       maxCompletionTokens: 8192,
     },
     {
-      name: 'deepseek-reasoner',
-      label: 'Deepseek-Reasoner',
+      name: 'deepseek-coder',
+      label: 'DeepSeek V3 Coder',
       provider: 'Deepseek',
-      maxTokenAllowed: 8000,
+      maxTokenAllowed: 128000, // V3 supports 128k context
       maxCompletionTokens: 8192,
+    },
+
+    // Reasoning Models - specialized for complex problem solving
+    {
+      name: 'deepseek-reasoner',
+      label: 'DeepSeek Reasoner',
+      provider: 'Deepseek',
+      maxTokenAllowed: 64000, // Reasoning model with moderate context
+      maxCompletionTokens: 8192,
+    },
+
+    // Legacy V2.5 Models (for compatibility) - 32k context
+    {
+      name: 'deepseek-chat-v2.5',
+      label: 'DeepSeek V2.5 Chat (Legacy)',
+      provider: 'Deepseek',
+      maxTokenAllowed: 32000,
+      maxCompletionTokens: 4096,
+    },
+    {
+      name: 'deepseek-coder-v2.5',
+      label: 'DeepSeek V2.5 Coder (Legacy)',
+      provider: 'Deepseek',
+      maxTokenAllowed: 32000,
+      maxCompletionTokens: 4096,
     },
   ];
 
@@ -60,8 +79,6 @@ export default class DeepseekProvider extends BaseProvider {
       apiKey,
     });
 
-    return deepseek(model, {
-      // simulateStreaming: true,
-    });
+    return deepseek(model);
   }
 }

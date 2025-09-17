@@ -1,5 +1,7 @@
 import AnthropicProvider from './providers/anthropic';
+import CerebrasProvider from './providers/cerebras';
 import CohereProvider from './providers/cohere';
+import CloudflareProvider from './providers/cloudflare';
 import DeepseekProvider from './providers/deepseek';
 import GoogleProvider from './providers/google';
 import GroqProvider from './providers/groq';
@@ -17,10 +19,13 @@ import HyperbolicProvider from './providers/hyperbolic';
 import AmazonBedrockProvider from './providers/amazon-bedrock';
 import GithubProvider from './providers/github';
 import MoonshotProvider from './providers/moonshot';
+import ZAIProvider from './providers/zai';
 
 export {
   AnthropicProvider,
+  CerebrasProvider,
   CohereProvider,
+  CloudflareProvider,
   DeepseekProvider,
   GoogleProvider,
   GroqProvider,
@@ -38,4 +43,5 @@ export {
   LMStudioProvider,
   AmazonBedrockProvider,
   GithubProvider,
+  ZAIProvider,
 };
