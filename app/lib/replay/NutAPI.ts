@@ -31,7 +31,8 @@ export async function callNutAPI(
   const userId = overrideUserId ?? (await getCurrentUserId());
   const accessToken = await getCurrentAccessToken();
 
-  const url = `https://dispatch.replay.io/nut/${method}`;
+  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://dispatch.replay.io';
+  const url = `${apiHost}/nut/${method}`;
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',

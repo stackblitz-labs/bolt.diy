@@ -12,3 +12,11 @@ pnpm install
 pnpm build
 pnpm dev
 ```
+
+### Local/Ephemeral Backend Configuration
+
+If you want to use local or ephemeral backends instead of the default production services, you can override the Nut backend API host:
+
+- `VITE_REPLAY_API_HOST` - Override the Nut backend API host (default: `https://dispatch.replay.io`)
+
+Add this to your `.env` file to point to your local backend service.
