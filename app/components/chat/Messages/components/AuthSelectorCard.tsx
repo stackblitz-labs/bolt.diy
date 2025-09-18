@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 import { assert } from '~/utils/nut';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
+import AllowedDomainsDialog from '~/components/ui/AllowedDomainsDialog';
 
 interface AuthSelectorCardProps {
   appSummary: AppSummary;
@@ -25,6 +26,7 @@ export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }
   assert(appId, 'App ID is required');
 
   const [saving, setSaving] = useState(false);
+  const [showDomains, setShowDomains] = useState(false);
   const authRequired = appSummary?.setSecrets?.includes(AuthRequiredSecret);
 
   const handleToggle = async () => {
@@ -117,7 +119,21 @@ export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }
       status="completed"
       progressText="Configured"
     >
-      {getToggleControl()}
+      <div className="space-y-3">
+        {getToggleControl()}
+        {authRequired && (
+          <div>
+            <button
+              type="button"
+              className="px-3 py-2 text-sm rounded-md border text-bolt-elements-textSecondary border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-colors"
+              onClick={() => setShowDomains(true)}
+            >
+              Set Allowed Domains
+            </button>
+            <AllowedDomainsDialog open={showDomains} onOpenChange={setShowDomains} />
+          </div>
+        )}
+      </div>
     </AppCard>
   );
 };
