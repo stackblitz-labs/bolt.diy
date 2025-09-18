@@ -12,6 +12,7 @@ interface FeaturesCardProps {
 export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDetails }) => {
   const features = appSummary.features?.slice(1) || [];
   const listenResponses = useStore(chatStore.listenResponses);
+  const hasPendingMessage = useStore(chatStore.hasPendingMessage);
   const completedFeatures = features?.filter(
     (feature) =>
       feature.status === AppFeatureStatus.Validated ||
@@ -60,7 +61,7 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
       };
     }
 
-    if (!listenResponses && !isFullyComplete) {
+    if (!listenResponses && !hasPendingMessage && !isFullyComplete) {
       return {
         status: 'pending' as const,
         progressText: `Build Paused. ${completedFeatures}/${totalFeatures} complete`,

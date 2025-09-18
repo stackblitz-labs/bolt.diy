@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { statusModalStore } from '~/lib/stores/statusModal';
@@ -7,6 +7,9 @@ import { AppFeatureStatus, type AppSummary } from '~/lib/persistence/messageAppS
 import { peanutsStore } from '~/lib/stores/peanuts';
 import WithTooltip from '~/components/ui/Tooltip';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
+import { userStore } from '~/lib/stores/userAuth';
+import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
+import { createTopoffCheckout } from '~/lib/stripe/client';
 
 interface StatusModalProps {
   appSummary: AppSummary;
@@ -15,8 +18,10 @@ interface StatusModalProps {
 
 export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinueBuilding }) => {
   const isOpen = useStore(statusModalStore.isOpen);
-  const peanutsErrorButton = useStore(peanutsStore.peanutsErrorButton);
   const peanutsErrorInfo = useStore(peanutsStore.peanutsErrorInfo);
+  const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
+  const user = useStore(userStore.user);
+  const [loading, setLoading] = useState(false);
 
   const features = appSummary.features?.slice(1) || [];
   const completedFeatures = features.filter(
@@ -36,6 +41,36 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
   const handleContinueBuilding = () => {
     statusModalStore.close();
     onContinueBuilding();
+  };
+
+  const handleAddPeanuts = async () => {
+    if (!user?.id || !user?.email) {
+      stripeStatusModalActions.showError(
+        'Sign In Required',
+        'Please sign in to add peanuts.',
+        'You need to be signed in to purchase peanut top-ups.',
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await createTopoffCheckout();
+      if (window.analytics) {
+        window.analytics.track('Peanuts Added', {
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error('Error creating peanut top-off:', error);
+      stripeStatusModalActions.showError(
+        'Checkout Failed',
+        "We couldn't create the checkout session.",
+        'Please try again in a few moments, or contact support if the issue persists.',
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const overlayVariants = {
@@ -228,17 +263,32 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9, duration: 0.5 }}
               >
-                {!isFullyComplete && peanutsErrorButton && (
+                {!isFullyComplete && peanutsRemaining !== undefined && peanutsRemaining <= 0 && (
                   <div className="flex flex-col items-center w-full">
                     <TooltipProvider>
                       <WithTooltip tooltip={peanutsErrorInfo}>
                         <button
-                          onClick={handleContinueBuilding}
-                          disabled={true}
-                          className="px-6 py-3 rounded-xl font-semibold transition-all duration-200 bg-gray-500 text-white flex items-center gap-3 opacity-50 cursor-not-allowed border border-gray-400/30 shadow-sm"
+                          onClick={handleAddPeanuts}
+                          disabled={loading}
+                          className="px-6 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group flex items-center justify-center gap-3 min-h-[48px] !bg-gradient-to-r !from-green-500 !to-emerald-500 hover:!from-green-600 hover:!to-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
-                          <div className="i-ph:rocket-launch text-xl text-white"></div>
-                          <span className="text-white">{peanutsErrorButton}</span>
+                          {loading ? (
+                            <>
+                              <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                              <span className="transition-transform duration-200 group-hover:scale-105">
+                                Loading...
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-2xl transition-transform duration-200 group-hover:scale-110">
+                                🥜
+                              </span>
+                              <span className="transition-transform duration-200 group-hover:scale-105">
+                                Add 2000 Peanuts
+                              </span>
+                            </>
+                          )}
                         </button>
                       </WithTooltip>
                     </TooltipProvider>
@@ -247,7 +297,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                     </div>
                   </div>
                 )}
-                {!isFullyComplete && !peanutsErrorButton && (
+                {!isFullyComplete && peanutsRemaining !== undefined && peanutsRemaining > 0 && (
                   <div className="flex justify-center items-center w-full">
                     <button
                       onClick={handleContinueBuilding}

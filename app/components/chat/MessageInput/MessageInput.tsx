@@ -12,6 +12,7 @@ import type { ChatMessageParams } from '~/components/chat/ChatComponent/componen
 import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { userStore } from '~/lib/stores/userAuth';
+import { peanutsStore } from '~/lib/stores/peanuts';
 
 export interface MessageInputProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
@@ -53,6 +54,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const messages = useStore(chatStore.messages);
   const hasAppSummary = !!useStore(chatStore.appSummary);
   const user = useStore(userStore.user);
+  const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
 
   let startPlanningRating = 0;
   if (!hasPendingMessage && !hasAppSummary) {
@@ -213,7 +215,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
         {(() => {
           const showSendButton = (hasPendingMessage || fullInput.length > 0 || uploadedFiles.length > 0) && chatStarted;
-          const showStartBuildingButton = user && startPlanningRating > 0 && !showSendButton && !hasAppSummary;
+          const showStartBuildingButton =
+            user &&
+            startPlanningRating > 0 &&
+            !showSendButton &&
+            !hasAppSummary &&
+            peanutsRemaining !== undefined &&
+            peanutsRemaining > 0;
 
           return (
             <>

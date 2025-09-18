@@ -261,9 +261,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
               return (
                 <>
                   {displayableMessages.map((message, index) => renderMessage(message, index))}
-                  <div className="w-full mt-6">
-                    <AppCards />
-                  </div>
+                  <AppCards />
                 </>
               );
             }
@@ -302,7 +300,11 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
           {!user && startPlanningRating === 10 && <SignInCard onMount={scrollToBottom} />}
 
           {user &&
-            appSummary?.features?.[0]?.status === AppFeatureStatus.Implemented &&
+            (appSummary?.features?.[0]?.status === AppFeatureStatus.Implemented ||
+              appSummary?.features?.[0]?.status === AppFeatureStatus.ValidationFailed ||
+              appSummary?.features?.[0]?.status === AppFeatureStatus.ValidationInProgress ||
+              appSummary?.features?.[0]?.status === AppFeatureStatus.Validated ||
+              startPlanningRating === 10) &&
             peanutsRemaining !== undefined &&
             peanutsRemaining <= 0 && <AddPeanutsCard onMount={scrollToBottom} />}
 
@@ -310,11 +312,14 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
             <StopBuildCard onMount={scrollToBottom} />
           )}
 
-          {!hasPendingMessage && !listenResponses && appSummary?.features?.length && !isFullyComplete && (
-            <ContinueBuildCard onMount={scrollToBottom} sendMessage={sendMessage} />
-          )}
+          {!hasPendingMessage &&
+            !listenResponses &&
+            appSummary?.features?.length &&
+            !isFullyComplete &&
+            peanutsRemaining !== undefined &&
+            peanutsRemaining > 0 && <ContinueBuildCard onMount={scrollToBottom} sendMessage={sendMessage} />}
 
-          {user && startPlanningRating === 10 && (
+          {user && startPlanningRating === 10 && peanutsRemaining !== undefined && peanutsRemaining > 0 && (
             <StartBuildingCard
               startPlanningRating={startPlanningRating}
               sendMessage={sendMessage}
