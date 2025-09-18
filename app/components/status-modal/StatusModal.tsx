@@ -23,7 +23,8 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
     ({ status }) =>
       status === AppFeatureStatus.Validated ||
       status === AppFeatureStatus.Implemented ||
-      status === AppFeatureStatus.ValidationInProgress,
+      status === AppFeatureStatus.ValidationInProgress ||
+      status === AppFeatureStatus.ValidationFailed,
   ).length;
   const totalFeatures = features.length;
   const isFullyComplete = completedFeatures === totalFeatures && totalFeatures > 0;

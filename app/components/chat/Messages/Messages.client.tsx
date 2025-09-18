@@ -51,7 +51,8 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
         (feature) =>
           feature.status === AppFeatureStatus.Validated ||
           feature.status === AppFeatureStatus.Implemented ||
-          feature.status === AppFeatureStatus.ValidationInProgress,
+          feature.status === AppFeatureStatus.ValidationInProgress ||
+          feature.status === AppFeatureStatus.ValidationFailed,
       ).length;
     const totalFeatures = appSummary?.features?.slice(1).length;
     const isFullyComplete = completedFeatures === totalFeatures && totalFeatures && totalFeatures > 0;

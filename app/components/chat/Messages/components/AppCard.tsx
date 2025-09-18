@@ -69,7 +69,6 @@ export const AppCard: React.FC<AppCardProps> = ({
           badge: 'text-bolt-elements-textPrimary bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor',
           indicator: (
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full border-2 border-bolt-elements-borderColor border-t-blue-500 animate-spin shadow-sm" />
               {progressText && (
                 <span className="text-sm font-medium text-bolt-elements-textPrimary">{progressText}</span>
               )}

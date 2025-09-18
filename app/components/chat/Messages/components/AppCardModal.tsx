@@ -24,7 +24,8 @@ export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, typ
     (f) =>
       f.status === AppFeatureStatus.Validated ||
       f.status === AppFeatureStatus.Implemented ||
-      f.status === AppFeatureStatus.ValidationInProgress,
+      f.status === AppFeatureStatus.ValidationInProgress ||
+      f.status === AppFeatureStatus.ValidationFailed,
   ).length;
   const totalFeatures = features.length;
 

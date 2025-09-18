@@ -16,7 +16,8 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
     (feature) =>
       feature.status === AppFeatureStatus.Validated ||
       feature.status === AppFeatureStatus.Implemented ||
-      feature.status === AppFeatureStatus.ValidationInProgress,
+      feature.status === AppFeatureStatus.ValidationInProgress ||
+      feature.status === AppFeatureStatus.ValidationFailed,
   ).length;
   const totalFeatures = features.length;
   const isFullyComplete = totalFeatures && totalFeatures > 0 && completedFeatures === totalFeatures;
@@ -34,13 +35,11 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
         case AppFeatureStatus.Implemented:
         case AppFeatureStatus.ValidationInProgress:
         case AppFeatureStatus.Validated:
+        case AppFeatureStatus.ValidationFailed:
           counts.completed++;
           break;
         case AppFeatureStatus.ImplementationInProgress:
           counts.inProgress++;
-          break;
-        case AppFeatureStatus.ValidationFailed:
-          counts.failed++;
           break;
         default:
           counts.pending++;
