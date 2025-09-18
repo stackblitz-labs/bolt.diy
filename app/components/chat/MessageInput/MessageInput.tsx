@@ -11,6 +11,7 @@ import { getDiscoveryRating } from '~/lib/persistence/message';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
+import { userStore } from '~/lib/stores/userAuth';
 
 export interface MessageInputProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
@@ -51,6 +52,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const chatStarted = useStore(chatStore.started);
   const messages = useStore(chatStore.messages);
   const hasAppSummary = !!useStore(chatStore.appSummary);
+  const user = useStore(userStore.user);
 
   let startPlanningRating = 0;
   if (!hasPendingMessage && !hasAppSummary) {
@@ -211,8 +213,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
         {(() => {
           const showSendButton = (hasPendingMessage || fullInput.length > 0 || uploadedFiles.length > 0) && chatStarted;
-          const showStartBuildingButton =
-            startPlanningRating > 0 && startPlanningRating !== 10 && !showSendButton && !hasAppSummary;
+          const showStartBuildingButton = user && startPlanningRating > 0 && !showSendButton && !hasAppSummary;
 
           return (
             <>

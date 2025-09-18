@@ -172,7 +172,6 @@ export interface AppSummary {
 
   pages?: AppPage[];
   navigation?: string;
-  mockupStatus?: AppFeatureStatus;
   features?: AppFeature[];
   otherTests?: AppTest[];
   setSecrets?: string[];

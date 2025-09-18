@@ -1,22 +1,16 @@
 import React, { useEffect } from 'react';
 import { authModalStore } from '~/lib/stores/authModal';
-import { AppFeatureStatus } from '~/lib/persistence/messageAppSummary';
 
 interface SignInCardProps {
-  mockupStatus: AppFeatureStatus;
   onMount?: () => void;
 }
 
-export const SignInCard: React.FC<SignInCardProps> = ({ mockupStatus, onMount }) => {
+export const SignInCard: React.FC<SignInCardProps> = ({ onMount }) => {
   useEffect(() => {
     if (onMount) {
       onMount();
     }
   }, []);
-
-  if (mockupStatus !== AppFeatureStatus.Validated) {
-    return null;
-  }
 
   const handleSignInClick = () => {
     authModalStore.open(false);
@@ -33,8 +27,8 @@ export const SignInCard: React.FC<SignInCardProps> = ({ mockupStatus, onMount })
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-bolt-elements-textHeading">Sign In to Continue Building</h3>
             <p className="text-bolt-elements-textSecondary text-sm max-w-md">
-              Your app mockup is ready! To start building and deploying your application, you'll need to sign in or
-              create an account.
+              To start building and deploying your application, you'll need to sign in or create an account. After sign
+              up, you will receive 1000 free peanuts (credits) to use for building your app.
             </p>
           </div>
 

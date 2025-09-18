@@ -292,26 +292,18 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
             );
           })()}
 
-          {!user && appSummary?.mockupStatus === AppFeatureStatus.Validated && (
-            <SignInCard mockupStatus={appSummary.mockupStatus} onMount={scrollToBottom} />
-          )}
+          {!user && startPlanningRating === 10 && <SignInCard onMount={scrollToBottom} />}
 
           {user &&
-            appSummary?.mockupStatus === AppFeatureStatus.Validated &&
+            appSummary?.features?.[0]?.status === AppFeatureStatus.Implemented &&
             peanutsRemaining !== undefined &&
-            peanutsRemaining <= 0 && (
-              <AddPeanutsCard
-                mockupStatus={appSummary.mockupStatus}
-                peanutsRemaining={peanutsRemaining}
-                onMount={scrollToBottom}
-              />
-            )}
+            peanutsRemaining <= 0 && <AddPeanutsCard onMount={scrollToBottom} />}
 
           {listenResponses && appSummary?.features?.length && !isFullyComplete && (
             <StopBuildCard onMount={scrollToBottom} />
           )}
 
-          {startPlanningRating === 10 && (
+          {user && startPlanningRating === 10 && (
             <StartBuildingCard
               startPlanningRating={startPlanningRating}
               sendMessage={sendMessage}

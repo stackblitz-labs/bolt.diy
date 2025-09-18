@@ -2,8 +2,6 @@ import React from 'react';
 import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { type AppSummary, type AppFeature, AppFeatureStatus } from '~/lib/persistence/messageAppSummary';
-
-// Import existing PlanView components
 import Features from '~/components/workbench/Preview/components/PlanView/components/Features/Features';
 import Events from '~/components/workbench/Preview/components/PlanView/components/Features/components/Events';
 import Pages from '~/components/workbench/Preview/components/PlanView/components/Pages';
