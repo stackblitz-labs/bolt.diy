@@ -1,6 +1,8 @@
 import React from 'react';
 import { AppCard } from './AppCard';
 import { AppFeatureStatus, type AppSummary } from '~/lib/persistence/messageAppSummary';
+import { useStore } from '@nanostores/react';
+import { chatStore } from '~/lib/stores/chat';
 
 interface FeaturesCardProps {
   appSummary: AppSummary;
@@ -9,6 +11,15 @@ interface FeaturesCardProps {
 
 export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDetails }) => {
   const features = appSummary.features?.slice(1) || [];
+  const listenResponses = useStore(chatStore.listenResponses);
+  const completedFeatures = features?.filter(
+    (feature) =>
+      feature.status === AppFeatureStatus.Validated ||
+      feature.status === AppFeatureStatus.Implemented ||
+      feature.status === AppFeatureStatus.ValidationInProgress,
+  ).length;
+  const totalFeatures = features.length;
+  const isFullyComplete = totalFeatures && totalFeatures > 0 && completedFeatures === totalFeatures;
 
   const getStatusCounts = () => {
     const counts = {
@@ -20,11 +31,11 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
 
     features.forEach((feature) => {
       switch (feature.status) {
+        case AppFeatureStatus.Implemented:
+        case AppFeatureStatus.ValidationInProgress:
         case AppFeatureStatus.Validated:
           counts.completed++;
           break;
-        case AppFeatureStatus.Implemented:
-        case AppFeatureStatus.ValidationInProgress:
         case AppFeatureStatus.ImplementationInProgress:
           counts.inProgress++;
           break;
@@ -41,13 +52,19 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
   };
 
   const statusCounts = getStatusCounts();
-  const totalFeatures = features.length;
 
   const getOverallStatus = () => {
     if (totalFeatures === 0) {
       return {
         status: 'pending' as const,
         progressText: 'No features planned',
+      };
+    }
+
+    if (!listenResponses && !isFullyComplete) {
+      return {
+        status: 'pending' as const,
+        progressText: `Build Paused. ${completedFeatures}/${totalFeatures} complete`,
       };
     }
 
@@ -106,12 +123,11 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
   const getFeatureStatusIcon = (status: AppFeatureStatus) => {
     switch (status) {
       case AppFeatureStatus.Validated:
+      case AppFeatureStatus.Implemented:
+      case AppFeatureStatus.ValidationInProgress:
         return <div className="i-ph:check-circle text-green-500 text-sm flex-shrink-0" />;
       case AppFeatureStatus.ImplementationInProgress:
-      case AppFeatureStatus.ValidationInProgress:
         return <div className="i-ph:circle-notch animate-spin text-blue-500 text-sm flex-shrink-0" />;
-      case AppFeatureStatus.Implemented:
-        return <div className="i-ph:check text-blue-500 text-sm flex-shrink-0" />;
       case AppFeatureStatus.ValidationFailed:
         return <div className="i-ph:warning-circle text-red-500 text-sm flex-shrink-0" />;
       default:

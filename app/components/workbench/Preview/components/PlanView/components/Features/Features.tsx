@@ -51,24 +51,12 @@ const Features = () => {
           </div>
         );
       case AppFeatureStatus.Implemented:
-        return (
-          <div className="text-gray-500 text-sm font-medium whitespace-nowrap pl-2 flex items-center gap-2 bg-gray-100 px-2 py-1 rounded-lg border border-gray-200 shadow-sm">
-            <div className="i-ph:check-bold" />
-            Implemented
-          </div>
-        );
-      case AppFeatureStatus.ValidationInProgress:
-        return (
-          <div className="text-blue-600 text-sm font-medium whitespace-nowrap pl-2 flex items-center gap-2 bg-blue-50 px-2 py-1 rounded-lg border border-blue-200 shadow-sm">
-            <div className="i-ph:spinner-gap-fill animate-spin" />
-            Testing...
-          </div>
-        );
       case AppFeatureStatus.Validated:
+      case AppFeatureStatus.ValidationInProgress:
         return (
           <div className="text-green-600 text-sm font-medium whitespace-nowrap pl-2 flex items-center gap-2 bg-green-50 px-2 py-1 rounded-lg border border-green-200 shadow-sm">
             <div className="i-ph:check-bold" />
-            Tests Passed
+            Complete
           </div>
         );
       case AppFeatureStatus.ValidationFailed:

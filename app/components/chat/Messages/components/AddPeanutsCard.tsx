@@ -49,7 +49,7 @@ export const AddPeanutsCard: React.FC<AddPeanutsCardProps> = ({ onMount }) => {
   };
 
   return (
-    <div className="w-full mt-2">
+    <div className="w-full mt-5">
       <div className="bg-gradient-to-br from-orange-500/5 via-amber-500/5 to-yellow-500/5 border border-orange-500/20 rounded-2xl p-6 transition-all duration-300 hover:border-orange-500/30 hover:shadow-lg">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-full shadow-lg">

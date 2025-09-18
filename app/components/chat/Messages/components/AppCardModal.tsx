@@ -19,6 +19,15 @@ interface AppCardModalProps {
 }
 
 export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, type, appSummary }) => {
+  const features = appSummary.features?.slice(1) || [];
+  const completedFeatures = features.filter(
+    (f) =>
+      f.status === AppFeatureStatus.Validated ||
+      f.status === AppFeatureStatus.Implemented ||
+      f.status === AppFeatureStatus.ValidationInProgress,
+  ).length;
+  const totalFeatures = features.length;
+
   const getModalTitle = () => {
     switch (type) {
       case 'project-description':
@@ -74,40 +83,39 @@ export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, typ
 
   const renderContent = () => {
     switch (type) {
-      case 'project-description':
-        return (
-          <div className="space-y-6">
-            <div className="p-6 bg-bolt-elements-background-depth-2/50 rounded-xl border border-bolt-elements-borderColor/50">
-              <div className="text-lg font-semibold mb-3 text-bolt-elements-textHeading">Project Description</div>
-              <div className="text-bolt-elements-textSecondary leading-relaxed">{appSummary.description}</div>
-
-              {appSummary.features && appSummary.features.length > 0 && (
-                <div className="mt-6">
-                  <div className="flex justify-between text-sm text-bolt-elements-textSecondary mb-2">
-                    <span>
-                      <b>PROGRESS:</b>
-                    </span>
-                    <span>
-                      {appSummary.features.filter((f) => f.status === AppFeatureStatus.Validated).length} /{' '}
-                      {appSummary.features.length} features complete
-                    </span>
-                  </div>
-                  <div className="w-full h-3 bg-bolt-elements-background-depth-3 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000"
-                      style={{
-                        width: `${(appSummary.features.filter((f) => f.status === AppFeatureStatus.Validated).length / appSummary.features.length) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-
       case 'features':
-        return <Features />;
+        return (
+          <>
+            <div className="space-y-6 mb-6">
+              <div className="p-6 bg-bolt-elements-background-depth-2/50 rounded-xl border border-bolt-elements-borderColor/50">
+                <div className="text-lg font-semibold mb-3 text-bolt-elements-textHeading">Project Description</div>
+                <div className="text-bolt-elements-textSecondary leading-relaxed">{appSummary.description}</div>
+
+                {appSummary.features && appSummary.features.length > 0 && (
+                  <div className="mt-6">
+                    <div className="flex justify-between text-sm text-bolt-elements-textSecondary mb-2">
+                      <span>
+                        <b>PROGRESS:</b>
+                      </span>
+                      <span>
+                        {completedFeatures} / {totalFeatures} features complete
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-bolt-elements-background-depth-3 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000"
+                        style={{
+                          width: `${(completedFeatures / totalFeatures) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <Features />
+          </>
+        );
 
       case 'mockup':
         return (

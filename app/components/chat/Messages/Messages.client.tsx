@@ -14,6 +14,7 @@ import {
   SignInCard,
   AddPeanutsCard,
   StopBuildCard,
+  ContinueBuildCard,
 } from './components';
 import { APP_SUMMARY_CATEGORY } from '~/lib/persistence/messageAppSummary';
 import { useStore } from '@nanostores/react';
@@ -44,10 +45,15 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     const hasPendingMessage = useStore(chatStore.hasPendingMessage);
     const pendingMessageStatus = useStore(pendingMessageStatusStore);
     const hasAppSummary = !!useStore(chatStore.appSummary);
-    const completedFeatures = appSummary?.features?.filter(
-      (feature) => feature.status === AppFeatureStatus.Validated,
-    ).length;
-    const totalFeatures = appSummary?.features?.length;
+    const completedFeatures = appSummary?.features
+      ?.slice(1)
+      .filter(
+        (feature) =>
+          feature.status === AppFeatureStatus.Validated ||
+          feature.status === AppFeatureStatus.Implemented ||
+          feature.status === AppFeatureStatus.ValidationInProgress,
+      ).length;
+    const totalFeatures = appSummary?.features?.slice(1).length;
     const isFullyComplete = completedFeatures === totalFeatures && totalFeatures && totalFeatures > 0;
 
     // Calculate startPlanningRating for the card display
@@ -176,7 +182,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
           data-testid="message"
           key={index}
           className={classNames('group relative w-full transition-all duration-200', {
-            'mt-6': !isFirst,
+            'mt-5': !isFirst,
           })}
         >
           <div
@@ -282,11 +288,11 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
             return (
               <>
                 {beforeMessages.map((message, index) => renderMessage(message, index))}
-                <div className="w-full mt-6">
+                <div className="w-full mt-5">
                   <AppCards />
                 </div>
                 {afterMessages.length > 0 && (
-                  <div className="mt-6">{afterMessages.map((message, index) => renderMessage(message, index))}</div>
+                  <div className="mt-5">{afterMessages.map((message, index) => renderMessage(message, index))}</div>
                 )}
               </>
             );
@@ -301,6 +307,10 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
 
           {listenResponses && appSummary?.features?.length && !isFullyComplete && (
             <StopBuildCard onMount={scrollToBottom} />
+          )}
+
+          {!hasPendingMessage && !listenResponses && appSummary?.features?.length && !isFullyComplete && (
+            <ContinueBuildCard onMount={scrollToBottom} sendMessage={sendMessage} />
           )}
 
           {user && startPlanningRating === 10 && (

@@ -18,7 +18,7 @@ export const StopBuildCard: React.FC<StopBuildCardProps> = ({ onMount }) => {
   };
 
   return (
-    <div className="w-full mt-2">
+    <div className="w-full mt-5">
       <div className="bg-gradient-to-br from-red-500/10 via-red-600/8 to-red-700/6 border border-red-500/30 rounded-2xl p-6 transition-all duration-300 hover:border-red-500/40 hover:shadow-lg shadow-md bg-bolt-elements-background-depth-1 relative overflow-hidden">
         <div className="absolute inset-0 rounded-2xl overflow-hidden">
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-red-500/20 to-transparent animate-flow-left-to-right" />

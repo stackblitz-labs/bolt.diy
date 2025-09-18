@@ -33,9 +33,9 @@ const getVisibleCardTypes = (appSummary: AppSummary): string[] => {
   // Show features card when mockup is complete OR when features are actually ready to be implemented
   const mockupComplete =
     appSummary.features?.[0]?.status && appSummary.features?.[0]?.status === AppFeatureStatus.Validated;
-  const featuresReadyToStart = appSummary.features?.some(
-    (f) => f.status === AppFeatureStatus.ImplementationInProgress || isStatusComplete(f.status),
-  );
+  const featuresReadyToStart = appSummary.features
+    ?.slice(1)
+    .some((f) => f.status === AppFeatureStatus.ImplementationInProgress || isStatusComplete(f.status));
 
   if (hasFeatureContent && (mockupComplete || featuresReadyToStart)) {
     visibleCards.push('features');

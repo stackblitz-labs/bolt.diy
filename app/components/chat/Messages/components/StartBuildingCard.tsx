@@ -18,7 +18,7 @@ export const StartBuildingCard: React.FC<StartBuildingCardProps> = ({ startPlann
   }, []);
 
   return (
-    <div className="w-full mt-2">
+    <div className="w-full mt-5">
       <div className="bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 border border-blue-500/20 rounded-2xl p-6 transition-all duration-300 hover:border-blue-500/30 hover:shadow-lg">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 text-white rounded-full shadow-lg">
