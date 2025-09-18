@@ -6,6 +6,7 @@ import { classNames } from '~/utils/classNames';
 import { AppFeatureStatus, type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { peanutsStore } from '~/lib/stores/peanuts';
 import WithTooltip from '~/components/ui/Tooltip';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 
 interface StatusModalProps {
   appSummary: AppSummary;
@@ -225,16 +226,18 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
               >
                 {!isFullyComplete && peanutsErrorButton && (
                   <div className="flex flex-col items-center w-full">
-                    <WithTooltip tooltip={peanutsErrorInfo}>
-                      <button
-                        onClick={handleContinueBuilding}
-                        disabled={true}
-                        className="px-6 py-3 rounded-xl font-semibold transition-all duration-200 bg-gray-500 text-white flex items-center gap-3 opacity-50 cursor-not-allowed border border-gray-400/30 shadow-sm"
-                      >
-                        <div className="i-ph:rocket-launch text-xl text-white"></div>
-                        <span className="text-white">{peanutsErrorButton}</span>
-                      </button>
-                    </WithTooltip>
+                    <TooltipProvider>
+                      <WithTooltip tooltip={peanutsErrorInfo}>
+                        <button
+                          onClick={handleContinueBuilding}
+                          disabled={true}
+                          className="px-6 py-3 rounded-xl font-semibold transition-all duration-200 bg-gray-500 text-white flex items-center gap-3 opacity-50 cursor-not-allowed border border-gray-400/30 shadow-sm"
+                        >
+                          <div className="i-ph:rocket-launch text-xl text-white"></div>
+                          <span className="text-white">{peanutsErrorButton}</span>
+                        </button>
+                      </WithTooltip>
+                    </TooltipProvider>
                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm max-w-md text-center">
                       {peanutsErrorInfo}
                     </div>

@@ -2,14 +2,14 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { VideoSection, HeroSection, HowItWorksSection, FaqSection } from './components';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { useStore } from '@nanostores/react';
-import * as Tooltip from '@radix-ui/react-tooltip';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { authStatusStore } from '~/lib/stores/auth';
 
 const LandingPage = () => {
   const isLoggedIn = useStore(authStatusStore.isLoggedIn);
 
   return (
-    <Tooltip.Provider>
+    <TooltipProvider>
       <div className="w-full h-full overflow-y-auto bg-bolt-elements-background-depth-1 relative">
         {!isLoggedIn && (
           <div className="fixed top-2 left-3 z-[1000] cursor-pointer">
@@ -34,7 +34,7 @@ const LandingPage = () => {
           </div>
         </main>
       </div>
-    </Tooltip.Provider>
+    </TooltipProvider>
   );
 };
 

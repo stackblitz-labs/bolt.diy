@@ -9,6 +9,7 @@ import { peanutsStore } from '~/lib/stores/peanuts';
 import WithTooltip from '~/components/ui/Tooltip';
 import { assert } from '~/utils/nut';
 import AuthSelector from './components/AuthSelector';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 
 function appSummaryHasPendingFeature(appSummary: AppSummary | undefined) {
   return (
@@ -49,36 +50,38 @@ const PlanView = () => {
           <div>
             {!listenResponses && appSummaryHasPendingFeature(appSummary) && !isFullyComplete && (
               <div className="flex flex-col items-center">
-                <WithTooltip tooltip={peanutsErrorInfo ?? 'Continue Building Your App!'}>
-                  <button
-                    className={`mb-6 p-4 rounded-xl transition-all duration-200 text-left cursor-pointer border ${
-                      peanutsErrorButton
-                        ? 'bg-gray-500 text-white shadow-md border-gray-400/30'
-                        : 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 border-white/20 hover:border-white/30 group'
-                    }`}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      assert(appId, 'No app id');
-                      doSendMessage({ appId, mode: ChatMode.DevelopApp });
-                    }}
-                    disabled={!!peanutsErrorButton}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`i-ph:rocket-launch text-xl text-white transition-transform duration-200 ${
-                          peanutsErrorButton ? '' : 'group-hover:scale-110'
-                        }`}
-                      ></div>
-                      <div
-                        className={`font-medium text-white transition-transform duration-200 ${
-                          peanutsErrorButton ? '' : 'group-hover:scale-105'
-                        }`}
-                      >
-                        {peanutsErrorButton ?? 'Continue Building'}
+                <TooltipProvider>
+                  <WithTooltip tooltip={peanutsErrorInfo ?? 'Continue Building Your App!'}>
+                    <button
+                      className={`mb-6 p-4 rounded-xl transition-all duration-200 text-left cursor-pointer border ${
+                        peanutsErrorButton
+                          ? 'bg-gray-500 text-white shadow-md border-gray-400/30'
+                          : 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 border-white/20 hover:border-white/30 group'
+                      }`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        assert(appId, 'No app id');
+                        doSendMessage({ appId, mode: ChatMode.DevelopApp });
+                      }}
+                      disabled={!!peanutsErrorButton}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`i-ph:rocket-launch text-xl text-white transition-transform duration-200 ${
+                            peanutsErrorButton ? '' : 'group-hover:scale-110'
+                          }`}
+                        ></div>
+                        <div
+                          className={`font-medium text-white transition-transform duration-200 ${
+                            peanutsErrorButton ? '' : 'group-hover:scale-105'
+                          }`}
+                        >
+                          {peanutsErrorButton ?? 'Continue Building'}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                </WithTooltip>
+                    </button>
+                  </WithTooltip>
+                </TooltipProvider>
                 {peanutsErrorInfo && (
                   <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm max-w-md text-center">
                     {peanutsErrorInfo}

@@ -5,7 +5,7 @@
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { classNames } from '~/utils/classNames';
-import * as Tooltip from '@radix-ui/react-tooltip';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 
 export const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -16,7 +16,7 @@ interface UnauthorizedProps {
 
 export const Unauthorized = ({ handleCopyApp, isCopying }: UnauthorizedProps) => {
   return (
-    <Tooltip.Provider delayDuration={200}>
+    <TooltipProvider delayDuration={200}>
       <div className={classNames('relative flex h-full w-full overflow-hidden')}>
         <ClientOnly>{() => <Menu />}</ClientOnly>
         <div className="flex-1 flex items-center justify-center p-8">
@@ -72,6 +72,6 @@ export const Unauthorized = ({ handleCopyApp, isCopying }: UnauthorizedProps) =>
           </div>
         </div>
       </div>
-    </Tooltip.Provider>
+    </TooltipProvider>
   );
 };

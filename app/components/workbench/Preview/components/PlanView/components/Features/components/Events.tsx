@@ -2,7 +2,8 @@ import { useStore } from '@nanostores/react';
 import { useState } from 'react';
 import { isWorkerFinishedResponse, type ChatResponse } from '~/lib/persistence/response';
 import { chatStore } from '~/lib/stores/chat';
-import Tooltip from '~/components/ui/Tooltip';
+import WithTooltip from '~/components/ui/Tooltip';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 
 // If a worker doesn't have any updates more recent than this, it is timed out.
 const WORK_TIMEOUT_MS = 20 * 60 * 1000;
@@ -187,11 +188,13 @@ const Events = ({ featureName }: EventsProps) => {
     return (
       <div key={index} className="border-t border-bolt-elements-borderColor/50 mb-2">
         <div className="p-4 pt-3 text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wider mb-2 bg-bolt-elements-background-depth-2/30 px-2 py-1 rounded-md inline-block ml-2">
-          <Tooltip tooltip={tooltip}>
-            <span>
-              Worker {index + 1} ({peanuts} peanuts)
-            </span>
-          </Tooltip>
+          <TooltipProvider>
+            <WithTooltip tooltip={tooltip}>
+              <span>
+                Worker {index + 1} ({peanuts} peanuts)
+              </span>
+            </WithTooltip>
+          </TooltipProvider>
         </div>
 
         <div className="relative">

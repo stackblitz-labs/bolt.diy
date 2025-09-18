@@ -5,6 +5,7 @@ import { type AppLibraryEntry } from '~/lib/persistence/apps';
 import WithTooltip from '~/components/ui/Tooltip';
 import { useEditAppTitle } from '~/lib/hooks/useEditAppTitle';
 import { forwardRef, type ForwardedRef } from 'react';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 
 interface HistoryItemProps {
   item: AppLibraryEntry;
@@ -114,14 +115,16 @@ const ChatActionButton = forwardRef(
     ref: ForwardedRef<HTMLButtonElement>,
   ) => {
     return (
-      <WithTooltip tooltip={toolTipContent}>
-        <button
-          ref={ref}
-          type="button"
-          className={`p-1.5 rounded-lg text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 transition-all duration-200 hover:scale-110 ${icon} ${className ? className : ''}`}
-          onClick={onClick}
-        />
-      </WithTooltip>
+      <TooltipProvider>
+        <WithTooltip tooltip={toolTipContent}>
+          <button
+            ref={ref}
+            type="button"
+            className={`p-1.5 rounded-lg text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 transition-all duration-200 hover:scale-110 ${icon} ${className ? className : ''}`}
+            onClick={onClick}
+          />
+        </WithTooltip>
+      </TooltipProvider>
     );
   },
 );
