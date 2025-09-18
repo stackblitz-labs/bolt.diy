@@ -1,5 +1,5 @@
 import { getPeanutsHistory, getPeanutsSubscription, type PeanutHistoryEntry } from '~/lib/replay/Account';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { ReactElement } from 'react';
 import { peanutsStore, refreshPeanutsStore } from '~/lib/stores/peanuts';
@@ -9,6 +9,9 @@ import { openSubscriptionModal } from '~/lib/stores/subscriptionModal';
 import { classNames } from '~/utils/classNames';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
 import { ConfirmCancelModal } from '~/components/subscription/ConfirmCancelModal';
+import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
+import { toast } from 'react-toastify';
+import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 
 interface AccountModalProps {
   user: User | undefined;
@@ -21,6 +24,26 @@ export const AccountModal = ({ user, onClose }: AccountModalProps) => {
   const [history, setHistory] = useState<PeanutHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [list, setList] = useState<AppLibraryEntry[] | undefined>(undefined);
+  const [loadingList, setLoadingList] = useState(true);
+  const { filteredItems: filteredList } = useSearchFilter({
+    items: list ?? [],
+    searchFields: ['title'],
+  });
+
+  const loadEntries = useCallback(() => {
+    setList(undefined);
+    setLoadingList(true);
+    database
+      .getAllAppEntries()
+      .then(setList)
+      .catch((error) => toast.error(error.message))
+      .finally(() => setLoadingList(false));
+  }, []);
+
+  useEffect(() => {
+    loadEntries();
+  }, []);
 
   const reloadAccountData = async () => {
     setLoading(true);
@@ -65,22 +88,31 @@ export const AccountModal = ({ user, onClose }: AccountModalProps) => {
   };
 
   const renderFeature = (why: string, appId: string | undefined, featureName: string | undefined): ReactElement => {
+    // Find the app title from filteredList using the appId
+    const appTitle = appId ? filteredList.find((app) => app.id === appId)?.title : undefined;
+
     return (
-      <span>
-        {why}:{' '}
-        {appId && featureName ? (
-          <a
-            href={`/app/${appId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:text-blue-600 underline cursor-pointer transition-colors"
-          >
-            {featureName}
-          </a>
-        ) : (
-          featureName || 'Unknown feature'
+      <div className="space-y-2">
+        {appTitle && (
+          <div>
+            <span className="text-bolt-elements-textSecondary text-sm">App: </span>
+            <a
+              href={`/app/${appId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 font-medium hover:text-blue-600 transition-colors underline decoration-transparent hover:decoration-blue-500"
+            >
+              {appTitle}
+            </a>
+          </div>
         )}
-      </span>
+        <div>
+          <span className="text-bolt-elements-textSecondary text-sm">
+            {why === 'Feature implemented' ? 'Feature implemented' : 'Feature validated'}:{' '}
+          </span>
+          <span className="text-bolt-elements-textHeading font-medium">{featureName || 'Unknown feature'}</span>
+        </div>
+      </div>
     );
   };
 
@@ -226,7 +258,7 @@ export const AccountModal = ({ user, onClose }: AccountModalProps) => {
     }
   };
 
-  if (loading) {
+  if (loading || loadingList) {
     return (
       <div className="bg-bolt-elements-background-depth-1 rounded-2xl p-6 sm:p-8 max-w-4xl w-full mx-4 border border-bolt-elements-borderColor/50 overflow-y-auto max-h-[95vh] shadow-2xl hover:shadow-3xl transition-all duration-300 relative backdrop-blur-sm">
         <div className="text-center py-16 bg-gradient-to-br from-bolt-elements-background-depth-2/50 to-bolt-elements-background-depth-3/30 rounded-2xl border border-bolt-elements-borderColor/30 shadow-sm backdrop-blur-sm">
