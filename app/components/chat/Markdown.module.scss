@@ -162,4 +162,79 @@ $code-font-size: 13px;
       background-color: #f6f8fa;
     }
   }
+
+  // Enhanced checkbox styling inspired by SignUpForm
+  input[type='checkbox'] {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 6px;
+    border: 2px solid #3b82f6;
+    background: var(--bolt-elements-background-depth-2);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+
+    &:hover {
+      background: var(--bolt-elements-background-depth-3);
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    }
+
+    &:checked {
+      background:
+        linear-gradient(135deg, #3b82f6, #10b981) padding-box,
+        linear-gradient(135deg, #3b82f6, #10b981) border-box;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  // Style the list items containing checkboxes
+  li {
+    &:has(input[type='checkbox']) {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      margin: 6px 0;
+      border-radius: 8px;
+      border: 1px solid var(--bolt-elements-borderColor);
+      background: var(--bolt-elements-background-depth-1);
+      transition: all 0.2s ease;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--bolt-elements-background-depth-2);
+        border-color: #3b82f6;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      // Style when checkbox is checked - same as hover state
+      &:has(input[type='checkbox']:checked) {
+        border-color: #3b82f6;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      // Style the checkbox container
+      > div:has(input[type='checkbox']) {
+        margin-top: 2px; // Align with text baseline
+      }
+
+      // Style the text content
+      > * {
+        flex: 1;
+        line-height: 1.5;
+        margin: 0;
+        color: var(--bolt-elements-textPrimary);
+      }
+    }
+  }
 }

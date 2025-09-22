@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import type { BundledLanguage } from 'shiki';
 import { createScopedLogger } from '~/utils/logger';
@@ -57,12 +57,51 @@ export const Markdown = memo((props: MarkdownProps) => {
 
         const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
           if (onCheckboxChange) {
-            const text = event.target.parentElement!.innerText.trim();
-            onCheckboxChange(text, event.target.checked);
+            // Navigate up to find the list item and get its text content
+            const listItem = event.target.closest('li');
+            if (listItem) {
+              const text = listItem.textContent?.trim() || '';
+              onCheckboxChange(text, event.target.checked);
+            }
           }
         };
 
-        return <input type="checkbox" checked={checked ?? false} onChange={handleChange} {...props} />;
+        return (
+          <div className="relative flex items-center">
+            <input type="checkbox" checked={checked ?? false} onChange={handleChange} className="peer" {...props} />
+            <svg
+              className="absolute left-0 w-5 h-5 pointer-events-none opacity-0 peer-checked:opacity-100 text-white transition-opacity duration-200"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        );
+      },
+      li: ({ children, ...props }) => {
+        const handleLiClick = (event: React.MouseEvent<HTMLLIElement>) => {
+          // Find checkbox in this list item
+          const checkbox = event.currentTarget.querySelector('input[type="checkbox"]') as HTMLInputElement;
+          if (checkbox && !checkbox.disabled) {
+            // Don't trigger if the checkbox itself or the SVG was clicked
+            const target = event.target as HTMLElement;
+            if (target !== checkbox && !target.closest('svg')) {
+              checkbox.click();
+            }
+          }
+        };
+
+        return (
+          <li {...props} onClick={handleLiClick}>
+            {children}
+          </li>
+        );
       },
     } satisfies Components;
   }, [onCheckboxChange]);
