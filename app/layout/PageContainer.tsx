@@ -14,7 +14,7 @@ interface PageContainerProps {
 }
 
 export const PageContainer: React.FC<PageContainerProps> = ({ children }) => {
-  const isSmallViewport = useViewport(600);
+  const isSmallViewport = useViewport(800);
   const chatStarted = useStore(chatStore.started);
   const isLoggedIn = useStore(authStatusStore.isLoggedIn);
   const location = useLocation();

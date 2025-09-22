@@ -2,7 +2,7 @@ import React from 'react';
 import useViewport from '~/lib/hooks/useViewport';
 
 export const IntroSection: React.FC = () => {
-  const isSmallViewport = useViewport(1024);
+  const isSmallViewport = useViewport(800);
 
   if (isSmallViewport) {
     return (

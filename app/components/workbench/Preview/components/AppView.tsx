@@ -38,7 +38,7 @@ const AppView = ({
   const [iframeForceReload, setIframeForceReload] = useState(0);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const repositoryId = useStore(workbenchStore.repositoryId);
-  const isSmallViewport = useViewport(1024);
+  const isSmallViewport = useViewport(800);
   const appSummary = useStore(chatStore.appSummary);
   const isMockupImplemented = isFeatureStatusImplemented(appSummary?.features?.[0]?.status);
 

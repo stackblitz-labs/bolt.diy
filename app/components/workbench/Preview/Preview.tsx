@@ -35,7 +35,7 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
   const [selectionPoint, setSelectionPoint] = useState<{ x: number; y: number } | null>(null);
 
   const previewURL = useStore(workbenchStore.previewURL);
-  const isSmallViewport = useViewport(1024);
+  const isSmallViewport = useViewport(800);
   // Toggle between responsive mode and device mode
   const [isDeviceModeOn, setIsDeviceModeOn] = useState(false);
 
