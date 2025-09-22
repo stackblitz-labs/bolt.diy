@@ -73,6 +73,7 @@
     "@remix-run/node": "2.16.0",
     "@remix-run/react": "^2.15.0",
     "@remix-run/vercel": "1.19.3",
+    "@segment/analytics-node": "^2.3.0",
     "@sentry/nextjs": "9.5.0",
     "@sentry/remix": "^8",
     "@sentry/vite-plugin": "^3.1.2",

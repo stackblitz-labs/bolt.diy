@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { callNutAPI } from '~/lib/replay/NutAPI';
+import { Analytics } from '@segment/analytics-node';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-07-30.basil',
@@ -8,10 +9,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 const TOPOFF_PEANUTS = 2000;
 
-const SUBSCRIPTION_PEANUTS = {
-  free: 500,
-  builder: 2000,
-  pro: 12000,
+// Initialize Segment Analytics
+const analytics = new Analytics({
+  writeKey: process.env.SEGMENT_WRITE_KEY!,
+  flushAt: 1, // Flush immediately for webhooks
+  flushInterval: 1000, // Flush every second
+});
+
+const PLAN_MAPPING = {
+  [process.env.STRIPE_PRICE_FREE!]: { name: 'Free', price: 0, peanuts: 500 },
+  [process.env.STRIPE_PRICE_STARTER!]: { name: 'Builder', price: 20, peanuts: 2000 },
+  [process.env.STRIPE_PRICE_PRO!]: { name: 'Pro', price: 120, peanuts: 12000 },
 } as const;
 
 async function getUserIdFromCustomer(customerId: string): Promise<string | null> {
@@ -69,16 +77,15 @@ async function getUserIdFromCustomer(customerId: string): Promise<string | null>
 }
 
 function getPeanutsFromPriceId(priceId: string): number {
-  if (priceId === process.env.STRIPE_PRICE_FREE) {
-    return SUBSCRIPTION_PEANUTS.free;
-  }
-  if (priceId === process.env.STRIPE_PRICE_STARTER) {
-    return SUBSCRIPTION_PEANUTS.builder;
-  }
-  if (priceId === process.env.STRIPE_PRICE_PRO) {
-    return SUBSCRIPTION_PEANUTS.pro;
-  }
-  return 0;
+  return PLAN_MAPPING[priceId]?.peanuts || 0;
+}
+
+function getPlanNameFromPriceId(priceId: string): string {
+  return PLAN_MAPPING[priceId]?.name || 'Unknown';
+}
+
+function getPlanPriceFromPriceId(priceId: string): number {
+  return PLAN_MAPPING[priceId]?.price || 0;
 }
 
 export async function action({ request }: { request: Request }) {
@@ -153,6 +160,14 @@ export async function action({ request }: { request: Request }) {
         console.log(`Unhandled event type: ${event.type}`, event);
     }
 
+    // Ensure all analytics events are flushed before responding
+    try {
+      await analytics.closeAndFlush();
+      console.log('✅ Analytics events flushed successfully');
+    } catch (flushError) {
+      console.error('❌ Failed to flush analytics events:', flushError);
+    }
+
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -189,6 +204,16 @@ async function handleCheckoutCompleted(checkoutSession: Stripe.Checkout.Session)
         undefined,
         userId,
       );
+
+      analytics.track({
+        userId,
+        event: 'Peanut Purchase Completed',
+        properties: {
+          peanutsPurchased: TOPOFF_PEANUTS,
+          purchaseType: 'topoff',
+          timestamp: new Date().toISOString(),
+        },
+      });
     }
   } catch (error) {
     console.error('Error handling checkout completed:', error);
@@ -226,6 +251,20 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
       undefined,
       userId,
     );
+
+    const planName = getPlanNameFromPriceId(priceId);
+    const planPrice = getPlanPriceFromPriceId(priceId);
+
+    analytics.track({
+      userId,
+      event: 'Subscription Completed',
+      properties: {
+        planName,
+        planPrice,
+        peanutsIncluded: peanuts,
+        timestamp: new Date().toISOString(),
+      },
+    });
   } catch (error) {
     console.error('Error handling payment success:', error);
   }
