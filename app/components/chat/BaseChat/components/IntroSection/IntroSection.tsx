@@ -6,7 +6,7 @@ export const IntroSection: React.FC = () => {
 
   if (isSmallViewport) {
     return (
-      <div id="intro" className="max-w-4xl mx-auto text-center px-4">
+      <div id="intro" className="max-w-4xl mx-auto text-center px-4 mt-8">
         <h1 className="text-3xl font-bold text-bolt-elements-textHeading mb-4 animate-fade-in leading-tight">
           Build web apps
           <span className="bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent block">
