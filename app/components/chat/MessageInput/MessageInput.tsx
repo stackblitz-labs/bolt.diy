@@ -13,6 +13,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { userStore } from '~/lib/stores/userAuth';
 import { peanutsStore } from '~/lib/stores/peanuts';
+import { useIsMobile } from '~/lib/hooks/useIsMobile';
 
 export interface MessageInputProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
@@ -55,6 +56,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const hasAppSummary = !!useStore(chatStore.appSummary);
   const user = useStore(userStore.user);
   const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
+  const { isMobile, isTablet } = useIsMobile();
 
   let startPlanningRating = 0;
   if (!hasPendingMessage && !hasAppSummary) {
@@ -277,14 +279,16 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             <div className="i-ph:paperclip text-lg"></div>
           </button>
 
-          <div className="w-px h-5 bg-bolt-elements-borderColor" />
+          {!isMobile && !isTablet && <div className="w-px h-5 bg-bolt-elements-borderColor" />}
 
-          <SpeechRecognitionButton
-            isListening={isListening}
-            onStart={onStartListening}
-            onStop={onStopListening}
-            disabled={hasPendingMessage}
-          />
+          {!isMobile && !isTablet && (
+            <SpeechRecognitionButton
+              isListening={isListening}
+              onStart={onStartListening}
+              onStop={onStopListening}
+              disabled={hasPendingMessage}
+            />
+          )}
         </div>
 
         {input.length > 3 && (
