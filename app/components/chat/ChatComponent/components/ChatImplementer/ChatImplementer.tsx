@@ -97,7 +97,7 @@ const ChatImplementer = memo(() => {
   const sendMessage = async (params: ChatMessageParams) => {
     const { messageInput, chatMode, sessionRepositoryId, simulationData, detectedError } = params;
 
-    if (messageInput?.length === 0 || chatStore.hasPendingMessage.get()) {
+    if ((messageInput?.length === 0 && imageDataList.length === 0) || chatStore.hasPendingMessage.get()) {
       return;
     }
 

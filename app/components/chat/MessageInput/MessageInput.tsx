@@ -14,6 +14,10 @@ import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { userStore } from '~/lib/stores/userAuth';
 import { peanutsStore } from '~/lib/stores/peanuts';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
+import { processImage, validateImageFile, formatFileSize } from '~/utils/imageProcessing';
+import { toast } from 'react-toastify';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
+import WithTooltip from '~/components/ui/Tooltip';
 
 export interface MessageInputProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
@@ -67,23 +71,88 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    input.multiple = false;
 
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) {
+        return;
+      }
 
-      if (file) {
+      await processUploadedFile(file);
+    };
+
+    input.click();
+  };
+
+  const processUploadedFile = async (file: File) => {
+    // Validate the file
+    const validation = validateImageFile(file);
+
+    if (!validation.isValid) {
+      toast.error(validation.error || 'Invalid image file');
+      return;
+    }
+
+    // Show processing toast for large files
+    const originalSizeKB = Math.round(file.size / 1024);
+
+    if (originalSizeKB > 500 || validation.canConvert) {
+      toast.info(
+        validation.canConvert
+          ? `Converting ${file.type} to JPEG...`
+          : `Optimizing image (${formatFileSize(originalSizeKB)})...`,
+      );
+    }
+
+    try {
+      // Process the image with higher quality settings
+      const processed = await processImage(file, {
+        maxSizeKB: 500, // Target 450-500KB range
+        maxWidth: 2048, // Higher resolution to preserve detail
+        maxHeight: 1536, // Higher resolution to preserve detail
+        quality: 0.9, // Start with higher quality
+        targetFormat: 'jpeg',
+      });
+
+      // Show success message if image was processed
+      if (processed.wasProcessed) {
+        const savedKB = processed.originalSize - processed.processedSize;
+        const savedPercent = Math.round((savedKB / processed.originalSize) * 100);
+
+        toast.success(
+          `Image optimized! Reduced from ${formatFileSize(processed.originalSize)} to ${formatFileSize(processed.processedSize)} (${savedPercent}% smaller)`,
+        );
+      }
+
+      // Add to uploaded files
+      setUploadedFiles([...uploadedFiles, processed.file]);
+      setImageDataList([...imageDataList, processed.dataURL]);
+    } catch (error) {
+      console.error('Image processing failed:', error);
+
+      // Offer fallback: upload original image if it's not too large
+      if (originalSizeKB <= 500) {
+        toast.error(
+          `Processing failed, but uploading original image (${formatFileSize(originalSizeKB)}). Some features may not work optimally.`,
+        );
+
+        // Upload original file as fallback
         const reader = new FileReader();
-
         reader.onload = (e) => {
           const base64Image = e.target?.result as string;
           setUploadedFiles([...uploadedFiles, file]);
           setImageDataList([...imageDataList, base64Image]);
         };
         reader.readAsDataURL(file);
+      } else {
+        toast.error(
+          error instanceof Error
+            ? `Failed to process image: ${error.message}. File too large (${formatFileSize(originalSizeKB)})`
+            : `Failed to process image. File too large (${formatFileSize(originalSizeKB)})`,
+        );
       }
-    };
-
-    input.click();
+    }
   };
 
   const handlePaste = async (e: React.ClipboardEvent) => {
@@ -98,16 +167,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         e.preventDefault();
 
         const file = item.getAsFile();
-
         if (file) {
-          const reader = new FileReader();
-
-          reader.onload = (e) => {
-            const base64Image = e.target?.result as string;
-            setUploadedFiles([...uploadedFiles, file]);
-            setImageDataList([...imageDataList, base64Image]);
-          };
-          reader.readAsDataURL(file);
+          await processUploadedFile(file);
         }
 
         break;
@@ -271,23 +332,41 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
       <div className="flex justify-between items-center rounded-b-2xl px-4 py-3">
         <div className="flex gap-2 items-center">
-          <button
-            title="Upload file"
-            className="w-8 h-8 rounded-lg bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 hover:border-bolt-elements-focus/50 transition-all duration-200 flex items-center justify-center text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-            onClick={handleFileUpload}
-          >
-            <div className="i-ph:paperclip text-lg"></div>
-          </button>
+          <TooltipProvider>
+            <WithTooltip
+              tooltip={
+                <div className="text-xs">
+                  <div className="font-medium mb-1 text-bolt-elements-textHeading">Upload Image</div>
+                  <div>✅ Supports: JPEG, PNG, GIF, WebP</div>
+                  <div>🔄 Converts: SVG, BMP, TIFF → JPEG</div>
+                  <div>📐 Auto-resizes large images (&gt;500KB)</div>
+                </div>
+              }
+            >
+              <button
+                className="w-8 h-8 rounded-lg bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 hover:border-bolt-elements-focus/50 transition-all duration-200 flex items-center justify-center text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                onClick={handleFileUpload}
+              >
+                <div className="i-ph:paperclip text-lg"></div>
+              </button>
+            </WithTooltip>
+          </TooltipProvider>
 
           {!isMobile && !isTablet && <div className="w-px h-5 bg-bolt-elements-borderColor" />}
 
           {!isMobile && !isTablet && (
-            <SpeechRecognitionButton
-              isListening={isListening}
-              onStart={onStartListening}
-              onStop={onStopListening}
-              disabled={hasPendingMessage}
-            />
+            <TooltipProvider>
+              <WithTooltip tooltip={isListening ? 'Stop listening' : 'Start speech recognition'}>
+                <div>
+                  <SpeechRecognitionButton
+                    isListening={isListening}
+                    onStart={onStartListening}
+                    onStop={onStopListening}
+                    disabled={hasPendingMessage}
+                  />
+                </div>
+              </WithTooltip>
+            </TooltipProvider>
           )}
         </div>
 
