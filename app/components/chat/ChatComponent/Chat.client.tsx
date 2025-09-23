@@ -38,30 +38,6 @@ async function updateAppState(appId: string) {
   chatStore.started.set(chatStore.messages.get().length > 0);
 }
 
-// Listen for document visibility changes. If the document becomes visible
-// we don't trust that we have the latest version of the app, so will refresh
-// state and show the status modal if it was open earlier and there is no
-// in progress chat.
-if (typeof document !== 'undefined') {
-  let gDocumentVisible = true;
-  document.addEventListener('visibilitychange', async () => {
-    const visible = document.visibilityState === 'visible';
-    if (visible != gDocumentVisible) {
-      gDocumentVisible = visible;
-      if (visible) {
-        const appId = chatStore.currentAppId.get();
-        if (appId && !chatStore.listenResponses.get()) {
-          const wasStatusModalOpen = statusModalStore.isOpen.get();
-          console.log('DocumentReloadApp', wasStatusModalOpen);
-          statusModalStore.close();
-          await updateAppState(appId);
-          doListenAppResponses(wasStatusModalOpen);
-        }
-      }
-    }
-  });
-}
-
 export function Chat() {
   renderLogger.trace('Chat');
 
@@ -71,8 +47,8 @@ export function Chat() {
   const [unauthorized, setUnauthorized] = useState<boolean>(false);
   const [isCopying, setIsCopying] = useState(false);
   const appTitle = useStore(chatStore.appTitle);
+  const isOpen = useStore(statusModalStore.isOpen);
 
-  // Update document title when app title changes
   useEffect(() => {
     if (appTitle) {
       document.title = `Nut: ${appTitle}`;
@@ -80,6 +56,37 @@ export function Chat() {
       document.title = 'Nut';
     }
   }, [appTitle]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    let documentVisible = document.visibilityState === 'visible';
+
+    const handleVisibilityChange = async () => {
+      const visible = document.visibilityState === 'visible';
+      if (visible !== documentVisible) {
+        documentVisible = visible;
+        if (visible) {
+          const appId = chatStore.currentAppId.get();
+          if (appId && !chatStore.listenResponses.get()) {
+            const wasStatusModalOpen = isOpen;
+            console.log('DocumentReloadApp', wasStatusModalOpen);
+            statusModalStore.close();
+            await updateAppState(appId);
+            doListenAppResponses(wasStatusModalOpen);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const loadApp = async (appId: string) => {
     try {
