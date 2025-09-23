@@ -210,6 +210,7 @@ $code-font-size: 13px;
       background: var(--bolt-elements-background-depth-1);
       transition: all 0.2s ease;
       cursor: pointer;
+      text-align: left; // Force left alignment for checkbox list items
 
       &:hover {
         background: var(--bolt-elements-background-depth-2);
@@ -224,16 +225,28 @@ $code-font-size: 13px;
       }
 
       // Style the checkbox container
+      > .checkbox-container,
       > div:has(input[type='checkbox']) {
         margin-top: 2px; // Align with text baseline
+        flex-shrink: 0 !important; // Don't shrink the checkbox container
+        flex-grow: 0 !important; // Don't grow the checkbox container
+        width: 20px !important; // Fixed width to prevent stretching
+        min-width: 20px; // Ensure minimum width
+        max-width: 20px; // Ensure maximum width
+        display: flex !important;
+        justify-content: flex-start !important; // Align checkbox to the left
+        align-items: center !important; // Center vertically
       }
 
-      // Style the text content
-      > * {
+      // Style the text content (everything except the checkbox container)
+      > *:not(.checkbox-container):not(div:has(input[type='checkbox'])) {
         flex: 1;
         line-height: 1.5;
         margin: 0;
         color: var(--bolt-elements-textPrimary);
+        text-align: left !important; // Ensure text content is left-aligned
+        align-self: flex-start; // Align to the start of the flex container
+        justify-self: flex-start; // Also align in the cross-axis
       }
     }
   }

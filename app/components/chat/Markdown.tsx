@@ -67,7 +67,7 @@ export const Markdown = memo((props: MarkdownProps) => {
         };
 
         return (
-          <div className="relative flex items-center">
+          <div className="relative checkbox-container">
             <input type="checkbox" checked={checked ?? false} onChange={handleChange} className="peer" {...props} />
             <svg
               className="absolute left-0 w-5 h-5 pointer-events-none opacity-0 peer-checked:opacity-100 text-white transition-opacity duration-200"
