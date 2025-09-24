@@ -13,7 +13,7 @@ export function GlobalAuthModal() {
   const message = useStore(authModalStore.message);
   const showPasswordReset = useStore(authModalStore.showPasswordReset);
 
-  const addIntercomUser = async (userEmail: string) => {
+  const addIntercomUser = async (userEmail: string, name: string) => {
     try {
       const response = await fetch('/api/intercom', {
         method: 'POST',
@@ -22,6 +22,7 @@ export function GlobalAuthModal() {
         },
         body: JSON.stringify({
           email: userEmail,
+          name,
         }),
       });
 

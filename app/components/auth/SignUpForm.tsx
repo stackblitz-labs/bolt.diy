@@ -5,7 +5,7 @@ import { GoogleIcon } from '~/components/icons/google-icon';
 
 interface SignUpFormProps {
   onToggleForm: () => void;
-  addIntercomUser: (userEmail: string) => void;
+  addIntercomUser: (userEmail: string, name: string) => void;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }
@@ -17,6 +17,7 @@ const validateEmail = (email: string): boolean => {
 
 export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }: SignUpFormProps) {
   const [disabled, setDisabled] = useState(true);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,12 +35,15 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
         email,
         password,
         options: {
+          data: {
+            full_name: name,
+          },
           emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}&emailConfirm=true`,
         },
       });
 
       if (data.user?.email && isChecked) {
-        addIntercomUser(data.user.email);
+        addIntercomUser(data.user.email, data.user.user_metadata.full_name);
       }
 
       if (error) {
@@ -115,6 +119,21 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
       </div>
 
       <form onSubmit={handleSignUp} className="space-y-6">
+        <div>
+          <label htmlFor="name" className="block mb-2 text-sm font-semibold text-bolt-elements-textPrimary">
+            Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor/50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            placeholder="Enter your name"
+            required
+          />
+        </div>
+
         <div>
           <label htmlFor="email" className="block mb-2 text-sm font-semibold text-bolt-elements-textPrimary">
             Email Address

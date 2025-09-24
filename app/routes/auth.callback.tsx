@@ -62,7 +62,7 @@ export default function AuthCallback() {
               fetch('/api/intercom', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: user.email }),
+                body: JSON.stringify({ email: user.email, name: user.user_metadata.full_name }),
               }).catch((err) => {
                 console.error('Failed to add user to Intercom (non-blocking)', err);
                 // Don't log the actual error details to prevent information disclosure
