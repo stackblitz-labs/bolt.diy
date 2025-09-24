@@ -4,7 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import type { ReactElement } from 'react';
 import { peanutsStore, refreshPeanutsStore } from '~/lib/stores/peanuts';
 import { useStore } from '@nanostores/react';
-import { createTopoffCheckout, checkSubscriptionStatus, cancelSubscription, manageBilling } from '~/lib/stripe/client';
+import { createTopoffCheckout, cancelSubscription, manageBilling } from '~/lib/stripe/client';
 import { openSubscriptionModal } from '~/lib/stores/subscriptionModal';
 import { classNames } from '~/utils/classNames';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
@@ -12,6 +12,7 @@ import { ConfirmCancelModal } from '~/components/subscription/ConfirmCancelModal
 import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
 import { toast } from 'react-toastify';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
+import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 
 interface AccountModalProps {
   user: User | undefined;
@@ -20,7 +21,7 @@ interface AccountModalProps {
 
 export const AccountModal = ({ user, onClose }: AccountModalProps) => {
   const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
-  const [stripeSubscription, setStripeSubscription] = useState<any>(null);
+  const stripeSubscription = useStore(subscriptionStore.subscription);
   const [history, setHistory] = useState<PeanutHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -50,14 +51,8 @@ export const AccountModal = ({ user, onClose }: AccountModalProps) => {
 
     const [history] = await Promise.all([getPeanutsHistory(), getPeanutsSubscription(), refreshPeanutsStore()]);
 
-    let stripeStatus = { hasSubscription: false, subscription: null };
-    if (user?.email) {
-      stripeStatus = await checkSubscriptionStatus();
-    }
-
     history.reverse();
     setHistory(history);
-    setStripeSubscription(stripeStatus.hasSubscription ? stripeStatus.subscription : null);
     setLoading(false);
   };
 
@@ -330,7 +325,10 @@ export const AccountModal = ({ user, onClose }: AccountModalProps) => {
                     {stripeSubscription.tier.charAt(0).toUpperCase() + stripeSubscription.tier.slice(1)} Plan
                   </div>
                   <div className="text-xs text-bolt-elements-textSecondary mt-1">
-                    Next billing: {new Date(stripeSubscription.currentPeriodEnd).toLocaleDateString()}
+                    Next billing:{' '}
+                    {stripeSubscription.currentPeriodEnd
+                      ? new Date(stripeSubscription.currentPeriodEnd).toLocaleDateString()
+                      : 'N/A'}
                   </div>
                   {stripeSubscription.cancelAtPeriodEnd && (
                     <div className="text-xs text-yellow-500 mt-1">Cancels at period end</div>

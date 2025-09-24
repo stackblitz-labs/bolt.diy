@@ -15,6 +15,7 @@ import {
   AddPeanutsCard,
   StopBuildCard,
   ContinueBuildCard,
+  SubscriptionCard,
 } from './components';
 import { APP_SUMMARY_CATEGORY } from '~/lib/persistence/messageAppSummary';
 import { useStore } from '@nanostores/react';
@@ -24,6 +25,7 @@ import { userStore } from '~/lib/stores/auth';
 import { peanutsStore } from '~/lib/stores/peanuts';
 import { ChatMode, shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
 import { AppFeatureStatus } from '~/lib/persistence/messageAppSummary';
+import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 
 interface MessagesProps {
   id?: string;
@@ -56,6 +58,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       ).length;
     const totalFeatures = appSummary?.features?.slice(1).length;
     const isFullyComplete = completedFeatures === totalFeatures && totalFeatures && totalFeatures > 0;
+    const hasSubscription = useStore(subscriptionStore.hasSubscription);
 
     // Calculate startPlanningRating for the card display
     let startPlanningRating = 0;
@@ -306,7 +309,18 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
               appSummary?.features?.[0]?.status === AppFeatureStatus.Validated ||
               startPlanningRating === 10) &&
             peanutsRemaining !== undefined &&
-            peanutsRemaining <= 0 && <AddPeanutsCard onMount={scrollToBottom} />}
+            peanutsRemaining <= 0 &&
+            hasSubscription && <AddPeanutsCard onMount={scrollToBottom} />}
+
+          {user &&
+            (appSummary?.features?.[0]?.status === AppFeatureStatus.Implemented ||
+              appSummary?.features?.[0]?.status === AppFeatureStatus.ValidationFailed ||
+              appSummary?.features?.[0]?.status === AppFeatureStatus.ValidationInProgress ||
+              appSummary?.features?.[0]?.status === AppFeatureStatus.Validated ||
+              startPlanningRating === 10) &&
+            peanutsRemaining !== undefined &&
+            peanutsRemaining <= 0 &&
+            !hasSubscription && <SubscriptionCard onMount={scrollToBottom} />}
 
           {listenResponses && appSummary?.features?.length && !isFullyComplete && (
             <StopBuildCard onMount={scrollToBottom} />

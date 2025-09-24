@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
 import { userStore } from '~/lib/stores/auth';
 import {
   SUBSCRIPTION_TIERS,
   createSubscriptionCheckout,
-  checkSubscriptionStatus,
   type SubscriptionTier,
   manageSubscription,
 } from '~/lib/stripe/client';
 import { classNames } from '~/utils/classNames';
 import { IconButton } from '~/components/ui/IconButton';
+import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -20,40 +20,14 @@ interface SubscriptionModalProps {
 
 export function SubscriptionModal({ isOpen, onClose, currentTier: propCurrentTier }: SubscriptionModalProps) {
   const [loading, setLoading] = useState<SubscriptionTier | null>(null);
-  const [actualCurrentTier, setActualCurrentTier] = useState<SubscriptionTier | undefined>(propCurrentTier);
-  const [fetchingSubscription, setFetchingSubscription] = useState(false);
+  const stripeSubscription = useStore(subscriptionStore.subscription);
   const user = useStore(userStore);
-
-  useEffect(() => {
-    if (isOpen && user?.email) {
-      const fetchSubscriptionData = async () => {
-        setFetchingSubscription(true);
-        try {
-          const stripeStatus = await checkSubscriptionStatus();
-          if (stripeStatus.hasSubscription && stripeStatus.subscription) {
-            setActualCurrentTier(stripeStatus.subscription.tier as SubscriptionTier);
-          } else {
-            setActualCurrentTier(undefined);
-          }
-        } catch (error) {
-          console.error('Error fetching subscription status:', error);
-          setActualCurrentTier(propCurrentTier);
-        } finally {
-          setFetchingSubscription(false);
-        }
-      };
-
-      fetchSubscriptionData();
-    } else if (isOpen && !user?.email) {
-      setActualCurrentTier(undefined);
-    }
-  }, [isOpen, user?.email, propCurrentTier]);
 
   if (!isOpen) {
     return null;
   }
 
-  const currentTier = actualCurrentTier;
+  const currentTier = stripeSubscription?.tier ?? propCurrentTier;
 
   const handleSubscribe = async (tier: SubscriptionTier) => {
     if (!user?.id || !user?.email) {
@@ -86,20 +60,6 @@ export function SubscriptionModal({ isOpen, onClose, currentTier: propCurrentTie
       onClose();
     }
   };
-
-  if (fetchingSubscription) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="text-center py-16 bg-gradient-to-br from-bolt-elements-background-depth-2/50 to-bolt-elements-background-depth-3/30 rounded-2xl border border-bolt-elements-borderColor/30 shadow-sm backdrop-blur-sm px-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20 shadow-lg">
-            <div className="w-8 h-8 border-2 border-bolt-elements-borderColor/30 border-t-blue-500 rounded-full animate-spin" />
-          </div>
-          <h3 className="text-lg font-semibold text-bolt-elements-textHeading mb-2">Loading Subscription Data</h3>
-          <p className="text-bolt-elements-textSecondary">Fetching your subscription details...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -159,19 +119,6 @@ export function SubscriptionModal({ isOpen, onClose, currentTier: propCurrentTie
         </div>
 
         <div className="px-6 sm:px-8 pb-6 sm:pb-8">
-          {fetchingSubscription && (
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-4 bg-gradient-to-r from-bolt-elements-background-depth-2/50 to-bolt-elements-background-depth-3/30 px-6 py-4 rounded-2xl border border-bolt-elements-borderColor/30 shadow-sm backdrop-blur-sm">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-xl flex items-center justify-center border border-blue-500/20 shadow-sm">
-                  <div className="w-4 h-4 border-2 border-bolt-elements-textSecondary/30 border-t-blue-500 rounded-full animate-spin"></div>
-                </div>
-                <div className="text-left">
-                  <h4 className="text-sm font-semibold text-bolt-elements-textHeading">Checking subscription</h4>
-                  <p className="text-xs text-bolt-elements-textSecondary">Verifying your current plan status...</p>
-                </div>
-              </div>
-            </div>
-          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
             {(
               Object.entries(SUBSCRIPTION_TIERS) as [SubscriptionTier, (typeof SUBSCRIPTION_TIERS)[SubscriptionTier]][]
@@ -179,8 +126,6 @@ export function SubscriptionModal({ isOpen, onClose, currentTier: propCurrentTie
               const isCurrentTier = tier === currentTier;
               const isLoading = loading === tier;
               const isFree = tier === 'free';
-              console.log('tier', tier);
-              console.log('currentTier', currentTier);
 
               return (
                 <div

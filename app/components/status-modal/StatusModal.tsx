@@ -10,6 +10,8 @@ import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { userStore } from '~/lib/stores/userAuth';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
 import { createTopoffCheckout } from '~/lib/stripe/client';
+import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
+import { openSubscriptionModal } from '~/lib/stores/subscriptionModal';
 
 interface StatusModalProps {
   appSummary: AppSummary;
@@ -22,6 +24,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
   const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
   const user = useStore(userStore.user);
   const [loading, setLoading] = useState(false);
+  const hasSubscription = useStore(subscriptionStore.hasSubscription);
 
   const features = appSummary.features?.slice(1) || [];
   const completedFeatures = features.filter(
@@ -71,6 +74,11 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubscriptionToggle = async () => {
+    openSubscriptionModal();
+    handleClose();
   };
 
   const overlayVariants = {
@@ -263,7 +271,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9, duration: 0.5 }}
               >
-                {!isFullyComplete && peanutsRemaining !== undefined && peanutsRemaining <= 0 && (
+                {peanutsRemaining !== undefined && peanutsRemaining <= 0 && hasSubscription && (
                   <div className="flex flex-col items-center w-full">
                     <TooltipProvider>
                       <WithTooltip tooltip={peanutsErrorInfo}>
@@ -295,6 +303,27 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm max-w-md text-center">
                       {peanutsErrorInfo}
                     </div>
+                  </div>
+                )}
+                {peanutsRemaining !== undefined && peanutsRemaining <= 0 && !hasSubscription && (
+                  <div className="flex flex-col items-center w-full">
+                    <div className="text-xl font-semibold text-bolt-elements-textSecondary mb-2">No Subscription</div>
+                    <div className="text-sm text-bolt-elements-textSecondary mb-4">
+                      Add a subscription to continue building.
+                    </div>
+                    <button
+                      onClick={handleSubscriptionToggle}
+                      disabled={loading}
+                      className={classNames(
+                        'px-6 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group flex items-center justify-center gap-3 min-h-[48px] bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600',
+                        {
+                          'opacity-60 cursor-not-allowed hover:scale-100': loading,
+                        },
+                      )}
+                    >
+                      <div className="i-ph:crown text-xl transition-transform duration-200 group-hover:scale-110" />
+                      <span className="transition-transform duration-200 group-hover:scale-105">View Plans</span>
+                    </button>
                   </div>
                 )}
                 {!isFullyComplete && peanutsRemaining !== undefined && peanutsRemaining > 0 && (

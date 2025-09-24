@@ -121,6 +121,21 @@ export const SUBSCRIPTION_TIERS = {
 
 export type SubscriptionTier = keyof typeof SUBSCRIPTION_TIERS;
 
+export interface Subscription {
+  id: string;
+  status: string;
+  tier: SubscriptionTier;
+  peanuts: number;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+export interface StripeStatus {
+  hasSubscription: boolean;
+  subscription: Subscription | null;
+}
+
 /**
  * Check subscription status directly from Stripe
  */
@@ -137,7 +152,6 @@ export async function checkSubscriptionStatus() {
         action: 'get_status',
       }),
     });
-    console.log('Subscription status response:', response);
 
     if (!response.ok) {
       throw new Error('Failed to check subscription status');
