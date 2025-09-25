@@ -207,7 +207,7 @@ export async function doSendMessage(request: NutChatRequest) {
   doListenAppResponses();
 }
 
-export async function doListenAppResponses(wasStatusModalOpen = false) {
+export async function doListenAppResponses(wasStatusModalOpen = false, hasFeatures = false) {
   if (!chatStore.currentAppId.get()) {
     return;
   }
@@ -215,7 +215,7 @@ export async function doListenAppResponses(wasStatusModalOpen = false) {
   const { active } = await callNutAPI('app-chat-active', { appId: chatStore.currentAppId.get() });
   if (!active) {
     console.log('ListenAppResponsesNotActive');
-    if (wasStatusModalOpen) {
+    if (wasStatusModalOpen && hasFeatures) {
       statusModalStore.open();
     }
     return;
@@ -247,7 +247,9 @@ export async function doListenAppResponses(wasStatusModalOpen = false) {
 
   await refreshPeanutsStore();
 
-  statusModalStore.open();
+  if (hasFeatures) {
+    statusModalStore.open();
+  }
 }
 
 export function continueBuilding() {

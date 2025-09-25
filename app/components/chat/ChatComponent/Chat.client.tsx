@@ -48,6 +48,7 @@ export function Chat() {
   const [isCopying, setIsCopying] = useState(false);
   const appTitle = useStore(chatStore.appTitle);
   const isOpen = useStore(statusModalStore.isOpen);
+  const appSummary = useStore(chatStore.appSummary);
 
   useEffect(() => {
     if (appTitle) {
@@ -72,10 +73,9 @@ export function Chat() {
           const appId = chatStore.currentAppId.get();
           if (appId && !chatStore.listenResponses.get()) {
             const wasStatusModalOpen = isOpen;
-            console.log('DocumentReloadApp', wasStatusModalOpen);
             statusModalStore.close();
             await updateAppState(appId);
-            doListenAppResponses(wasStatusModalOpen);
+            doListenAppResponses(wasStatusModalOpen, (appSummary?.features?.length ?? 0) > 0);
           }
         }
       }
@@ -99,7 +99,7 @@ export function Chat() {
       await updateAppState(appId);
 
       // Always check for ongoing work when we first start the chat.
-      doListenAppResponses();
+      doListenAppResponses(false, (appSummary?.features?.length ?? 0) > 0);
 
       setReady(true);
     } catch (error) {
@@ -133,8 +133,6 @@ export function Chat() {
       loadApp(initialAppId);
     }
   }, []);
-
-  console.log('ChatClient', ready, chatStore.started.get(), chatStore.appSummary.get(), chatStore.messages.get());
 
   return (
     <>
