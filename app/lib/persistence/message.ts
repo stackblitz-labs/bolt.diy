@@ -1,14 +1,20 @@
 // Client messages match the format used by the Nut protocol.
 
-import { assert } from '~/utils/nut';
-
 type MessageRole = 'user' | 'assistant';
 
-interface MessageBase {
+export interface ChatMessageAttachment {
+  attachmentId: string;
+  fileName: string;
+  byteLength: number;
+  mimeType: string;
+}
+
+export interface Message {
   id: string;
   role: MessageRole;
+  content: string;
+  attachments?: ChatMessageAttachment[];
   repositoryId?: string;
-  repositoryURL?: string;
   peanuts?: number;
   category?: string;
   createTime?: string;
@@ -16,20 +22,9 @@ interface MessageBase {
   // Not part of the protocol, indicates whether the user has explicitly approved
   // the message. Once approved, the approve/reject UI is not shown again for the message.
   approved?: boolean;
-}
 
-export interface MessageText extends MessageBase {
-  type: 'text';
-  content: string;
   hasInteracted: boolean;
 }
-
-export interface MessageImage extends MessageBase {
-  type: 'image';
-  dataURL: string;
-}
-
-export type Message = MessageText | MessageImage;
 
 // Category for the initial response made to every user message.
 // All messages up to the next UserResponse are responding to this message.
@@ -54,7 +49,6 @@ export function getDiscoveryRating(messages: Message[]): number {
   if (!discoveryRatingMessage) {
     return 0;
   }
-  assert(discoveryRatingMessage.type === 'text', 'Discovery rating message is not a text message');
   const info: DiscoveryRating = JSON.parse(discoveryRatingMessage.content);
   return info.rating;
 }

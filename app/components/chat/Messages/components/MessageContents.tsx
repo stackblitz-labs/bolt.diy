@@ -3,6 +3,7 @@
  * Preventing TS checks with files presented in the video for a better presentation.
  */
 import { Markdown } from '~/components/chat/Markdown';
+import { AttachmentDisplay } from './AttachmentDisplay';
 import type { Message } from '~/lib/persistence/message';
 
 interface MessageContentsProps {
@@ -11,32 +12,20 @@ interface MessageContentsProps {
 }
 
 export function MessageContents({ message, onCheckboxChange }: MessageContentsProps) {
-  switch (message.type) {
-    case 'text':
-      return (
-        <div data-testid="message-content" className="overflow-hidden">
-          <div className="prose prose-sm max-w-none text-bolt-elements-textPrimary">
-            <Markdown html onCheckboxChange={onCheckboxChange}>
-              {message.content}
-            </Markdown>
-          </div>
+  return (
+    <div data-testid="message-content" className="overflow-hidden">
+      <div className="prose prose-sm max-w-none text-bolt-elements-textPrimary">
+        <Markdown html onCheckboxChange={onCheckboxChange}>
+          {message.content}
+        </Markdown>
+      </div>
+      {message.attachments && message.attachments.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {message.attachments.map((attachment, index) => (
+            <AttachmentDisplay key={`${attachment.attachmentId}-${index}`} attachment={attachment} />
+          ))}
         </div>
-      );
-    case 'image':
-      return (
-        <div data-testid="message-content" className="overflow-hidden">
-          <div className="flex flex-col gap-4 mt-2">
-            <div className="relative group">
-              <img
-                src={message.dataURL}
-                className="max-w-full h-auto rounded-xl border border-bolt-elements-borderColor shadow-lg transition-all duration-200 group-hover:shadow-xl"
-                style={{ maxHeight: '512px', objectFit: 'contain' }}
-                alt="Uploaded image"
-              />
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-      );
-  }
+      )}
+    </div>
+  );
 }

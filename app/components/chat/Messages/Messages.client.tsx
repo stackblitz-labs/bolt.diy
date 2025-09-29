@@ -141,7 +141,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     // Helper function to get AppSummary creation time
     const getAppSummaryTime = (appSummary: Message): string => {
       try {
-        if (appSummary.type === 'text' && appSummary.content) {
+        if (appSummary.content) {
           const summaryData = JSON.parse(appSummary.content);
           return summaryData.time;
         }
@@ -386,5 +386,5 @@ function isActiveDiscoveryResponse(messages: Message[], message: Message) {
 }
 
 function hasInteracted(message: Message): boolean {
-  return message.type === 'text' && message.hasInteracted === true;
+  return message.hasInteracted === true;
 }

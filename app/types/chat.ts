@@ -1,18 +1,12 @@
-import type { Message, MessageImage, MessageText } from '~/lib/persistence/message';
+import type { Message } from '~/lib/persistence/message';
 
 export interface ChatProps {
   initialMessages: Message[];
 }
 
 // Re-export types we need
-export type { Message, MessageImage, MessageText };
+export type { Message };
 
-export interface UserMessage extends MessageText {
+export interface UserMessage extends Message {
   role: 'user';
-  type: 'text';
-}
-
-export interface UserImageMessage extends MessageImage {
-  role: 'user';
-  type: 'image';
 }

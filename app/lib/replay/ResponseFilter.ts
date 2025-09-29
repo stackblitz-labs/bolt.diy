@@ -28,7 +28,7 @@ function responseMatches(a: ChatResponse, b: ChatResponse) {
       // they could share the same timestamp. (They could share the same content
       // as well but we don't handle this case.)
       if (aMessage.id === bMessage.id) {
-        if (aMessage.type == 'text' && bMessage.type == 'text' && aMessage.content != bMessage.content) {
+        if (aMessage.content != bMessage.content) {
           return false;
         }
         return true;

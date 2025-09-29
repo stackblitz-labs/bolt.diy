@@ -195,7 +195,6 @@ export interface AppSummary {
 export function parseAppSummaryMessage(message: Message): AppSummary | undefined {
   try {
     assert(message.category === APP_SUMMARY_CATEGORY, 'Message is not an app summary message');
-    assert(message.type === 'text', 'Message is not a text message');
     const appSummary = JSON.parse(message.content) as AppSummary;
     assert(typeof appSummary.description === 'string', 'Missing app description');
     assert(Array.isArray(appSummary.pages), 'Missing app pages');

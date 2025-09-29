@@ -58,13 +58,10 @@ function addResponseEvent(response: ChatResponse) {
 
 export function addChatMessage(message: Message) {
   // Ensure hasInteracted field is set for text messages
-  const processedMessage =
-    message.type === 'text'
-      ? {
-          ...message,
-          hasInteracted: message.hasInteracted ?? false,
-        }
-      : message;
+  const processedMessage = {
+    ...message,
+    hasInteracted: message.hasInteracted ?? false,
+  };
 
   // If this is a user message, remember it so we don't add it again when it comes back
   // from the backend.

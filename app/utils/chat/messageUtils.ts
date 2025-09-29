@@ -1,4 +1,3 @@
-import { assert } from '~/utils/nut';
 import type { Message } from '~/lib/persistence/message';
 
 let gLastChatMessages: Message[] | undefined;
@@ -16,9 +15,6 @@ export function mergeResponseMessage(msg: Message, messages: Message[]): Message
 
   if (lastMessage.id == msg.id) {
     messages.pop();
-
-    assert(lastMessage.type == 'text', 'Last message must be a text message');
-    assert(msg.type == 'text', 'Message must be a text message');
 
     messages.push({
       ...msg,

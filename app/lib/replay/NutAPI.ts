@@ -89,3 +89,117 @@ export async function callNutAPI(
     return response.json();
   }
 }
+
+export async function createAttachment(mimeType: string, attachmentData: ArrayBuffer): Promise<string> {
+  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://dispatch.replay.io';
+  const url = `${apiHost}/nut/create-attachment`;
+
+  const userId = await getCurrentUserId();
+  const accessToken = await getCurrentAccessToken();
+
+  const headers: HeadersInit = {
+    'x-user-id': userId ?? '',
+    Authorization: accessToken ? `Bearer ${accessToken}` : '',
+    'x-replay-attachment-type': mimeType,
+    'Content-Type': 'application/octet-stream',
+    'Content-Length': attachmentData.byteLength.toString(),
+  };
+
+  // Create a ReadableStream for streaming the attachment data
+  const stream = new ReadableStream({
+    start(controller) {
+      // Send the data in chunks to avoid memory issues with large files
+      const chunkSize = 64 * 1024; // 64KB chunks
+      let offset = 0;
+
+      const sendChunk = () => {
+        if (offset >= attachmentData.byteLength) {
+          controller.close();
+          return;
+        }
+
+        const chunk = attachmentData.slice(offset, offset + chunkSize);
+        controller.enqueue(new Uint8Array(chunk));
+        offset += chunkSize;
+
+        // Use setTimeout to yield control and prevent blocking the main thread
+        setTimeout(sendChunk, 0);
+      };
+
+      sendChunk();
+    },
+  });
+
+  const fetchOptions: RequestInit = {
+    method: 'POST',
+    headers,
+    body: stream,
+    duplex: 'half',
+  };
+
+  const response = await fetch(url, fetchOptions);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new NutAPIError('createAttachment', response.status, errorText);
+  }
+  const { attachmentId } = (await response.json()) as { attachmentId: string };
+  return attachmentId;
+}
+
+export async function downloadAttachment(attachmentId: string): Promise<ArrayBuffer> {
+  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://dispatch.replay.io';
+  const url = `${apiHost}/nut/download-attachment`;
+
+  const userId = await getCurrentUserId();
+  const accessToken = await getCurrentAccessToken();
+
+  const headers: HeadersInit = {
+    'x-user-id': userId ?? '',
+    Authorization: accessToken ? `Bearer ${accessToken}` : '',
+    'Content-Type': 'application/json',
+  };
+
+  const fetchOptions: RequestInit = {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ attachmentId }),
+  };
+
+  const response = await fetch(url, fetchOptions);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new NutAPIError('downloadAttachment', response.status, errorText);
+  }
+
+  if (!response.body) {
+    throw new Error('No response body for streaming');
+  }
+
+  // Stream the response data
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  // Calculate total length and combine chunks
+  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  return result.buffer;
+}
