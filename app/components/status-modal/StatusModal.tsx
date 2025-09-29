@@ -62,6 +62,8 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
       if (window.analytics) {
         window.analytics.track('Peanuts Added', {
           timestamp: new Date().toISOString(),
+          userId: user?.id,
+          email: user?.email,
         });
       }
     } catch (error) {

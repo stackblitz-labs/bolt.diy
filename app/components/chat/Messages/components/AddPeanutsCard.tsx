@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createTopoffCheckout } from '~/lib/stripe/client';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
-import { userStore } from '~/lib/stores/auth';
+import { userStore } from '~/lib/stores/userAuth';
 import { useStore } from '@nanostores/react';
 
 interface AddPeanutsCardProps {
@@ -10,7 +10,7 @@ interface AddPeanutsCardProps {
 
 export const AddPeanutsCard: React.FC<AddPeanutsCardProps> = ({ onMount }) => {
   const [loading, setLoading] = useState(false);
-  const user = useStore(userStore);
+  const user = useStore(userStore.user);
 
   useEffect(() => {
     if (onMount) {
@@ -34,6 +34,8 @@ export const AddPeanutsCard: React.FC<AddPeanutsCardProps> = ({ onMount }) => {
       if (window.analytics) {
         window.analytics.track('Peanuts Added', {
           timestamp: new Date().toISOString(),
+          userId: user?.id,
+          email: user?.email,
         });
       }
     } catch (error) {

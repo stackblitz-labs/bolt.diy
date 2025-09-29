@@ -4,10 +4,14 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { downloadRepository } from '~/lib/replay/Deploy';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
+import { useStore } from '@nanostores/react';
+import { userStore } from '~/lib/stores/userAuth';
 
 ReactModal.setAppElement('#root');
 
 export function DownloadButton() {
+  const user = useStore(userStore.user);
+
   const handleDownload = async () => {
     const repositoryId = workbenchStore.repositoryId.get();
     if (!repositoryId) {
@@ -37,10 +41,10 @@ export function DownloadButton() {
 
       toast.success('Repository downloaded successfully');
       if (window.analytics) {
-        window.analytics.track('Repository Downloaded', {
-          repositoryId,
+        window.analytics.track('Downloaded Code', {
           timestamp: new Date().toISOString(),
-          method: 'download_button',
+          userId: user?.id,
+          email: user?.email,
         });
       }
     } catch (error) {

@@ -133,12 +133,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         sendMessage(params);
         abortListening();
         setCheckedBoxes([]);
-        if (window.analytics) {
-          window.analytics.track('Message Sent', {
+
+        if (window.analytics && messages.length === 0) {
+          window.analytics.track('Created a new chat', {
             timestamp: new Date().toISOString(),
-            chatMode: params.chatMode,
+            userId: user?.id,
+            email: user?.email,
           });
         }
+
         if (handleInputChange) {
           const syntheticEvent = {
             target: { value: '' },

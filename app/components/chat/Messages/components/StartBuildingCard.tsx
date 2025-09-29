@@ -3,6 +3,8 @@ import { StartBuildingButton } from '~/components/chat/StartBuildingButton';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
+import { useStore } from '@nanostores/react';
+import { userStore } from '~/lib/stores/userAuth';
 
 interface StartBuildingCardProps {
   startPlanningRating: number;
@@ -11,11 +13,34 @@ interface StartBuildingCardProps {
 }
 
 export const StartBuildingCard: React.FC<StartBuildingCardProps> = ({ startPlanningRating, sendMessage, onMount }) => {
+  const user = useStore(userStore.user);
   useEffect(() => {
     if (onMount) {
       onMount();
     }
   }, []);
+
+  const handleStartBuilding = () => {
+    if (sendMessage) {
+      const message = 'Start building the app based on these requirements.';
+
+      sendMessage({ messageInput: message, chatMode: ChatMode.DevelopApp });
+
+      if (window.analytics) {
+        window.analytics.track('Clicked Start Building button', {
+          timestamp: new Date().toISOString(),
+          userId: user?.id,
+          email: user?.email,
+        });
+      }
+
+      setTimeout(() => {
+        workbenchStore.setShowWorkbench(true);
+        mobileNavStore.setShowMobileNav(true);
+        mobileNavStore.setActiveTab('preview');
+      }, 2000);
+    }
+  };
 
   return (
     <div className="w-full mt-5">
@@ -35,17 +60,7 @@ export const StartBuildingCard: React.FC<StartBuildingCardProps> = ({ startPlann
 
           <div className="relative">
             <StartBuildingButton
-              onClick={() => {
-                if (sendMessage) {
-                  const message = 'Start building the app based on these requirements.';
-                  sendMessage({ messageInput: message, chatMode: ChatMode.DevelopApp });
-                  setTimeout(() => {
-                    workbenchStore.setShowWorkbench(true);
-                    mobileNavStore.setShowMobileNav(true);
-                    mobileNavStore.setActiveTab('preview');
-                  }, 2000);
-                }
-              }}
+              onClick={handleStartBuilding}
               startPlanningRating={startPlanningRating}
               buttonText="Start Building Now!"
             />

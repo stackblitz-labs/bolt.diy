@@ -7,6 +7,7 @@ import { generateRandomId } from '~/utils/nut';
 import { DeployStatus } from '~/components/header/DeployChat/DeployChatButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeploymentSuccessful from './DeploymentSuccessful';
+import { userStore } from '~/lib/stores/userAuth';
 
 const MAX_SITE_NAME_LENGTH = 63;
 
@@ -17,6 +18,7 @@ export function GlobalDeployChatModal() {
   const error = useStore(deployModalStore.error);
   const databaseFound = useStore(deployModalStore.databaseFound);
   const loadingData = useStore(deployModalStore.loadingData);
+  const user = useStore(userStore.user);
 
   const appId = useStore(chatStore.currentAppId);
 
@@ -65,6 +67,14 @@ export function GlobalDeployChatModal() {
 
     if (result.error) {
       deployModalStore.setError(result.error);
+    }
+
+    if (window.analytics) {
+      window.analytics.track('Deployed App', {
+        timestamp: new Date().toISOString(),
+        userId: user?.id,
+        email: user?.email,
+      });
     }
 
     const updatedSettings = {

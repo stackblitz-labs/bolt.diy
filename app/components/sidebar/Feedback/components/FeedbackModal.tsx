@@ -5,9 +5,11 @@ import { toast } from 'react-toastify';
 import { supabaseSubmitFeedback } from '~/lib/supabase/feedback';
 import { getLastChatMessages } from '~/utils/chat/messageUtils';
 import { getAllAppResponses } from '~/lib/replay/ResponseFilter';
+import { userStore } from '~/lib/stores/userAuth';
 
 const GlobalFeedbackModal = () => {
   const { isOpen, formData, submitted } = useStore(feedbackModalState);
+  const user = useStore(userStore.user);
 
   const handleSubmitFeedback = async () => {
     if (!formData.description) {
@@ -30,6 +32,14 @@ const GlobalFeedbackModal = () => {
 
     try {
       const success = await supabaseSubmitFeedback(feedbackData);
+
+      if (window.analytics) {
+        window.analytics.track('Submitted feedback', {
+          timestamp: new Date().toISOString(),
+          userId: user?.id,
+          email: user?.email,
+        });
+      }
 
       if (success) {
         feedbackModalStore.setSubmitted(true);

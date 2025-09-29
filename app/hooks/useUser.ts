@@ -11,6 +11,7 @@ export function useUser() {
     }
     if (window.analytics) {
       window.analytics.identify(user.id, {
+        name: user.user_metadata.full_name,
         email: user.email,
         userId: user.id,
         createdAt: user.created_at,
@@ -21,6 +22,7 @@ export function useUser() {
 
     if (window.LogRocket) {
       window.LogRocket.identify(user.id, {
+        name: user.user_metadata.full_name,
         email: user.email,
         userId: user.id,
         createdAt: user.created_at,
@@ -40,6 +42,7 @@ export function useUser() {
               intercom_user_jwt: data.jwt,
               user_id: user.id,
               email: user.email,
+              name: user.user_metadata.full_name,
             });
           }
         });

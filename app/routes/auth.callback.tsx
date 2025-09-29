@@ -70,12 +70,16 @@ export default function AuthCallback() {
             }
           }
 
+          console.log('Analytics tracking user', user);
+          console.log('Analytics tracking window', window.analytics);
           // Analytics tracking
           if (window.analytics && user) {
             const signInMethod = isEmailConfirm ? 'email' : isSignupFlow ? 'google_oauth' : 'google_oauth';
+            console.log('Analytics tracking', user);
 
             window.analytics.identify(user.id, {
               email: user.email,
+              userId: user.id,
               lastSignIn: new Date().toISOString(),
               signInMethod,
             });
@@ -86,18 +90,19 @@ export default function AuthCallback() {
 
             if (isNewUser) {
               // Track as signup
-              window.analytics.track('User Signed Up', {
-                method: isEmailConfirm ? 'email' : 'google_oauth',
+              window.analytics.identify(user.id, {
+                name: user.user_metadata.full_name,
                 email: user.email,
                 userId: user.id,
-                timestamp: new Date().toISOString(),
-              });
-
-              window.analytics.identify(user.id, {
-                email: user.email,
                 signupMethod: isEmailConfirm ? 'email' : 'google_oauth',
                 signupDate: new Date().toISOString(),
                 createdAt: user.created_at,
+              });
+
+              window.analytics.track('Created Account', {
+                email: user.email,
+                userId: user.id,
+                timestamp: new Date().toISOString(),
               });
             }
           }
@@ -106,7 +111,9 @@ export default function AuthCallback() {
           if (window.LogRocket && user) {
             const signInMethod = isEmailConfirm ? 'email' : isSignupFlow ? 'google_oauth' : 'google_oauth';
             window.LogRocket.identify(user.id, {
+              name: user.user_metadata.full_name,
               email: user.email,
+              userId: user.id,
               lastSignIn: new Date().toISOString(),
               signInMethod,
             });

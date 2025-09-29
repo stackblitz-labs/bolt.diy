@@ -34,14 +34,20 @@ export function SignInForm({ onToggleForm, onError, onForgotPassword }: SignInFo
 
       if (window.analytics && data.user) {
         window.analytics.identify(data.user.id, {
+          name: data.user.user_metadata.full_name,
           email: data.user.email,
+          userId: data.user.id,
           lastSignIn: new Date().toISOString(),
           signInMethod: 'email',
         });
       }
       if (window.LogRocket && data.user) {
         window.LogRocket.identify(data.user.id, {
+          name: data.user.user_metadata.full_name,
           email: data.user.email,
+          userId: data.user.id,
+          lastSignIn: new Date().toISOString(),
+          signInMethod: 'email',
         });
       }
     } catch (error) {

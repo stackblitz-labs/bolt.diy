@@ -93,11 +93,25 @@ export function ClientAuth() {
 
   const handleShowAccountModal = () => {
     accountModalStore.open();
+    if (window.analytics) {
+      window.analytics.track('Clicked Account Settings button', {
+        timestamp: new Date().toISOString(),
+        userId: user?.id,
+        email: user?.email,
+      });
+    }
     setShowDropdown(false);
   };
 
   const handleSubscriptionToggle = async () => {
     openSubscriptionModal();
+    if (window.analytics) {
+      window.analytics.track('Clicked View Plans button', {
+        timestamp: new Date().toISOString(),
+        userId: user?.id,
+        email: user?.email,
+      });
+    }
     setShowDropdown(false);
   };
 
@@ -197,6 +211,15 @@ export function ClientAuth() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg transition-all duration-200 flex items-center gap-3 font-medium shadow-sm hover:shadow-md"
+                    onClick={() => {
+                      if (window.analytics) {
+                        window.analytics.track('Clicked Pro Plan Waitlist button', {
+                          timestamp: new Date().toISOString(),
+                          userId: user?.id,
+                          email: user?.email,
+                        });
+                      }
+                    }}
                     onMouseEnter={() => {
                       const timeout = setTimeout(() => setShowProTooltip(true), 500);
                       setProTooltipTimeout(timeout);

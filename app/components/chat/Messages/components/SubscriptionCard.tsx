@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { openSubscriptionModal } from '~/lib/stores/subscriptionModal';
+import { userStore } from '~/lib/stores/userAuth';
+import { useStore } from '@nanostores/react';
 
 interface SubscriptionCardProps {
   onMount?: () => void;
@@ -7,6 +9,7 @@ interface SubscriptionCardProps {
 
 export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ onMount }) => {
   const [loading, setLoading] = useState(false);
+  const user = useStore(userStore.user);
 
   useEffect(() => {
     if (onMount) {
@@ -24,6 +27,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ onMount }) =
       if (window.analytics) {
         window.analytics.track('Subscription Plans Viewed', {
           timestamp: new Date().toISOString(),
+          userId: user?.id,
+          email: user?.email,
         });
       }
     } catch (error) {

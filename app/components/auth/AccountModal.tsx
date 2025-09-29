@@ -163,6 +163,13 @@ export const AccountModal = ({ user, onClose }: AccountModalProps) => {
 
   const handleSubscriptionToggle = async () => {
     openSubscriptionModal();
+    if (window.analytics) {
+      window.analytics.track('Clicked View Plans button', {
+        timestamp: new Date().toISOString(),
+        userId: user?.id,
+        email: user?.email,
+      });
+    }
     onClose();
   };
 
@@ -178,11 +185,6 @@ export const AccountModal = ({ user, onClose }: AccountModalProps) => {
 
     try {
       await createTopoffCheckout();
-      if (window.analytics) {
-        window.analytics.track('Peanuts Added', {
-          timestamp: new Date().toISOString(),
-        });
-      }
     } catch (error) {
       console.error('Error creating peanut top-off:', error);
       stripeStatusModalActions.showError(
@@ -243,6 +245,13 @@ export const AccountModal = ({ user, onClose }: AccountModalProps) => {
 
     try {
       await manageBilling();
+      if (window.analytics) {
+        window.analytics.track('Clicked Manage Billing button', {
+          timestamp: new Date().toISOString(),
+          userId: user?.id,
+          email: user?.email,
+        });
+      }
     } catch (error) {
       console.error('Error opening billing portal:', error);
       stripeStatusModalActions.showError(
