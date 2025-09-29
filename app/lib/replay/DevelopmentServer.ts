@@ -19,14 +19,14 @@ export function getRepositoryURL(repositoryId: string | undefined) {
 }
 
 export const updateDevelopmentServer = debounce(async (repositoryId: string | undefined) => {
-  const repositoryURL = getRepositoryURL(repositoryId);
-  console.log('UpdateDevelopmentServer', new Date().toISOString(), repositoryURL);
-
   workbenchStore.pendingRepositoryId.set(repositoryId);
+
+  let workbenchRepositoryId = repositoryId;
 
   if (repositoryId) {
     try {
-      await callNutAPI('wait-for-development-server', { repositoryId });
+      const { showRepositoryId } = await callNutAPI('wait-for-development-server', { repositoryId });
+      workbenchRepositoryId = showRepositoryId;
     } catch (error) {
       console.error('Error waiting for development server', error);
     }
@@ -36,7 +36,9 @@ export const updateDevelopmentServer = debounce(async (repositoryId: string | un
     return;
   }
 
+  const repositoryURL = getRepositoryURL(workbenchRepositoryId);
+
   workbenchStore.showWorkbench.set(repositoryURL !== undefined);
-  workbenchStore.repositoryId.set(repositoryId);
+  workbenchStore.repositoryId.set(workbenchRepositoryId);
   workbenchStore.previewURL.set(repositoryURL);
 }, 500);
