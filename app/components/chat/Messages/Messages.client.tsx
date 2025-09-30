@@ -37,6 +37,7 @@ interface MessagesProps {
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
   ({ onLastMessageCheckboxChange, sendMessage }, ref) => {
     const [showJumpToBottom, setShowJumpToBottom] = useState(false);
+    const [showContinueBuildCard, setShowContinueBuildCard] = useState(false);
     const user = useStore(userStore);
     const appSummary = useStore(chatStore.appSummary);
     const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
@@ -65,6 +66,26 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     if (!hasPendingMessage && !hasAppSummary) {
       startPlanningRating = getDiscoveryRating(messages || []);
     }
+
+    useEffect(() => {
+      const shouldShow =
+        !hasPendingMessage &&
+        !listenResponses &&
+        appSummary?.features?.length &&
+        !isFullyComplete &&
+        peanutsRemaining !== undefined &&
+        peanutsRemaining > 0;
+
+      if (shouldShow) {
+        const timer = setTimeout(() => {
+          setShowContinueBuildCard(true);
+        }, 1000); // 1 second delay
+
+        return () => clearTimeout(timer);
+      } else {
+        setShowContinueBuildCard(false);
+      }
+    }, [hasPendingMessage, listenResponses, appSummary?.features?.length, isFullyComplete, peanutsRemaining]);
 
     const setRefs = useCallback(
       (element: HTMLDivElement | null) => {
@@ -326,12 +347,13 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
             <StopBuildCard onMount={scrollToBottom} />
           )}
 
-          {!hasPendingMessage &&
-            !listenResponses &&
-            appSummary?.features?.length &&
-            !isFullyComplete &&
-            peanutsRemaining !== undefined &&
-            peanutsRemaining > 0 && <ContinueBuildCard onMount={scrollToBottom} sendMessage={sendMessage} />}
+          {showContinueBuildCard && (
+            <ContinueBuildCard
+              onMount={scrollToBottom}
+              sendMessage={sendMessage}
+              setShowContinueBuildCard={setShowContinueBuildCard}
+            />
+          )}
 
           {user && startPlanningRating === 10 && peanutsRemaining !== undefined && peanutsRemaining > 0 && (
             <StartBuildingCard
