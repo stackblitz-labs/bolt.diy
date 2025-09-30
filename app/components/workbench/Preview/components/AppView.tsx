@@ -1,7 +1,5 @@
-import { PointSelector } from '~/components/workbench/PointSelector';
 import GripIcon from '~/components/icons/GripIcon';
 import ProgressStatus from './ProgressStatus/ProgressStatus';
-import useViewport from '~/lib/hooks/useViewport';
 import { useStore } from '@nanostores/react';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { useState } from 'react';
@@ -18,10 +16,6 @@ const AppView = ({
   previewURL,
   iframeRef,
   iframeUrl,
-  isSelectionMode,
-  setIsSelectionMode,
-  selectionPoint,
-  setSelectionPoint,
   startResizing,
 }: {
   isDeviceModeOn: boolean;
@@ -29,16 +23,11 @@ const AppView = ({
   previewURL: string;
   iframeRef: React.RefObject<HTMLIFrameElement>;
   iframeUrl: string;
-  isSelectionMode: boolean;
-  setIsSelectionMode: (isSelectionMode: boolean) => void;
-  selectionPoint: { x: number; y: number } | null;
-  setSelectionPoint: (selectionPoint: { x: number; y: number } | null) => void;
   startResizing: (e: React.MouseEvent, side: ResizeSide) => void;
 }) => {
   const [iframeForceReload, setIframeForceReload] = useState(0);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const repositoryId = useStore(workbenchStore.repositoryId);
-  const isSmallViewport = useViewport(800);
   const appSummary = useStore(chatStore.appSummary);
   const isMockupImplemented = isFeatureStatusImplemented(appSummary?.features?.[0]?.status);
 
@@ -68,27 +57,16 @@ const AppView = ({
       className="bg-bolt-elements-background-depth-1"
     >
       {previewURL ? (
-        <>
-          <iframe
-            key={actualIframeUrl}
-            ref={iframeRef}
-            title="preview"
-            className="w-full h-full bg-white transition-all duration-300 opacity-100 rounded-b-xl"
-            src={actualIframeUrl}
-            allowFullScreen
-            sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-forms allow-modals"
-            loading="eager"
-          />
-          {!isSmallViewport && (
-            <PointSelector
-              isSelectionMode={isSelectionMode}
-              setIsSelectionMode={setIsSelectionMode}
-              selectionPoint={selectionPoint}
-              setSelectionPoint={setSelectionPoint}
-              containerRef={iframeRef}
-            />
-          )}
-        </>
+        <iframe
+          key={actualIframeUrl}
+          ref={iframeRef}
+          title="preview"
+          className="w-full h-full bg-white transition-all duration-300 opacity-100 rounded-b-xl"
+          src={actualIframeUrl}
+          allowFullScreen
+          sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-forms allow-modals"
+          loading="eager"
+        />
       ) : (
         <div className="w-full h-full">{isMockupImplemented ? <PreviewLoad /> : <ProgressStatus />}</div>
       )}

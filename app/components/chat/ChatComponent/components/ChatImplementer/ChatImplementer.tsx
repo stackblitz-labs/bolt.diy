@@ -9,8 +9,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { BaseChat } from '~/components/chat/BaseChat/BaseChat';
 // import Cookies from 'js-cookie';
 import { useSearchParams } from '@remix-run/react';
-import { type ChatReference, type VisitData, ChatMode } from '~/lib/replay/SendChatMessage';
-import { getCurrentMouseData } from '~/components/workbench/PointSelector';
+import { type VisitData, ChatMode } from '~/lib/replay/SendChatMessage';
 // import { anthropicNumFreeUsesCookieName, maxFreeUses } from '~/utils/freeUses';
 import { ChatMessageTelemetry } from '~/lib/hooks/pingTelemetry';
 import { type ChatMessageAttachment, type Message } from '~/lib/persistence/message';
@@ -170,17 +169,6 @@ const ChatImplementer = memo(() => {
 
     runAnimation();
 
-    const references: ChatReference[] = [];
-
-    const mouseData = getCurrentMouseData();
-
-    if (mouseData) {
-      references.push({
-        kind: 'element',
-        mouseData,
-      });
-    }
-
     const messages = chatStore.messages.get().filter(shouldDisplayMessage);
 
     const numAbortsAtStart = chatStore.numAborts.get();
@@ -189,7 +177,6 @@ const ChatImplementer = memo(() => {
     if (sessionRepositoryId) {
       visit = {
         repositoryId: sessionRepositoryId,
-        references,
         simulationData,
         detectedError,
       };

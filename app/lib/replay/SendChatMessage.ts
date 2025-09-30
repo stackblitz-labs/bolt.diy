@@ -11,17 +11,10 @@ import { createScopedLogger } from '~/utils/logger';
 import { waitForTime } from '~/utils/nut';
 import type { ChatResponse } from '~/lib/persistence/response';
 import { getLastResponseTime } from './ResponseFilter';
-import type { MouseData, SimulationData } from './MessageHandler';
+import type { SimulationData } from './MessageHandler';
 import type { DetectedError } from './MessageHandlerInterface';
 
 const logger = createScopedLogger('ChatMessage');
-
-interface ChatReferenceElement {
-  kind: 'element';
-  mouseData: MouseData;
-}
-
-export type ChatReference = ChatReferenceElement;
 
 export type ChatResponseCallback = (response: ChatResponse) => void;
 
@@ -31,10 +24,18 @@ export enum ChatMode {
   FixDetectedError = 'FixDetectedError',
 }
 
+// Information about a component referenced on a page during a visit.
+export interface ChatReferenceComponent {
+  // React component hierarchy down to the referenced element. The first component is
+  // the root, and subsequent entries will contain page names, containers etc going
+  // down to the referenced component.
+  componentNames: string[];
+}
+
 // Information describing a user's visit to the app.
 export interface VisitData {
   repositoryId: string;
-  references?: ChatReference[];
+  componentReference?: ChatReferenceComponent;
   simulationData?: SimulationData;
   detectedError?: DetectedError;
 }

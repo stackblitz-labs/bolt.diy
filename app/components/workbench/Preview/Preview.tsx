@@ -31,8 +31,6 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
 
   const [url, setUrl] = useState('');
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectionPoint, setSelectionPoint] = useState<{ x: number; y: number } | null>(null);
 
   const previewURL = useStore(workbenchStore.previewURL);
   const isSmallViewport = useViewport(800);
@@ -82,8 +80,6 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
       iframeRef.current.src = iframeUrl + route + '?forceReload=' + Date.now();
     }
 
-    setIsSelectionMode(false);
-    setSelectionPoint(null);
     setDetectedError(undefined);
     setFixingError(false);
   };
@@ -92,7 +88,6 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
     if (!previewURL) {
       setUrl('');
       setIframeUrl(undefined);
-      setSelectionPoint(null);
 
       return;
     }
@@ -262,11 +257,7 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
           isDeviceModeOn={isDeviceModeOn}
           iframeRef={iframeRef}
           iframeUrl={iframeUrl ?? ''}
-          isSelectionMode={isSelectionMode}
           previewURL={url}
-          selectionPoint={selectionPoint}
-          setIsSelectionMode={setIsSelectionMode}
-          setSelectionPoint={setSelectionPoint}
           startResizing={startResizing}
           widthPercent={widthPercent}
         />

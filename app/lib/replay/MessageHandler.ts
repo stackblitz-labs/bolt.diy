@@ -50,16 +50,6 @@ export async function getIFrameSimulationData(iframe: HTMLIFrameElement): Promis
   return JSON.parse(jsonString) as SimulationData;
 }
 
-// Information about a mouse position in the iframe.
-export type MouseData = unknown;
-
-export async function getMouseData(iframe: HTMLIFrameElement, position: { x: number; y: number }): Promise<MouseData> {
-  const mouseData = await sendIframeRequest(iframe, { request: 'mouse-data', payload: position });
-  assert(mouseData, 'Expected to have mouse data');
-
-  return mouseData;
-}
-
 export async function getDetectedErrors(iframe: HTMLIFrameElement): Promise<DetectedError[]> {
   const detectedErrors = await sendIframeRequest(iframe, { request: 'get-detected-errors', payload: undefined });
   assert(detectedErrors, 'Expected to have detected errors');
