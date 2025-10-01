@@ -10,6 +10,7 @@ import { userStore } from '~/lib/stores/userAuth';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { DeployChatButton } from './DeployChat/DeployChatButton';
+import { AppSettingsButton } from './AppSettings/AppSettingsButton';
 import { DownloadButton } from './DownloadButton';
 import ViewVersionHistoryButton from '~/components/workbench/VesionHistory/ViewVersionHistoryButton';
 import useViewport from '~/lib/hooks';
@@ -74,6 +75,7 @@ export function Header() {
           <div className="flex items-center gap-3">
             {history.length > 0 && <ViewVersionHistoryButton />}
             {repositoryId && <DownloadButton />}
+            {repositoryId && appId && <AppSettingsButton />}
             {repositoryId && appId && <DeployChatButton />}
           </div>
         </div>

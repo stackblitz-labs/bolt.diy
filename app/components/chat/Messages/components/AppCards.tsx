@@ -81,12 +81,12 @@ export const AppCards: React.FC = () => {
     );
   }
 
-  if (visibleCardTypes.includes('features')) {
-    cards.push(<FeaturesCard key="features" appSummary={appSummary} onViewDetails={() => openModal('features')} />);
-  }
-
   if (visibleCardTypes.includes('auth')) {
     cards.push(<AuthSelectorCard key="auth" appSummary={appSummary} />);
+  }
+
+  if (visibleCardTypes.includes('features')) {
+    cards.push(<FeaturesCard key="features" appSummary={appSummary} onViewDetails={() => openModal('features')} />);
   }
 
   if (visibleCardTypes.includes('secrets')) {

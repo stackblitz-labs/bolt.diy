@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { AppCard } from './AppCard';
 import { Switch } from '~/components/ui/Switch';
 import { type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { chatStore, onChatResponse } from '~/lib/stores/chat';
@@ -111,29 +110,47 @@ export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }
   };
 
   return (
-    <AppCard
-      title="Authentication Settings"
-      description={getDescription()}
-      icon={<div className="i-ph:shield-check-duotone text-white text-lg" />}
-      iconColor="indigo"
-      status="completed"
-      progressText="Configured"
-    >
-      <div className="space-y-3">
-        {getToggleControl()}
-        {authRequired && (
-          <div>
-            <button
-              type="button"
-              className="px-3 py-2 text-sm rounded-md border text-bolt-elements-textSecondary border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-colors"
-              onClick={() => setShowDomains(true)}
-            >
-              Set Allowed Domains
-            </button>
-            <AllowedDomainsDialog open={showDomains} onOpenChange={setShowDomains} />
+    <div className="relative rounded-xl transition-all duration-300 shadow-sm">
+      <div className="bg-bolt-elements-background-depth-2 rounded-xl transition-all duration-300 relative overflow-hidden p-5 border border-bolt-elements-borderColor">
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm bg-gradient-to-br from-indigo-500 to-indigo-600">
+              <div className="i-ph:shield-check-duotone text-white text-lg" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-semibold text-bolt-elements-textHeading truncate">
+                Authentication Settings
+              </h3>
+              <div className="mt-1.5 flex items-center">
+                <div className="flex items-center gap-2 text-bolt-elements-icon-success">
+                  <div className="i-ph:check-bold text-sm" />
+                  <span className="text-sm font-medium text-green-600">Configured</span>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+
+          <div className="text-sm text-bolt-elements-textSecondary leading-relaxed mb-3">{getDescription()}</div>
+
+          <div className="mt-3">
+            <div className="space-y-3">
+              {getToggleControl()}
+              {authRequired && (
+                <div>
+                  <button
+                    type="button"
+                    className="w-full px-4 py-3 text-sm rounded-xl border text-bolt-elements-textHeading border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-all duration-200 hover:scale-[1.02] hover:shadow-md font-medium"
+                    onClick={() => setShowDomains(true)}
+                  >
+                    Set Allowed Domains
+                  </button>
+                  <AllowedDomainsDialog open={showDomains} onOpenChange={setShowDomains} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </AppCard>
+    </div>
   );
 };

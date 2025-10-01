@@ -158,12 +158,7 @@ const Secrets = () => {
               <button
                 onClick={() => handleSaveSecret(secret.name)}
                 disabled={isSaving || (!isSet && !currentValue.trim())}
-                className={classNames(
-                  'px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 shadow-sm',
-                  isSaving || (!isSet && !currentValue.trim())
-                    ? 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary cursor-not-allowed border border-bolt-elements-borderColor/30'
-                    : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 hover:shadow-md hover:scale-105 active:scale-95',
-                )}
+                className="px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 shadow-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 hover:shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? (
                   <span className="flex items-center gap-2">
