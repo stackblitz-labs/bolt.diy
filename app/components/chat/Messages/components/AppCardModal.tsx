@@ -142,7 +142,7 @@ export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, typ
       <Dialog onClose={onClose} className="max-w-4xl">
         <DialogTitle>{getModalTitle()}</DialogTitle>
         <TooltipProvider>
-          <div className="overflow-y-auto max-h-[calc(90vh-80px)] px-6 pt-6 pb-8">
+          <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-6 pb-14">
             <div className="mb-4">{renderContent()}</div>
           </div>
         </TooltipProvider>
