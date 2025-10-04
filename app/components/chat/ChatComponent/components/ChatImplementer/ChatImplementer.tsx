@@ -26,12 +26,17 @@ function clearActiveChat() {
   gActiveChatMessageTelemetry = undefined;
 }
 
+interface ChatReferenceComponent {
+  componentNames: string[];
+}
+
 export interface ChatMessageParams {
   messageInput?: string;
   chatMode: ChatMode;
   sessionRepositoryId?: string;
   simulationData?: SimulationData;
   detectedError?: DetectedError;
+  componentReference?: ChatReferenceComponent;
 }
 
 async function createAttachment(dataURL: string): Promise<ChatMessageAttachment> {

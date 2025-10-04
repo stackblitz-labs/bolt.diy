@@ -1,5 +1,23 @@
 import { atom, type WritableAtom } from 'nanostores';
 
+interface ReactComponent {
+  displayName?: string;
+  name?: string;
+  props?: Record<string, unknown>;
+  state?: unknown;
+  type: 'class' | 'function' | 'host';
+  source?: {
+    fileName?: string;
+    lineNumber?: number;
+    columnNumber?: number;
+  };
+}
+
+interface SelectedElementData {
+  component: ReactComponent | null;
+  tree: ReactComponent[];
+}
+
 export class WorkbenchStore {
   // The current repository.
   repositoryId = atom<string | undefined>(undefined);
@@ -13,7 +31,7 @@ export class WorkbenchStore {
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
 
   // Selected element from element picker
-  selectedElement: WritableAtom<any | null> = import.meta.hot?.data.selectedElement ?? atom(null);
+  selectedElement: WritableAtom<SelectedElementData | null> = import.meta.hot?.data.selectedElement ?? atom(null);
 
   constructor() {
     if (import.meta.hot) {
@@ -26,7 +44,7 @@ export class WorkbenchStore {
     this.showWorkbench.set(show);
   }
 
-  setSelectedElement(element: any | null) {
+  setSelectedElement(element: SelectedElementData | null) {
     this.selectedElement.set(element);
   }
 }

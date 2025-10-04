@@ -9,6 +9,24 @@ import { chatStore } from '~/lib/stores/chat';
 import { useStore } from '@nanostores/react';
 import { getDiscoveryRating } from '~/lib/persistence/message';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
+
+interface ReactComponent {
+  displayName?: string;
+  name?: string;
+  props?: Record<string, unknown>;
+  state?: unknown;
+  type: 'class' | 'function' | 'host';
+  source?: {
+    fileName?: string;
+    lineNumber?: number;
+    columnNumber?: number;
+  };
+}
+
+interface SelectedElementData {
+  component: ReactComponent | null;
+  tree: ReactComponent[];
+}
 import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { userStore } from '~/lib/stores/userAuth';
@@ -60,7 +78,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const hasAppSummary = !!useStore(chatStore.appSummary);
   const user = useStore(userStore.user);
   const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
-  const selectedElement = useStore(workbenchStore.selectedElement);
+  const selectedElement = useStore(workbenchStore.selectedElement) as SelectedElementData | null;
   const { isMobile, isTablet } = useIsMobile();
 
   let startPlanningRating = 0;
@@ -183,7 +201,21 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const handleStartBuilding = () => {
     const message = (fullInput + '\n\nStart building the app based on these requirements.').trim();
 
-    handleSendMessage({ messageInput: message, chatMode: ChatMode.DevelopApp });
+    // Transform selectedElement to API format
+    const componentReference = selectedElement?.tree
+      ? { componentNames: selectedElement.tree.map((comp: ReactComponent) => comp.displayName || 'Anonymous') }
+      : undefined;
+
+    handleSendMessage({
+      messageInput: message,
+      chatMode: ChatMode.DevelopApp,
+      componentReference,
+    });
+
+    // Clear selected element after sending
+    if (selectedElement) {
+      workbenchStore.setSelectedElement(null);
+    }
 
     if (window.analytics) {
       window.analytics.track('Clicked Start Building button', {
@@ -230,12 +262,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               </div>
               <div>
                 <div className="text-sm font-medium text-bolt-elements-textPrimary">
-                  Selected: {selectedElement.displayName}
+                  Selected: {selectedElement.component?.displayName || 'Component'}
                 </div>
                 <div className="text-xs text-bolt-elements-textSecondary">
-                  {selectedElement.props &&
-                    Object.keys(selectedElement.props).length > 0 &&
-                    `${Object.keys(selectedElement.props).length} props`}
+                  {selectedElement.component?.props &&
+                    Object.keys(selectedElement.component.props).length > 0 &&
+                    `${Object.keys(selectedElement.component.props).length} props`}
                 </div>
               </div>
             </div>
@@ -306,7 +338,23 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 return;
               }
 
-              handleSendMessage({ messageInput: fullInput, chatMode: ChatMode.UserMessage });
+              // Transform selectedElement to API format
+              const componentReference = selectedElement?.tree
+                ? {
+                    componentNames: selectedElement.tree.map((comp: ReactComponent) => comp.displayName || 'Anonymous'),
+                  }
+                : undefined;
+
+              handleSendMessage({
+                messageInput: fullInput,
+                chatMode: ChatMode.UserMessage,
+                componentReference,
+              });
+
+              // Clear selected element after sending
+              if (selectedElement) {
+                workbenchStore.setSelectedElement(null);
+              }
             }
           }}
           value={input}
@@ -348,7 +396,25 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                         }
 
                         if (fullInput.length > 0 || uploadedFiles.length > 0) {
-                          handleSendMessage({ messageInput: fullInput, chatMode: ChatMode.UserMessage });
+                          // Transform selectedElement to API format
+                          const componentReference = selectedElement?.tree
+                            ? {
+                                componentNames: selectedElement.tree.map(
+                                  (comp: ReactComponent) => comp.displayName || 'Anonymous',
+                                ),
+                              }
+                            : undefined;
+
+                          handleSendMessage({
+                            messageInput: fullInput,
+                            chatMode: ChatMode.UserMessage,
+                            componentReference,
+                          });
+
+                          // Clear selected element after sending
+                          if (selectedElement) {
+                            workbenchStore.setSelectedElement(null);
+                          }
                         }
                       }}
                     />

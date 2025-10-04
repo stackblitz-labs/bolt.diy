@@ -107,7 +107,11 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'ELEMENT_PICKED') {
         console.log('🎯 Element picked in iframe:', event.data);
-        workbenchStore.setSelectedElement(event.data.react.component);
+        // Store the full element data including the react tree
+        workbenchStore.setSelectedElement({
+          component: event.data.react.component,
+          tree: event.data.react.tree,
+        });
         setIsElementPickerEnabled(false);
       } else if (event.data.type === 'ELEMENT_PICKER_STATUS') {
         console.log('📊 Element picker status:', event.data.active);
