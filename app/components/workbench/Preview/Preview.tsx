@@ -1,4 +1,3 @@
-import { useStore } from '@nanostores/react';
 import { memo, useEffect, useRef, useState } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -10,6 +9,7 @@ import { getDetectedErrors } from '~/lib/replay/MessageHandler';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
+import { classNames } from '~/utils/classNames';
 
 let gCurrentIFrame: HTMLIFrameElement | undefined;
 
@@ -28,11 +28,13 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
 
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isElementPickerEnabled, setIsElementPickerEnabled] = useState(false);
 
   const [url, setUrl] = useState('');
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
 
-  const previewURL = useStore(workbenchStore.previewURL);
+  const previewURL = 'https://d1a71727-a5ea-44bb-9902-5d396d6d042a.http.replay.io/';
+
   const isSmallViewport = useViewport(800);
   // Toggle between responsive mode and device mode
   const [isDeviceModeOn, setIsDeviceModeOn] = useState(false);
@@ -83,6 +85,38 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
     setDetectedError(undefined);
     setFixingError(false);
   };
+
+  // Send postMessage to control element picker in iframe
+  const toggleElementPicker = (enabled: boolean) => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      console.log('[Preview] Sending element picker control message:', enabled);
+      iframeRef.current.contentWindow.postMessage(
+        {
+          type: 'ELEMENT_PICKER_CONTROL',
+          enabled,
+        },
+        '*',
+      );
+    } else {
+      console.warn('[Preview] Cannot send message - iframe not ready');
+    }
+  };
+
+  // Listen for messages from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'ELEMENT_PICKED') {
+        console.log('🎯 Element picked in iframe:', event.data);
+        workbenchStore.setSelectedElement(event.data.react.component);
+        setIsElementPickerEnabled(false);
+      } else if (event.data.type === 'ELEMENT_PICKER_STATUS') {
+        console.log('📊 Element picker status:', event.data.active);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   useEffect(() => {
     if (!previewURL) {
@@ -210,6 +244,17 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
       )}
       <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor/50 p-3 flex items-center gap-2 shadow-sm">
         <IconButton icon="i-ph:arrow-clockwise" onClick={() => reloadPreview()} />
+        <IconButton
+          className={classNames({
+            'bg-bolt-elements-background-depth-3': isElementPickerEnabled,
+          })}
+          icon={`i-ph:crosshair-simple ${isElementPickerEnabled ? 'text-[#4da3ff]' : ''}`}
+          onClick={() => {
+            const newState = !isElementPickerEnabled;
+            setIsElementPickerEnabled(newState);
+            toggleElementPicker(newState);
+          }}
+        />
         <div className="flex items-center gap-2 flex-grow bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textSecondary rounded-xl px-4 py-2 text-sm hover:bg-bolt-elements-background-depth-3 hover:border-bolt-elements-borderColor focus-within:bg-bolt-elements-background-depth-3 focus-within:border-blue-500/50 focus-within:text-bolt-elements-textPrimary transition-all duration-200 shadow-sm hover:shadow-md">
           <input
             title="URL"
