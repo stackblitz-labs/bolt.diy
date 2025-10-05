@@ -1,0 +1,11 @@
+{
+  "buildCommand": "pnpm install --ignore-scripts && pnpm run build",
+  "outputDirectory": "build",
+  "installCommand": "pnpm install --ignore-scripts",
+  "framework": "remix",
+  "nodeVersion": "18.x",
+  "env": {
+    "GROQ_API_KEY": "@groq_api_key",
+    "GEMINI_API_KEY": "@gemini_api_key"
+  }
+}
