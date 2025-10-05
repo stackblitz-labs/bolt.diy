@@ -29,7 +29,7 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 - [Roadmap](#roadmap)
 - [FAQ](#faq)
 
-## Join the community
+## Join the community. 
 
 [Join the bolt.diy community here, in the oTTomator Think Tank!](https://thinktank.ottomator.ai)
 
