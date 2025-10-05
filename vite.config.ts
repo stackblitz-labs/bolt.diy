@@ -13,6 +13,12 @@ dotenv.config();
 
 export default defineConfig((config) => {
   return {
+    // CRITICAL FIX FOR GITHUB PAGES:
+    // Sets the base public path when served in production.
+    // GitHub Pages serves from a sub-path (/bolt.diy/), so we need to
+    // tell Vite to prepend this path to all assets (CSS, JS).
+    base: '/bolt.diy/',
+    
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
@@ -85,7 +91,7 @@ export default defineConfig((config) => {
   };
 });
 
-function chrome129IssuePlugin() {
+function chrome129IssuePlugin(): Plugin {
   return {
     name: 'chrome129IssuePlugin',
     configureServer(server: ViteDevServer) {
