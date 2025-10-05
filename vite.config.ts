@@ -1,6 +1,7 @@
 import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
 import UnoCSS from 'unocss/vite';
-import { defineConfig, type ViteDevServer } from 'vite';
+// Import Plugin type here to correctly type the local plugin
+import { defineConfig, type ViteDevServer, type Plugin } from 'vite'; 
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
@@ -60,7 +61,7 @@ export default defineConfig((config) => {
       }),
       UnoCSS(),
       tsconfigPaths(),
-      chrome129IssuePlugin(),
+      chrome129IssuePlugin(), // Now correctly typed
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
     ],
     envPrefix: [
@@ -91,7 +92,8 @@ export default defineConfig((config) => {
   };
 });
 
-function chrome129IssuePlugin(): Plugin {
+// Explicitly define the return type as Plugin to satisfy TypeScript/TSC
+function chrome129IssuePlugin(): Plugin { 
   return {
     name: 'chrome129IssuePlugin',
     configureServer(server: ViteDevServer) {
@@ -115,4 +117,4 @@ function chrome129IssuePlugin(): Plugin {
       });
     },
   };
-}
+        }
