@@ -1,7 +1,6 @@
 import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
 import UnoCSS from 'unocss/vite';
-// Import Plugin type here to correctly type the local plugin
-import { defineConfig, type ViteDevServer, type Plugin } from 'vite'; 
+import { defineConfig, type ViteDevServer } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
@@ -14,12 +13,6 @@ dotenv.config();
 
 export default defineConfig((config) => {
   return {
-    // CRITICAL FIX FOR GITHUB PAGES:
-    // Sets the base public path when served in production.
-    // GitHub Pages serves from a sub-path (/bolt.diy/), so we need to
-    // tell Vite to prepend this path to all assets (CSS, JS).
-    base: '/bolt.diy/',
-    
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
@@ -61,7 +54,7 @@ export default defineConfig((config) => {
       }),
       UnoCSS(),
       tsconfigPaths(),
-      chrome129IssuePlugin(), // Now correctly typed
+      chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
     ],
     envPrefix: [
@@ -92,8 +85,7 @@ export default defineConfig((config) => {
   };
 });
 
-// Explicitly define the return type as Plugin to satisfy TypeScript/TSC
-function chrome129IssuePlugin(): Plugin { 
+function chrome129IssuePlugin() {
   return {
     name: 'chrome129IssuePlugin',
     configureServer(server: ViteDevServer) {
@@ -117,4 +109,4 @@ function chrome129IssuePlugin(): Plugin {
       });
     },
   };
-        }
+          }
