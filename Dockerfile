@@ -65,25 +65,29 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
 CMD ["pnpm", "run", "dockerstart"]
 
 
-# ---- railway stage (for Railway/traditional Node.js deployment) ----
+# ---- railway stage (for Railway deployment with Wrangler) ----
 FROM node:22-bookworm-slim AS railway
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=5173
 ENV HOST=0.0.0.0
+ENV DANGEROUSLY_DISABLE_HOST_CHECK=true
 
-# Install curl for healthchecks
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# Install curl and bash for healthchecks and scripts
+RUN apt-get update && apt-get install -y --no-install-recommends curl bash \
   && rm -rf /var/lib/apt/lists/*
 
-# Enable pnpm
+# Enable pnpm (needed for start:railway script)
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 
-# Copy built application and node_modules (keeps ALL dependencies for Railway)
+# Copy built application and dependencies (includes wrangler)
 COPY --from=build /app/build /app/build
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/package.json /app/package.json
+COPY --from=build /app/wrangler.toml /app/wrangler.toml
+COPY --from=build /app/functions /app/functions
+COPY --from=build /app/worker-configuration.d.ts /app/worker-configuration.d.ts
 
 EXPOSE 5173
 
@@ -91,7 +95,7 @@ EXPOSE 5173
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
   CMD curl -fsS http://localhost:5173/ || exit 1
 
-# Start with remix-serve for standard Node.js environment
+# Start with wrangler pages dev (works on Railway)
 CMD ["pnpm", "run", "start:railway"]
 
 

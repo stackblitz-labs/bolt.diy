@@ -22,7 +22,7 @@
     "start:unix": "bindings=$(./bindings.sh) && wrangler pages dev ./build/client $bindings",
     "start": "node -e \"const { spawn } = require('child_process'); const isWindows = process.platform === 'win32'; const cmd = isWindows ? 'npm run start:windows' : 'npm run start:unix'; const child = spawn(cmd, { shell: true, stdio: 'inherit' }); child.on('exit', code => process.exit(code));\"",
     "dockerstart": "bindings=$(./bindings.sh) && wrangler pages dev ./build/client $bindings --ip 0.0.0.0 --port 5173 --no-show-interactive-dev-session",
-    "start:railway": "NODE_ENV=production HOST=0.0.0.0 PORT=5173 node ./build/server/index.js",
+    "start:railway": "wrangler pages dev ./build/client --compatibility-date=2024-01-01 --ip 0.0.0.0 --port 5173 --local --no-show-interactive-dev-session",
     "dockerrun": "docker run -it -d --name bolt-ai-live -p 5173:5173 --env-file .env.local bolt-ai",
     "dockerbuild:prod": "docker build -t bolt-ai:production -t bolt-ai:latest --target runtime .",
     "dockerbuild:railway": "docker build -t bolt-ai:railway -t bolt-ai:latest --target railway .",
