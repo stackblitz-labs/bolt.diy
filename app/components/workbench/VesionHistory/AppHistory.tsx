@@ -10,11 +10,12 @@ export function includeHistorySummary(summary: AppSummary): boolean {
   }
 
   switch (summary.reason.kind) {
-    case AppUpdateReasonKind.MockupValidated:
+    case AppUpdateReasonKind.MockupImplemented:
     case AppUpdateReasonKind.FeatureImplemented:
-    case AppUpdateReasonKind.FeatureValidated:
+    case AppUpdateReasonKind.BuildInitialApp:
     case AppUpdateReasonKind.RevertApp:
     case AppUpdateReasonKind.CopyApp:
+    case AppUpdateReasonKind.ManualUpdate:
       return true;
     default:
       return false;
@@ -93,12 +94,12 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
   const renderUpdateReason = (reason: AppUpdateReason | undefined, history: AppSummary[]) => {
     assert(reason, 'Reason is required');
     switch (reason.kind) {
-      case AppUpdateReasonKind.MockupValidated:
+      case AppUpdateReasonKind.MockupImplemented:
         return { text: 'Mockup completed', icon: '✓', type: 'success' as const };
       case AppUpdateReasonKind.FeatureImplemented:
         return { text: `Feature implemented: ${reason.featureName}`, icon: '⚡', type: 'feature' as const };
-      case AppUpdateReasonKind.FeatureValidated:
-        return { text: `Feature completed: ${reason.featureName}`, icon: '✅', type: 'success' as const };
+      case AppUpdateReasonKind.BuildInitialApp:
+        return { text: `Initial version of the app completed`, icon: '✅', type: 'success' as const };
       case AppUpdateReasonKind.RevertApp: {
         const targetSummary = history.find((summary) => summary.iteration === reason.iteration);
         assert(targetSummary, 'Target summary not found');
@@ -106,6 +107,8 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
       }
       case AppUpdateReasonKind.CopyApp:
         return { text: `Copied app ${reason.appId}`, icon: '📋', type: 'copy' as const };
+      case AppUpdateReasonKind.ManualUpdate:
+        return { text: `The app was updated manually`, icon: '✏️', type: 'manual' as const };
       default:
         return { text: 'Unknown reason', icon: '❓', type: 'default' as const };
     }
