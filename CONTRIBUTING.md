@@ -153,7 +153,7 @@ npm run dockerbuild
 **Option 2: Direct Docker Build Command**
 
 ```bash
-docker build . --target bolt-ai-development
+docker build . --target development
 ```
 
 **Option 3: Docker Compose Profile**
@@ -184,7 +184,7 @@ npm run dockerbuild:prod
 **Option 2: Direct Docker Build Command**
 
 ```bash
-docker build . --target bolt-ai-production
+docker build . --target runtime
 ```
 
 **Option 3: Docker Compose Profile**

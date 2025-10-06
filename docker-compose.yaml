@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: bolt-ai-production
+      target: runtime
     ports:
       - '5173:5173'
     env_file: 
@@ -12,8 +12,6 @@ services:
       - '.env.local'
     environment:
       - NODE_ENV=production
-      - COMPOSE_PROFILES=production
-      # No strictly needed but serving as hints for Coolify
       - PORT=5173
       - GROQ_API_KEY=${GROQ_API_KEY}
       - HuggingFace_API_KEY=${HuggingFace_API_KEY}
@@ -38,7 +36,9 @@ services:
   app-dev:
     image: bolt-ai:development
     build:
-      target: bolt-ai-development
+      context: .
+      dockerfile: Dockerfile
+      target: development
     env_file: 
       - '.env'
       - '.env.local'
@@ -83,8 +83,6 @@ services:
       - '5173:5173'
     environment:
       - NODE_ENV=production
-      - COMPOSE_PROFILES=production
-      # No strictly needed but serving as hints for Coolify
       - PORT=5173
       - OLLAMA_API_BASE_URL=http://127.0.0.1:11434
       - DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX:-32768}

@@ -7,7 +7,7 @@ ENV HUSKY=0
 ENV CI=true
 
 # Use pnpm
-RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 
 # Accept (optional) build-time public URL for Remix/Vite (Coolify can pass it)
 ARG VITE_PUBLIC_APP_URL
@@ -25,35 +25,74 @@ RUN pnpm install --offline --frozen-lockfile
 # Build the Remix app (SSR + client)
 RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm run build
 
-# Keep only production deps for runtime
-RUN pnpm prune --prod --ignore-scripts
-
 
 # ---- runtime stage ----
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=5173
 ENV HOST=0.0.0.0
 
 # Install curl so Coolify’s healthcheck works inside the image
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+RUN apt-get update && apt-get install -y --no-install-recommends curl bash \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy only what we need to run
+# Enable pnpm (needed for dockerstart script)
+RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
+
+# Copy built application and dependencies (including wrangler)
 COPY --from=build /app/build /app/build
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/package.json /app/package.json
 
-EXPOSE 3000
+# Copy required files for wrangler pages dev
+COPY --from=build /app/bindings.sh /app/bindings.sh
+COPY --from=build /app/wrangler.toml /app/wrangler.toml
+COPY --from=build /app/functions /app/functions
+COPY --from=build /app/worker-configuration.d.ts /app/worker-configuration.d.ts
 
-# Healthcheck for Coolify
-HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
-  CMD curl -fsS http://localhost:3000/ || exit 1
+# Make bindings.sh executable
+RUN chmod +x /app/bindings.sh
 
-# Start the Remix server
-CMD ["node", "build/server/index.js"]
+EXPOSE 5173
+
+# Healthcheck for Coolify (use correct port)
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
+  CMD curl -fsS http://localhost:5173/ || exit 1
+
+# Start with wrangler pages dev (as per dockerstart script)
+CMD ["pnpm", "run", "dockerstart"]
+
+
+# ---- railway stage (for Railway/traditional Node.js deployment) ----
+FROM node:22-bookworm-slim AS railway
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=5173
+ENV HOST=0.0.0.0
+
+# Install curl for healthchecks
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/*
+
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
+
+# Copy built application and node_modules (keeps ALL dependencies for Railway)
+COPY --from=build /app/build /app/build
+COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/package.json /app/package.json
+
+EXPOSE 5173
+
+# Healthcheck
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
+  CMD curl -fsS http://localhost:5173/ || exit 1
+
+# Start with remix-serve for standard Node.js environment
+CMD ["pnpm", "run", "start:railway"]
 
 
 # ---- development stage ----
@@ -70,6 +109,7 @@ ARG OLLAMA_API_BASE_URL
 ARG XAI_API_KEY
 ARG TOGETHER_API_KEY
 ARG TOGETHER_API_BASE_URL
+ARG AWS_BEDROCK_CONFIG
 ARG VITE_LOG_LEVEL=debug
 ARG DEFAULT_NUM_CTX
 

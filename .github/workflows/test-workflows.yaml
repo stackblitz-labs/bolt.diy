@@ -189,7 +189,7 @@ jobs:
       - name: Test Docker build (without push)
         run: |
           echo "Testing Docker build configuration..."
-          docker build --target bolt-ai-production . --no-cache --progress=plain
+          docker build --target runtime . --no-cache --progress=plain
           echo "✅ Docker build test completed"
 
   test-results-summary:
