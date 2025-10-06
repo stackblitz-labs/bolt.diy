@@ -19,13 +19,6 @@ export default defineConfig((config) => {
     build: {
       target: 'esnext',
     },
-    server: {
-      // Allow all hosts in production environments (Railway, etc.)
-      host: process.env.HOST || '0.0.0.0',
-      strictPort: false,
-      // Disable host checking when DANGEROUSLY_DISABLE_HOST_CHECK is set
-      hmr: process.env.DANGEROUSLY_DISABLE_HOST_CHECK ? { host: '0.0.0.0' } : undefined,
-    },
     plugins: [
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
