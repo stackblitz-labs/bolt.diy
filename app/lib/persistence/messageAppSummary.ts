@@ -213,5 +213,11 @@ export function parseAppSummaryMessage(message: Message): AppSummary | undefined
 }
 
 export function isFeatureStatusImplemented(status?: AppFeatureStatus) {
-  return status && status != AppFeatureStatus.NotStarted && status != AppFeatureStatus.ImplementationInProgress;
+  return (
+    status &&
+    (status === AppFeatureStatus.Implemented ||
+      status === AppFeatureStatus.Validated ||
+      status === AppFeatureStatus.ValidationInProgress ||
+      status === AppFeatureStatus.ValidationFailed)
+  );
 }

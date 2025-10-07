@@ -7,6 +7,9 @@ import { useVibeAppAuthQuery } from '~/lib/hooks/useVibeAppAuth';
 import { chatStore } from '~/lib/stores/chat';
 import PreviewLoad from './PreviewLoad/PreviewLoad';
 import { isFeatureStatusImplemented } from '~/lib/persistence/messageAppSummary';
+import WithTooltip from '~/components/ui/Tooltip';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
+import { classNames } from '~/utils/classNames';
 
 export type ResizeSide = 'left' | 'right' | null;
 
@@ -30,6 +33,7 @@ const AppView = ({
   const repositoryId = useStore(workbenchStore.repositoryId);
   const appSummary = useStore(chatStore.appSummary);
   const isMockupImplemented = isFeatureStatusImplemented(appSummary?.features?.[0]?.status);
+  const initialBuildComplete = isFeatureStatusImplemented(appSummary?.features?.[2]?.status);
 
   const handleTokenOrRepoChange = (params: URLSearchParams) => {
     setRedirectUrl(`https://${repositoryId}.http.replay.io/auth/callback#${params.toString()}`);
@@ -57,16 +61,34 @@ const AppView = ({
       className="bg-bolt-elements-background-depth-1"
     >
       {previewURL ? (
-        <iframe
-          key={actualIframeUrl}
-          ref={iframeRef}
-          title="preview"
-          className="w-full h-full bg-white transition-all duration-300 opacity-100 rounded-b-xl"
-          src={actualIframeUrl}
-          allowFullScreen
-          sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-forms allow-modals"
-          loading="eager"
-        />
+        <div className={'relative w-full h-full'}>
+          <div
+            className={classNames('absolute inset-0', {
+              'p-[3px] app-progress-border opacity-80 rounded-b-xl': !initialBuildComplete,
+            })}
+          >
+            <iframe
+              key={actualIframeUrl}
+              ref={iframeRef}
+              title="preview"
+              className="w-full h-full bg-white transition-all duration-300 opacity-100 rounded-b-xl"
+              src={actualIframeUrl}
+              allowFullScreen
+              sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-forms allow-modals"
+              loading="eager"
+            />
+          </div>
+          {!initialBuildComplete && (
+            <TooltipProvider>
+              <WithTooltip tooltip="Your app’s functionality hasn’t been built yet. This is a quick mockup showing the general structure.">
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 py-1 px-4 text-center bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm rounded-t-lg flex items-center gap-2 cursor-help">
+                  Preview (App build in progress)
+                  <div className="i-ph:info text-sm" />
+                </div>
+              </WithTooltip>
+            </TooltipProvider>
+          )}
+        </div>
       ) : (
         <div className="w-full h-full">{isMockupImplemented ? <PreviewLoad /> : <ProgressStatus />}</div>
       )}

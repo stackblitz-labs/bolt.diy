@@ -9,23 +9,18 @@ import {
   manageSubscription,
 } from '~/lib/stripe/client';
 import { classNames } from '~/utils/classNames';
-import { IconButton } from '~/components/ui/IconButton';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
+import { useIsMobile } from '~/lib/hooks/useIsMobile';
 
 interface SubscriptionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
   currentTier?: SubscriptionTier;
 }
 
-export function SubscriptionModal({ isOpen, onClose, currentTier: propCurrentTier }: SubscriptionModalProps) {
+export function SubscriptionModal({ currentTier: propCurrentTier }: SubscriptionModalProps) {
+  const { isMobile } = useIsMobile();
   const [loading, setLoading] = useState<SubscriptionTier | null>(null);
   const stripeSubscription = useStore(subscriptionStore.subscription);
   const user = useStore(userStore);
-
-  if (!isOpen) {
-    return null;
-  }
 
   const currentTier = stripeSubscription?.tier ?? propCurrentTier;
 
@@ -55,19 +50,16 @@ export function SubscriptionModal({ isOpen, onClose, currentTier: propCurrentTie
     await manageSubscription();
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={handleOverlayClick}
-    >
+    <div className="bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
       <div
-        className="bg-bolt-elements-background-depth-1 rounded-2xl border border-bolt-elements-borderColor shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto"
+        className={classNames(
+          'bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-2xl max-w-6xl w-full h-full overflow-y-auto',
+          {
+            'rounded-b-2xl': isMobile,
+            'rounded-r-2xl': !isMobile,
+          },
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 border-b border-bolt-elements-borderColor/50">
@@ -77,14 +69,6 @@ export function SubscriptionModal({ isOpen, onClose, currentTier: propCurrentTie
               Select a subscription tier that fits your needs
             </p>
           </div>
-
-          <IconButton
-            onClick={onClose}
-            className="flex items-center justify-center w-8 h-8 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 rounded-lg transition-all duration-200 hover:scale-105"
-            aria-label="Close modal"
-            icon="i-ph:x"
-            size="xxl"
-          />
         </div>
 
         <div className="px-6 sm:px-8 pt-2 pb-6">
@@ -143,7 +127,7 @@ export function SubscriptionModal({ isOpen, onClose, currentTier: propCurrentTie
                 >
                   {isCurrentTier && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold shadow-lg border border-emerald-400/50">
+                      <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold shadow-lg border border-emerald-400/50 whitespace-nowrap">
                         ✓ Current Subscription
                       </span>
                     </div>
@@ -218,7 +202,7 @@ export function SubscriptionModal({ isOpen, onClose, currentTier: propCurrentTie
                           : isLoading
                             ? 'Processing...'
                             : !!currentTier
-                              ? 'Update Subscription'
+                              ? 'Upgrade Subscription'
                               : 'Subscribe'}
                       </span>
                     </button>

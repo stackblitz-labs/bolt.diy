@@ -8,7 +8,6 @@ import { accountModalStore } from '~/lib/stores/accountModal';
 import { authModalStore } from '~/lib/stores/authModal';
 import { userStore } from '~/lib/stores/userAuth';
 import { useStore } from '@nanostores/react';
-import { openSubscriptionModal } from '~/lib/stores/subscriptionModal';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 
 export function ClientAuth() {
@@ -92,7 +91,7 @@ export function ClientAuth() {
   };
 
   const handleShowAccountModal = () => {
-    accountModalStore.open();
+    accountModalStore.open('account');
     if (window.analytics) {
       window.analytics.track('Clicked Account Settings button', {
         timestamp: new Date().toISOString(),
@@ -104,7 +103,7 @@ export function ClientAuth() {
   };
 
   const handleSubscriptionToggle = async () => {
-    openSubscriptionModal();
+    accountModalStore.open('billing');
     if (window.analytics) {
       window.analytics.track('Clicked View Plans button', {
         timestamp: new Date().toISOString(),

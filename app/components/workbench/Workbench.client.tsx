@@ -43,6 +43,7 @@ export const Workbench = memo(({ chatStarted, handleSendMessage }: WorkspaceProp
   const workbenchVariants = createWorkbenchVariants(workbenchWidth);
 
   const isSmallViewport = useViewport(800);
+  console.log('isSmallViewport', isSmallViewport);
 
   return (
     chatStarted && (
@@ -53,7 +54,7 @@ export const Workbench = memo(({ chatStarted, handleSendMessage }: WorkspaceProp
         className="z-workbench"
       >
         <div
-          className={classNames('fixed mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier', {
+          className={classNames('fixed mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier p-6', {
             'top-[calc(var(--header-height)+0rem)] bottom-13': isSmallViewport,
             'top-[calc(var(--header-height)+1.5rem)] bottom-6': !isSmallViewport,
             'w-full': isSmallViewport,
@@ -71,7 +72,7 @@ export const Workbench = memo(({ chatStarted, handleSendMessage }: WorkspaceProp
         >
           <div
             className={classNames('absolute inset-0', {
-              'lg:px-6': !isSmallViewport,
+              'px-6': !isSmallViewport,
             })}
           >
             <div

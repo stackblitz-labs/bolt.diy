@@ -17,7 +17,6 @@ import GlobalFeedbackModal from './components/sidebar/Feedback/components/Feedba
 import { GlobalAccountModal } from './components/auth/GlobalAccountModal';
 import { GlobalAuthModal } from './components/auth/GlobalAuthModal';
 import AppHistoryModal from './components/workbench/VesionHistory/AppHistoryModal';
-import { GlobalSubscriptionModal } from './components/subscription/GlobalSubscriptionModal';
 import { GlobalStripeStatusModal } from './components/stripe/GlobalStripeStatusModal';
 import { GlobalAppCardModal } from './components/chat/Messages/components/GlobalAppCardModal';
 import { GlobalStatusModal } from './components/status-modal/GlobalStatusModal';
@@ -234,7 +233,6 @@ export default function App() {
         <GlobalAccountModal />
         <GlobalAuthModal />
         <AppHistoryModal />
-        <GlobalSubscriptionModal />
         <GlobalStripeStatusModal />
         <GlobalAppCardModal />
         <GlobalStatusModal />

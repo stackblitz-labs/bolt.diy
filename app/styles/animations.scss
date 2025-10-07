@@ -198,6 +198,19 @@ html[data-theme='dark'] .animate-shimmer::before,
   filter: blur(1px);
 }
 
+.app-progress-border {
+  background: linear-gradient(
+    90deg,
+    var(--bolt-elements-focus, #f63ba8),
+    #8506d4,
+    #8b5cf6,
+    #f63ba8,
+    var(--bolt-elements-focus, #f63ba8)
+  );
+  background-size: 200% 200%;
+  animation: focus-border 3s ease-in-out infinite;
+}
+
 /* Blue flowing animation for in-progress cards */
 @keyframes flow-left-to-right {
   0% {

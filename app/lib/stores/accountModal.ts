@@ -1,10 +1,14 @@
 import { atom } from 'nanostores';
 
+type TabType = 'account' | 'billing' | null;
+
 export const accountModalStore = {
   isOpen: atom<boolean>(false),
+  activeTab: atom<TabType>('account'),
 
-  open() {
+  open(tab: TabType = 'account') {
     this.isOpen.set(true);
+    this.activeTab.set(tab);
   },
 
   close() {
