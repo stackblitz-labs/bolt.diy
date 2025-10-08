@@ -11,6 +11,9 @@ import type { ChatMessageParams } from '~/components/chat/ChatComponent/componen
 import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
 import { classNames } from '~/utils/classNames';
 
+// Maximum number of detected errors to fix at once.
+const MAX_DETECTED_ERRORS = 5;
+
 let gCurrentIFrame: HTMLIFrameElement | undefined;
 
 export function getCurrentIFrame() {
@@ -42,7 +45,7 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
   // Use percentage for width
   const [widthPercent, setWidthPercent] = useState<number>(37.5); // 375px assuming 1000px window width initially
 
-  const [detectedError, setDetectedError] = useState<DetectedError | undefined>(undefined);
+  const [detectedErrors, setDetectedErrors] = useState<DetectedError[]>([]);
   const [fixingError, setFixingError] = useState(false);
 
   const resizingState = useRef({
@@ -60,18 +63,20 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
 
   // Interval for sending getDetectedErrors message
   useEffect(() => {
-    let lastDetectedError: DetectedError | undefined = undefined;
+    let lastDetectedErrors: DetectedError[] = [];
     const interval = setInterval(async () => {
       if (!iframeRef.current) {
         return;
       }
 
       const detectedErrors = await getDetectedErrors(iframeRef.current);
-      const firstError: DetectedError | undefined = detectedErrors[0];
-      if (JSON.stringify(firstError) !== JSON.stringify(lastDetectedError)) {
-        setDetectedError(firstError);
+      if (detectedErrors.length > MAX_DETECTED_ERRORS) {
+        detectedErrors.length = MAX_DETECTED_ERRORS;
       }
-      lastDetectedError = firstError;
+      if (detectedErrors.length !== lastDetectedErrors.length) {
+        setDetectedErrors(detectedErrors);
+      }
+      lastDetectedErrors = detectedErrors;
     }, 1000);
 
     return () => clearInterval(interval);
@@ -82,7 +87,7 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
       iframeRef.current.src = iframeUrl + route + '?forceReload=' + Date.now();
     }
 
-    setDetectedError(undefined);
+    setDetectedErrors([]);
     setFixingError(false);
   };
 
@@ -132,7 +137,7 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
 
     setUrl(previewURL);
     setIframeUrl(previewURL);
-    setDetectedError(undefined);
+    setDetectedErrors([]);
     setFixingError(false);
   }, [previewURL]);
 
@@ -313,14 +318,9 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
       </div>
 
       {/* Error Display Section */}
-      {detectedError && !fixingError && (
+      {detectedErrors.length && !fixingError && (
         <div className="border-t border-bolt-elements-borderColor/50 bg-red-50 dark:bg-red-950/20 p-4">
-          <div className="font-semibold text-sm text-red-600 dark:text-red-300 mb-2">
-            Error: {detectedError.message}
-          </div>
-          {detectedError.details && (
-            <div className="text-xs text-red-600 dark:text-red-300 mb-3">{detectedError.details}</div>
-          )}
+          <div className="font-semibold text-sm text-red-600 dark:text-red-300 mb-2">Errors detected</div>
           <button
             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors"
             onClick={async () => {
@@ -328,17 +328,20 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
 
               if (iframeRef.current) {
                 const simulationData = await flushSimulationData();
-                let message = 'Fix the error I saw while using the app: ' + detectedError.message;
-                if (detectedError.details) {
-                  message += '\n\n' + detectedError.details;
+                for (let i = 0; i < detectedErrors.length; i++) {
+                  const detectedError = detectedErrors[i];
+                  let message = 'Fix the error I saw while using the app: ' + detectedError.message;
+                  if (detectedError.details) {
+                    message += '\n\n' + detectedError.details;
+                  }
+                  handleSendMessage({
+                    messageInput: message,
+                    chatMode: ChatMode.FixDetectedError,
+                    sessionRepositoryId: workbenchStore.repositoryId.get(),
+                    simulationData,
+                    detectedError,
+                  });
                 }
-                handleSendMessage({
-                  messageInput: message,
-                  chatMode: ChatMode.FixDetectedError,
-                  sessionRepositoryId: workbenchStore.repositoryId.get(),
-                  simulationData,
-                  detectedError,
-                });
               }
             }}
           >
