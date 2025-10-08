@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { openSubscriptionModal } from '~/lib/stores/subscriptionModal';
 import { userStore } from '~/lib/stores/userAuth';
 import { useStore } from '@nanostores/react';
+import { accountModalStore } from '~/lib/stores/accountModal';
 
 interface SubscriptionCardProps {
   onMount?: () => void;
@@ -21,7 +21,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ onMount }) =
     setLoading(true);
     try {
       // Open the subscription modal
-      openSubscriptionModal();
+      accountModalStore.open('billing');
 
       // Track analytics if available
       if (window.analytics) {
