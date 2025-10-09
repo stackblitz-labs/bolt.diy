@@ -15,6 +15,8 @@ import { useStore } from '@nanostores/react';
 // Maximum number of detected errors to fix at once.
 const MAX_DETECTED_ERRORS = 5;
 
+const ENABLE_ELEMENT_PICKER = false;
+
 let gCurrentIFrame: HTMLIFrameElement | undefined;
 
 export function getCurrentIFrame() {
@@ -254,17 +256,19 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
       )}
       <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor/50 p-3 flex items-center gap-2 shadow-sm">
         <IconButton icon="i-ph:arrow-clockwise" onClick={() => reloadPreview()} />
-        <IconButton
-          className={classNames({
-            'bg-bolt-elements-background-depth-3': isElementPickerEnabled,
-          })}
-          icon={`i-ph:crosshair-simple ${isElementPickerEnabled ? 'text-[#4da3ff]' : ''}`}
-          onClick={() => {
-            const newState = !isElementPickerEnabled;
-            setIsElementPickerEnabled(newState);
-            toggleElementPicker(newState);
-          }}
-        />
+        {ENABLE_ELEMENT_PICKER && (
+          <IconButton
+            className={classNames({
+              'bg-bolt-elements-background-depth-3': isElementPickerEnabled,
+            })}
+            icon={`i-ph:crosshair-simple ${isElementPickerEnabled ? 'text-[#4da3ff]' : ''}`}
+            onClick={() => {
+              const newState = !isElementPickerEnabled;
+              setIsElementPickerEnabled(newState);
+              toggleElementPicker(newState);
+            }}
+          />
+        )}
         <div className="flex items-center gap-2 flex-grow bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textSecondary rounded-xl px-4 py-2 text-sm hover:bg-bolt-elements-background-depth-3 hover:border-bolt-elements-borderColor focus-within:bg-bolt-elements-background-depth-3 focus-within:border-blue-500/50 focus-within:text-bolt-elements-textPrimary transition-all duration-200 shadow-sm hover:shadow-md">
           <input
             title="URL"
