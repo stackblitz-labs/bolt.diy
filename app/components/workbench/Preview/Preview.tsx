@@ -10,6 +10,7 @@ import { ChatMode } from '~/lib/replay/SendChatMessage';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
 import { classNames } from '~/utils/classNames';
+import { useStore } from '@nanostores/react';
 
 // Maximum number of detected errors to fix at once.
 const MAX_DETECTED_ERRORS = 5;
@@ -36,7 +37,7 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
   const [url, setUrl] = useState('');
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
 
-  const previewURL = 'https://d1a71727-a5ea-44bb-9902-5d396d6d042a.http.replay.io/';
+  const previewURL = useStore(workbenchStore.previewURL);
 
   const isSmallViewport = useViewport(800);
   // Toggle between responsive mode and device mode
@@ -318,7 +319,7 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
       </div>
 
       {/* Error Display Section */}
-      {detectedErrors.length && !fixingError && (
+      {detectedErrors.length > 0 && !fixingError && (
         <div className="border-t border-bolt-elements-borderColor/50 bg-red-50 dark:bg-red-950/20 p-4">
           <div className="font-semibold text-sm text-red-600 dark:text-red-300 mb-2">Errors detected</div>
           <button
