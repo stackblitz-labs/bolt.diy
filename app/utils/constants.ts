@@ -8,6 +8,13 @@ export const MODEL_REGEX = /^\[Model: (.*?)\]\n\n/;
 export const PROVIDER_REGEX = /\[Provider: (.*?)\]\n\n/;
 export const DEFAULT_MODEL = 'claude-3-5-sonnet-latest';
 export const PROMPT_COOKIE_KEY = 'cachedPrompt';
+export const TOOL_EXECUTION_APPROVAL = {
+  APPROVE: 'Yes, approved.',
+  REJECT: 'No, rejected.',
+} as const;
+export const TOOL_NO_EXECUTE_FUNCTION = 'Error: No execute function found on tool';
+export const TOOL_EXECUTION_DENIED = 'Error: User denied access to tool execution';
+export const TOOL_EXECUTION_ERROR = 'Error: An error occured while calling tool';
 
 const llmManager = LLMManager.getInstance(import.meta.env);
 
@@ -128,5 +135,13 @@ export const STARTER_TEMPLATES: Template[] = [
     githubRepo: 'xKevIsDev/bolt-angular-template',
     tags: ['angular', 'typescript', 'frontend', 'spa'],
     icon: 'i-bolt:angular',
+  },
+  {
+    name: 'SolidJS',
+    label: 'SolidJS Tailwind',
+    description: 'Lightweight SolidJS starter template for building fast static websites',
+    githubRepo: 'xKevIsDev/solidjs-ts-tw',
+    tags: ['solidjs'],
+    icon: 'i-bolt:solidjs',
   },
 ];

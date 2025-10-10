@@ -7,7 +7,9 @@ services:
       target: bolt-ai-production
     ports:
       - '5173:5173'
-    env_file: '.env.local'
+    env_file: 
+      - '.env'
+      - '.env.local'
     environment:
       - NODE_ENV=production
       - COMPOSE_PROFILES=production
@@ -37,7 +39,9 @@ services:
     image: bolt-ai:development
     build:
       target: bolt-ai-development
-    env_file: '.env.local'
+    env_file: 
+      - '.env'
+      - '.env.local'
     environment:
       - NODE_ENV=development
       - VITE_HMR_PROTOCOL=ws

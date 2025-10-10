@@ -14,6 +14,31 @@ export interface SupabaseProject {
     release_channel: string;
   };
   created_at: string;
+  stats?: {
+    database?: {
+      tables: number;
+      size: string;
+      size_mb?: number;
+      views?: number;
+      functions?: number;
+    };
+    storage?: {
+      objects: number;
+      size: string;
+      buckets?: number;
+      files?: number;
+      used_gb?: number;
+      available_gb?: number;
+    };
+    functions?: {
+      count: number;
+      deployed?: number;
+      invocations?: number;
+    };
+    auth?: {
+      users: number;
+    };
+  };
 }
 
 export interface SupabaseConnectionState {
@@ -108,6 +133,16 @@ export function updateSupabaseConnection(connection: Partial<SupabaseConnectionS
   } else {
     localStorage.removeItem('supabase_connection');
     localStorage.removeItem('supabaseCredentials');
+  }
+}
+
+export function initializeSupabaseConnection() {
+  // Auto-connect using environment variable if available
+  const envToken = import.meta.env?.VITE_SUPABASE_ACCESS_TOKEN;
+
+  if (envToken && !supabaseConnection.get().token) {
+    updateSupabaseConnection({ token: envToken });
+    fetchSupabaseStats(envToken).catch(console.error);
   }
 }
 

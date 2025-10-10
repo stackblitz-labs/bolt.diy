@@ -2,10 +2,10 @@
 
 [![bolt.diy: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.diy)
 
-Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, or Groq models - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together, Perplexity, Moonshot (Kimi), Hyperbolic, GitHub Models, Amazon Bedrock, and OpenAI-like providers - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
 -----
-Check the [bolt.diy Docs](https://stackblitz-labs.github.io/bolt.diy/) for more offical installation instructions and more informations.
+Check the [bolt.diy Docs](https://stackblitz-labs.github.io/bolt.diy/) for more official installation instructions and additional information.
 
 -----
 Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos-tutorial-helpful-content/3243) has a bunch of incredible resources for running and deploying bolt.diy yourself!
@@ -17,10 +17,13 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 ## Table of Contents
 
 - [Join the Community](#join-the-community)
-- [Requested Additions](#requested-additions)
+- [Recent Major Additions](#recent-major-additions)
 - [Features](#features)
 - [Setup](#setup)
-- [Run the Application](#run-the-application)
+- [Quick Installation](#quick-installation)
+- [Manual Installation](#manual-installation)
+- [Configuring API Keys and Providers](#configuring-api-keys-and-providers)
+- [Setup Using Git (For Developers only)](#setup-using-git-for-developers-only)
 - [Available Scripts](#available-scripts)
 - [Contributing](#contributing)
 - [Roadmap](#roadmap)
@@ -38,73 +41,52 @@ you to understand where the current areas of focus are.
 If you want to know what we are working on, what we are planning to work on, or if you want to contribute to the
 project, please check the [project management guide](./PROJECT.md) to get started easily.
 
-## Requested Additions
+## Recent Major Additions
 
-- ✅ OpenRouter Integration (@coleam00)
-- ✅ Gemini Integration (@jonathands)
-- ✅ Autogenerate Ollama models from what is downloaded (@yunatamos)
-- ✅ Filter models by provider (@jasonm23)
-- ✅ Download project as ZIP (@fabwaseem)
-- ✅ Improvements to the main bolt.new prompt in `app\lib\.server\llm\prompts.ts` (@kofi-bhr)
-- ✅ DeepSeek API Integration (@zenith110)
-- ✅ Mistral API Integration (@ArulGandhi)
-- ✅ "Open AI Like" API Integration (@ZerxZ)
-- ✅ Ability to sync files (one way sync) to local folder (@muzafferkadir)
-- ✅ Containerize the application with Docker for easy installation (@aaronbolton)
-- ✅ Publish projects directly to GitHub (@goncaloalves)
-- ✅ Ability to enter API keys in the UI (@ali00209)
-- ✅ xAI Grok Beta Integration (@milutinke)
-- ✅ LM Studio Integration (@karrot0)
-- ✅ HuggingFace Integration (@ahsan3219)
-- ✅ Bolt terminal to see the output of LLM run commands (@thecodacus)
-- ✅ Streaming of code output (@thecodacus)
-- ✅ Ability to revert code to earlier version (@wonderwhy-er)
-- ✅ Chat history backup and restore functionality (@sidbetatester)
-- ✅ Cohere Integration (@hasanraiyan)
-- ✅ Dynamic model max token length (@hasanraiyan)
-- ✅ Better prompt enhancing (@SujalXplores)
-- ✅ Prompt caching (@SujalXplores)
-- ✅ Load local projects into the app (@wonderwhy-er)
-- ✅ Together Integration (@mouimet-infinisoft)
-- ✅ Mobile friendly (@qwikode)
-- ✅ Better prompt enhancing (@SujalXplores)
-- ✅ Attach images to prompts (@atrokhym)(@stijnus)
-- ✅ Added Git Clone button (@thecodacus)
-- ✅ Git Import from url (@thecodacus)
-- ✅ PromptLibrary to have different variations of prompts for different use cases (@thecodacus)
-- ✅ Detect package.json and commands to auto install & run preview for folder and git import (@wonderwhy-er)
-- ✅ Selection tool to target changes visually (@emcconnell)
-- ✅ Detect terminal Errors and ask bolt to fix it (@thecodacus)
-- ✅ Detect preview Errors and ask bolt to fix it (@wonderwhy-er)
-- ✅ Add Starter Template Options (@thecodacus)
-- ✅ Perplexity Integration (@meetpateltech)
-- ✅ AWS Bedrock Integration (@kunjabijukchhe)
-- ✅ Add a "Diff View" to see the changes (@toddyclipsgg)
-- ⬜ **HIGH PRIORITY** - Prevent bolt from rewriting files as often (file locking and diffs)
-- ⬜ **HIGH PRIORITY** - Better prompting for smaller LLMs (code window sometimes doesn't start)
-- ⬜ **HIGH PRIORITY** - Run agents in the backend as opposed to a single model call
-- ✅ Deploy directly to Netlify (@xKevIsDev)
-- ⬜ Supabase Integration
-- ⬜ Have LLM plan the project in a MD file for better results/transparency
-- ⬜ VSCode Integration with git-like confirmations
-- ⬜ Upload documents for knowledge - UI design templates, a code base to reference coding style, etc.
-- ⬜ Voice prompting
-- ⬜ Azure Open AI API Integration
-- ⬜ Vertex AI Integration
-- ⬜ Granite Integration
-- ✅ Popout Window for Web Container(@stijnus)
-- ✅ Ability to change Popout window size (@stijnus)
+### ✅ Completed Features
+- **19+ AI Provider Integrations** - OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, Cohere, Together, Perplexity, HuggingFace, Ollama, LM Studio, OpenRouter, Moonshot, Hyperbolic, GitHub Models, Amazon Bedrock, OpenAI-like
+- **Electron Desktop App** - Native desktop experience with full functionality
+- **Advanced Deployment Options** - Netlify, Vercel, and GitHub Pages deployment
+- **Supabase Integration** - Database management and query capabilities
+- **Data Visualization & Analysis** - Charts, graphs, and data analysis tools
+- **MCP (Model Context Protocol)** - Enhanced AI tool integration
+- **Search Functionality** - Codebase search and navigation
+- **File Locking System** - Prevents conflicts during AI code generation
+- **Diff View** - Visual representation of AI-made changes
+- **Git Integration** - Clone, import, and deployment capabilities
+- **Expo App Creation** - React Native development support
+- **Voice Prompting** - Audio input for prompts
+- **Bulk Chat Operations** - Delete multiple chats at once
+- **Project Snapshot Restoration** - Restore projects from snapshots on reload
+
+### 🔄 In Progress / Planned
+- **File Locking & Diff Improvements** - Enhanced conflict prevention
+- **Backend Agent Architecture** - Move from single model calls to agent-based system
+- **LLM Prompt Optimization** - Better performance for smaller models
+- **Project Planning Documentation** - LLM-generated project plans in markdown
+- **VSCode Integration** - Git-like confirmations and workflows
+- **Document Upload for Knowledge** - Reference materials and coding style guides
+- **Additional Provider Integrations** - Azure OpenAI, Vertex AI, Granite
 
 ## Features
 
 - **AI-powered full-stack web development** for **NodeJS based applications** directly in your browser.
-- **Support for multiple LLMs** with an extensible architecture to integrate additional models.
+- **Support for 19+ LLMs** with an extensible architecture to integrate additional models.
 - **Attach images to prompts** for better contextual understanding.
 - **Integrated terminal** to view output of LLM-run commands.
 - **Revert code to earlier versions** for easier debugging and quicker changes.
-- **Download projects as ZIP** for easy portability Sync to a folder on the host.
+- **Download projects as ZIP** for easy portability and sync to a folder on the host.
 - **Integration-ready Docker support** for a hassle-free setup.
-- **Deploy** directly to **Netlify**
+- **Deploy directly** to **Netlify**, **Vercel**, or **GitHub Pages**.
+- **Electron desktop app** for native desktop experience.
+- **Data visualization and analysis** with integrated charts and graphs.
+- **Git integration** with clone, import, and deployment capabilities.
+- **MCP (Model Context Protocol)** support for enhanced AI tool integration.
+- **Search functionality** to search through your codebase.
+- **File locking system** to prevent conflicts during AI code generation.
+- **Diff view** to see changes made by the AI.
+- **Supabase integration** for database management and queries.
+- **Expo app creation** for React Native development.
 
 ## Setup
 
@@ -112,17 +94,20 @@ If you're new to installing software from GitHub, don't worry! If you encounter 
 
 Let's get you up and running with the stable version of Bolt.DIY!
 
-## Quick Download
+## Quick Installation
 
-[![Download Latest Release](https://img.shields.io/github/v/release/stackblitz-labs/bolt.diy?label=Download%20Bolt&sort=semver)](https://github.com/stackblitz-labs/bolt.diy/releases/latest) ← Click here to go the the latest release version!
+[![Download Latest Release](https://img.shields.io/github/v/release/stackblitz-labs/bolt.diy?label=Download%20Bolt&sort=semver)](https://github.com/stackblitz-labs/bolt.diy/releases/latest) ← Click here to go to the latest release version!
 
-- Next **click source.zip**
+- Download the binary for your platform (available for Windows, macOS, and Linux)
+- **Note**: For macOS, if you get the error "This app is damaged", run:
+  ```bash
+  xattr -cr /path/to/Bolt.app
+  ```
 
-## Prerequisites
+## Manual installation
 
-Before you begin, you'll need to install two important pieces of software:
 
-### Install Node.js
+### Option 1: Node.js
 
 Node.js is required to run the application.
 
@@ -192,38 +177,159 @@ This option requires some familiarity with Docker but provides a more isolated e
    docker compose --profile development up
    ```
 
+### Option 3: Desktop Application (Electron)
+
+For users who prefer a native desktop experience, bolt.diy is also available as an Electron desktop application:
+
+1. **Download the Desktop App**:
+   - Visit the [latest release](https://github.com/stackblitz-labs/bolt.diy/releases/latest)
+   - Download the appropriate binary for your operating system
+   - For macOS: Extract and run the `.dmg` file
+   - For Windows: Run the `.exe` installer
+   - For Linux: Extract and run the AppImage or install the `.deb` package
+
+2. **Alternative**: Build from Source:
+   ```bash
+   # Install dependencies
+   pnpm install
+
+   # Build the Electron app
+   pnpm electron:build:dist  # For all platforms
+   # OR platform-specific:
+   pnpm electron:build:mac   # macOS
+   pnpm electron:build:win   # Windows
+   pnpm electron:build:linux # Linux
+   ```
+
+The desktop app provides the same full functionality as the web version with additional native features.
+
 ## Configuring API Keys and Providers
 
-### Adding Your API Keys
+Bolt.diy features a modern, intuitive settings interface for managing AI providers and API keys. The settings are organized into dedicated panels for easy navigation and configuration.
 
-Setting up your API keys in Bolt.DIY is straightforward:
+### Accessing Provider Settings
 
-1. Open the home page (main interface)
-2. Select your desired provider from the dropdown menu
-3. Click the pencil (edit) icon
-4. Enter your API key in the secure input field
+1. **Open Settings**: Click the settings icon (⚙️) in the sidebar to access the settings panel
+2. **Navigate to Providers**: Select the "Providers" tab from the settings menu
+3. **Choose Provider Type**: Switch between "Cloud Providers" and "Local Providers" tabs
 
-![API Key Configuration Interface](./docs/images/api-key-ui-section.png)
+### Cloud Providers Configuration
 
-### Configuring Custom Base URLs
+The Cloud Providers tab displays all cloud-based AI services in an organized card layout:
 
-For providers that support custom base URLs (such as Ollama or LM Studio), follow these steps:
+#### Adding API Keys
+1. **Select Provider**: Browse the grid of available cloud providers (OpenAI, Anthropic, Google, etc.)
+2. **Toggle Provider**: Use the switch to enable/disable each provider
+3. **Set API Key**:
+   - Click the provider card to expand its configuration
+   - Click on the "API Key" field to enter edit mode
+   - Paste your API key and press Enter to save
+   - The interface shows real-time validation with green checkmarks for valid keys
 
-1. Click the settings icon in the sidebar to open the settings menu
-   ![Settings Button Location](./docs/images/bolt-settings-button.png)
+#### Advanced Features
+- **Bulk Toggle**: Use "Enable All Cloud" to toggle all cloud providers at once
+- **Visual Status**: Green checkmarks indicate properly configured providers
+- **Provider Icons**: Each provider has a distinctive icon for easy identification
+- **Descriptions**: Helpful descriptions explain each provider's capabilities
 
-2. Navigate to the "Providers" tab
-3. Search for your provider using the search bar
-4. Enter your custom base URL in the designated field
-   ![Provider Base URL Configuration](./docs/images/provider-base-url.png)
+### Local Providers Configuration
 
-> **Note**: Custom base URLs are particularly useful when running local instances of AI models or using custom API endpoints.
+The Local Providers tab manages local AI installations and custom endpoints:
 
-### Supported Providers
+#### Ollama Configuration
+1. **Enable Ollama**: Toggle the Ollama provider switch
+2. **Configure Endpoint**: Set the API endpoint (defaults to `http://127.0.0.1:11434`)
+3. **Model Management**:
+   - View all installed models with size and parameter information
+   - Update models to latest versions with one click
+   - Delete unused models
+   - Install new models by entering model names
 
-- Ollama
-- LM Studio
-- OpenAILike
+#### Other Local Providers
+- **LM Studio**: Configure custom base URLs for LM Studio endpoints
+- **OpenAI-like**: Connect to any OpenAI-compatible API endpoint
+- **Auto-detection**: The system automatically detects environment variables for base URLs
+
+### Environment Variables vs UI Configuration
+
+Bolt.diy supports both methods for maximum flexibility:
+
+#### Environment Variables (Recommended for Production)
+Set API keys and base URLs in your `.env.local` file:
+```bash
+# API Keys
+OPENAI_API_KEY=your_openai_key_here
+ANTHROPIC_API_KEY=your_anthropic_key_here
+
+# Custom Base URLs
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+LMSTUDIO_BASE_URL=http://127.0.0.1:1234
+```
+
+#### UI-Based Configuration
+- **Real-time Updates**: Changes take effect immediately
+- **Secure Storage**: API keys are stored securely in browser cookies
+- **Visual Feedback**: Clear indicators show configuration status
+- **Easy Management**: Edit, view, and manage keys through the interface
+
+### Provider-Specific Features
+
+#### OpenRouter
+- **Free Models Filter**: Toggle to show only free models when browsing
+- **Pricing Information**: View input/output costs for each model
+- **Model Search**: Fuzzy search through all available models
+
+#### Ollama
+- **Model Installer**: Built-in interface to install new models
+- **Progress Tracking**: Real-time download progress for model updates
+- **Model Details**: View model size, parameters, and quantization levels
+- **Auto-refresh**: Automatically detects newly installed models
+
+#### Search & Navigation
+- **Fuzzy Search**: Type-ahead search across all providers and models
+- **Keyboard Navigation**: Use arrow keys and Enter to navigate quickly
+- **Clear Search**: Press `Cmd+K` (Mac) or `Ctrl+K` (Windows/Linux) to clear search
+
+### Troubleshooting
+
+#### Common Issues
+- **API Key Not Recognized**: Ensure you're using the correct API key format for each provider
+- **Base URL Issues**: Verify the endpoint URL is correct and accessible
+- **Model Not Loading**: Check that the provider is enabled and properly configured
+- **Environment Variables Not Working**: Restart the application after adding new environment variables
+
+#### Status Indicators
+- 🟢 **Green Checkmark**: Provider properly configured and ready to use
+- 🔴 **Red X**: Configuration missing or invalid
+- 🟡 **Yellow Indicator**: Provider enabled but may need additional setup
+- 🔵 **Blue Pencil**: Click to edit configuration
+
+### Supported Providers Overview
+
+#### Cloud Providers
+- **OpenAI** - GPT-4, GPT-3.5, and other OpenAI models
+- **Anthropic** - Claude 3.5 Sonnet, Claude 3 Opus, and other Claude models
+- **Google (Gemini)** - Gemini 1.5 Pro, Gemini 1.5 Flash, and other Gemini models
+- **Groq** - Fast inference with Llama, Mixtral, and other models
+- **xAI** - Grok models including Grok-2 and Grok-2 Vision
+- **DeepSeek** - DeepSeek Coder and other DeepSeek models
+- **Mistral** - Mixtral, Mistral 7B, and other Mistral models
+- **Cohere** - Command R, Command R+, and other Cohere models
+- **Together AI** - Various open-source models
+- **Perplexity** - Sonar models for search and reasoning
+- **HuggingFace** - Access to HuggingFace model hub
+- **OpenRouter** - Unified API for multiple model providers
+- **Moonshot (Kimi)** - Kimi AI models
+- **Hyperbolic** - High-performance model inference
+- **GitHub Models** - Models available through GitHub
+- **Amazon Bedrock** - AWS managed AI models
+
+#### Local Providers
+- **Ollama** - Run open-source models locally with advanced model management
+- **LM Studio** - Local model inference with LM Studio
+- **OpenAI-like** - Connect to any OpenAI-compatible API endpoint
+
+> **💡 Pro Tip**: Start with OpenAI or Anthropic for the best results, then explore other providers based on your specific needs and budget considerations.
 
 ## Setup Using Git (For Developers only)
 
@@ -272,7 +378,7 @@ This method is recommended for developers who want to:
   Hint: Be aware that this can have beta-features and more likely got bugs than the stable release
 
 >**Open the WebUI to test (Default: http://localhost:5173)**
->   - Beginngers: 
+>   - Beginners: 
 >     - Try to use a sophisticated Provider/Model like Anthropic with Claude Sonnet 3.x Models to get best results
 >     - Explanation: The System Prompt currently implemented in bolt.diy cant cover the best performance for all providers and models out there. So it works better with some models, then other, even if the models itself are perfect for >programming
 >     - Future: Planned is a Plugin/Extentions-Library so there can be different System Prompts for different Models, which will help to get better results
@@ -341,7 +447,25 @@ Remember to always commit your local changes or stash them before pulling update
 - **`pnpm run typecheck`**: Runs TypeScript type checking.
 - **`pnpm run typegen`**: Generates TypeScript types using Wrangler.
 - **`pnpm run deploy`**: Deploys the project to Cloudflare Pages.
+- **`pnpm run lint`**: Runs ESLint to check for code issues.
 - **`pnpm run lint:fix`**: Automatically fixes linting issues.
+- **`pnpm run clean`**: Cleans build artifacts and cache.
+- **`pnpm run prepare`**: Sets up husky for git hooks.
+- **Docker Scripts**:
+  - **`pnpm run dockerbuild`**: Builds the Docker image for development.
+  - **`pnpm run dockerbuild:prod`**: Builds the Docker image for production.
+  - **`pnpm run dockerrun`**: Runs the Docker container.
+  - **`pnpm run dockerstart`**: Starts the Docker container with proper bindings.
+- **Electron Scripts**:
+  - **`pnpm electron:build:deps`**: Builds Electron main and preload scripts.
+  - **`pnpm electron:build:main`**: Builds the Electron main process.
+  - **`pnpm electron:build:preload`**: Builds the Electron preload script.
+  - **`pnpm electron:build:renderer`**: Builds the Electron renderer.
+  - **`pnpm electron:build:unpack`**: Creates an unpacked Electron build.
+  - **`pnpm electron:build:mac`**: Builds for macOS.
+  - **`pnpm electron:build:win`**: Builds for Windows.
+  - **`pnpm electron:build:linux`**: Builds for Linux.
+  - **`pnpm electron:build:dist`**: Builds for all platforms.
 
 ---
 
@@ -366,3 +490,4 @@ For answers to common questions, issues, and to see a list of recommended models
 **Who needs a commercial WebContainer API license?**
 
 bolt.diy source code is distributed as MIT, but it uses WebContainers API that [requires licensing](https://webcontainers.io/enterprise) for production usage in a commercial, for-profit setting. (Prototypes or POCs do not require a commercial license.) If you're using the API to meet the needs of your customers, prospective customers, and/or employees, you need a license to ensure compliance with our Terms of Service. Usage of the API in violation of these terms may result in your access being revoked.
+# Test commit to trigger Security Analysis workflow

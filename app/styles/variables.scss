@@ -221,8 +221,8 @@
  */
 :root {
   --header-height: 54px;
-  --chat-max-width: 35rem;
-  --chat-min-width: 575px;
+  --chat-max-width: 33rem;
+  --chat-min-width: 533px;
   --workbench-width: min(calc(100% - var(--chat-min-width)), 2536px);
   --workbench-inner-width: var(--workbench-width);
   --workbench-left: calc(100% - var(--workbench-width));

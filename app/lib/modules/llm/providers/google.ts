@@ -13,19 +13,26 @@ export default class GoogleProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
-    { name: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash', provider: 'Google', maxTokenAllowed: 8192 },
+    /*
+     * Essential fallback models - only the most reliable/stable ones
+     * Gemini 1.5 Pro: 2M context, 8K output limit (verified from API docs)
+     */
     {
-      name: 'gemini-2.0-flash-thinking-exp-01-21',
-      label: 'Gemini 2.0 Flash-thinking-exp-01-21',
+      name: 'gemini-1.5-pro',
+      label: 'Gemini 1.5 Pro',
       provider: 'Google',
-      maxTokenAllowed: 65536,
+      maxTokenAllowed: 2000000,
+      maxCompletionTokens: 8192,
     },
-    { name: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-1.5-flash-002', label: 'Gemini 1.5 Flash-002', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-1.5-flash-8b', label: 'Gemini 1.5 Flash-8b', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-1.5-pro-002', label: 'Gemini 1.5 Pro-002', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-exp-1206', label: 'Gemini exp-1206', provider: 'Google', maxTokenAllowed: 8192 },
+
+    // Gemini 1.5 Flash: 1M context, 8K output limit, fast and cost-effective
+    {
+      name: 'gemini-1.5-flash',
+      label: 'Gemini 1.5 Flash',
+      provider: 'Google',
+      maxTokenAllowed: 1000000,
+      maxCompletionTokens: 8192,
+    },
   ];
 
   async getDynamicModels(
@@ -51,16 +58,64 @@ export default class GoogleProvider extends BaseProvider {
       },
     });
 
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models from Google API: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as any;
 
-    const data = res.models.filter((model: any) => model.outputTokenLimit > 8000);
+    if (!res.models || !Array.isArray(res.models)) {
+      throw new Error('Invalid response format from Google API');
+    }
 
-    return data.map((m: any) => ({
-      name: m.name.replace('models/', ''),
-      label: `${m.displayName} - context ${Math.floor((m.inputTokenLimit + m.outputTokenLimit) / 1000) + 'k'}`,
-      provider: this.name,
-      maxTokenAllowed: m.inputTokenLimit + m.outputTokenLimit || 8000,
-    }));
+    // Filter out models with very low token limits and experimental/unstable models
+    const data = res.models.filter((model: any) => {
+      const hasGoodTokenLimit = (model.outputTokenLimit || 0) > 8000;
+      const isStable = !model.name.includes('exp') || model.name.includes('flash-exp');
+
+      return hasGoodTokenLimit && isStable;
+    });
+
+    return data.map((m: any) => {
+      const modelName = m.name.replace('models/', '');
+
+      // Get accurate context window from Google API
+      let contextWindow = 32000; // default fallback
+
+      if (m.inputTokenLimit && m.outputTokenLimit) {
+        // Use the input limit as the primary context window (typically larger)
+        contextWindow = m.inputTokenLimit;
+      } else if (modelName.includes('gemini-1.5-pro')) {
+        contextWindow = 2000000; // Gemini 1.5 Pro has 2M context
+      } else if (modelName.includes('gemini-1.5-flash')) {
+        contextWindow = 1000000; // Gemini 1.5 Flash has 1M context
+      } else if (modelName.includes('gemini-2.0-flash')) {
+        contextWindow = 1000000; // Gemini 2.0 Flash has 1M context
+      } else if (modelName.includes('gemini-pro')) {
+        contextWindow = 32000; // Gemini Pro has 32k context
+      } else if (modelName.includes('gemini-flash')) {
+        contextWindow = 32000; // Gemini Flash has 32k context
+      }
+
+      // Cap at reasonable limits to prevent issues
+      const maxAllowed = 2000000; // 2M tokens max
+      const finalContext = Math.min(contextWindow, maxAllowed);
+
+      // Get completion token limit from Google API
+      let completionTokens = 8192; // default fallback (Gemini 1.5 standard limit)
+
+      if (m.outputTokenLimit && m.outputTokenLimit > 0) {
+        completionTokens = Math.min(m.outputTokenLimit, 128000); // Use API value, cap at reasonable limit
+      }
+
+      return {
+        name: modelName,
+        label: `${m.displayName} (${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'} context)`,
+        provider: this.name,
+        maxTokenAllowed: finalContext,
+        maxCompletionTokens: completionTokens,
+      };
+    });
   }
 
   getModelInstance(options: {

@@ -151,45 +151,6 @@ export class PreviewsStore {
       this._broadcastStorageSync();
     });
 
-    try {
-      // Watch for file changes
-      webcontainer.internal.watchPaths(
-        {
-          // Only watch specific file types that affect the preview
-          include: ['**/*.html', '**/*.css', '**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.json'],
-          exclude: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**', '**/coverage/**'],
-        },
-        async (_events) => {
-          const previews = this.previews.get();
-
-          for (const preview of previews) {
-            const previewId = this.getPreviewId(preview.baseUrl);
-
-            if (previewId) {
-              this.broadcastFileChange(previewId);
-            }
-          }
-        },
-      );
-
-      // Watch for DOM changes that might affect storage
-      if (typeof window !== 'undefined') {
-        const observer = new MutationObserver((_mutations) => {
-          // Broadcast storage changes when DOM changes
-          this._broadcastStorageSync();
-        });
-
-        observer.observe(document.body, {
-          childList: true,
-          subtree: true,
-          characterData: true,
-          attributes: true,
-        });
-      }
-    } catch (error) {
-      console.error('[Preview] Error setting up watchers:', error);
-    }
-
     // Listen for port events
     webcontainer.on('port', (port, type, url) => {
       let previewInfo = this.#availablePreviews.get(port);

@@ -16,3 +16,11 @@ export type ProgressAnnotation = {
   order: number;
   message: string;
 };
+
+export type ToolCallAnnotation = {
+  type: 'toolCall';
+  toolCallId: string;
+  serverName: string;
+  toolName: string;
+  toolDescription: string;
+};

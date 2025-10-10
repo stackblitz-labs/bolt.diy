@@ -9,6 +9,9 @@ export function createWindow(rendererURL: string) {
   const bounds = store.get('bounds');
   console.log('restored bounds:', bounds);
 
+  // preload path
+  const preloadPath = path.join(isDev ? process.cwd() : app.getAppPath(), 'build', 'electron', 'preload', 'index.cjs');
+
   const win = new BrowserWindow({
     ...{
       width: 1200,
@@ -18,7 +21,7 @@ export function createWindow(rendererURL: string) {
     vibrancy: 'under-window',
     visualEffectState: 'active',
     webPreferences: {
-      preload: path.join(app.getAppPath(), 'build', 'electron', 'preload', 'index.cjs'),
+      preload: preloadPath,
     },
   });
 
