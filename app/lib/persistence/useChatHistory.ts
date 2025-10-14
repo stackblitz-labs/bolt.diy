@@ -349,7 +349,11 @@ ${value.content}
 
       try {
         const newId = await duplicateChat(db, mixedId || listItemId);
-        navigate(`/chat/${newId}`);
+        const basePath =
+          import.meta.env.VITE_BASE_PATH && import.meta.env.VITE_BASE_PATH !== '/'
+            ? import.meta.env.VITE_BASE_PATH.replace(/\/$/, '')
+            : '';
+        navigate(`${basePath}/chat/${newId}`);
         toast.success('Chat duplicated successfully');
       } catch (error) {
         toast.error('Failed to duplicate chat');
@@ -408,8 +412,10 @@ function navigateChat(nextId: string) {
    *
    * `navigate(`/chat/${nextId}`, { replace: true });`
    */
+  const envBasePath = import.meta.env.VITE_BASE_PATH;
+  const basePath = envBasePath && envBasePath !== '/' ? envBasePath.replace(/\/$/, '') : '';
   const url = new URL(window.location.href);
-  url.pathname = `/chat/${nextId}`;
+  url.pathname = `${basePath}/chat/${nextId}`;
 
   window.history.replaceState({}, '', url);
 }
