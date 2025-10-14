@@ -89,7 +89,11 @@ export function useGit() {
           depth: 1,
           singleBranch: true,
           ref: branch,
-          corsProxy: '/api/git-proxy',
+          corsProxy: `${
+            import.meta.env.VITE_BASE_PATH && import.meta.env.VITE_BASE_PATH !== '/'
+              ? import.meta.env.VITE_BASE_PATH.replace(/\/$/, '')
+              : ''
+          }/api/git-proxy`,
           headers,
           onProgress: (event) => {
             console.log('Git clone progress:', event);

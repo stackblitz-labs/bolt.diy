@@ -131,7 +131,10 @@ export const Menu = () => {
           if (chatId.get() === item.id) {
             // hard page navigation to clear the stores
             console.log('Navigating away from deleted chat');
-            window.location.pathname = '/';
+            window.location.pathname =
+              import.meta.env.VITE_BASE_PATH && import.meta.env.VITE_BASE_PATH !== '/'
+                ? `${import.meta.env.VITE_BASE_PATH.replace(/\/$/, '')}/`
+                : '/';
           }
         })
         .catch((error) => {

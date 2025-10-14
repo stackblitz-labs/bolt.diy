@@ -145,7 +145,7 @@ ${value.content}
                       }
                     })
                     .join('\n')}
-                  ${commandActionsString} 
+                  ${commandActionsString}
                   </boltArtifact>
                   `, // Added commandActionsString, followupMessage, updated id and title
                   annotations: [
@@ -363,7 +363,11 @@ ${value.content}
 
       try {
         const newId = await createChatFromMessages(db, description, messages, metadata);
-        window.location.href = `/chat/${newId}`;
+        const basePath =
+          import.meta.env.VITE_BASE_PATH && import.meta.env.VITE_BASE_PATH !== '/'
+            ? import.meta.env.VITE_BASE_PATH.replace(/\/$/, '')
+            : '';
+        window.location.href = `${basePath}/chat/${newId}`;
         toast.success('Chat imported successfully');
       } catch (error) {
         if (error instanceof Error) {
