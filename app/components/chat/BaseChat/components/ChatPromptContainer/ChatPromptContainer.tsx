@@ -5,6 +5,10 @@ import { ScreenshotStateManager } from '~/components/chat/ScreenshotStateManager
 import { ClientOnly } from 'remix-utils/client-only';
 
 import { MessageInput } from '~/components/chat/MessageInput/MessageInput';
+import { isAppOwnerStore, permissionsStore } from '~/lib/stores/permissions';
+import { useStore } from '@nanostores/react';
+import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
+import { userStore } from '~/lib/stores/userAuth';
 
 interface ChatPromptContainerProps {
   uploadedFiles: File[];
@@ -21,6 +25,10 @@ export const ChatPromptContainer: React.FC<ChatPromptContainerProps> = ({
   setImageDataList,
   messageInputProps,
 }) => {
+  const permissions = useStore(permissionsStore);
+  const isAppOwner = useStore(isAppOwnerStore);
+  const user = useStore(userStore.user);
+
   return (
     <div
       className={classNames(
@@ -47,7 +55,11 @@ export const ChatPromptContainer: React.FC<ChatPromptContainerProps> = ({
           />
         )}
       </ClientOnly>
-      <MessageInput {...messageInputProps} />
+      {(permissions.length === 0 ||
+        (permissions.length > 0 &&
+          isAppAccessAllowed(permissions, AppAccessKind.SendMessage, user?.email ?? '', isAppOwner))) && (
+        <MessageInput {...messageInputProps} />
+      )}
     </div>
   );
 };

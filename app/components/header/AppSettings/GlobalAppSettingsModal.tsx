@@ -5,12 +5,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { AuthSelectorComponent } from './components/AuthSelectorComponent';
 import { SecretsComponent } from './components/SecretsComponent';
+import { PermissionsSelectionComponent } from './components/PermissionsSelectionComponent';
+import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
+import { isAppOwnerStore, permissionsStore } from '~/lib/stores/permissions';
+import { userStore } from '~/lib/stores/userAuth';
+import CopyApp from './components/CopyApp';
 
 export function GlobalAppSettingsModal() {
   const isOpen = useStore(appSettingsModalStore.isOpen);
   const loadingData = useStore(appSettingsModalStore.loadingData);
   const appSummary = useStore(chatStore.appSummary);
   const allSecrets = appSummary?.features?.flatMap((f) => f.secrets ?? []) ?? [];
+  const appId = useStore(chatStore.currentAppId);
+  const permissions = useStore(permissionsStore);
+  const isAppOwner = useStore(isAppOwnerStore);
+  const user = useStore(userStore.user);
 
   const handleCloseModal = () => {
     appSettingsModalStore.close();
@@ -110,8 +119,19 @@ export function GlobalAppSettingsModal() {
                     <ChatDescription />
                   </div>
 
+                  {/* Copy App */}
+                  {appId && isAppAccessAllowed(permissions, AppAccessKind.Copy, user?.email ?? '', isAppOwner) && (
+                    <CopyApp />
+                  )}
+
                   {/* Authentication Settings */}
                   {appSummary && <AuthSelectorComponent appSummary={appSummary} />}
+
+                  {/* Permissions */}
+                  {appId &&
+                    isAppAccessAllowed(permissions, AppAccessKind.SetPermissions, user?.email ?? '', isAppOwner) && (
+                      <PermissionsSelectionComponent />
+                    )}
 
                   {/* API Integrations */}
                   {appSummary && allSecrets.length > 0 && <SecretsComponent appSummary={appSummary} />}

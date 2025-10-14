@@ -31,7 +31,7 @@ export async function callNutAPI(
   const userId = overrideUserId ?? (await getCurrentUserId());
   const accessToken = await getCurrentAccessToken();
 
-  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://dispatch.replay.io';
+  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://agent.preprod.replay.io';
   const url = `${apiHost}/nut/${method}`;
 
   const headers: HeadersInit = {

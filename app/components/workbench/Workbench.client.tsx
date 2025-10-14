@@ -43,7 +43,6 @@ export const Workbench = memo(({ chatStarted, handleSendMessage }: WorkspaceProp
   const workbenchVariants = createWorkbenchVariants(workbenchWidth);
 
   const isSmallViewport = useViewport(800);
-  console.log('isSmallViewport', isSmallViewport);
 
   return (
     chatStarted && (

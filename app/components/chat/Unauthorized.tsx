@@ -12,9 +12,10 @@ export const TEXTAREA_MIN_HEIGHT = 76;
 interface UnauthorizedProps {
   handleCopyApp: () => void;
   isCopying: boolean;
+  authorizedCopy: boolean;
 }
 
-export const Unauthorized = ({ handleCopyApp, isCopying }: UnauthorizedProps) => {
+export const Unauthorized = ({ handleCopyApp, isCopying, authorizedCopy }: UnauthorizedProps) => {
   return (
     <TooltipProvider delayDuration={200}>
       <div className={classNames('relative flex h-full w-full overflow-hidden')}>
@@ -30,44 +31,58 @@ export const Unauthorized = ({ handleCopyApp, isCopying }: UnauthorizedProps) =>
                 </div>
                 <h2 className="text-2xl font-bold text-bolt-elements-textHeading mb-4">App Access Restricted</h2>
                 <div className="bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-xl p-5 mb-6 shadow-sm">
-                  <p className="text-bolt-elements-textPrimary leading-relaxed font-medium">
-                    This app is owned by another user. You can create a copy to work with it and make your own
-                    modifications.
-                  </p>
+                  {authorizedCopy ? (
+                    <p className="text-bolt-elements-textPrimary leading-relaxed font-medium">
+                      This app is owned by another user. You can create a copy to work with it and make your own
+                      modifications.
+                    </p>
+                  ) : (
+                    <p className="text-bolt-elements-textPrimary leading-relaxed font-medium">
+                      This app is owned by another user and is not available for copying.
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <button
-                  onClick={handleCopyApp}
-                  disabled={isCopying}
-                  className={classNames(
-                    'inline-flex items-center justify-center px-8 py-4 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm w-full sm:w-auto',
-                    {
-                      'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-md hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500/20':
-                        !isCopying,
-                      'bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary border border-bolt-elements-borderColor/30 cursor-not-allowed':
-                        isCopying,
-                    },
-                  )}
-                >
-                  {isCopying ? (
-                    <span className="flex items-center gap-3">
-                      <div className="w-4 h-4 border-2 border-bolt-elements-textSecondary border-t-transparent rounded-full animate-spin"></div>
-                      Creating Copy...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-3">
-                      <div className="i-ph:copy-duotone text-lg"></div>
-                      Create a Copy
-                    </span>
-                  )}
-                </button>
+              {authorizedCopy ? (
+                <div className="space-y-4">
+                  <button
+                    onClick={handleCopyApp}
+                    disabled={isCopying}
+                    className={classNames(
+                      'inline-flex items-center justify-center px-8 py-4 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm w-full sm:w-auto',
+                      {
+                        'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-md hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500/20':
+                          !isCopying,
+                        'bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary border border-bolt-elements-borderColor/30 cursor-not-allowed':
+                          isCopying,
+                      },
+                    )}
+                  >
+                    {isCopying ? (
+                      <span className="flex items-center gap-3">
+                        <div className="w-4 h-4 border-2 border-bolt-elements-textSecondary border-t-transparent rounded-full animate-spin"></div>
+                        Creating Copy...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-3">
+                        <div className="i-ph:copy-duotone text-lg"></div>
+                        Create a Copy
+                      </span>
+                    )}
+                  </button>
 
-                <p className="text-xs text-bolt-elements-textSecondary">
-                  Your copy will be independent and you'll have full access to modify it
-                </p>
-              </div>
+                  <p className="text-xs text-bolt-elements-textSecondary">
+                    Your copy will be independent and you'll have full access to modify it
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-bolt-elements-textSecondary">
+                    Contact the app owner if you need access or wish to collaborate on this project.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
