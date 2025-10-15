@@ -990,7 +990,9 @@ export function useDataOperations({
       showProgress('Retrieving API keys', 25);
 
       // Create a fetch request to get API keys from server
-      const response = await fetch('/api/export-api-keys');
+      const envBasePath = import.meta.env.VITE_BASE_PATH;
+      const basePath = envBasePath && envBasePath !== '/' ? envBasePath.replace(/\/$/, '') : '';
+      const response = await fetch(`${basePath}/api/export-api-keys`);
 
       if (!response.ok) {
         throw new Error('Failed to retrieve API keys from server');

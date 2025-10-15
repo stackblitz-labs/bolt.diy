@@ -43,7 +43,9 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
         }
 
         const urlId = await forkChat(db, chatId.get()!, messageId);
-        window.location.href = `/chat/${urlId}`;
+        const envBasePath = import.meta.env.VITE_BASE_PATH;
+        const basePath = envBasePath && envBasePath !== '/' ? envBasePath.replace(/\/$/, '') : '';
+        window.location.href = `${basePath}/chat/${urlId}`;
       } catch (error) {
         toast.error('Failed to fork chat: ' + (error as Error).message);
       }

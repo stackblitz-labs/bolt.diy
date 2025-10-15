@@ -28,7 +28,9 @@ export async function initializeGitHubConnection() {
   try {
     isConnecting.set(true);
 
-    const response = await fetch('/api/github-user');
+    const envBasePath = import.meta.env.VITE_BASE_PATH;
+    const basePath = envBasePath && envBasePath !== '/' ? envBasePath.replace(/\/$/, '') : '';
+    const response = await fetch(`${basePath}/api/github-user`);
 
     if (!response.ok) {
       if (response.status === 401) {

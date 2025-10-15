@@ -241,9 +241,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       let providerModels: ModelInfo[] = [];
 
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_BASE_PATH || ''}/api/models/${encodeURIComponent(providerName)}`,
-        );
+        const envBasePath = import.meta.env.VITE_BASE_PATH || '';
+        const basePath = envBasePath.replace(/\/$/, '');
+        const response = await fetch(`${basePath}/api/models/${encodeURIComponent(providerName)}`);
         const data = await response.json();
         providerModels = (data as { modelList: ModelInfo[] }).modelList;
       } catch (error) {

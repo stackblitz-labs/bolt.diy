@@ -56,7 +56,8 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
     }
 
     try {
-      const basePath = import.meta.env.VITE_BASE_PATH || '/';
+      const envBasePath = import.meta.env.VITE_BASE_PATH || '';
+      const basePath = envBasePath.replace(/\/$/, '');
       const response = await fetch(`${basePath}/api/check-env-key?provider=${encodeURIComponent(provider.name)}`);
       const data = await response.json();
       const isSet = (data as { isSet: boolean }).isSet;
