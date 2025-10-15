@@ -8,17 +8,86 @@ import { IconButton } from '~/components/ui/IconButton';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 
+interface PermissionGroup {
+  accessor: AppAccessorKind;
+  accessorName?: string;
+  permissions: Array<AppPermission & { index: number }>;
+}
+
 export const PermissionsSelectionComponent: React.FC = () => {
   const appId = useStore(chatStore.currentAppId);
   const permissions = useStore(permissionsStore);
   const [saving, setSaving] = useState(false);
   const [showAddPermission, setShowAddPermission] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [showAllGroups, setShowAllGroups] = useState(false);
   const [newPermission, setNewPermission] = useState<AppPermission>({
     access: AppAccessKind.View,
     accessor: AppAccessorKind.User,
     accessorName: '',
     allowed: true,
   });
+
+  // Group permissions by accessor
+  const groupPermissions = (): PermissionGroup[] => {
+    const groups = new Map<string, PermissionGroup>();
+
+    permissions.forEach((permission, index) => {
+      const key = `${permission.accessor}-${permission.accessorName || 'everyone'}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          accessor: permission.accessor,
+          accessorName: permission.accessorName,
+          permissions: [],
+        });
+      }
+
+      groups.get(key)!.permissions.push({ ...permission, index });
+    });
+
+    return Array.from(groups.values());
+  };
+
+  const toggleGroup = (key: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(key)) {
+      newExpanded.delete(key);
+    } else {
+      newExpanded.add(key);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  const getGroupKey = (group: PermissionGroup): string => {
+    return `${group.accessor}-${group.accessorName || 'everyone'}`;
+  };
+
+  const getGroupLabel = (group: PermissionGroup): string => {
+    switch (group.accessor) {
+      case AppAccessorKind.User:
+        return group.accessorName || 'Unknown User';
+      case AppAccessorKind.Domain:
+        return `@${group.accessorName}`;
+      case AppAccessorKind.Everyone:
+        return 'Everyone';
+      default:
+        return group.accessor;
+    }
+  };
+
+  const getGroupIcon = (group: PermissionGroup): string => {
+    switch (group.accessor) {
+      case AppAccessorKind.User:
+        return 'i-ph:user-duotone';
+      case AppAccessorKind.Domain:
+        return 'i-ph:users-three-duotone';
+      case AppAccessorKind.Everyone:
+        return 'i-ph:globe-duotone';
+      default:
+        return 'i-ph:info';
+    }
+  };
 
   const handleAddPermission = async () => {
     if (!appId) {
@@ -217,19 +286,6 @@ export const PermissionsSelectionComponent: React.FC = () => {
     return labels[access] || access;
   };
 
-  const getAccessorLabel = (permission: AppPermission): string => {
-    switch (permission.accessor) {
-      case AppAccessorKind.User:
-        return `User: ${permission.accessorName}`;
-      case AppAccessorKind.Domain:
-        return `Domain: @${permission.accessorName}`;
-      case AppAccessorKind.Everyone:
-        return 'Everyone';
-      default:
-        return permission.accessor;
-    }
-  };
-
   const getAccessIcon = (access: AppAccessKind): string => {
     const icons: Record<AppAccessKind, string> = {
       [AppAccessKind.AllPermissions]: 'i-ph:unlock-key-duotone',
@@ -255,78 +311,193 @@ export const PermissionsSelectionComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* Existing Permissions */}
-      {permissions.length > 0 ? (
-        <div className="space-y-2 mb-4">
-          {permissions.map((permission, index) => (
-            <div
-              key={index}
-              className={`p-3 rounded-lg border transition-all duration-200 ${
-                permission.allowed
-                  ? 'bg-bolt-elements-background-depth-1 border-bolt-elements-borderColor'
-                  : 'bg-red-500/10 border-red-500/30'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {/* Access Icon */}
-                <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center ${
-                    permission.allowed ? 'bg-bolt-elements-background-depth-3' : 'bg-red-500/20'
-                  }`}
-                >
-                  <div
-                    className={`${getAccessIcon(permission.access)} text-sm ${permission.allowed ? 'text-bolt-elements-textPrimary' : 'text-red-500'}`}
-                  />
+      {/* Share URL Info */}
+      {appId && (
+        <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-0.5">
+              <div className="i-ph:info-duotone text-blue-500 text-lg" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-bolt-elements-textPrimary font-medium mb-2">Share this app</p>
+              <p className="text-xs text-bolt-elements-textSecondary mb-3">
+                After setting permissions, share this URL with the people you want to give access to:
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-3 py-2 bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor font-medium text-s text-bolt-elements-textPrimary truncate">
+                  nut.new/app/{appId}
                 </div>
-
-                {/* Permission Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-bolt-elements-textPrimary">
-                      {getAccessLabel(permission.access)}
-                    </span>
-                  </div>
-                  <div className="text-xs text-bolt-elements-textSecondary mt-0.5">{getAccessorLabel(permission)}</div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-1">
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      permission.allowed
-                        ? 'bg-green-500/20 text-green-600 border border-green-500/30'
-                        : 'bg-red-500/20 text-red-600 border border-red-500/30'
-                    }`}
-                  >
-                    {permission.allowed ? 'Allowed' : 'Denied'}
-                  </span>
-                  <TooltipProvider>
-                    <WithTooltip tooltip={permission.allowed ? 'Deny access' : 'Allow access'}>
-                      <button
-                        onClick={() => handleTogglePermission(index)}
-                        disabled={saving}
-                        className="p-2 rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary border border-bolt-elements-borderColor transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 group flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <div
-                          className={`text-md ${permission.allowed ? 'i-ph:toggle-right text-green-500' : 'i-ph:toggle-left text-red-500'}`}
-                        />
-                      </button>
-                    </WithTooltip>
-                    <WithTooltip tooltip="Remove permission">
-                      <button
-                        onClick={() => handleRemovePermission(index)}
-                        disabled={saving}
-                        className="p-2 rounded-xl bg-bolt-elements-background-depth-2 text-red-500 hover:bg-bolt-elements-background-depth-3 hover:text-red-600 border border-bolt-elements-borderColor transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 group flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <div className="i-ph:trash text-md" />
-                      </button>
-                    </WithTooltip>
-                  </TooltipProvider>
-                </div>
+                <TooltipProvider>
+                  <WithTooltip tooltip="Copy URL">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`https://nut.new/app/${appId}`);
+                        toast.success('URL copied to clipboard!');
+                      }}
+                      className="p-2 rounded-lg bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary border border-bolt-elements-borderColor transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 flex-shrink-0"
+                    >
+                      <div className="i-ph:copy text-sm" />
+                    </button>
+                  </WithTooltip>
+                </TooltipProvider>
               </div>
             </div>
-          ))}
+          </div>
         </div>
+      )}
+
+      {/* Existing Permissions - Grouped */}
+      {permissions.length > 0 ? (
+        <>
+          <div className="space-y-2 mb-4">
+            {(() => {
+              const allGroups = groupPermissions();
+              const displayedGroups = showAllGroups ? allGroups : allGroups.slice(0, 3);
+
+              return displayedGroups.map((group) => {
+                const groupKey = getGroupKey(group);
+                const isExpanded = expandedGroups.has(groupKey);
+
+                return (
+                  <div
+                    key={groupKey}
+                    className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 overflow-hidden"
+                  >
+                    {/* Group Header */}
+                    <button
+                      onClick={() => toggleGroup(groupKey)}
+                      className="w-full p-3 flex items-center gap-3 bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-2 transition-all"
+                    >
+                      {/* Icon */}
+                      <div className="flex-shrink-0 w-8 h-8 rounded-md bg-bolt-elements-background-depth-3 flex items-center justify-center">
+                        <div className={`${getGroupIcon(group)} text-sm text-bolt-elements-textHeading`} />
+                      </div>
+
+                      {/* Label */}
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="text-sm font-medium text-bolt-elements-textHeading truncate">
+                          {getGroupLabel(group)}
+                        </div>
+                        <div className="text-xs text-bolt-elements-textSecondary">
+                          {group.permissions.length} permission{group.permissions.length !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+
+                      {/* Expand Icon */}
+                      <div
+                        className={`flex-shrink-0 text-bolt-elements-textSecondary transition-transform duration-200 ${
+                          isExpanded ? 'rotate-180' : ''
+                        }`}
+                      >
+                        <div className="i-ph:caret-down text-lg" />
+                      </div>
+                    </button>
+
+                    {/* Group Content */}
+                    {isExpanded && (
+                      <div className="border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
+                        <div className="p-2 space-y-1">
+                          {group.permissions.map((permission) => (
+                            <div
+                              key={permission.index}
+                              className={`p-2 rounded-lg border transition-all duration-200 ${
+                                permission.allowed
+                                  ? 'bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor'
+                                  : 'bg-red-500/10 border-red-500/30'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {/* Access Icon */}
+                                <div
+                                  className={`flex-shrink-0 w-6 h-6 rounded flex items-center justify-center ${
+                                    permission.allowed ? 'bg-bolt-elements-background-depth-3' : 'bg-red-500/20'
+                                  }`}
+                                >
+                                  <div
+                                    className={`${getAccessIcon(permission.access)} text-xs ${permission.allowed ? 'text-bolt-elements-textPrimary' : 'text-red-500'}`}
+                                  />
+                                </div>
+
+                                {/* Permission Label */}
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-sm font-medium text-bolt-elements-textPrimary">
+                                    {getAccessLabel(permission.access)}
+                                  </span>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center gap-1">
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full ${
+                                      permission.allowed
+                                        ? 'bg-green-500/20 text-green-600 border border-green-500/30'
+                                        : 'bg-red-500/20 text-red-600 border border-red-500/30'
+                                    }`}
+                                  >
+                                    {permission.allowed ? 'Allowed' : 'Denied'}
+                                  </span>
+                                  <TooltipProvider>
+                                    <WithTooltip tooltip={permission.allowed ? 'Deny access' : 'Allow access'}>
+                                      <button
+                                        onClick={() => handleTogglePermission(permission.index)}
+                                        disabled={saving}
+                                        className="p-1.5 rounded-lg bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary border border-bolt-elements-borderColor transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 group flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        <div
+                                          className={`text-sm ${permission.allowed ? 'i-ph:toggle-right text-green-500' : 'i-ph:toggle-left text-red-500'}`}
+                                        />
+                                      </button>
+                                    </WithTooltip>
+                                    <WithTooltip tooltip="Remove permission">
+                                      <button
+                                        onClick={() => handleRemovePermission(permission.index)}
+                                        disabled={saving}
+                                        className="p-1.5 rounded-lg bg-bolt-elements-background-depth-2 text-red-500 hover:bg-bolt-elements-background-depth-3 hover:text-red-600 border border-bolt-elements-borderColor transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 group flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        <div className="i-ph:trash text-sm" />
+                                      </button>
+                                    </WithTooltip>
+                                  </TooltipProvider>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
+          </div>
+
+          {/* Show More/Less Button */}
+          {(() => {
+            const allGroups = groupPermissions();
+            const hiddenCount = allGroups.length - 3;
+
+            if (allGroups.length > 3) {
+              return (
+                <div className="flex justify-center mb-4">
+                  <button
+                    onClick={() => setShowAllGroups(!showAllGroups)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                  >
+                    <span>
+                      {showAllGroups
+                        ? `Hide ${hiddenCount} accessor${hiddenCount !== 1 ? 's' : ''}`
+                        : `Show ${hiddenCount} more accessor${hiddenCount !== 1 ? 's' : ''}`}
+                    </span>
+                    <div
+                      className={`i-ph:caret-${showAllGroups ? 'up' : 'down'}-bold text-sm transition-transform duration-200`}
+                    />
+                  </button>
+                </div>
+              );
+            }
+            return null;
+          })()}
+        </>
       ) : (
         <div className="text-center py-6 mb-4">
           <div className="i-ph:lock-open text-4xl text-bolt-elements-textSecondary mb-2 opacity-50" />
