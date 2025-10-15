@@ -6,6 +6,7 @@ import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { AuthSelectorComponent } from './components/AuthSelectorComponent';
 import { SecretsComponent } from './components/SecretsComponent';
 import { PermissionsSelectionComponent } from './components/PermissionsSelectionComponent';
+import { ExperimentalFeaturesComponent } from './components/ExperimentalFeaturesComponent';
 import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
 import { isAppOwnerStore, permissionsStore } from '~/lib/stores/permissions';
 import { userStore } from '~/lib/stores/userAuth';
@@ -135,6 +136,9 @@ export function GlobalAppSettingsModal() {
 
                   {/* API Integrations */}
                   {appSummary && allSecrets.length > 0 && <SecretsComponent appSummary={appSummary} />}
+
+                  {/* Experimental Features */}
+                  {appSummary && <ExperimentalFeaturesComponent />}
                 </div>
 
                 {/* Action Buttons */}

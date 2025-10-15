@@ -13,6 +13,7 @@ import type { ChatResponse } from '~/lib/persistence/response';
 import { getLastResponseTime } from './ResponseFilter';
 import type { SimulationData } from './MessageHandler';
 import type { DetectedError } from './MessageHandlerInterface';
+import { experimentalFeaturesStore } from '~/lib/stores/experimentalFeatures';
 
 const logger = createScopedLogger('ChatMessage');
 
@@ -20,6 +21,7 @@ export type ChatResponseCallback = (response: ChatResponse) => void;
 
 export enum ChatMode {
   UserMessage = 'UserMessage',
+  UserMessageWithBugReports = 'UserMessageWithBugReports',
   DevelopApp = 'DevelopApp',
   FixDetectedError = 'FixDetectedError',
 }
@@ -85,6 +87,11 @@ export async function sendChatMessage(request: NutChatRequest, onResponse: ChatR
   if (usingMockChat()) {
     await sendChatMessageMocked(onResponse);
     return;
+  }
+
+  const experimentalFeatures = experimentalFeaturesStore.get();
+  if (experimentalFeatures.bugReports && request.mode == ChatMode.UserMessage) {
+    request.mode = ChatMode.UserMessageWithBugReports;
   }
 
   logger.debug('sendChatMessage', JSON.stringify(request));
