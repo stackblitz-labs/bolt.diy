@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
@@ -27,6 +27,64 @@ export const PermissionsSelectionComponent: React.FC = () => {
     accessorName: '',
     allowed: true,
   });
+  const [validationState, setValidationState] = useState<{ isValid: boolean; errorMessage?: string }>({
+    isValid: false,
+  });
+
+  // Validation helpers
+  const validateEmail = (email: string): boolean => {
+    if (!email) {
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateDomain = (domain: string): boolean => {
+    if (!domain) {
+      return false;
+    }
+    const domainRegex = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+    return domainRegex.test(domain);
+  };
+
+  const getInputValidationState = (): { isValid: boolean; errorMessage?: string } => {
+    const { accessor, accessorName } = newPermission;
+
+    // Everyone doesn't need validation
+    if (accessor === AppAccessorKind.Everyone) {
+      return { isValid: true };
+    }
+
+    // Empty is technically invalid but we don't show error for empty state
+    if (!accessorName || !accessorName.trim()) {
+      return { isValid: false };
+    }
+
+    if (accessor === AppAccessorKind.User) {
+      const isValid = validateEmail(accessorName);
+      return {
+        isValid,
+        errorMessage: isValid ? undefined : 'Please enter a valid email address (e.g., user@example.com)',
+      };
+    }
+
+    if (accessor === AppAccessorKind.Domain) {
+      const isValid = validateDomain(accessorName);
+      return {
+        isValid,
+        errorMessage: isValid ? undefined : 'Please enter a valid domain (e.g., example.com)',
+      };
+    }
+
+    return { isValid: true };
+  };
+
+  // Update validation state whenever newPermission changes
+  useEffect(() => {
+    const computedValidationState = getInputValidationState();
+    setValidationState(computedValidationState);
+  }, [newPermission.accessor, newPermission.accessorName]);
 
   // Group permissions by accessor
   const groupPermissions = (): PermissionGroup[] => {
@@ -94,12 +152,12 @@ export const PermissionsSelectionComponent: React.FC = () => {
       return;
     }
 
-    // Validate the new permission
-    if (
-      (newPermission.accessor === AppAccessorKind.User || newPermission.accessor === AppAccessorKind.Domain) &&
-      !newPermission.accessorName?.trim()
-    ) {
-      toast.error('Please enter an email or domain');
+    if (!validationState.isValid) {
+      if (validationState.errorMessage) {
+        toast.error(validationState.errorMessage);
+      } else if (newPermission.accessor !== AppAccessorKind.Everyone) {
+        toast.error('Please enter an email or domain');
+      }
       return;
     }
 
@@ -556,20 +614,36 @@ export const PermissionsSelectionComponent: React.FC = () => {
           </div>
 
           {/* Email/Domain Input */}
-          {newPermission.accessor !== AppAccessorKind.Everyone && (
-            <div>
-              <label className="block text-xs font-medium text-bolt-elements-textPrimary mb-1.5">
-                {newPermission.accessor === AppAccessorKind.User ? 'Email Address' : 'Domain'}
-              </label>
-              <input
-                type="text"
-                value={newPermission.accessorName || ''}
-                onChange={(e) => setNewPermission({ ...newPermission, accessorName: e.target.value })}
-                placeholder={newPermission.accessor === AppAccessorKind.User ? 'user@example.com' : 'example.com'}
-                className="w-full p-3 text-sm rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 placeholder-bolt-elements-textSecondary focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-              />
-            </div>
-          )}
+          {newPermission.accessor !== AppAccessorKind.Everyone &&
+            (() => {
+              const showError =
+                newPermission.accessorName && newPermission.accessorName.trim() && !validationState.isValid;
+
+              return (
+                <div>
+                  <label className="block text-xs font-medium text-bolt-elements-textPrimary mb-1.5">
+                    {newPermission.accessor === AppAccessorKind.User ? 'Email Address' : 'Domain'}
+                  </label>
+                  <input
+                    type="text"
+                    value={newPermission.accessorName || ''}
+                    onChange={(e) => setNewPermission({ ...newPermission, accessorName: e.target.value })}
+                    placeholder={newPermission.accessor === AppAccessorKind.User ? 'user@example.com' : 'example.com'}
+                    className={`w-full p-3 text-sm rounded-lg border transition-all ${
+                      showError
+                        ? 'border-red-500/50 bg-red-500/5 text-bolt-elements-textPrimary hover:bg-red-500/10 placeholder-bolt-elements-textSecondary focus:ring-2 focus:ring-red-500/20 focus:border-red-500'
+                        : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 placeholder-bolt-elements-textSecondary focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                    }`}
+                  />
+                  {showError && validationState.errorMessage && (
+                    <div className="flex items-start gap-1.5 mt-2">
+                      <div className="i-ph:warning-circle-fill text-red-500 text-sm mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-red-500">{validationState.errorMessage}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
           {/* Allow/Deny */}
           <div>
@@ -601,7 +675,7 @@ export const PermissionsSelectionComponent: React.FC = () => {
           {/* Add Button */}
           <button
             onClick={handleAddPermission}
-            disabled={saving}
+            disabled={saving || !validationState.isValid}
             className="w-full mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-105"
           >
             {saving ? (
