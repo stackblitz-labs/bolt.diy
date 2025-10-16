@@ -5,6 +5,7 @@ import { SendButton } from '~/components/chat/SendButton.client';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import { StartBuildingButton } from '~/components/chat/StartBuildingButton';
+import { BugReportComponent } from '~/components/chat/BugReportComponent';
 import { chatStore } from '~/lib/stores/chat';
 import { useStore } from '@nanostores/react';
 import { getDiscoveryRating } from '~/lib/persistence/message';
@@ -36,6 +37,7 @@ import { processImage, validateImageFile, formatFileSize } from '~/utils/imagePr
 import { toast } from 'react-toastify';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
+import { BugReportStatus } from '~/lib/persistence/messageAppSummary';
 
 export interface MessageInputProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
@@ -75,7 +77,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const hasPendingMessage = useStore(chatStore.hasPendingMessage);
   const chatStarted = useStore(chatStore.started);
   const messages = useStore(chatStore.messages);
-  const hasAppSummary = !!useStore(chatStore.appSummary);
+  const appSummary = useStore(chatStore.appSummary);
+  const hasAppSummary = !!appSummary;
   const user = useStore(userStore.user);
   const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
   const selectedElement = useStore(workbenchStore.selectedElement) as SelectedElementData | null;
@@ -85,6 +88,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   if (!hasPendingMessage && !hasAppSummary) {
     startPlanningRating = getDiscoveryRating(messages || []);
   }
+
+  const bugReports = appSummary?.bugReports?.filter(
+    (report) => report.status === BugReportStatus.Open || report.status == BugReportStatus.WaitingForFeedback,
+  );
 
   const handleFileUpload = () => {
     const input = document.createElement('input');
@@ -238,6 +245,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         'relative bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor backdrop-blur rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:border-bolt-elements-focus/30',
       )}
     >
+      {bugReports?.map((report) => (
+        <BugReportComponent key={report.name} report={report} handleSendMessage={handleSendMessage} />
+      ))}
+
       {checkedBoxes && checkedBoxes.length > 0 && (
         <div className="bg-bolt-elements-background-depth-2 border-b border-bolt-elements-borderColor rounded-t-2xl p-4">
           <div className="flex flex-col gap-2">

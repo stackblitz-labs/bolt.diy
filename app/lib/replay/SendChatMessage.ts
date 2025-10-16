@@ -51,6 +51,7 @@ export interface NutChatRequest {
   mode?: ChatMode;
   messages?: Message[];
   visit?: VisitData;
+  retryBugReportName?: string;
 }
 
 // Messages that are rendered normally in the chat.

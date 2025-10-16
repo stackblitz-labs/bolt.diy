@@ -37,6 +37,7 @@ export interface ChatMessageParams {
   simulationData?: SimulationData;
   detectedError?: DetectedError;
   componentReference?: ChatReferenceComponent;
+  retryBugReportName?: string;
 }
 
 async function createAttachment(dataURL: string): Promise<ChatMessageAttachment> {
@@ -129,7 +130,15 @@ const ChatImplementer = memo(() => {
   };
 
   const sendMessage = async (params: ChatMessageParams) => {
-    const { messageInput, chatMode, sessionRepositoryId, simulationData, detectedError } = params;
+    const {
+      messageInput,
+      chatMode,
+      sessionRepositoryId,
+      simulationData,
+      detectedError,
+      componentReference,
+      retryBugReportName,
+    } = params;
 
     if ((messageInput?.length === 0 && imageDataList.length === 0) || chatStore.hasPendingMessage.get()) {
       return;
@@ -184,6 +193,7 @@ const ChatImplementer = memo(() => {
         repositoryId: sessionRepositoryId,
         simulationData,
         detectedError,
+        componentReference,
       };
     }
 
@@ -192,6 +202,7 @@ const ChatImplementer = memo(() => {
       mode: chatMode,
       messages,
       visit,
+      retryBugReportName,
     });
 
     if (chatStore.numAborts.get() != numAbortsAtStart) {
