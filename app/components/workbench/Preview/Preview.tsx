@@ -11,6 +11,7 @@ import type { ChatMessageParams } from '~/components/chat/ChatComponent/componen
 import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
+import { experimentalFeaturesStore } from '~/lib/stores/experimentalFeatures';
 
 // Maximum number of detected errors to fix at once.
 const MAX_DETECTED_ERRORS = 5;
@@ -69,6 +70,13 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
     let lastDetectedErrors: DetectedError[] = [];
     const interval = setInterval(async () => {
       if (!iframeRef.current) {
+        return;
+      }
+
+      // We don't watch for detected errors when bug reports are enabled.
+      // We'll send up the detected errors on the next user message.
+      const experimentalFeatures = experimentalFeaturesStore.get();
+      if (experimentalFeatures.bugReports) {
         return;
       }
 

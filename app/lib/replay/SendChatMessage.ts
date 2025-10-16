@@ -14,6 +14,9 @@ import { getLastResponseTime } from './ResponseFilter';
 import type { SimulationData } from './MessageHandler';
 import type { DetectedError } from './MessageHandlerInterface';
 import { experimentalFeaturesStore } from '~/lib/stores/experimentalFeatures';
+import { workbenchStore } from '~/lib/stores/workbench';
+import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
+import { flushDetectedErrors } from '~/components/chat/ChatComponent/functions/flushDetectedErrors';
 
 const logger = createScopedLogger('ChatMessage');
 
@@ -40,6 +43,7 @@ export interface VisitData {
   componentReference?: ChatReferenceComponent;
   simulationData?: SimulationData;
   detectedError?: DetectedError;
+  detectedErrors?: DetectedError[];
 }
 
 export interface NutChatRequest {
@@ -92,6 +96,17 @@ export async function sendChatMessage(request: NutChatRequest, onResponse: ChatR
   const experimentalFeatures = experimentalFeaturesStore.get();
   if (experimentalFeatures.bugReports && request.mode == ChatMode.UserMessage) {
     request.mode = ChatMode.UserMessageWithBugReports;
+
+    const repositoryId = workbenchStore.repositoryId.get();
+    if (repositoryId) {
+      const detectedErrors = await flushDetectedErrors();
+      const simulationData = await flushSimulationData();
+      if (!request.visit) {
+        request.visit = { repositoryId };
+      }
+      request.visit.simulationData = simulationData;
+      request.visit.detectedErrors = detectedErrors;
+    }
   }
 
   logger.debug('sendChatMessage', JSON.stringify(request));
