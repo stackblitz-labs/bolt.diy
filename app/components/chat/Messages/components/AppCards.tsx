@@ -6,17 +6,12 @@ import { FeaturesCard } from './FeaturesCard';
 import { MockupCard } from './MockupCard';
 import { SecretsCard } from './SecretsCard';
 import { AuthSelectorCard } from './AuthSelectorCard';
-import { type AppFeature, AppFeatureStatus, type AppSummary } from '~/lib/persistence/messageAppSummary';
-
-// Helper function to check if a status indicates completion
-const isStatusComplete = (status: AppFeatureStatus): boolean => {
-  return (
-    status === AppFeatureStatus.Implemented ||
-    status === AppFeatureStatus.ValidationInProgress ||
-    status === AppFeatureStatus.Validated ||
-    status === AppFeatureStatus.ValidationFailed
-  );
-};
+import {
+  type AppFeature,
+  AppFeatureStatus,
+  type AppSummary,
+  isFeatureStatusImplemented,
+} from '~/lib/persistence/messageAppSummary';
 
 // Helper function to determine which cards should be shown based on progressive disclosure
 const getVisibleCardTypes = (appSummary: AppSummary): string[] => {
@@ -31,11 +26,11 @@ const getVisibleCardTypes = (appSummary: AppSummary): string[] => {
   const hasFeatureContent = appSummary.description && appSummary.features && appSummary.features.length > 0;
 
   // Show features card when mockup is complete OR when features are actually ready to be implemented
-  const mockupComplete = isStatusComplete(appSummary.features?.[0]?.status || AppFeatureStatus.NotStarted);
+  const mockupComplete = isFeatureStatusImplemented(appSummary.features?.[0]?.status || AppFeatureStatus.NotStarted);
 
   const featuresReadyToStart = appSummary.features
     ?.slice(1)
-    .some((f) => f.status === AppFeatureStatus.ImplementationInProgress || isStatusComplete(f.status));
+    .some((f) => f.status === AppFeatureStatus.ImplementationInProgress || isFeatureStatusImplemented(f.status));
 
   if (hasFeatureContent && (mockupComplete || featuresReadyToStart)) {
     visibleCards.push('features');

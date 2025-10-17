@@ -52,6 +52,8 @@ export interface NutChatRequest {
   messages?: Message[];
   visit?: VisitData;
   retryBugReportName?: string;
+  upFrontPricing?: boolean;
+  payFeatures?: boolean;
 }
 
 // Messages that are rendered normally in the chat.
@@ -108,6 +110,10 @@ export async function sendChatMessage(request: NutChatRequest, onResponse: ChatR
       request.visit.simulationData = simulationData;
       request.visit.detectedErrors = detectedErrors;
     }
+  }
+
+  if (experimentalFeatures.upFrontPricing) {
+    request.upFrontPricing = true;
   }
 
   logger.debug('sendChatMessage', JSON.stringify(request));

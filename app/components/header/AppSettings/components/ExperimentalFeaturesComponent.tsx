@@ -14,6 +14,13 @@ export const ExperimentalFeaturesComponent = () => {
     });
   };
 
+  const handleUpFrontPricingToggle = (checked: boolean) => {
+    setExperimentalFeatures({
+      ...experimentalFeatures,
+      upFrontPricing: checked,
+    });
+  };
+
   return (
     <div className="space-y-2">
       <button
@@ -37,6 +44,18 @@ export const ExperimentalFeaturesComponent = () => {
               </span>
             </div>
             <Switch checked={experimentalFeatures.bugReports ?? false} onCheckedChange={handleBugReportsToggle} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-bolt-elements-textPrimary">Up Front Pricing</span>
+              <span className="text-xs text-bolt-elements-textSecondary">
+                Enable experimental up front pricing functionality
+              </span>
+            </div>
+            <Switch
+              checked={experimentalFeatures.upFrontPricing ?? false}
+              onCheckedChange={handleUpFrontPricingToggle}
+            />
           </div>
         </div>
       )}

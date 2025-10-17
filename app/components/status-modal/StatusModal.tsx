@@ -3,7 +3,7 @@ import { useStore } from '@nanostores/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { statusModalStore } from '~/lib/stores/statusModal';
 import { classNames } from '~/utils/classNames';
-import { AppFeatureStatus, type AppSummary } from '~/lib/persistence/messageAppSummary';
+import { AppFeatureStatus, isFeatureStatusImplemented, type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { peanutsStore } from '~/lib/stores/peanuts';
 import WithTooltip from '~/components/ui/Tooltip';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
@@ -27,13 +27,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
   const hasSubscription = useStore(subscriptionStore.hasSubscription);
 
   const features = appSummary.features?.slice(1) || [];
-  const completedFeatures = features.filter(
-    ({ status }) =>
-      status === AppFeatureStatus.Validated ||
-      status === AppFeatureStatus.Implemented ||
-      status === AppFeatureStatus.ValidationInProgress ||
-      status === AppFeatureStatus.ValidationFailed,
-  ).length;
+  const completedFeatures = features.filter((f) => isFeatureStatusImplemented(f.status)).length;
   const totalFeatures = features.length;
   const isFullyComplete = completedFeatures === totalFeatures && totalFeatures > 0;
 
@@ -235,21 +229,17 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                         <div
                           className={classNames(
                             'flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-medium border shadow-sm',
-                            feature.status === AppFeatureStatus.Validated ||
-                              feature.status === AppFeatureStatus.Implemented ||
-                              feature.status === AppFeatureStatus.ValidationInProgress
+                            isFeatureStatusImplemented(feature.status)
                               ? 'text-green-700 bg-green-50 border-green-200'
-                              : feature.status === AppFeatureStatus.ValidationFailed
+                              : feature.status === AppFeatureStatus.Failed
                                 ? 'text-yellow-700 bg-yellow-50 border-yellow-200'
                                 : 'text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor',
                           )}
                         >
-                          {(feature.status === AppFeatureStatus.Validated ||
-                            feature.status === AppFeatureStatus.Implemented ||
-                            feature.status === AppFeatureStatus.ValidationInProgress) && (
+                          {feature.status === AppFeatureStatus.Implemented && (
                             <div className="i-ph:check-circle-fill text-sm text-green-600 transition-transform duration-200 hover:scale-110" />
                           )}
-                          {feature.status === AppFeatureStatus.ValidationFailed && (
+                          {feature.status === AppFeatureStatus.Failed && (
                             <div className="i-ph:warning-circle-fill text-sm text-yellow-600 transition-transform duration-200 hover:scale-110" />
                           )}
                           {feature.status === AppFeatureStatus.NotStarted && (

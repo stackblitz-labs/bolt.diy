@@ -25,9 +25,7 @@ export const MockupCard: React.FC<MockupCardProps> = ({ mockupStatus, appSummary
           progressText: 'Building Mockup...',
         };
       case AppFeatureStatus.Implemented:
-      case AppFeatureStatus.Validated:
-      case AppFeatureStatus.ValidationInProgress:
-      case AppFeatureStatus.ValidationFailed:
+      case AppFeatureStatus.Failed:
         return {
           status: 'completed' as const,
           progressText: 'Mockup Complete',

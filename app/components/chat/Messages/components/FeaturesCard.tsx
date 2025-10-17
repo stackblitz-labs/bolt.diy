@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppCard } from './AppCard';
-import { AppFeatureStatus, type AppSummary } from '~/lib/persistence/messageAppSummary';
+import { AppFeatureStatus, isFeatureStatusImplemented, type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 
@@ -13,13 +13,7 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
   const features = appSummary.features?.slice(1) || [];
   const listenResponses = useStore(chatStore.listenResponses);
   const hasPendingMessage = useStore(chatStore.hasPendingMessage);
-  const completedFeatures = features?.filter(
-    (feature) =>
-      feature.status === AppFeatureStatus.Validated ||
-      feature.status === AppFeatureStatus.Implemented ||
-      feature.status === AppFeatureStatus.ValidationInProgress ||
-      feature.status === AppFeatureStatus.ValidationFailed,
-  ).length;
+  const completedFeatures = features?.filter((f) => isFeatureStatusImplemented(f.status)).length;
   const totalFeatures = features.length;
   const isFullyComplete = totalFeatures && totalFeatures > 0 && completedFeatures === totalFeatures;
 
@@ -34,9 +28,7 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
     features.forEach((feature) => {
       switch (feature.status) {
         case AppFeatureStatus.Implemented:
-        case AppFeatureStatus.ValidationInProgress:
-        case AppFeatureStatus.Validated:
-        case AppFeatureStatus.ValidationFailed:
+        case AppFeatureStatus.Failed:
           counts.completed++;
           break;
         case AppFeatureStatus.ImplementationInProgress:
@@ -122,13 +114,11 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
 
   const getFeatureStatusIcon = (status: AppFeatureStatus) => {
     switch (status) {
-      case AppFeatureStatus.Validated:
       case AppFeatureStatus.Implemented:
-      case AppFeatureStatus.ValidationInProgress:
         return <div className="i-ph:check-circle text-green-500 text-sm flex-shrink-0" />;
       case AppFeatureStatus.ImplementationInProgress:
         return <div className="i-ph:circle-notch animate-spin text-blue-500 text-sm flex-shrink-0" />;
-      case AppFeatureStatus.ValidationFailed:
+      case AppFeatureStatus.Failed:
         return <div className="i-ph:warning-circle text-red-500 text-sm flex-shrink-0" />;
       default:
         return <div className="i-ph:circle text-bolt-elements-textSecondary text-sm flex-shrink-0" />;

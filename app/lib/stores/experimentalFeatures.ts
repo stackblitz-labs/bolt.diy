@@ -4,6 +4,7 @@ export const kExperimentalFeatures = 'nut_experimental_features';
 
 interface ExperimentalFeatures {
   bugReports?: boolean;
+  upFrontPricing?: boolean;
 }
 
 export const experimentalFeaturesStore = atom<ExperimentalFeatures>(initStore());

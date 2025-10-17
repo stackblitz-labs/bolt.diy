@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
-import { type AppSummary, type AppFeature, AppFeatureStatus } from '~/lib/persistence/messageAppSummary';
+import { type AppSummary, type AppFeature, isFeatureStatusImplemented } from '~/lib/persistence/messageAppSummary';
 import Features from '~/components/workbench/Preview/components/PlanView/components/Features/Features';
 import Events from '~/components/workbench/Preview/components/PlanView/components/Features/components/Events';
 import Pages from '~/components/workbench/Preview/components/PlanView/components/Pages';
@@ -20,13 +20,7 @@ interface AppCardModalProps {
 
 export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, type, appSummary }) => {
   const features = appSummary.features?.slice(1) || [];
-  const completedFeatures = features.filter(
-    (f) =>
-      f.status === AppFeatureStatus.Validated ||
-      f.status === AppFeatureStatus.Implemented ||
-      f.status === AppFeatureStatus.ValidationInProgress ||
-      f.status === AppFeatureStatus.ValidationFailed,
-  ).length;
+  const completedFeatures = features.filter((f) => isFeatureStatusImplemented(f.status)).length;
   const totalFeatures = features.length;
 
   const getModalTitle = () => {
