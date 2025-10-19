@@ -16,7 +16,6 @@ import { type ChatMessageAttachment, type Message } from '~/lib/persistence/mess
 // import { usingMockChat } from '~/lib/replay/MockChat';
 import { assert, generateRandomId, navigateApp } from '~/utils/nut';
 import { createAttachment as createAttachmentAPI } from '~/lib/replay/NutAPI';
-import type { DetectedError } from '~/lib/replay/MessageHandlerInterface';
 import type { SimulationData } from '~/lib/replay/MessageHandler';
 import { shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
 
@@ -35,7 +34,6 @@ export interface ChatMessageParams {
   chatMode: ChatMode;
   sessionRepositoryId?: string;
   simulationData?: SimulationData;
-  detectedError?: DetectedError;
   componentReference?: ChatReferenceComponent;
   retryBugReportName?: string;
   payFeatures?: boolean;
@@ -136,7 +134,6 @@ const ChatImplementer = memo(() => {
       chatMode,
       sessionRepositoryId,
       simulationData,
-      detectedError,
       componentReference,
       retryBugReportName,
       payFeatures,
@@ -194,7 +191,6 @@ const ChatImplementer = memo(() => {
       visit = {
         repositoryId: sessionRepositoryId,
         simulationData,
-        detectedError,
         componentReference,
       };
     }

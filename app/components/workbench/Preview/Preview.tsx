@@ -4,17 +4,8 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import AppView, { type ResizeSide } from './components/AppView';
 import useViewport from '~/lib/hooks';
 import { useVibeAppAuthPopup } from '~/lib/hooks/useVibeAppAuth';
-import { type DetectedError } from '~/lib/replay/MessageHandlerInterface';
-import { getDetectedErrors } from '~/lib/replay/MessageHandler';
-import { ChatMode } from '~/lib/replay/SendChatMessage';
-import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
-import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
-import { experimentalFeaturesStore } from '~/lib/stores/experimentalFeatures';
-
-// Maximum number of detected errors to fix at once.
-const MAX_DETECTED_ERRORS = 5;
 
 const ENABLE_ELEMENT_PICKER = false;
 
@@ -24,11 +15,7 @@ export function getCurrentIFrame() {
   return gCurrentIFrame;
 }
 
-interface PreviewProps {
-  handleSendMessage: (params: ChatMessageParams) => void;
-}
-
-export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
+export const Preview = memo(() => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,9 +36,6 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
   // Use percentage for width
   const [widthPercent, setWidthPercent] = useState<number>(37.5); // 375px assuming 1000px window width initially
 
-  const [detectedErrors, setDetectedErrors] = useState<DetectedError[]>([]);
-  const [fixingError, setFixingError] = useState(false);
-
   const resizingState = useRef({
     isResizing: false,
     side: null as ResizeSide,
@@ -65,41 +49,10 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
 
   gCurrentIFrame = iframeRef.current ?? undefined;
 
-  // Interval for sending getDetectedErrors message
-  useEffect(() => {
-    let lastDetectedErrors: DetectedError[] = [];
-    const interval = setInterval(async () => {
-      if (!iframeRef.current) {
-        return;
-      }
-
-      // We don't watch for detected errors when bug reports are enabled.
-      // We'll send up the detected errors on the next user message.
-      const experimentalFeatures = experimentalFeaturesStore.get();
-      if (experimentalFeatures.bugReports) {
-        return;
-      }
-
-      const detectedErrors = await getDetectedErrors(iframeRef.current);
-      if (detectedErrors.length > MAX_DETECTED_ERRORS) {
-        detectedErrors.length = MAX_DETECTED_ERRORS;
-      }
-      if (detectedErrors.length !== lastDetectedErrors.length) {
-        setDetectedErrors(detectedErrors);
-      }
-      lastDetectedErrors = detectedErrors;
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [iframeRef.current]);
-
   const reloadPreview = (route = '') => {
     if (iframeRef.current) {
       iframeRef.current.src = iframeUrl + route + '?forceReload=' + Date.now();
     }
-
-    setDetectedErrors([]);
-    setFixingError(false);
   };
 
   // Send postMessage to control element picker in iframe
@@ -148,8 +101,6 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
 
     setUrl(previewURL);
     setIframeUrl(previewURL);
-    setDetectedErrors([]);
-    setFixingError(false);
   }, [previewURL]);
 
   // Handle OAuth authentication
@@ -329,49 +280,6 @@ export const Preview = memo(({ handleSendMessage }: PreviewProps) => {
           widthPercent={widthPercent}
         />
       </div>
-
-      {/* Error Display Section */}
-      {detectedErrors.length > 0 && !fixingError && (
-        <div className="border-t border-bolt-elements-borderColor/50 bg-red-50 dark:bg-red-950/20 p-4">
-          <div className="font-semibold text-sm text-red-600 dark:text-red-300 mb-2">Errors detected</div>
-          <button
-            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors"
-            onClick={async () => {
-              setFixingError(true);
-
-              if (iframeRef.current) {
-                const simulationData = await flushSimulationData();
-                for (let i = 0; i < detectedErrors.length; i++) {
-                  const detectedError = detectedErrors[i];
-                  let message = 'Fix the error I saw while using the app: ' + detectedError.message;
-                  if (detectedError.details) {
-                    message += '\n\n' + detectedError.details;
-                  }
-                  handleSendMessage({
-                    messageInput: message,
-                    chatMode: ChatMode.FixDetectedError,
-                    sessionRepositoryId: workbenchStore.repositoryId.get(),
-                    simulationData,
-                    detectedError,
-                  });
-                }
-              }
-            }}
-          >
-            Ask Nut to fix
-          </button>
-        </div>
-      )}
-
-      {/* Nut Working Display */}
-      {fixingError && (
-        <div className="border-t border-bolt-elements-borderColor/50 bg-blue-50 dark:bg-blue-950/20 p-3">
-          <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-300">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            Nut is working on fixing the error...
-          </div>
-        </div>
-      )}
     </div>
   );
 });

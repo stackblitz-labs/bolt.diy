@@ -7,13 +7,11 @@ import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { Preview } from './Preview/Preview';
 import useViewport from '~/lib/hooks';
-import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { useLayoutWidths } from '~/lib/hooks/useLayoutWidths';
 import { userStore } from '~/lib/stores/userAuth';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
-  handleSendMessage: (params: ChatMessageParams) => void;
 }
 
 const createWorkbenchVariants = (workbenchWidth: number) =>
@@ -34,7 +32,7 @@ const createWorkbenchVariants = (workbenchWidth: number) =>
     },
   }) satisfies Variants;
 
-export const Workbench = memo(({ chatStarted, handleSendMessage }: WorkspaceProps) => {
+export const Workbench = memo(({ chatStarted }: WorkspaceProps) => {
   renderLogger.trace('Workbench');
 
   const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -83,7 +81,7 @@ export const Workbench = memo(({ chatStarted, handleSendMessage }: WorkspaceProp
               )}
             >
               <div className="relative flex-1 overflow-hidden">
-                <Preview handleSendMessage={handleSendMessage} />
+                <Preview />
               </div>
             </div>
           </div>

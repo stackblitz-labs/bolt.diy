@@ -1,11 +1,6 @@
 // Methods for communicating with the message handler in the Preview iframe.
 
-import {
-  type DetectedError,
-  type MessageHandlerRequest,
-  type MessageHandlerRequestMap,
-} from './MessageHandlerInterface';
-import { assert } from '~/utils/nut';
+import { type MessageHandlerRequest, type MessageHandlerRequestMap } from './MessageHandlerInterface';
 
 let lastRequestId = 0;
 
@@ -48,11 +43,4 @@ export async function getIFrameSimulationData(iframe: HTMLIFrameElement): Promis
   const jsonString = decoder.decode(new Uint8Array(buffer));
 
   return JSON.parse(jsonString) as SimulationData;
-}
-
-export async function getDetectedErrors(iframe: HTMLIFrameElement): Promise<DetectedError[]> {
-  const detectedErrors = await sendIframeRequest(iframe, { request: 'get-detected-errors', payload: undefined });
-  assert(detectedErrors, 'Expected to have detected errors');
-
-  return detectedErrors;
 }

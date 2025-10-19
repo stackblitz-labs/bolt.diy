@@ -2,13 +2,6 @@
 
 type Compute<T> = { [K in keyof T]: T[K] } & unknown;
 
-export interface DetectedError {
-  time: string;
-  message: string;
-  details?: string;
-  data: unknown;
-}
-
 export type MessageHandlerRequestMap = {
   'recording-data': {
     payload: unknown;
@@ -17,10 +10,6 @@ export type MessageHandlerRequestMap = {
   'mouse-data': {
     payload: { x: number; y: number };
     response: unknown;
-  };
-  'get-detected-errors': {
-    payload: unknown;
-    response: DetectedError[];
   };
 };
 

@@ -182,7 +182,6 @@ export enum AppUpdateReasonKind {
   StartMockup = 'StartMockup',
   MockupImplemented = 'MockupImplemented',
   SetSecrets = 'SetSecrets',
-  AddDetectedErrorFeature = 'AddDetectedErrorFeature',
   RevertApp = 'RevertApp',
   CopyApp = 'CopyApp',
   UpdateTemplate = 'UpdateTemplate',
