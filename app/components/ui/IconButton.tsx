@@ -1,5 +1,6 @@
-import { memo, forwardRef, type ForwardedRef } from 'react';
+import { memo, forwardRef, type ForwardedRef, createElement } from 'react';
 import { classNames } from '~/utils/classNames';
+import type { LucideIcon } from 'lucide-react';
 
 type IconSize = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 
@@ -15,7 +16,7 @@ interface BaseIconButtonProps {
 }
 
 type IconButtonWithoutChildrenProps = {
-  icon: string;
+  icon: string | JSX.Element | LucideIcon;
   children?: undefined;
   testId?: string;
 } & BaseIconButtonProps;
@@ -71,7 +72,7 @@ export const IconButton = memo(
         >
           {children ? (
             children
-          ) : (
+          ) : typeof icon === 'string' ? (
             <div
               className={classNames(
                 icon,
@@ -80,6 +81,15 @@ export const IconButton = memo(
                 iconClassName,
               )}
             ></div>
+          ) : typeof icon === 'function' ? (
+            // Lucide icon as a component
+            createElement(icon, {
+              className: classNames('transition-transform duration-200 group-hover:scale-110', iconClassName),
+              size: getIconSizeNumber(size),
+            })
+          ) : (
+            // JSX element
+            icon
           )}
         </button>
       );
@@ -98,5 +108,19 @@ function getIconSize(size: IconSize) {
     return 'text-xl';
   } else {
     return 'text-2xl';
+  }
+}
+
+function getIconSizeNumber(size: IconSize): number {
+  if (size === 'sm') {
+    return 14;
+  } else if (size === 'md') {
+    return 16;
+  } else if (size === 'lg') {
+    return 18;
+  } else if (size === 'xl') {
+    return 20;
+  } else {
+    return 24;
   }
 }

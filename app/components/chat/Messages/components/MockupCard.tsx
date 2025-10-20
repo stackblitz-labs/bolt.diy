@@ -2,6 +2,7 @@ import React from 'react';
 import { AppCard } from './AppCard';
 import { AppFeatureStatus, type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { formatPascalCaseName } from '~/utils/names';
+import { Layout, MoreHorizontal, Hammer } from '~/components/ui/Icon';
 
 interface MockupCardProps {
   mockupStatus: AppFeatureStatus;
@@ -73,7 +74,7 @@ export const MockupCard: React.FC<MockupCardProps> = ({ mockupStatus, appSummary
         </div>
         {displayPages.map((page, index) => (
           <div key={index} className="flex items-center gap-2 py-1">
-            <div className="i-ph:layout text-bolt-elements-textSecondary text-sm flex-shrink-0" />
+            <Layout className="text-bolt-elements-textSecondary flex-shrink-0" size={14} />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-bolt-elements-textPrimary truncate">
                 {formatPascalCaseName(page.name || `Page ${index + 1}`)}
@@ -88,7 +89,7 @@ export const MockupCard: React.FC<MockupCardProps> = ({ mockupStatus, appSummary
         ))}
         {hasMore && (
           <div className="flex items-center gap-2 py-1 text-xs text-bolt-elements-textSecondary">
-            <div className="i-ph:dots-three text-sm flex-shrink-0" />
+            <MoreHorizontal className="flex-shrink-0" size={14} />
             <span>
               and {pages.length - 3} more page{pages.length - 3 === 1 ? '' : 's'}
             </span>
@@ -104,7 +105,7 @@ export const MockupCard: React.FC<MockupCardProps> = ({ mockupStatus, appSummary
     <AppCard
       title="Building Mockup"
       description={getDescription()}
-      icon={<div className="i-ph:hammer text-white text-lg" />}
+      icon={<Hammer className="text-white" size={18} />}
       iconColor="indigo"
       status={statusInfo.status}
       progressText={statusInfo.progressText}

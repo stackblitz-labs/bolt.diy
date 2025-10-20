@@ -20,7 +20,7 @@ export const AppLoadingScreen = ({ appId }: AppLoadingScreenProps) => {
             ease: 'easeInOut',
           }}
         >
-          <div className="i-ph:nut text-2xl text-white" />
+          <img src="/logo-styled.svg" alt="Nut.new" className="w-6 h-6" />
         </motion.div>
 
         <div className="text-center space-y-2">

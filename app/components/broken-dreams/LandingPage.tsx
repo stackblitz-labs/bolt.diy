@@ -4,6 +4,7 @@ import { Menu } from '~/components/sidebar/Menu.client';
 import { useStore } from '@nanostores/react';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { authStatusStore } from '~/lib/stores/auth';
+import { Home } from '~/components/ui/Icon';
 
 const LandingPage = () => {
   const isLoggedIn = useStore(authStatusStore.isLoggedIn);
@@ -17,7 +18,10 @@ const LandingPage = () => {
               href="/"
               className="block p-2 bg-bolt-elements-background-depth-2 rounded-lg border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3 transition-all duration-200 cursor-pointer"
             >
-              <div className="i-ph:house text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-all duration-200 hover:scale-105 cursor-pointer" />
+              <Home
+                className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-all duration-200 hover:scale-105 cursor-pointer"
+                size={20}
+              />
             </a>
           </div>
         )}

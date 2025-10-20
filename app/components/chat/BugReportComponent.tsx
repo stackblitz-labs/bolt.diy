@@ -9,6 +9,7 @@ import { formatPascalCaseName } from '~/utils/names';
 import { callNutAPI } from '~/lib/replay/NutAPI';
 import type { ChatMessageParams } from './ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
+import { Bug, CheckCircle, RotateCw, Hourglass, Loader2, Check, X } from '~/components/ui/Icon';
 
 interface BugReportComponentProps {
   report: BugReport;
@@ -54,7 +55,7 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
     >
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-          <div className="i-ph:bug text-red-500 text-lg"></div>
+          <Bug className="text-red-500" size={18} />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -73,7 +74,7 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
                     onClick={handleResolve}
                     className="w-7 h-7 flex items-center justify-center bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 rounded-lg transition-all duration-200 hover:scale-110 border border-green-500/20 hover:border-green-500/30"
                   >
-                    <div className="i-ph:check-circle text-base"></div>
+                    <CheckCircle size={16} />
                   </button>
                 </WithTooltip>
               </TooltipProvider>
@@ -84,7 +85,7 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
                     onClick={handleRetry}
                     className="w-7 h-7 flex items-center justify-center bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-all duration-200 hover:scale-110 border border-blue-500/20 hover:border-blue-500/30"
                   >
-                    <div className="i-ph:arrow-clockwise text-base"></div>
+                    <RotateCw size={16} />
                   </button>
                 </WithTooltip>
               </TooltipProvider>
@@ -96,9 +97,9 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
               <WithTooltip tooltip={escalateTime ? 'Escalated to developer support' : 'Fixing in progress'}>
                 <div className="w-7 h-7 flex items-center justify-center">
                   {escalateTime ? (
-                    <div className="i-ph:hourglass text-bolt-elements-textSecondary text-base"></div>
+                    <Hourglass className="text-bolt-elements-textSecondary" size={16} />
                   ) : (
-                    <div className="i-ph:spinner text-bolt-elements-textSecondary text-base animate-spin"></div>
+                    <Loader2 className="text-bolt-elements-textSecondary animate-spin" size={16} />
                   )}
                 </div>
               </WithTooltip>
@@ -109,7 +110,7 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
             <TooltipProvider>
               <WithTooltip tooltip="Bug resolved">
                 <div className="w-7 h-7 flex items-center justify-center bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg border border-green-500/20">
-                  <div className="i-ph:check text-base"></div>
+                  <Check size={16} />
                 </div>
               </WithTooltip>
             </TooltipProvider>
@@ -119,7 +120,7 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
             <TooltipProvider>
               <WithTooltip tooltip="Fix failed">
                 <div className="w-7 h-7 flex items-center justify-center bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg border border-red-500/20">
-                  <div className="i-ph:x text-base"></div>
+                  <X size={16} />
                 </div>
               </WithTooltip>
             </TooltipProvider>

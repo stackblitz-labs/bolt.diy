@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '@nanostores/react';
 import { Switch } from '~/components/ui/Switch';
 import { experimentalFeaturesStore, setExperimentalFeatures } from '~/lib/stores/experimentalFeatures';
+import { FlaskConical, ChevronDown } from '~/components/ui/Icon';
 
 export const ExperimentalFeaturesComponent = () => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -28,10 +29,13 @@ export const ExperimentalFeaturesComponent = () => {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <div className="i-ph:flask-duotone text-bolt-elements-textPrimary" />
+          <FlaskConical className="text-bolt-elements-textPrimary" size={18} />
           <span className="text-sm font-medium text-bolt-elements-textPrimary">Experimental Features</span>
         </div>
-        <div className={`i-ph:caret-down transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`transition-transform duration-200 text-bolt-elements-textPrimary ${isExpanded ? 'rotate-180' : ''}`}
+          size={16}
+        />
       </button>
 
       {isExpanded && (

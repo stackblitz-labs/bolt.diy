@@ -3,6 +3,7 @@ import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { AnimatePresence, cubicBezier, motion } from 'framer-motion';
 import WithTooltip from '~/components/ui/Tooltip';
 import { chatStore } from '~/lib/stores/chat';
+import { ArrowUp, StopCircle } from '~/components/ui/Icon';
 
 interface SendButtonProps {
   disabled?: boolean;
@@ -44,9 +45,13 @@ export const SendButton = ({ disabled, onClick }: SendButtonProps) => {
             }}
           >
             {!hasPendingMessage ? (
-              <div className="i-ph:arrow-up-bold text-xl transition-transform duration-200 group-hover:scale-110"></div>
+              <ArrowUp
+                className="transition-transform duration-200 group-hover:scale-110"
+                size={20}
+                strokeWidth={2.5}
+              />
             ) : (
-              <div className="i-ph:stop-circle-bold text-xl transition-transform duration-200 group-hover:scale-110"></div>
+              <StopCircle className="transition-transform duration-200 group-hover:scale-110" size={20} />
             )}
           </motion.button>
         </WithTooltip>

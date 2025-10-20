@@ -6,6 +6,7 @@ import {
   DISCOVERY_RATING_CATEGORY,
   getDiscoveryRating,
 } from '~/lib/persistence/message';
+import { User } from '~/components/ui/Icon';
 import {
   MessageContents,
   JumpToBottom,
@@ -227,10 +228,10 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
               'bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20 hover:border-blue-500/30':
                 isUserMessage,
               // Assistant messages
-              'bg-bolt-elements-messages-background border-bolt-elements-borderColor hover:border-bolt-elements-borderColor/60':
+              'bg-bolt-elements-messages-background border-bolt-elements-borderColor hover:border-bolt-elements-borderColor border-opacity-60':
                 !isUserMessage && (!hasPendingMessage || (hasPendingMessage && !isLast)),
               // Last message when pending
-              'bg-gradient-to-b from-bolt-elements-messages-background from-30% to-transparent border-bolt-elements-borderColor/50':
+              'bg-gradient-to-b from-bolt-elements-messages-background from-30% to-transparent border-bolt-elements-borderColor border-opacity-50':
                 !isUserMessage && hasPendingMessage && isLast,
             })}
           >
@@ -247,7 +248,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
               <div className="flex items-center gap-3 mb-4">
                 {isUserMessage && (
                   <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 text-white rounded-full shadow-lg">
-                    <div className="i-ph:user text-lg"></div>
+                    <User size={18} />
                   </div>
                 )}
 

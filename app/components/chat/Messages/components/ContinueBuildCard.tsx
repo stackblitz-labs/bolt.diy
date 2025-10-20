@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StartBuildingButton } from '~/components/chat/StartBuildingButton';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
+import { Rocket } from '~/components/ui/Icon';
 
 interface ContinueBuildCardProps {
   sendMessage?: (params: { messageInput: string; chatMode: ChatMode; payFeatures?: boolean }) => void;
@@ -40,7 +41,7 @@ export const ContinueBuildCard: React.FC<ContinueBuildCardProps> = ({
       <div className="bg-gradient-to-br from-green-500/5 via-emerald-500/5 to-teal-500/5 border border-green-500/20 rounded-2xl p-6 transition-all duration-300 hover:border-green-500/30 hover:shadow-lg">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 text-white rounded-full shadow-lg">
-            <div className="i-ph:rocket-launch text-2xl"></div>
+            <Rocket className="text-white" size={24} />
           </div>
 
           <div className="space-y-2">

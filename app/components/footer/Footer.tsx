@@ -1,8 +1,9 @@
 import React from 'react';
+import { MessageSquare } from '~/components/ui/Icon';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full bg-bolt-elements-background-depth-1 border-t border-bolt-elements-borderColor/50 px-6 h-[40px] flex items-center justify-center">
+    <footer className="w-full bg-bolt-elements-background-depth-1 border-t border-bolt-elements-borderColor border-opacity-50 px-6 h-[40px] flex items-center justify-center">
       <div className="flex items-center justify-center text-xs gap-6">
         <div className="flex items-center">
           <a
@@ -11,7 +12,7 @@ export const Footer: React.FC = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-2 py-1 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-full text-xs font-medium transition-all duration-200 hover:scale-105 whitespace-nowrap"
           >
-            <div className="i-ph:discord-logo-fill text-sm whitespace-nowrap" />
+            <MessageSquare size={14} />
             Join our Discord
           </a>
         </div>

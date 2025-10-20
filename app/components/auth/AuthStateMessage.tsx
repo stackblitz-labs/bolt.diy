@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { CheckCircle, XCircle } from '~/components/ui/Icon';
 
 interface AuthStateMessageProps {
   type: 'success' | 'error';
@@ -27,18 +28,18 @@ export function AuthStateMessage({
         <div className="mb-8">
           {isSuccess ? (
             <div className="mx-auto w-20 h-20 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl flex items-center justify-center shadow-lg border border-green-500/20 backdrop-blur-sm">
-              <div className="i-ph:check-circle text-3xl text-green-500 animate-pulse" />
+              <CheckCircle className="text-green-500 animate-pulse" size={30} />
             </div>
           ) : (
             <div className="mx-auto w-20 h-20 bg-gradient-to-br from-red-500/10 to-rose-500/10 rounded-2xl flex items-center justify-center shadow-lg border border-red-500/20 backdrop-blur-sm">
-              <div className="i-ph:x-circle text-3xl text-red-500" />
+              <XCircle className="text-red-500" size={30} />
             </div>
           )}
         </div>
 
         <h2 className="text-3xl font-bold mb-6 text-bolt-elements-textHeading">{title}</h2>
 
-        <div className="text-lg text-bolt-elements-textSecondary mb-8 leading-relaxed max-w-sm mx-auto bg-bolt-elements-background-depth-2/30 px-4 py-3 rounded-xl border border-bolt-elements-borderColor/30">
+        <div className="text-lg text-bolt-elements-textSecondary mb-8 leading-relaxed max-w-sm mx-auto bg-bolt-elements-background-depth-2 bg-opacity-30 px-4 py-3 rounded-xl border border-bolt-elements-borderColor border-opacity-30">
           {message}
         </div>
 

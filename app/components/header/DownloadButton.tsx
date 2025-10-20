@@ -6,6 +6,7 @@ import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { useStore } from '@nanostores/react';
 import { userStore } from '~/lib/stores/userAuth';
+import { Download } from '~/components/ui/Icon';
 
 ReactModal.setAppElement('#root');
 
@@ -61,7 +62,7 @@ export function DownloadButton() {
             className="flex items-center justify-center p-2.5 rounded-xl bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white text-bolt-elements-textHeading border border-bolt-elements-borderColor transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 group"
             onClick={handleDownload}
           >
-            <div className="i-ph:download-fill text-xl transition-transform duration-200 group-hover:scale-110" />
+            <Download className="transition-transform duration-200 group-hover:scale-110" size={20} />
           </button>
         </WithTooltip>
       </TooltipProvider>

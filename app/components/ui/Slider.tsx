@@ -81,7 +81,7 @@ const SliderButton = memo(({ selected, disabled = false, children, setSelected }
           ? 'text-bolt-elements-textSecondary opacity-50 cursor-not-allowed'
           : selected
             ? 'text-white shadow-lg'
-            : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2/50 hover:scale-105',
+            : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 bg-opacity-50 hover:scale-105',
       )}
     >
       <span className="relative z-10 transition-transform duration-200 group-hover:scale-105">{children}</span>

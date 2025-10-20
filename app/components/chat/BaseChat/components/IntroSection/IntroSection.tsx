@@ -1,5 +1,6 @@
 import React from 'react';
 import useViewport from '~/lib/hooks/useViewport';
+import { Hammer, FlaskConical, Rocket } from '~/components/ui/Icon';
 
 export const IntroSection: React.FC = () => {
   const isSmallViewport = useViewport(800);
@@ -21,19 +22,19 @@ export const IntroSection: React.FC = () => {
         <div className="flex justify-center gap-4 mb-6 animate-fade-in animation-delay-200">
           <div className="flex items-center gap-1.5 text-bolt-elements-textSecondary">
             <div className="w-6 h-6 bg-blue-500/10 rounded-lg flex items-center justify-center">
-              <div className="i-ph:hammer text-blue-500 text-sm" />
+              <Hammer className="text-blue-500" size={14} />
             </div>
             <span className="text-xs font-medium">Build</span>
           </div>
           <div className="flex items-center gap-1.5 text-bolt-elements-textSecondary">
             <div className="w-6 h-6 bg-green-500/10 rounded-lg flex items-center justify-center">
-              <div className="i-ph:flask text-green-500 text-sm" />
+              <FlaskConical className="text-green-500" size={14} />
             </div>
             <span className="text-xs font-medium">Test</span>
           </div>
           <div className="flex items-center gap-1.5 text-bolt-elements-textSecondary">
             <div className="w-6 h-6 bg-purple-500/10 rounded-lg flex items-center justify-center">
-              <div className="i-ph:rocket-launch text-purple-500 text-sm" />
+              <Rocket className="text-purple-500" size={14} />
             </div>
             <span className="text-xs font-medium">Deploy</span>
           </div>
@@ -63,19 +64,19 @@ export const IntroSection: React.FC = () => {
       <div className="flex flex-wrap justify-center gap-6 mb-8 animate-fade-in animation-delay-300">
         <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
           <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-            <div className="i-ph:hammer text-blue-500" />
+            <Hammer className="text-blue-500" size={18} />
           </div>
           <span className="text-sm font-medium">Automated Build</span>
         </div>
         <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
           <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
-            <div className="i-ph:flask text-green-500" />
+            <FlaskConical className="text-green-500" size={18} />
           </div>
           <span className="text-sm font-medium">Automatic Testing</span>
         </div>
         <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
           <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
-            <div className="i-ph:rocket-launch text-purple-500" />
+            <Rocket className="text-purple-500" size={18} />
           </div>
           <span className="text-sm font-medium">One-Click Deploy</span>
         </div>

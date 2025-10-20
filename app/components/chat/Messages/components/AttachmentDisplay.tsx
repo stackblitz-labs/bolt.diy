@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { downloadAttachment } from '~/lib/replay/NutAPI';
 import type { ChatMessageAttachment } from '~/lib/persistence/message';
+import { Loader2, AlertTriangle } from '~/components/ui/Icon';
 
 interface AttachmentDisplayProps {
   attachment: ChatMessageAttachment;
@@ -50,7 +51,7 @@ export function AttachmentDisplay({ attachment }: AttachmentDisplayProps) {
   if (loading) {
     return (
       <div className="flex items-center gap-2 p-3 bg-bolt-elements-background-depth-2 rounded-lg border border-bolt-elements-borderColor">
-        <div className="i-ph:spinner animate-spin text-bolt-elements-textSecondary" />
+        <Loader2 className="animate-spin text-bolt-elements-textSecondary" size={16} />
         <span className="text-sm text-bolt-elements-textSecondary">Loading image...</span>
       </div>
     );
@@ -59,7 +60,7 @@ export function AttachmentDisplay({ attachment }: AttachmentDisplayProps) {
   if (error) {
     return (
       <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-        <div className="i-ph:warning text-red-500" />
+        <AlertTriangle className="text-red-500" size={16} />
         <div className="text-sm text-red-700">
           <div className="font-medium">Failed to load image</div>
           <div className="text-xs">{attachment.fileName}</div>

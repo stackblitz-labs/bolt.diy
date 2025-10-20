@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { userStore } from '~/lib/stores/userAuth';
 import { useStore } from '@nanostores/react';
 import { accountModalStore } from '~/lib/stores/accountModal';
+import { Crown } from '~/components/ui/Icon';
 
 interface SubscriptionCardProps {
   onMount?: () => void;
@@ -43,7 +44,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ onMount }) =
       <div className="bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-rose-500/5 border border-purple-500/20 rounded-2xl p-6 transition-all duration-300 hover:border-purple-500/30 hover:shadow-lg">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-full shadow-lg">
-            <div className="i-ph:crown text-2xl" />
+            <Crown className="text-white" size={24} />
           </div>
 
           <div className="space-y-2">
@@ -65,7 +66,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ onMount }) =
               </>
             ) : (
               <>
-                <div className="i-ph:crown text-xl transition-transform duration-200 group-hover:scale-110" />
+                <Crown className="transition-transform duration-200 group-hover:scale-110" size={20} />
                 <span className="transition-transform duration-200 group-hover:scale-105">View Plans</span>
               </>
             )}

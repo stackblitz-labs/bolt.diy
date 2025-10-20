@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { classNames } from '~/utils/classNames';
+import { CheckCircle, XCircle, Info } from '~/components/ui/Icon';
 
 interface StripeStatusModalProps {
   isOpen: boolean;
@@ -37,13 +38,13 @@ export function StripeStatusModal({ isOpen, onClose, type, title, message, detai
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return 'i-ph:check-circle';
+        return <CheckCircle className="text-green-500" size={24} />;
       case 'error':
-        return 'i-ph:x-circle';
+        return <XCircle className="text-red-500" size={24} />;
       case 'info':
-        return 'i-ph:info';
+        return <Info className="text-blue-500" size={24} />;
       default:
-        return 'i-ph:info';
+        return <Info className="text-blue-500" size={24} />;
     }
   };
 
@@ -118,7 +119,7 @@ export function StripeStatusModal({ isOpen, onClose, type, title, message, detai
                     : 'from-blue-400 to-indigo-500',
               )}
             >
-              <div className={classNames('text-4xl text-white', getIcon())} />
+              <div className="text-4xl text-white">{getIcon()}</div>
             </div>
           </div>
 
@@ -149,7 +150,7 @@ export function StripeStatusModal({ isOpen, onClose, type, title, message, detai
                 className={classNames(
                   'p-6 rounded-2xl border shadow-sm bg-gradient-to-br',
                   'from-bolt-elements-background-depth-2/40 to-bolt-elements-background-depth-3/20',
-                  'border-bolt-elements-borderColor/30',
+                  'border-bolt-elements-borderColor border-opacity-30',
                 )}
               >
                 <p className="text-bolt-elements-textSecondary leading-relaxed text-center">{details}</p>

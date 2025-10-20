@@ -5,6 +5,7 @@ import { SignUpForm } from './SignUpForm';
 import { AuthStateMessage } from './AuthStateMessage';
 import { PasswordResetForm } from './PasswordResetForm';
 import { toast } from 'react-toastify';
+import { X } from '~/components/ui/Icon';
 
 export function GlobalAuthModal() {
   const isOpen = useStore(authModalStore.isOpen);
@@ -49,14 +50,14 @@ export function GlobalAuthModal() {
       onClick={() => authModalStore.close()}
     >
       <div
-        className="bg-bolt-elements-background-depth-1 p-6 sm:p-8 rounded-2xl w-full max-w-md mx-auto border border-bolt-elements-borderColor/50 shadow-2xl hover:shadow-3xl transition-shadow duration-300 backdrop-blur-sm relative max-h-[calc(100vh-4rem)] overflow-y-auto"
+        className="bg-bolt-elements-background-depth-1 p-6 sm:p-8 rounded-2xl w-full max-w-md mx-auto border border-bolt-elements-borderColor border-opacity-50 shadow-2xl hover:shadow-3xl transition-shadow duration-300 backdrop-blur-sm relative max-h-[calc(100vh-4rem)] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={() => authModalStore.close()}
           className="absolute top-3 right-3 sm:top-4 sm:right-4 w-10 h-10 sm:w-8 sm:h-8 rounded-xl bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3 transition-all duration-200 flex items-center justify-center text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary shadow-sm hover:shadow-md hover:scale-105 group z-10"
         >
-          <div className="i-ph:x text-lg transition-transform duration-200 group-hover:scale-110" />
+          <X className="transition-transform duration-200 group-hover:scale-110" size={18} />
         </button>
 
         {state === 'success' ? (

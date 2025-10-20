@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { classNames } from '~/utils/classNames';
+import { ChevronDown } from '~/components/ui/Icon';
 
 interface FAQItem {
   question: string;
@@ -60,7 +61,7 @@ export const FaqSection = () => {
         {faqItems.map((item, index) => (
           <div
             key={index}
-            className="rounded-xl border border-bolt-elements-borderColor overflow-hidden transition-all duration-200 hover:border-bolt-elements-borderColor/100 shadow-sm"
+            className="rounded-xl border border-bolt-elements-borderColor overflow-hidden transition-all duration-200 hover:border-bolt-elements-borderColor border-opacity-100 shadow-sm"
           >
             <button
               onClick={() => toggleExpanded(index)}
@@ -72,12 +73,12 @@ export const FaqSection = () => {
                   'rotate-180': expandedItem === index,
                 })}
               >
-                <div className="i-ph:caret-down text-bolt-elements-textSecondary" />
+                <ChevronDown className="text-bolt-elements-textSecondary" size={16} />
               </div>
             </button>
 
             {expandedItem === index && (
-              <div className="px-6 pb-4 border-t border-bolt-elements-borderColor/30 bg-bolt-elements-background-depth-2">
+              <div className="px-6 pb-4 border-t border-bolt-elements-borderColor border-opacity-30 bg-bolt-elements-background-depth-2">
                 <div className="pt-4 text-bolt-elements-textSecondary leading-relaxed whitespace-pre-line">
                   {item.answer}
                 </div>

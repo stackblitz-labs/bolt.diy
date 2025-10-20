@@ -8,6 +8,7 @@ import { assert } from '~/utils/nut';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import AllowedDomainsDialog from '~/components/ui/AllowedDomainsDialog';
+import { Lock, Globe, ShieldCheck, Check } from '~/components/ui/Icon';
 
 interface AuthSelectorCardProps {
   appSummary: AppSummary;
@@ -72,7 +73,7 @@ export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }
           <button
             className={`group p-4 bg-bolt-elements-background-depth-2 rounded-xl border transition-all duration-200 w-full shadow-sm ${
               saving
-                ? 'border-bolt-elements-borderColor/30 cursor-not-allowed opacity-60'
+                ? 'border-bolt-elements-borderColor border-opacity-30 cursor-not-allowed opacity-60'
                 : 'border-bolt-elements-borderColor hover:border-bolt-elements-focus/60 hover:bg-bolt-elements-background-depth-3 hover:shadow-md hover:scale-[1.02] cursor-pointer'
             }`}
             onClick={!saving ? handleToggle : undefined}
@@ -80,9 +81,17 @@ export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div
-                  className={`transition-transform duration-200 group-hover:scale-110 ${authRequired ? 'i-ph:lock-duotone text-bolt-elements-icon-success' : 'i-ph:globe-duotone text-bolt-elements-textPrimary'}`}
-                />
+                {authRequired ? (
+                  <Lock
+                    className="transition-transform duration-200 group-hover:scale-110 text-bolt-elements-icon-success"
+                    size={18}
+                  />
+                ) : (
+                  <Globe
+                    className="transition-transform duration-200 group-hover:scale-110 text-bolt-elements-textPrimary"
+                    size={18}
+                  />
+                )}
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-bolt-elements-textPrimary transition-transform duration-200 group-hover:scale-105">
                     {authRequired ? 'Authentication Required' : 'Public Access'}
@@ -115,7 +124,7 @@ export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }
         <div className="relative">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm bg-gradient-to-br from-indigo-500 to-indigo-600">
-              <div className="i-ph:shield-check-duotone text-white text-lg" />
+              <ShieldCheck className="text-white" size={18} />
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-base font-semibold text-bolt-elements-textHeading truncate">
@@ -123,7 +132,7 @@ export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }
               </h3>
               <div className="mt-1.5 flex items-center">
                 <div className="flex items-center gap-2 text-bolt-elements-icon-success">
-                  <div className="i-ph:check-bold text-sm" />
+                  <Check size={14} strokeWidth={2.5} />
                   <span className="text-sm font-medium text-green-600">Configured</span>
                 </div>
               </div>

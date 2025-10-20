@@ -7,6 +7,7 @@ import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
 import { isAppOwnerStore } from '~/lib/stores/permissions';
 import { userStore } from '~/lib/stores/userAuth';
 import { permissionsStore } from '~/lib/stores/permissions';
+import { Check, PenLine } from '~/components/ui/Icon';
 
 export function ChatDescription() {
   const initialTitle = useStore(chatStore.appTitle);
@@ -43,7 +44,11 @@ export function ChatDescription() {
                 onClick={handleSubmit}
                 className="p-2.5 rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary border border-bolt-elements-borderColor transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 group flex-shrink-0"
               >
-                <div className="i-ph:check-bold text-lg transition-transform duration-200 bg-green-600 rounded-full group-hover:scale-110" />
+                <Check
+                  className="text-lg transition-transform duration-200 bg-green-600 rounded-full group-hover:scale-110"
+                  size={18}
+                  strokeWidth={2.5}
+                />
               </button>
             </WithTooltip>
           </TooltipProvider>
@@ -64,7 +69,7 @@ export function ChatDescription() {
                     toggleEditMode();
                   }}
                 >
-                  <div className="i-ph:pencil-fill text-lg transition-transform duration-200 group-hover:scale-110" />
+                  <PenLine className="text-lg transition-transform duration-200 group-hover:scale-110" size={18} />
                 </button>
               </WithTooltip>
             )}

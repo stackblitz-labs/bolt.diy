@@ -1,3 +1,5 @@
+import { AlertTriangle } from 'lucide-react';
+
 interface ConfirmCancelModalProps {
   isOpen: boolean;
   onConfirm: () => void;
@@ -29,7 +31,7 @@ export function ConfirmCancelModal({ isOpen, onConfirm, onCancel }: ConfirmCance
           {/* Warning icon */}
           <div className="mb-6">
             <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-red-400 to-pink-500 shadow-2xl flex items-center justify-center">
-              <div className="i-ph:warning text-4xl text-white" />
+              <AlertTriangle className="text-white" size={36} />
             </div>
           </div>
 

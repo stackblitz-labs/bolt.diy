@@ -8,6 +8,7 @@ import { SubscriptionModal } from '~/components/subscription/SubscriptionModal';
 import { subscriptionModalStore } from '~/lib/stores/subscriptionModal';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
 import { IconButton } from '~/components/ui/IconButton';
+import { User as UserIcon, CreditCard, ArrowLeft, X } from '~/components/ui/Icon';
 
 export function GlobalAccountModal() {
   const isOpen = useStore(accountModalStore.isOpen);
@@ -77,7 +78,7 @@ export function GlobalAccountModal() {
                 onClick={() => accountModalStore.close()}
                 className="flex items-center justify-center w-8 h-8 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 rounded-lg transition-all duration-200 hover:scale-105"
                 aria-label="Close modal"
-                icon="i-ph:x"
+                icon={<X size={30} />}
                 size="xxl"
               />
             </div>
@@ -92,7 +93,7 @@ export function GlobalAccountModal() {
                     : 'text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 hover:border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary'
                 }`}
               >
-                <div className="i-ph:user text-lg" />
+                <UserIcon size={18} />
                 <span className="font-medium">Account</span>
               </button>
 
@@ -104,7 +105,7 @@ export function GlobalAccountModal() {
                     : 'text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 hover:border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary'
                 }`}
               >
-                <div className="i-ph:credit-card text-lg" />
+                <CreditCard size={18} />
                 <span className="font-medium">Plans</span>
               </button>
             </nav>
@@ -121,14 +122,14 @@ export function GlobalAccountModal() {
                   onClick={() => accountModalStore.activeTab.set(null)}
                   className="flex items-center gap-2  bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary hover:text-bolt-elements-textSecondary transition-colors"
                 >
-                  <div className="i-ph:arrow-left text-lg" />
+                  <ArrowLeft size={18} />
                   <span className="font-medium">Settings</span>
                 </button>
                 <IconButton
                   onClick={() => accountModalStore.close()}
                   className="flex items-center justify-center w-8 h-8 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 rounded-lg transition-all duration-200 hover:scale-105"
                   aria-label="Close modal"
-                  icon="i-ph:x"
+                  icon={<X size={30} />}
                   size="xxl"
                 />
               </div>

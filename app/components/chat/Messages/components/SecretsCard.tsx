@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppCard } from './AppCard';
 import { type AppSummary } from '~/lib/persistence/messageAppSummary';
+import { CheckCircle, Circle, MoreHorizontal, Key } from '~/components/ui/Icon';
 
 interface SecretsCardProps {
   appSummary: AppSummary;
@@ -76,9 +77,9 @@ export const SecretsCard: React.FC<SecretsCardProps> = ({ appSummary, onViewDeta
         {requiredSecrets.slice(0, 5).map((secret, index) => (
           <div key={index} className="flex items-center gap-2 py-1">
             {setSecrets.includes(secret.name) ? (
-              <div className="i-ph:check-circle text-green-500 text-sm flex-shrink-0" />
+              <CheckCircle className="text-green-500 flex-shrink-0" size={14} />
             ) : (
-              <div className="i-ph:circle text-bolt-elements-textSecondary text-sm flex-shrink-0" />
+              <Circle className="text-bolt-elements-textSecondary flex-shrink-0" size={14} />
             )}
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-bolt-elements-textPrimary truncate">{secret.name}</div>
@@ -92,7 +93,7 @@ export const SecretsCard: React.FC<SecretsCardProps> = ({ appSummary, onViewDeta
         {/* Show remaining count if more than 5 */}
         {requiredSecrets.length > 5 && (
           <div className="flex items-center gap-2 py-1 text-xs text-bolt-elements-textSecondary">
-            <div className="i-ph:dots-three text-sm flex-shrink-0" />
+            <MoreHorizontal className="flex-shrink-0" size={14} />
             <span>
               and {requiredSecrets.length - 5} more secret{requiredSecrets.length - 5 === 1 ? '' : 's'}
             </span>
@@ -101,8 +102,8 @@ export const SecretsCard: React.FC<SecretsCardProps> = ({ appSummary, onViewDeta
 
         {/* Built-in secrets info */}
         {allSecrets.filter((s) => BUILTIN_SECRET_NAMES.includes(s.name)).length > 0 && (
-          <div className="flex items-center gap-2 py-1 mt-2 pt-2 border-t border-bolt-elements-borderColor/30">
-            <div className="i-ph:check-circle text-green-500 text-sm flex-shrink-0" />
+          <div className="flex items-center gap-2 py-1 mt-2 pt-2 border-t border-bolt-elements-borderColor border-opacity-30">
+            <CheckCircle className="text-green-500 flex-shrink-0" size={14} />
             <span className="text-xs text-bolt-elements-textSecondary">Built-in API keys configured automatically</span>
           </div>
         )}
@@ -119,7 +120,7 @@ export const SecretsCard: React.FC<SecretsCardProps> = ({ appSummary, onViewDeta
     <AppCard
       title="Secrets Configuration"
       description={getDescription()}
-      icon={<div className="i-ph:key-duotone text-white text-lg" />}
+      icon={<Key className="text-white" size={18} />}
       iconColor="purple"
       status={statusInfo.status}
       progressText={statusInfo.progressText}

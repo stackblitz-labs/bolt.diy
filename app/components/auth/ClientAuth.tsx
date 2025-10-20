@@ -9,6 +9,7 @@ import { authModalStore } from '~/lib/stores/authModal';
 import { userStore } from '~/lib/stores/userAuth';
 import { useStore } from '@nanostores/react';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
+import { User, Crown, Sparkles, Settings, LogOut } from '~/components/ui/Icon';
 
 export function ClientAuth() {
   const user = useStore(userStore.user);
@@ -137,7 +138,7 @@ export function ClientAuth() {
               />
             ) : (
               <span className="text-sm font-semibold transition-transform duration-200 group-hover:scale-110">
-                <div className="i-ph:user text-lg" />
+                <User size={18} />
               </span>
             )}
           </button>
@@ -150,7 +151,7 @@ export function ClientAuth() {
               <div className="px-6 py-4 border-b border-bolt-elements-borderColor">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-bolt-elements-background-depth-2 rounded-full flex items-center justify-center border border-bolt-elements-borderColor">
-                    <div className="i-ph:user text-lg text-bolt-elements-textPrimary" />
+                    <User className="text-bolt-elements-textPrimary" size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-bolt-elements-textSecondary mb-1">Signed in as</div>
@@ -164,9 +165,9 @@ export function ClientAuth() {
                   <button
                     onClick={handleSubscriptionToggle}
                     disabled={loading}
-                    className="w-full px-4 py-3 text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium shadow-sm hover:shadow-md"
+                    className="w-full px-4 py-3 text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium shadow-sm hover:shadow-md group"
                   >
-                    <div className="i-ph:crown text-xl transition-transform duration-200 group-hover:scale-110" />
+                    <Crown className="transition-transform duration-200 group-hover:scale-110" size={20} />
                     <span className="transition-transform duration-200 group-hover:scale-105">View Plans</span>
                   </button>
                 </div>
@@ -174,7 +175,7 @@ export function ClientAuth() {
                 <div className="px-6 py-4 border-b border-bolt-elements-borderColor">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="i-ph:crown text-lg text-blue-600" />
+                      <Crown className="text-blue-600" size={18} />
                       <span className="text-bolt-elements-textPrimary font-medium">Plan</span>
                     </div>
 
@@ -231,7 +232,7 @@ export function ClientAuth() {
                       setShowProTooltip(false);
                     }}
                   >
-                    <div className="i-ph:sparkle text-lg" />
+                    <Sparkles size={18} />
                     <span>Pro Plan: Join the Waitlist</span>
                   </a>
 
@@ -262,7 +263,7 @@ export function ClientAuth() {
                   onClick={handleShowAccountModal}
                   className="w-full px-4 py-3 bg-gradient-to-br from-blue-500 to-indigo-500 text-white hover:bg-gradient-to-br hover:from-blue-600 hover:to-indigo-600 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium shadow-sm hover:shadow-md"
                 >
-                  <div className="i-ph:gear text-lg" />
+                  <Settings size={18} />
                   <span>Account Settings</span>
                 </button>
 
@@ -270,7 +271,7 @@ export function ClientAuth() {
                   onClick={handleSignOut}
                   className="w-full px-4 py-3 bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary border border-bolt-elements-borderColor rounded-lg transition-all duration-200 flex items-center gap-3 font-medium"
                 >
-                  <div className="i-ph:sign-out text-lg" />
+                  <LogOut size={18} />
                   <span>Sign Out</span>
                 </button>
               </div>

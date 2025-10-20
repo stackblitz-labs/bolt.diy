@@ -155,13 +155,13 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
     <div className="space-y-8 p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-bolt-elements-textHeading">Version History</h2>
-        <div className="text-sm text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2/50 px-3 py-1.5 rounded-lg border border-bolt-elements-borderColor/50 shadow-sm">
+        <div className="text-sm text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 bg-opacity-50 px-3 py-1.5 rounded-lg border border-bolt-elements-borderColor border-opacity-50 shadow-sm">
           {history.length} {history.length === 1 ? 'version' : 'versions'}
         </div>
       </div>
 
       {history.length === 0 ? (
-        <div className="text-center py-16 bg-bolt-elements-background-depth-2/30 rounded-xl border border-bolt-elements-borderColor/50">
+        <div className="text-center py-16 bg-bolt-elements-background-depth-2 bg-opacity-30 rounded-xl border border-bolt-elements-borderColor border-opacity-50">
           <div className="text-6xl mb-6 opacity-50">📝</div>
           <div className="text-bolt-elements-textSecondary mb-3 text-lg font-medium">No version history available</div>
           <div className="text-sm text-bolt-elements-textSecondary">
@@ -176,7 +176,7 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
             return (
               <div
                 key={index}
-                className={`group relative bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-xl p-6 transition-all duration-200 hover:shadow-xl hover:border-bolt-elements-borderColor/70 hover:scale-[1.01] shadow-sm ${
+                className={`group relative bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-xl p-6 transition-all duration-200 hover:shadow-xl hover:border-bolt-elements-borderColor border-opacity-70 hover:scale-[1.01] shadow-sm ${
                   isLatest ? 'ring-2 ring-green-500/20 border-green-500/40 shadow-md' : ''
                 }`}
               >
@@ -193,7 +193,7 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
                         v{summary.version || 'N/A'}
                       </span>
                       <span
-                        className="text-sm text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2/50 px-3 py-1.5 rounded-lg"
+                        className="text-sm text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 bg-opacity-50 px-3 py-1.5 rounded-lg"
                         title={getFormattedTime(summary.time)}
                       >
                         {formatRelativeTime(summary.time)}
@@ -209,7 +209,7 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
                       </span>
                     </div>
 
-                    <div className="text-xs text-bolt-elements-textSecondary font-mono bg-bolt-elements-background-depth-2/30 px-3 py-2 rounded-lg inline-block border border-bolt-elements-borderColor/30">
+                    <div className="text-xs text-bolt-elements-textSecondary font-mono bg-bolt-elements-background-depth-2 bg-opacity-30 px-3 py-2 rounded-lg inline-block border border-bolt-elements-borderColor border-opacity-30">
                       {getFormattedTime(summary.time)}
                     </div>
                   </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getSupabase } from '~/lib/supabase/client';
 import type { AuthError } from '@supabase/supabase-js';
 import { GoogleIcon } from '~/components/icons/google-icon';
+import { UserPlus } from '~/components/ui/Icon';
 
 interface SignUpFormProps {
   onToggleForm: () => void;
@@ -89,7 +90,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
     <>
       <div className="text-center mb-8">
         <div className="w-16 h-16 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-500/20 shadow-lg">
-          <div className="i-ph:user-plus text-2xl text-green-500" />
+          <UserPlus className="text-green-500" size={24} />
         </div>
         <h2 className="text-3xl font-bold text-bolt-elements-textHeading">Create Account</h2>
         <p className="text-bolt-elements-textSecondary mt-2">Join us and start building amazing apps</p>
@@ -109,10 +110,10 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
 
       <div className="relative my-8">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-bolt-elements-borderColor/50"></div>
+          <div className="w-full border-t border-bolt-elements-borderColor border-opacity-50"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 py-2 bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary rounded-lg border border-bolt-elements-borderColor/30 shadow-sm">
+          <span className="px-4 py-2 bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary rounded-lg border border-bolt-elements-borderColor border-opacity-30 shadow-sm">
             Or continue with email
           </span>
         </div>
@@ -128,7 +129,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor/50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Enter your name"
             required
           />
@@ -143,7 +144,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor/50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Enter your email"
             required
           />
@@ -163,7 +164,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor/50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Create a password"
             required
           />
@@ -178,7 +179,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor/50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Confirm your password"
             required
           />
@@ -196,7 +197,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
           </div>
         )}
 
-        <div className="p-4 bg-bolt-elements-background-depth-2/30 rounded-xl border border-bolt-elements-borderColor/30">
+        <div className="p-4 bg-bolt-elements-background-depth-2 bg-opacity-30 rounded-xl border border-bolt-elements-borderColor border-opacity-30">
           <div className="flex items-start gap-3">
             <div className="relative flex items-center mt-0.5">
               <input
@@ -236,7 +237,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
         </button>
       </form>
 
-      <div className="mt-8 text-center p-4 bg-bolt-elements-background-depth-2/30 rounded-xl border border-bolt-elements-borderColor/30">
+      <div className="mt-8 text-center p-4 bg-bolt-elements-background-depth-2 bg-opacity-30 rounded-xl border border-bolt-elements-borderColor border-opacity-30">
         <p className="text-bolt-elements-textSecondary">
           Already have an account?{' '}
           <button

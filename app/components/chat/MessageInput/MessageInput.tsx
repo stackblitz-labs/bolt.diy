@@ -10,6 +10,7 @@ import { chatStore } from '~/lib/stores/chat';
 import { useStore } from '@nanostores/react';
 import { getDiscoveryRating } from '~/lib/persistence/message';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
+import { Check, MousePointer, X, Paperclip } from '~/components/ui/Icon';
 
 interface ReactComponent {
   displayName?: string;
@@ -255,7 +256,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             {checkedBoxes.map((text) => (
               <div className="flex items-center gap-3 text-bolt-elements-textPrimary text-sm" key={text}>
                 <div className="w-5 h-5 bg-green-500/10 rounded-full flex items-center justify-center">
-                  <div className="i-ph:check text-green-500 text-sm"></div>
+                  <Check className="text-green-500" size={14} />
                 </div>
                 <div className="font-medium">{text}</div>
               </div>
@@ -269,7 +270,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 bg-blue-500/10 rounded-full flex items-center justify-center">
-                <div className="i-ph:cursor text-blue-500 text-sm"></div>
+                <MousePointer className="text-blue-500" size={14} />
               </div>
               <div>
                 <div className="text-sm font-medium text-bolt-elements-textPrimary">
@@ -286,7 +287,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               onClick={() => workbenchStore.setSelectedElement(null)}
               className="w-6 h-6 rounded-lg bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 hover:border-bolt-elements-focus/50 transition-all duration-200 flex items-center justify-center text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
             >
-              <div className="i-ph:x text-sm"></div>
+              <X size={14} />
             </button>
           </div>
         </div>
@@ -296,7 +297,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         <textarea
           ref={textareaRef}
           className={classNames(
-            'w-full px-6 py-4 pr-20 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-base',
+            'w-full px-6 py-4 pr-20 border-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-base',
             'transition-all duration-200',
             'focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50',
             checkedBoxes && checkedBoxes.length > 0 ? 'rounded-b-2xl' : 'rounded-2xl',
@@ -462,7 +463,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 className="w-8 h-8 rounded-lg bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 hover:border-bolt-elements-focus/50 transition-all duration-200 flex items-center justify-center text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
                 onClick={handleFileUpload}
               >
-                <div className="i-ph:paperclip text-lg"></div>
+                <Paperclip size={18} />
               </button>
             </WithTooltip>
           </TooltipProvider>

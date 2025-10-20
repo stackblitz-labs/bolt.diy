@@ -1,6 +1,5 @@
 import { vitePlugin as remixVitePlugin } from '@remix-run/dev';
 import { vercelPreset } from '@vercel/remix/vite';
-import UnoCSS from 'unocss/vite';
 import { defineConfig } from 'vite';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
@@ -41,7 +40,6 @@ export default defineConfig((config) => {
         },
         presets: [vercelPreset()],
       }),
-      UnoCSS(),
       tsconfigPaths(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
       config.mode === 'production' &&

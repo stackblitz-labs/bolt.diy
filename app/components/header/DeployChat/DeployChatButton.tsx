@@ -6,7 +6,9 @@ import { database } from '~/lib/persistence/apps';
 import { downloadRepository } from '~/lib/replay/Deploy';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
+import { Button } from '~/components/ui/button';
 import { toast } from 'react-toastify';
+import { Check, Rocket } from 'lucide-react';
 
 export enum DeployStatus {
   NotStarted,
@@ -75,7 +77,7 @@ export function DeployChatButton() {
               : 'Deploy App'
         }
       >
-        <button
+        <Button
           className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl p-2.5 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 group"
           onClick={handleOpenModal}
           disabled={status === DeployStatus.Started}
@@ -83,11 +85,11 @@ export function DeployChatButton() {
           {status === DeployStatus.Started ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : status === DeployStatus.Succeeded ? (
-            <div className="i-ph:check text-green-500 text-xl drop-shadow-sm transition-transform duration-200 group-hover:scale-110"></div>
+            <Check className="text-green-500 text-xl drop-shadow-sm transition-transform duration-200 group-hover:scale-110" />
           ) : (
-            <div className="i-ph:rocket-launch text-xl text-white drop-shadow-sm transition-transform duration-200 group-hover:scale-110"></div>
+            <Rocket className="text-xl text-white drop-shadow-sm transition-transform duration-200 group-hover:scale-110" />
           )}
-        </button>
+        </Button>
       </WithTooltip>
     </TooltipProvider>
   );

@@ -7,6 +7,7 @@ import Events from '~/components/workbench/Preview/components/PlanView/component
 import Pages from '~/components/workbench/Preview/components/PlanView/components/Pages';
 import Secrets from '~/components/workbench/Preview/components/PlanView/components/Secrets';
 import AuthSelector from '~/components/workbench/Preview/components/PlanView/components/AuthSelector';
+import { Info, Puzzle, Hammer, Key, ShieldCheck } from '~/components/ui/Icon';
 
 type ModalType = 'project-description' | 'features' | 'mockup' | 'secrets' | 'auth';
 
@@ -29,7 +30,7 @@ export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, typ
         return (
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
-              <div className="i-ph:info-duotone text-white text-lg" />
+              <Info className="text-white" size={18} />
             </div>
             Project Overview
           </div>
@@ -38,7 +39,7 @@ export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, typ
         return (
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-sm">
-              <div className="i-ph:puzzle-piece-duotone text-white text-lg" />
+              <Puzzle className="text-white" size={18} />
             </div>
             Features
           </div>
@@ -47,7 +48,7 @@ export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, typ
         return (
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-              <div className="i-ph:hammer text-white text-lg" />
+              <Hammer className="text-white" size={18} />
             </div>
             Mockup Details
           </div>
@@ -57,7 +58,7 @@ export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, typ
         return (
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-              <div className="i-ph:key-duotone text-white text-lg" />
+              <Key className="text-white" size={18} />
             </div>
             Secrets Configuration
           </div>
@@ -66,7 +67,7 @@ export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, typ
         return (
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-              <div className="i-ph:shield-check-duotone text-white text-lg" />
+              <ShieldCheck className="text-white" size={18} />
             </div>
             Authentication Settings
           </div>
@@ -82,7 +83,7 @@ export const AppCardModal: React.FC<AppCardModalProps> = ({ isOpen, onClose, typ
         return (
           <>
             <div className="space-y-6 mb-6">
-              <div className="p-6 bg-bolt-elements-background-depth-2/50 rounded-xl border border-bolt-elements-borderColor/50">
+              <div className="p-6 bg-bolt-elements-background-depth-2 bg-opacity-50 rounded-xl border border-bolt-elements-borderColor border-opacity-50">
                 <div className="text-lg font-semibold mb-3 text-bolt-elements-textHeading">Project Description</div>
                 <div className="text-bolt-elements-textSecondary leading-relaxed">{appSummary.description}</div>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getSupabase } from '~/lib/supabase/client';
 import type { AuthError } from '@supabase/supabase-js';
+import { Key } from '~/components/ui/Icon';
 
 interface PasswordResetFormProps {
   onBack: () => void;
@@ -53,7 +54,7 @@ export function PasswordResetForm({ onBack, onSuccess, onError }: PasswordResetF
     <>
       <div className="text-center mb-8">
         <div className="w-16 h-16 bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-orange-500/20 shadow-lg">
-          <div className="i-ph:key text-2xl text-orange-500" />
+          <Key className="text-orange-500" size={24} />
         </div>
         <h2 className="text-3xl font-bold text-bolt-elements-textHeading">Reset Your Password</h2>
         <p className="text-bolt-elements-textSecondary mt-2 leading-relaxed">
@@ -71,7 +72,7 @@ export function PasswordResetForm({ onBack, onSuccess, onError }: PasswordResetF
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor/50 focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Enter your email address"
             required
           />
@@ -93,7 +94,7 @@ export function PasswordResetForm({ onBack, onSuccess, onError }: PasswordResetF
         </button>
       </form>
 
-      <div className="mt-8 text-center p-4 bg-bolt-elements-background-depth-2/30 rounded-xl border border-bolt-elements-borderColor/30">
+      <div className="mt-8 text-center p-4 bg-bolt-elements-background-depth-2 bg-opacity-30 rounded-xl border border-bolt-elements-borderColor border-opacity-30">
         <p className="text-bolt-elements-textSecondary">
           Remember your password?{' '}
           <button

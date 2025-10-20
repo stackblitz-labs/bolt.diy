@@ -18,6 +18,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { database } from '~/lib/persistence/apps';
 import { type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { includeHistorySummary } from '~/components/workbench/VesionHistory/AppHistory';
+import { PanelLeft } from '~/components/ui/Icon';
 import { useEffect } from 'react';
 import { useLocation } from '@remix-run/react';
 
@@ -49,10 +50,10 @@ export function Header() {
   return (
     <header
       className={classNames(
-        'flex items-center justify-between px-4 py-4 border-b h-[var(--header-height)] bg-bolt-elements-background-depth-1/80 transition-all duration-300 z-10',
+        'flex items-center justify-between px-4 py-4 border-b h-[var(--header-height)] bg-bolt-elements-background-depth-1 bg-opacity-80 transition-all duration-300 z-10',
         {
           'border-transparent shadow-none': !chatStarted,
-          'border-bolt-elements-borderColor/50 shadow-sm backdrop-blur-md': chatStarted,
+          'border-bolt-elements-borderColor border-opacity-50 shadow-sm backdrop-blur-md': chatStarted,
         },
       )}
     >
@@ -61,7 +62,7 @@ export function Header() {
           <IconButton
             onClick={() => sidebarMenuStore.toggle()}
             data-testid="sidebar-icon"
-            icon="i-ph:sidebar-simple-duotone"
+            icon={<PanelLeft />}
             size="xl"
             title="Toggle Sidebar"
           />

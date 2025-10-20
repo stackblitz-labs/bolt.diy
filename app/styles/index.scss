@@ -7,6 +7,31 @@
 @use 'components/editor.scss';
 @use 'components/toast.scss';
 
+/* Custom bolt background classes with opacity support */
+.bg-bolt-elements-background-depth-2-80 {
+  background-color: rgba(from var(--bolt-elements-bg-depth-2) r g b / 0.8);
+}
+
+.bg-bolt-elements-background-depth-2-30 {
+  background-color: rgba(from var(--bolt-elements-bg-depth-2) r g b / 0.3);
+}
+
+.bg-bolt-elements-background-depth-2-50 {
+  background-color: rgba(from var(--bolt-elements-bg-depth-2) r g b / 0.5);
+}
+
+.bg-bolt-elements-background-depth-1-80 {
+  background-color: rgba(from var(--bolt-elements-bg-depth-1) r g b / 0.8);
+}
+
+.bg-bolt-elements-background-depth-1-50 {
+  background-color: rgba(from var(--bolt-elements-bg-depth-1) r g b / 0.5);
+}
+
+.bg-bolt-elements-background-depth-1-30 {
+  background-color: rgba(from var(--bolt-elements-bg-depth-1) r g b / 0.3);
+}
+
 html,
 body {
   height: 100%;

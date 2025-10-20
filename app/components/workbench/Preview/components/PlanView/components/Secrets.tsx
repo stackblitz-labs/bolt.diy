@@ -1,5 +1,6 @@
 import { type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { classNames } from '~/utils/classNames';
+import { CheckCircle, AlertTriangle } from '~/components/ui/Icon';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { chatStore, onChatResponse } from '~/lib/stores/chat';
@@ -107,7 +108,7 @@ const Secrets = () => {
           'p-4 border rounded-xl shadow-sm hover:shadow-md transition-all duration-200',
           isSet && !currentValue.length
             ? 'border-gray-300 bg-gray-50 hover:border-gray-400'
-            : 'border-bolt-elements-borderColor/30 bg-bolt-elements-background-depth-2 hover:border-bolt-elements-borderColor/50',
+            : 'border-bolt-elements-borderColor border-opacity-30 bg-bolt-elements-background-depth-2 hover:border-bolt-elements-borderColor border-opacity-50',
         )}
       >
         <div className="flex items-center justify-between mb-3">
@@ -149,7 +150,7 @@ const Secrets = () => {
                   'w-full px-4 py-3 text-sm border rounded-xl transition-all duration-200 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400',
                   isSet && !currentValue.length
                     ? 'border-gray-300 bg-gray-100 text-gray-700 placeholder-gray-500 hover:bg-gray-200'
-                    : 'border-bolt-elements-borderColor/60 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary placeholder-bolt-elements-textSecondary',
+                    : 'border-bolt-elements-borderColor border-opacity-60 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary placeholder-bolt-elements-textSecondary',
                 )}
               />
             </div>
@@ -190,12 +191,12 @@ const Secrets = () => {
           >
             {isBuiltin ? (
               <span className="flex items-center gap-2">
-                <div className="i-ph:check-circle-duotone text-green-600 text-sm"></div>
+                <CheckCircle className="text-green-600" size={14} />
                 This secret will use a builtin value
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <div className="i-ph:warning-circle-duotone text-yellow-600 text-sm"></div>
+                <AlertTriangle className="text-yellow-600" size={14} />
                 This secret must be added before using the app
               </span>
             )}
@@ -205,7 +206,7 @@ const Secrets = () => {
         {isSet && (
           <div className="text-xs p-3 rounded-xl mt-4 border shadow-sm bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border-gray-200/50">
             <span className="flex items-center gap-2">
-              <div className="i-ph:check-circle-duotone text-gray-600 text-sm"></div>
+              <CheckCircle className="text-gray-600" size={14} />
               This secret is configured and ready to use
             </span>
           </div>

@@ -9,6 +9,7 @@ import { assert } from '~/utils/nut';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { Skeleton } from '~/components/ui/Skeleton';
+import { Globe, Lock, Trash2, Plus, ShieldCheck } from '~/components/ui/Icon';
 
 interface AuthSelectorComponentProps {
   appSummary: AppSummary;
@@ -86,7 +87,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
           <button
             className={`group p-4 bg-bolt-elements-background-depth-2 rounded-xl border transition-all duration-200 w-full shadow-sm ${
               saving
-                ? 'border-bolt-elements-borderColor/30 cursor-not-allowed opacity-60'
+                ? 'border-bolt-elements-borderColor border-opacity-30 cursor-not-allowed opacity-60'
                 : 'border-bolt-elements-borderColor hover:border-bolt-elements-focus/60 hover:bg-bolt-elements-background-depth-3 hover:shadow-md hover:scale-[1.02] cursor-pointer'
             }`}
             onClick={!saving ? handleToggle : undefined}
@@ -94,9 +95,11 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div
-                  className={`transition-transform duration-200 group-hover:scale-110 ${authRequired ? 'i-ph:lock-duotone text-bolt-elements-icon-success' : 'i-ph:globe-duotone text-bolt-elements-textPrimary'}`}
-                />
+                {authRequired ? (
+                  <Lock className="text-bolt-elements-icon-success" size={18} />
+                ) : (
+                  <Globe className="text-bolt-elements-textPrimary" size={18} />
+                )}
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-bolt-elements-textPrimary transition-transform duration-200 group-hover:scale-105">
                     {authRequired ? 'Authentication Required' : 'Public Access'}
@@ -212,7 +215,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
     <AppCard
       title="Authentication Settings"
       description={getDescription()}
-      icon={<div className="i-ph:shield-check-duotone text-white text-lg" />}
+      icon={<ShieldCheck className="text-white" size={18} />}
       iconColor="indigo"
       status="completed"
       progressText="Configured"
@@ -285,7 +288,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
                           type="button"
                           disabled={loading}
                         >
-                          <div className="i-ph:trash-duotone" />
+                          <Trash2 size={16} />
                         </button>
                       )}
                     </div>
@@ -304,7 +307,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
                     type="button"
                     disabled={loading}
                   >
-                    <div className="i-ph:plus" />
+                    <Plus size={16} />
                     <span>Add new domain</span>
                   </button>
                 </div>

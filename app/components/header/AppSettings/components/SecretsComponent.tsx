@@ -2,6 +2,7 @@ import React from 'react';
 import { AppCard } from '~/components/chat/Messages/components/AppCard';
 import { type AppSummary } from '~/lib/persistence/messageAppSummary';
 import Secrets from '~/components/workbench/Preview/components/PlanView/components/Secrets';
+import { Key } from '~/components/ui/Icon';
 
 interface SecretsComponentProps {
   appSummary: AppSummary;
@@ -74,7 +75,7 @@ export const SecretsComponent: React.FC<SecretsComponentProps> = ({ appSummary }
     <AppCard
       title="Secrets Configuration"
       description={getDescription()}
-      icon={<div className="i-ph:key-duotone text-white text-lg" />}
+      icon={<Key className="text-white" size={18} />}
       iconColor="purple"
       status={statusInfo.status}
       progressText={statusInfo.progressText}

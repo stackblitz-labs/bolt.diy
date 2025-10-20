@@ -4,6 +4,7 @@ import { isWorkerFinishedResponse, type ChatResponse } from '~/lib/persistence/r
 import { chatStore } from '~/lib/stores/chat';
 import WithTooltip from '~/components/ui/Tooltip';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
+import { ChevronUp, ChevronDown } from '~/components/ui/Icon';
 
 // If a worker doesn't have any updates more recent than this, it is timed out.
 const WORK_TIMEOUT_MS = 20 * 60 * 1000;
@@ -139,7 +140,7 @@ const Events = ({ featureName }: EventsProps) => {
     return (
       <div key={index} className="flex items-center gap-3 pl-4 pb-2">
         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-sm" />
-        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary rounded-lg border border-bolt-elements-borderColor/30">
+        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary rounded-lg border border-bolt-elements-borderColor border-opacity-30">
           {time}
         </span>
         <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary rounded-lg border border-bolt-elements-borderColor shadow-sm">
@@ -186,8 +187,8 @@ const Events = ({ featureName }: EventsProps) => {
     const visibleEvents = shouldShowExpander && !isExpanded ? events.slice(0, 3) : events;
 
     return (
-      <div key={index} className="border-t border-bolt-elements-borderColor/50 mb-2">
-        <div className="p-4 pt-3 text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wider mb-2 bg-bolt-elements-background-depth-2/30 px-2 py-1 rounded-md inline-block ml-2">
+      <div key={index} className="border-t border-bolt-elements-borderColor border-opacity-50 mb-2">
+        <div className="p-4 pt-3 text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wider mb-2 bg-bolt-elements-background-depth-2 bg-opacity-30 px-2 py-1 rounded-md inline-block ml-2">
           <TooltipProvider>
             <WithTooltip tooltip={tooltip}>
               <span>
@@ -204,12 +205,14 @@ const Events = ({ featureName }: EventsProps) => {
             <div className="flex justify-center mt-2">
               <button
                 onClick={() => toggleWorkerExpansion(index)}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor border-opacity-50 rounded-lg transition-all duration-200 hover:shadow-sm"
               >
                 <span>{isExpanded ? `Hide ${events.length - 3} events` : `Show ${events.length - 3} more events`}</span>
-                <div
-                  className={`i-ph:caret-${isExpanded ? 'up' : 'down'}-bold text-sm transition-transform duration-200`}
-                ></div>
+                {isExpanded ? (
+                  <ChevronUp className="text-sm transition-transform duration-200" size={14} strokeWidth={2.5} />
+                ) : (
+                  <ChevronDown className="text-sm transition-transform duration-200" size={14} strokeWidth={2.5} />
+                )}
               </button>
             </div>
           )}

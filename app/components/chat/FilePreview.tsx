@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from '~/components/ui/Icon';
 
 interface FilePreviewProps {
   files: File[];
@@ -22,7 +23,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ files, imageDataList, onRemov
                 onClick={() => onRemove(index)}
                 className="absolute top-1 right-1 z-10 bg-black rounded-full w-5 h-5 shadow-md hover:bg-gray-900 transition-colors flex items-center justify-center"
               >
-                <div className="i-ph:x w-3 h-3 text-gray-200" />
+                <X className="text-gray-200" size={12} />
               </button>
             </div>
           )}

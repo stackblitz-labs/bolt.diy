@@ -147,7 +147,7 @@ export default function AuthCallback() {
     <div className="min-h-screen bg-bolt-elements-background-depth-1 flex items-center justify-center px-4">
       <div className="text-center">
         <div className="w-16 h-16 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20 shadow-lg">
-          <div className="w-8 h-8 border-2 border-bolt-elements-borderColor/30 border-t-blue-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-opacity-30 border-t-blue-500 rounded-full animate-spin" />
         </div>
         <h2 className="text-xl font-semibold text-bolt-elements-textHeading mb-2">Completing sign in...</h2>
         <p className="text-bolt-elements-textSecondary">Please wait while we finish signing you in.</p>

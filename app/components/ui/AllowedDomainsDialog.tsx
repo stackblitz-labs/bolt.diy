@@ -5,6 +5,7 @@ import { assert } from '~/utils/nut';
 import { callNutAPI } from '~/lib/replay/NutAPI';
 import { toast } from 'react-toastify';
 import { Skeleton } from '~/components/ui/Skeleton';
+import { Minus, Plus } from '~/components/ui/Icon';
 
 interface AllowedDomainsDialogProps {
   open: boolean;
@@ -193,7 +194,7 @@ export const AllowedDomainsDialog: React.FC<AllowedDomainsDialogProps> = ({ open
                           type="button"
                           disabled={loading}
                         >
-                          <div className="i-ph:minus" />
+                          <Minus size={16} />
                         </button>
                       )}
                     </div>
@@ -212,7 +213,7 @@ export const AllowedDomainsDialog: React.FC<AllowedDomainsDialogProps> = ({ open
                     type="button"
                     disabled={loading}
                   >
-                    <div className="i-ph:plus" />
+                    <Plus size={16} />
                     <span>Add new domain</span>
                   </button>
                 </div>

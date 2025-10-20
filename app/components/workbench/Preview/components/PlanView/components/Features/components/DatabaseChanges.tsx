@@ -6,9 +6,9 @@ interface DatabaseChangesProps {
 
 const DatabaseChanges = ({ feature }: DatabaseChangesProps) => {
   return (
-    <div className="border-t border-bolt-elements-borderColor/50">
+    <div className="border-t border-bolt-elements-borderColor border-opacity-50">
       <div className="p-4">
-        <div className="text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wider mb-4 bg-bolt-elements-background-depth-2/30 px-2 py-1 rounded-md inline-block">
+        <div className="text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wider mb-4 bg-bolt-elements-background-depth-2 bg-opacity-30 px-2 py-1 rounded-md inline-block">
           Database Schema Changes
         </div>
         <div className="space-y-4">
@@ -20,7 +20,7 @@ const DatabaseChanges = ({ feature }: DatabaseChangesProps) => {
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-2 h-2 bg-purple-500 rounded-full shadow-sm"></div>
                 <span className="font-mono text-sm font-semibold text-bolt-elements-textPrimary">{table.name}</span>
-                <span className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1/50 px-2 py-1 rounded-md">
+                <span className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 bg-opacity-50 px-2 py-1 rounded-md">
                   ({table.columns?.length || 0} columns)
                 </span>
               </div>

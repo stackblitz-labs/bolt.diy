@@ -4,6 +4,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import AppView, { type ResizeSide } from './components/AppView';
 import useViewport from '~/lib/hooks';
 import { useVibeAppAuthPopup } from '~/lib/hooks/useVibeAppAuth';
+import { RotateCw, Crosshair, MonitorSmartphone, Maximize2, Minimize2 } from '~/components/ui/Icon';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 
@@ -213,14 +214,15 @@ export const Preview = memo(() => {
       {isPortDropdownOpen && (
         <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
       )}
-      <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor/50 p-3 flex items-center gap-2 shadow-sm">
-        <IconButton icon="i-ph:arrow-clockwise" onClick={() => reloadPreview()} />
+      <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 p-3 flex items-center gap-2 shadow-sm">
+        <IconButton icon={<RotateCw size={20} />} onClick={() => reloadPreview()} />
         {ENABLE_ELEMENT_PICKER && (
           <IconButton
             className={classNames({
               'bg-bolt-elements-background-depth-3': isElementPickerEnabled,
             })}
-            icon={`i-ph:crosshair-simple ${isElementPickerEnabled ? 'text-[#4da3ff]' : ''}`}
+            iconClassName={isElementPickerEnabled ? 'text-[#4da3ff]' : ''}
+            icon={<Crosshair size={20} />}
             onClick={() => {
               const newState = !isElementPickerEnabled;
               setIsElementPickerEnabled(newState);
@@ -256,21 +258,21 @@ export const Preview = memo(() => {
 
         {!isSmallViewport && (
           <IconButton
-            icon="i-ph:devices"
+            icon={<MonitorSmartphone size={20} />}
             onClick={toggleDeviceMode}
             title={isDeviceModeOn ? 'Switch to Responsive Mode' : 'Switch to Device Mode'}
           />
         )}
         {!isSmallViewport && (
           <IconButton
-            icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
+            icon={isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
             onClick={toggleFullscreen}
             title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
           />
         )}
       </div>
 
-      <div className="flex-1 bg-bolt-elements-background-depth-2/30 flex justify-center items-center overflow-auto">
+      <div className="flex-1 bg-bolt-elements-background-depth-2 bg-opacity-30 flex justify-center items-center overflow-auto">
         <AppView
           isDeviceModeOn={isDeviceModeOn}
           iframeRef={iframeRef}

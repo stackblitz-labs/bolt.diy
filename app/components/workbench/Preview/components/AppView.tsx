@@ -8,6 +8,7 @@ import { chatStore } from '~/lib/stores/chat';
 import PreviewLoad from './PreviewLoad/PreviewLoad';
 import { isFeatureStatusImplemented } from '~/lib/persistence/messageAppSummary';
 import WithTooltip from '~/components/ui/Tooltip';
+import { Info } from '~/components/ui/Icon';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { classNames } from '~/utils/classNames';
 
@@ -83,7 +84,7 @@ const AppView = ({
               <WithTooltip tooltip="Your app’s functionality hasn’t been built yet. This is a quick mockup showing the general structure.">
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 py-1 px-4 text-center bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm rounded-t-lg flex items-center gap-2 cursor-help">
                   Preview (App build in progress)
-                  <div className="i-ph:info text-sm" />
+                  <Info size={14} />
                 </div>
               </WithTooltip>
             </TooltipProvider>
@@ -97,7 +98,7 @@ const AppView = ({
         <>
           <div
             onMouseDown={(e) => startResizing(e, 'left')}
-            className="absolute top-0 left-0 w-4 -ml-4 h-full cursor-ew-resize bg-bolt-elements-background-depth-2/50 hover:bg-bolt-elements-background-depth-3/70 flex items-center justify-center transition-all duration-200 select-none border-r border-bolt-elements-borderColor/30 hover:border-bolt-elements-borderColor/50 shadow-sm hover:shadow-md group"
+            className="absolute top-0 left-0 w-4 -ml-4 h-full cursor-ew-resize bg-bolt-elements-background-depth-2 bg-opacity-50 hover:bg-bolt-elements-background-depth-3 bg-opacity-70 flex items-center justify-center transition-all duration-200 select-none border-r border-bolt-elements-borderColor border-opacity-30 hover:border-bolt-elements-borderColor border-opacity-50 shadow-sm hover:shadow-md group"
             title="Drag to resize width"
           >
             <div className="transition-transform duration-200 group-hover:scale-110">
@@ -106,7 +107,7 @@ const AppView = ({
           </div>
           <div
             onMouseDown={(e) => startResizing(e, 'right')}
-            className="absolute top-0 right-0 w-4 -mr-4 h-full cursor-ew-resize bg-bolt-elements-background-depth-2/50 hover:bg-bolt-elements-background-depth-3/70 flex items-center justify-center transition-all duration-200 select-none border-l border-bolt-elements-borderColor/30 hover:border-bolt-elements-borderColor/50 shadow-sm hover:shadow-md group"
+            className="absolute top-0 right-0 w-4 -mr-4 h-full cursor-ew-resize bg-bolt-elements-background-depth-2 bg-opacity-50 hover:bg-bolt-elements-background-depth-3 bg-opacity-70 flex items-center justify-center transition-all duration-200 select-none border-l border-bolt-elements-borderColor border-opacity-30 hover:border-bolt-elements-borderColor border-opacity-50 shadow-sm hover:shadow-md group"
             title="Drag to resize width"
           >
             <div className="transition-transform duration-200 group-hover:scale-110">

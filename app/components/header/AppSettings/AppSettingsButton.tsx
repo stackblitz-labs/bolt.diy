@@ -4,6 +4,7 @@ import { appSettingsModalStore } from '~/lib/stores/appSettingsModal';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { toast } from 'react-toastify';
+import { Settings } from '~/components/ui/Icon';
 
 export function AppSettingsButton() {
   const appId = useStore(chatStore.currentAppId);
@@ -54,7 +55,10 @@ export function AppSettingsButton() {
           {loadingData ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            <div className="i-ph:gear text-xl text-white drop-shadow-sm transition-transform duration-200 group-hover:scale-110"></div>
+            <Settings
+              className="text-white drop-shadow-sm transition-transform duration-200 group-hover:scale-110"
+              size={20}
+            />
           )}
         </button>
       </WithTooltip>

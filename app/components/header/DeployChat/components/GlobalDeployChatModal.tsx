@@ -8,6 +8,7 @@ import { DeployStatus } from '~/components/header/DeployChat/DeployChatButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeploymentSuccessful from './DeploymentSuccessful';
 import { userStore } from '~/lib/stores/userAuth';
+import { X, Rocket, CheckCircle, AlertTriangle } from '~/components/ui/Icon';
 
 const MAX_SITE_NAME_LENGTH = 63;
 
@@ -136,7 +137,7 @@ export function GlobalDeployChatModal() {
         <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleCloseModal} />
 
         <motion.div
-          className="relative bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor/50 rounded-2xl shadow-2xl hover:shadow-3xl transition-shadow duration-300 max-w-2xl w-full mx-2 sm:mx-4 max-h-[95vh] flex flex-col backdrop-blur-sm"
+          className="relative bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor border-opacity-50 rounded-2xl shadow-2xl hover:shadow-3xl transition-shadow duration-300 max-w-2xl w-full mx-2 sm:mx-4 max-h-[95vh] flex flex-col backdrop-blur-sm"
           variants={modalVariants}
           initial="hidden"
           animate="visible"
@@ -147,7 +148,7 @@ export function GlobalDeployChatModal() {
               onClick={handleCloseModal}
               className="w-10 h-10 rounded-xl bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3 transition-all duration-200 flex items-center justify-center text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary shadow-sm hover:shadow-md hover:scale-105 group"
             >
-              <div className="i-ph:x text-lg transition-transform duration-200 group-hover:scale-110" />
+              <X className="transition-transform duration-200 group-hover:scale-110" size={18} />
             </button>
           </div>
 
@@ -155,7 +156,7 @@ export function GlobalDeployChatModal() {
             {loadingData ? (
               <div className="text-center">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20 shadow-lg">
-                  <div className="w-8 h-8 border-2 border-bolt-elements-borderColor/30 border-t-blue-500 rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-opacity-30 border-t-blue-500 rounded-full animate-spin" />
                 </div>
                 <h3 className="text-2xl font-bold text-bolt-elements-textHeading mb-3">Loading data...</h3>
                 <p className="text-bolt-elements-textSecondary">
@@ -168,7 +169,7 @@ export function GlobalDeployChatModal() {
               <>
                 <div className="text-center mb-8">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20 shadow-lg">
-                    <div className="i-ph:rocket-launch text-2xl text-blue-500" />
+                    <Rocket className="text-blue-500" size={24} />
                   </div>
                   <h2 className="text-3xl font-bold text-bolt-elements-textHeading">Deploy Your Application</h2>
                   <p className="text-bolt-elements-textSecondary mt-2">
@@ -177,7 +178,7 @@ export function GlobalDeployChatModal() {
                 </div>
 
                 {/* Easy Deploy Section */}
-                <div className="mb-8 p-6 bg-bolt-elements-background-depth-2/30 rounded-2xl border border-bolt-elements-borderColor/30 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div className="mb-8 p-6 bg-bolt-elements-background-depth-2 bg-opacity-30 rounded-2xl border border-bolt-elements-borderColor border-opacity-30 shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <div className="text-center mb-6">
                     <div className="flex items-center justify-center gap-2 mb-4">
                       <span className="text-2xl">⚡</span>
@@ -194,7 +195,7 @@ export function GlobalDeployChatModal() {
                     <div className="mb-6 p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl border border-green-500/20 shadow-sm">
                       <div className="flex flex-col items-center justify-between gap-2">
                         <div className="text-sm text-green-700 font-semibold flex items-center gap-2">
-                          <div className="i-ph:check-circle text-lg text-green-500" />
+                          <CheckCircle className="text-green-500" size={18} />
                           Your App's URL:
                         </div>
                         <a
@@ -211,8 +212,8 @@ export function GlobalDeployChatModal() {
 
                   <div className="flex justify-center">
                     {status === DeployStatus.Started ? (
-                      <div className="w-full text-bolt-elements-textSecondary flex items-center justify-center py-4 bg-bolt-elements-background-depth-1/50 rounded-xl border border-bolt-elements-borderColor/30">
-                        <div className="w-6 h-6 border-2 border-bolt-elements-borderColor/30 border-t-blue-500 rounded-full animate-spin mr-3" />
+                      <div className="w-full text-bolt-elements-textSecondary flex items-center justify-center py-4 bg-bolt-elements-background-depth-1 bg-opacity-50 rounded-xl border border-bolt-elements-borderColor border-opacity-30">
+                        <div className="w-6 h-6 border-2 border-bolt-elements-borderColor border-opacity-30 border-t-blue-500 rounded-full animate-spin mr-3" />
                         <span className="text-lg font-medium">
                           {lastDeployResult(deploySettings)?.siteURL ? 'Redeploying' : 'Deploying'} your app...
                         </span>
@@ -222,7 +223,7 @@ export function GlobalDeployChatModal() {
                         onClick={handleDeploy}
                         className="flex items-center gap-3 px-8 py-4 !bg-gradient-to-r !from-blue-500 !to-indigo-500 hover:!from-blue-600 hover:!to-indigo-600 text-white text-lg font-semibold rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group"
                       >
-                        <div className="i-ph:rocket-launch text-xl transition-transform duration-200 group-hover:scale-110"></div>
+                        <Rocket className="transition-transform duration-200 group-hover:scale-110" size={20} />
                         <span className="transition-transform duration-200 group-hover:scale-105">
                           {lastDeployResult(deploySettings)?.siteURL ? 'Redeploy' : 'Deploy Now'}
                         </span>
@@ -231,7 +232,7 @@ export function GlobalDeployChatModal() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-bolt-elements-background-depth-2/30 rounded-xl border border-bolt-elements-borderColor/30 space-y-4">
+                <div className="p-4 bg-bolt-elements-background-depth-2 bg-opacity-30 rounded-xl border border-bolt-elements-borderColor border-opacity-30 space-y-4">
                   <div>
                     <label
                       htmlFor="siteName"
@@ -247,7 +248,7 @@ export function GlobalDeployChatModal() {
                         id="siteName"
                         name="siteName"
                         type="text"
-                        className="w-full p-4 pr-32 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor/50 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+                        className="w-full p-4 pr-32 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
                         value={deploySettings.siteName || ''}
                         placeholder="my-chat-app..."
                         onChange={(e) => {
@@ -287,7 +288,7 @@ export function GlobalDeployChatModal() {
                 {error && (
                   <div className="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl shadow-sm">
                     <div className="flex items-start gap-3">
-                      <div className="i-ph:warning-circle text-lg text-red-500 flex-shrink-0 mt-0.5" />
+                      <AlertTriangle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
                       <div>
                         <p className="font-semibold mb-1">Deployment Error</p>
                         <p className="text-sm leading-relaxed">{error}</p>

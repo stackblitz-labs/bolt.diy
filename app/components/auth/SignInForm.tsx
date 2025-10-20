@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getSupabase } from '~/lib/supabase/client';
 import type { AuthError } from '@supabase/supabase-js';
 import { GoogleIcon } from '~/components/icons/google-icon';
+import { LogIn } from '~/components/ui/Icon';
 
 interface SignInFormProps {
   onToggleForm: () => void;
@@ -90,7 +91,7 @@ export function SignInForm({ onToggleForm, onError, onForgotPassword }: SignInFo
     <>
       <div className="text-center mb-8">
         <div className="w-16 h-16 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20 shadow-lg">
-          <div className="i-ph:sign-in text-2xl text-blue-500" />
+          <LogIn className="text-blue-500" size={24} />
         </div>
         <h2 className="text-3xl font-bold text-bolt-elements-textHeading">Welcome Back</h2>
         <p className="text-bolt-elements-textSecondary mt-2">Sign in to continue building amazing apps</p>
@@ -110,10 +111,10 @@ export function SignInForm({ onToggleForm, onError, onForgotPassword }: SignInFo
 
       <div className="relative my-8">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-bolt-elements-borderColor/50"></div>
+          <div className="w-full border-t border-bolt-elements-borderColor border-opacity-50"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 py-2 bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary rounded-lg border border-bolt-elements-borderColor/30 shadow-sm">
+          <span className="px-4 py-2 bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary rounded-lg border border-bolt-elements-borderColor border-opacity-30 shadow-sm">
             Or continue with email
           </span>
         </div>
@@ -129,7 +130,7 @@ export function SignInForm({ onToggleForm, onError, onForgotPassword }: SignInFo
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor/50 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Enter your email"
             required
           />
@@ -149,7 +150,7 @@ export function SignInForm({ onToggleForm, onError, onForgotPassword }: SignInFo
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor/50 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Enter your password"
             required
           />
@@ -177,7 +178,7 @@ export function SignInForm({ onToggleForm, onError, onForgotPassword }: SignInFo
         </div>
       )}
 
-      <div className="mt-8 text-center p-4 bg-bolt-elements-background-depth-2/30 rounded-xl border border-bolt-elements-borderColor/30">
+      <div className="mt-8 text-center p-4 bg-bolt-elements-background-depth-2 bg-opacity-30 rounded-xl border border-bolt-elements-borderColor border-opacity-30">
         <p className="text-bolt-elements-textSecondary">
           Don't have an account?{' '}
           <button

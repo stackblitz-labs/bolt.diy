@@ -1,5 +1,6 @@
 import { IconButton } from '~/components/ui/IconButton';
 import { classNames } from '~/utils/classNames';
+import { Mic, MicOff } from '~/components/ui/Icon';
 
 export const SpeechRecognitionButton = ({
   isListening,
@@ -20,7 +21,7 @@ export const SpeechRecognitionButton = ({
       })}
       onClick={isListening ? onStop : onStart}
     >
-      {isListening ? <div className="i-ph:microphone-slash text-xl" /> : <div className="i-ph:microphone text-xl" />}
+      {isListening ? <MicOff size={20} /> : <Mic size={20} />}
     </IconButton>
   );
 };

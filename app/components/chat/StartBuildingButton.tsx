@@ -1,6 +1,7 @@
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { AnimatePresence, cubicBezier, motion } from 'framer-motion';
 import WithTooltip from '~/components/ui/Tooltip';
+import { Rocket } from '~/components/ui/Icon';
 
 interface StartBuildingButtonProps {
   onClick?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
@@ -66,12 +67,12 @@ export const StartBuildingButton = ({
             {hasText ? (
               <>
                 <div className="flex items-center gap-2 text-sm font-medium whitespace-nowrap transition-transform duration-200 group-hover:scale-105">
-                  <div className="i-ph:rocket-launch text-lg transition-transform duration-200 group-hover:scale-110"></div>
+                  <Rocket className="transition-transform duration-200 group-hover:scale-110" size={18} />
                   {buttonText}
                 </div>
               </>
             ) : (
-              <div className="i-ph:rocket-launch text-xl transition-transform duration-200 group-hover:scale-110"></div>
+              <Rocket className="transition-transform duration-200 group-hover:scale-110" size={20} />
             )}
           </motion.button>
         </WithTooltip>

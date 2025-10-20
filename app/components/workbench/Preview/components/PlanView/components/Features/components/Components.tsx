@@ -19,9 +19,9 @@ function getComponentDescription(summary: AppSummary, componentName: string) {
 
 const Components = ({ summary, feature }: ComponentsProps) => {
   return (
-    <div className="border-t border-bolt-elements-borderColor/50">
+    <div className="border-t border-bolt-elements-borderColor border-opacity-50">
       <div className="p-4">
-        <div className="text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wider mb-4 bg-bolt-elements-background-depth-2/30 px-2 py-1 rounded-md inline-block">
+        <div className="text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wider mb-4 bg-bolt-elements-background-depth-2 bg-opacity-30 px-2 py-1 rounded-md inline-block">
           Components ({feature?.componentNames?.length})
         </div>
         <div className="space-y-3">

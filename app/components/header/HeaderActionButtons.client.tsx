@@ -5,6 +5,7 @@ import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import WithTooltip from '~/components/ui/Tooltip';
+import { Monitor } from '~/components/ui/Icon';
 
 interface HeaderActionButtonsProps {}
 
@@ -46,7 +47,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
               }}
             >
               <WithTooltip tooltip="Open Preview">
-                <div className="i-ph:desktop-bold text-xl" />
+                <Monitor size={20} strokeWidth={2.5} />
               </WithTooltip>
             </Button>
           </div>

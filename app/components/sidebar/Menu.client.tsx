@@ -16,6 +16,7 @@ import Feedback from './Feedback/FeedbackButton';
 import { useStore } from '@nanostores/react';
 import { sidebarMenuStore } from '~/lib/stores/sidebarMenu';
 import useViewport from '~/lib/hooks';
+import { X, Plus, Search, Folder, FolderOpen } from '~/components/ui/Icon';
 
 const menuVariants = {
   closed: {
@@ -186,22 +187,22 @@ export const Menu = () => {
       initial="closed"
       animate={isOpen ? 'open' : 'closed'}
       variants={menuVariants}
-      className="flex selection-accent flex-col side-menu fixed top-0 w-full md:w-[350px] h-full bg-bolt-elements-background-depth-2 border-r md:rounded-r-3xl border-bolt-elements-borderColor/50 z-sidebar shadow-2xl hover:shadow-3xl text-sm backdrop-blur-sm transition-shadow duration-300"
+      className="flex selection-accent flex-col side-menu fixed top-0 w-full md:w-[350px] h-full bg-bolt-elements-background-depth-2 border-r md:rounded-r-3xl border-bolt-elements-borderColor border-opacity-50 z-sidebar shadow-2xl hover:shadow-3xl text-sm backdrop-blur-sm transition-shadow duration-300"
     >
       <div className="md:hidden flex justify-end p-4">
         <button
           onClick={() => sidebarMenuStore.close()}
           className="w-10 h-10 rounded-xl bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-1 transition-all duration-200 flex items-center justify-center text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary shadow-sm hover:shadow-md hover:scale-105 group"
         >
-          <div className="i-ph:x text-lg transition-transform duration-200 group-hover:scale-110" />
+          <X className="transition-transform duration-200 group-hover:scale-110" size={18} />
         </button>
       </div>
 
       <div className="h-[55px] md:block hidden" />
       <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
-        <div className="px-6 py-4 border-b border-bolt-elements-borderColor/50">
+        <div className="px-6 py-4 border-b border-bolt-elements-borderColor border-opacity-50">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-bolt-elements-borderColor/50 p-1.5 bg-gradient-to-br from-blue-500/10 to-green-500/10 shadow-sm">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-bolt-elements-borderColor border-opacity-50 p-1.5 bg-gradient-to-br from-blue-500/10 to-green-500/10 shadow-sm">
               <img src="/logo-styled.svg" alt="Nut.new" className="w-full h-full" />
             </div>
             <h1 className="text-bolt-elements-textHeading font-bold text-xl">Nut.new</h1>
@@ -212,19 +213,19 @@ export const Menu = () => {
               href="/"
               className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 rounded-xl px-4 py-3 transition-all duration-200 text-sm font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] border border-white/20 hover:border-white/30 group"
             >
-              <div className="i-ph:plus text-lg transition-transform duration-200 group-hover:scale-110" />
+              <Plus className="transition-transform duration-200 group-hover:scale-110" size={18} />
               <span className="transition-transform duration-200 group-hover:scale-105">New App</span>
             </a>
           </div>
         </div>
 
-        <div className="px-6 py-4 border-b border-bolt-elements-borderColor/50">
+        <div className="px-6 py-4 border-b border-bolt-elements-borderColor border-opacity-50">
           <div className="relative group">
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-bolt-elements-textTertiary group-focus-within:text-blue-500 transition-colors duration-200">
-              <div className="i-ph:magnifying-glass text-lg" />
+              <Search size={18} />
             </div>
             <input
-              className="w-full bg-bolt-elements-background-depth-3 pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 placeholder-bolt-elements-textTertiary text-bolt-elements-textPrimary border border-bolt-elements-borderColor/50 transition-all duration-200 shadow-sm focus:shadow-md hover:shadow-sm"
+              className="w-full bg-bolt-elements-background-depth-3 pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 placeholder-bolt-elements-textTertiary text-bolt-elements-textPrimary border border-bolt-elements-borderColor border-opacity-50 transition-all duration-200 shadow-sm focus:shadow-md hover:shadow-sm"
               type="search"
               placeholder="Search apps..."
               onChange={handleSearchChange}
@@ -233,12 +234,12 @@ export const Menu = () => {
           </div>
         </div>
 
-        <div className="px-6 py-4 border-b border-bolt-elements-borderColor/50 bg-bolt-elements-background-depth-1/50">
+        <div className="px-6 py-4 border-b border-bolt-elements-borderColor border-opacity-50 bg-bolt-elements-background-depth-1 bg-opacity-50">
           <div className="flex items-center gap-3">
-            <div className="i-ph:folder text-lg text-bolt-elements-textSecondary" />
+            <Folder className="text-bolt-elements-textSecondary" size={18} />
             <h3 className="text-bolt-elements-textHeading font-semibold">Your Apps</h3>
             {list && list.length > 0 && (
-              <span className="ml-auto text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-3 px-2.5 py-1 rounded-lg border border-bolt-elements-borderColor/30 font-medium shadow-sm">
+              <span className="ml-auto text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-3 px-2.5 py-1 rounded-lg border border-bolt-elements-borderColor border-opacity-30 font-medium shadow-sm">
                 {list.length}
               </span>
             )}
@@ -246,16 +247,16 @@ export const Menu = () => {
         </div>
         <div className="flex-1 overflow-auto px-6 pb-4">
           {filteredList.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center bg-bolt-elements-background-depth-1/30 rounded-xl mx-2 border border-bolt-elements-borderColor/30 mt-4">
+            <div className="flex flex-col items-center justify-center py-16 text-center bg-bolt-elements-background-depth-1 bg-opacity-30 rounded-xl mx-2 border border-bolt-elements-borderColor border-opacity-30 mt-4">
               {list === undefined ? (
                 <>
-                  <div className="w-10 h-10 border-2 border-bolt-elements-borderColor/30 border-t-blue-500 rounded-full animate-spin mb-4 shadow-sm" />
+                  <div className="w-10 h-10 border-2 border-bolt-elements-borderColor border-opacity-30 border-t-blue-500 rounded-full animate-spin mb-4 shadow-sm" />
                   <p className="text-bolt-elements-textSecondary text-sm font-medium">Loading apps...</p>
                 </>
               ) : list.length === 0 ? (
                 <>
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 border border-blue-500/20 shadow-lg">
-                    <div className="i-ph:folder-open text-2xl text-blue-500" />
+                    <FolderOpen className="text-blue-500" size={24} />
                   </div>
                   <p className="text-bolt-elements-textHeading font-semibold mb-2 text-lg">No apps yet</p>
                   <p className="text-bolt-elements-textSecondary text-sm">Create your first app to get started</p>
@@ -263,7 +264,7 @@ export const Menu = () => {
               ) : (
                 <>
                   <div className="w-16 h-16 bg-gradient-to-br from-orange-500/10 to-yellow-500/10 rounded-2xl flex items-center justify-center mb-6 border border-orange-500/20 shadow-lg">
-                    <div className="i-ph:magnifying-glass text-2xl text-orange-500" />
+                    <Search className="text-orange-500" size={24} />
                   </div>
                   <p className="text-bolt-elements-textHeading font-semibold mb-2 text-lg">No matches found</p>
                   <p className="text-bolt-elements-textSecondary text-sm">Try a different search term</p>
@@ -275,7 +276,7 @@ export const Menu = () => {
           <DialogRoot open={dialogContent !== null}>
             {binDates(filteredList).map(({ category, items }) => (
               <div key={category} className="mb-6 first:mt-0">
-                <div className="text-bolt-elements-textSecondary text-xs font-semibold uppercase tracking-wider sticky top-0 z-1 bg-bolt-elements-background-depth-2/80 backdrop-blur-sm py-4 mb-4 border-b border-bolt-elements-borderColor/20">
+                <div className="text-bolt-elements-textSecondary text-xs font-semibold uppercase tracking-wider sticky top-0 z-10 bg-bolt-elements-background-depth-2 bg-opacity-80 backdrop-blur-sm py-4 mb-4 border-b border-bolt-elements-borderColor border-opacity-20">
                   {category}
                 </div>
                 <div className="space-y-2">
@@ -333,7 +334,7 @@ export const Menu = () => {
           </DialogRoot>
         </div>
 
-        <div className="border-t border-bolt-elements-borderColor/50 bg-bolt-elements-background-depth-1/50 backdrop-blur-sm px-6 py-4">
+        <div className="border-t border-bolt-elements-borderColor border-opacity-50 bg-bolt-elements-background-depth-1 bg-opacity-50 backdrop-blur-sm px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* For now settings are disabled as we don't have any <SettingsButton onClick={() => setIsSettingsOpen(true)} /> */}

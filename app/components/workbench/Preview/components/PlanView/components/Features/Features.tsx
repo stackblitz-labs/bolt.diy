@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { classNames } from '~/utils/classNames';
+import { Check, X, ChevronDown, ChevronUp } from '~/components/ui/Icon';
 import { AppFeatureStatus, type AppFeature } from '~/lib/persistence/messageAppSummary';
 import Tests from './components/Tests';
 import DefinedApis from './components/DefinedApis';
@@ -53,14 +54,14 @@ const Features = () => {
       case AppFeatureStatus.Implemented:
         return (
           <div className="text-green-600 text-sm font-medium whitespace-nowrap pl-2 flex items-center gap-2 bg-green-50 px-2 py-1 rounded-lg border border-green-200 shadow-sm">
-            <div className="i-ph:check-bold" />
+            <Check size={14} strokeWidth={2.5} />
             Complete
           </div>
         );
       case AppFeatureStatus.Failed:
         return (
           <div className="text-red-600 text-sm font-medium whitespace-nowrap pl-2 flex items-center gap-2 bg-red-50 px-2 py-1 rounded-lg border border-red-200 shadow-sm">
-            <div className="i-ph:x-bold" />
+            <X size={14} strokeWidth={2.5} />
             Failed
           </div>
         );
@@ -82,14 +83,22 @@ const Features = () => {
       >
         <div
           onClick={() => toggleFeatureCollapse(index)}
-          className="flex justify-between items-center p-4 border-b border-bolt-elements-borderColor/50 cursor-pointer hover:bg-bolt-elements-background-depth-2/30 transition-all duration-200"
+          className="flex justify-between items-center p-4 border-b border-bolt-elements-borderColor border-opacity-50 cursor-pointer hover:bg-bolt-elements-background-depth-2 bg-opacity-30 transition-all duration-200"
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-6 h-6 flex items-center justify-center flex-shrink-0 bg-bolt-elements-background-depth-2 rounded-lg border border-bolt-elements-borderColor shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-105">
               {isCollapsed ? (
-                <div className="i-ph:caret-down text-bolt-elements-textPrimary text-base font-bold transition-transform duration-200 group-hover:scale-110" />
+                <ChevronDown
+                  className="text-bolt-elements-textPrimary transition-transform duration-200 group-hover:scale-110"
+                  size={16}
+                  strokeWidth={2.5}
+                />
               ) : (
-                <div className="i-ph:caret-up text-bolt-elements-textPrimary text-base font-bold transition-transform duration-200 group-hover:scale-110" />
+                <ChevronUp
+                  className="text-bolt-elements-textPrimary transition-transform duration-200 group-hover:scale-110"
+                  size={16}
+                  strokeWidth={2.5}
+                />
               )}
             </div>
 

@@ -3,6 +3,7 @@ import { AppCard } from './AppCard';
 import { AppFeatureStatus, isFeatureStatusImplemented, type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
+import { CheckCircle, Loader2, AlertCircle, Circle, MoreHorizontal, Puzzle } from '~/components/ui/Icon';
 
 interface FeaturesCardProps {
   appSummary: AppSummary;
@@ -115,13 +116,13 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
   const getFeatureStatusIcon = (status: AppFeatureStatus) => {
     switch (status) {
       case AppFeatureStatus.Implemented:
-        return <div className="i-ph:check-circle text-green-500 text-sm flex-shrink-0" />;
+        return <CheckCircle className="text-green-500 flex-shrink-0" size={14} />;
       case AppFeatureStatus.ImplementationInProgress:
-        return <div className="i-ph:circle-notch animate-spin text-blue-500 text-sm flex-shrink-0" />;
+        return <Loader2 className="animate-spin text-blue-500 flex-shrink-0" size={14} />;
       case AppFeatureStatus.Failed:
-        return <div className="i-ph:warning-circle text-red-500 text-sm flex-shrink-0" />;
+        return <AlertCircle className="text-red-500 flex-shrink-0" size={14} />;
       default:
-        return <div className="i-ph:circle text-bolt-elements-textSecondary text-sm flex-shrink-0" />;
+        return <Circle className="text-bolt-elements-textSecondary flex-shrink-0" size={14} />;
     }
   };
 
@@ -179,7 +180,7 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
             <div className="relative mt-2">
               <div className="absolute inset-x-0 -top-3 h-6 bg-gradient-to-t from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1/80 to-transparent pointer-events-none" />
               <div className="flex items-center justify-center gap-2 py-2 text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1">
-                <div className="i-ph:dots-three text-sm flex-shrink-0" />
+                <MoreHorizontal className="flex-shrink-0" size={14} />
                 <span>View all {totalFeatures} features</span>
               </div>
             </div>
@@ -198,7 +199,7 @@ export const FeaturesCard: React.FC<FeaturesCardProps> = ({ appSummary, onViewDe
     <AppCard
       title="Features"
       description={getDescription()}
-      icon={<div className="i-ph:puzzle-piece-duotone text-white text-lg" />}
+      icon={<Puzzle className="text-white" size={18} />}
       iconColor="green"
       status={overallStatus.status}
       progressText={overallStatus.progressText}
