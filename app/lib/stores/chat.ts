@@ -33,6 +33,10 @@ export class ChatStore {
   // Set if work to build the app is actively going on and we are listening for responses.
   listenResponses = atom<boolean>(false);
 
+  // Last iteration of the summary when we sent a message.
+  // This is used to suppress showing payment info until the summary updates again.
+  lastMessageIteration = atom<number>(0);
+
   messages = atom<Message[]>([]);
   events = atom<ChatResponse[]>([]);
 }
@@ -186,6 +190,7 @@ export async function doSendMessage(request: NutChatRequest) {
   }
 
   chatStore.hasPendingMessage.set(true);
+  chatStore.lastMessageIteration.set(chatStore.appSummary.get()?.iteration ?? 0);
   clearPendingMessageStatus();
 
   try {

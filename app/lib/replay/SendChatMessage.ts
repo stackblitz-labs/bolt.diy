@@ -12,7 +12,6 @@ import { waitForTime } from '~/utils/nut';
 import type { ChatResponse } from '~/lib/persistence/response';
 import { getLastResponseTime } from './ResponseFilter';
 import type { SimulationData } from './MessageHandler';
-import { experimentalFeaturesStore } from '~/lib/stores/experimentalFeatures';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
 
@@ -22,7 +21,6 @@ export type ChatResponseCallback = (response: ChatResponse) => void;
 
 export enum ChatMode {
   UserMessage = 'UserMessage',
-  UserMessageWithBugReports = 'UserMessageWithBugReports',
   DevelopApp = 'DevelopApp',
 }
 
@@ -91,10 +89,7 @@ export async function sendChatMessage(request: NutChatRequest, onResponse: ChatR
     return;
   }
 
-  const experimentalFeatures = experimentalFeaturesStore.get();
-  if (experimentalFeatures.bugReports && request.mode == ChatMode.UserMessage) {
-    request.mode = ChatMode.UserMessageWithBugReports;
-
+  if (request.mode == ChatMode.UserMessage) {
     const repositoryId = workbenchStore.repositoryId.get();
     if (repositoryId) {
       const simulationData = await flushSimulationData();
@@ -103,10 +98,6 @@ export async function sendChatMessage(request: NutChatRequest, onResponse: ChatR
       }
       request.visit.simulationData = simulationData;
     }
-  }
-
-  if (experimentalFeatures.upFrontPricing) {
-    request.upFrontPricing = true;
   }
 
   logger.debug('sendChatMessage', JSON.stringify(request));

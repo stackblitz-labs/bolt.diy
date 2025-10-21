@@ -10,10 +10,10 @@ import { useStore } from '@nanostores/react';
 
 const ENABLE_ELEMENT_PICKER = false;
 
-let gCurrentIFrame: HTMLIFrameElement | undefined;
+let gCurrentIFrameRef: React.RefObject<HTMLIFrameElement> | undefined;
 
 export function getCurrentIFrame() {
-  return gCurrentIFrame;
+  return gCurrentIFrameRef?.current ?? undefined;
 }
 
 export const Preview = memo(() => {
@@ -48,7 +48,7 @@ export const Preview = memo(() => {
   // Define the scaling factor
   const SCALING_FACTOR = 2; // Adjust this value to increase/decrease sensitivity
 
-  gCurrentIFrame = iframeRef.current ?? undefined;
+  gCurrentIFrameRef = iframeRef;
 
   const reloadPreview = (route = '') => {
     if (iframeRef.current) {

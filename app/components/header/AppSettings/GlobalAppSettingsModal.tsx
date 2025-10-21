@@ -12,6 +12,7 @@ import { isAppOwnerStore, permissionsStore } from '~/lib/stores/permissions';
 import { userStore } from '~/lib/stores/userAuth';
 import CopyApp from './components/CopyApp';
 import { X, Settings, Type } from '~/components/ui/Icon';
+import { hasExperimentalFeatures } from '~/lib/stores/experimentalFeatures';
 
 export function GlobalAppSettingsModal() {
   const isOpen = useStore(appSettingsModalStore.isOpen);
@@ -139,7 +140,7 @@ export function GlobalAppSettingsModal() {
                   {appSummary && allSecrets.length > 0 && <SecretsComponent appSummary={appSummary} />}
 
                   {/* Experimental Features */}
-                  {appSummary && <ExperimentalFeaturesComponent />}
+                  {appSummary && hasExperimentalFeatures() && <ExperimentalFeaturesComponent />}
                 </div>
 
                 {/* Action Buttons */}

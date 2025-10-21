@@ -2,9 +2,11 @@ import { atom } from 'nanostores';
 
 export const kExperimentalFeatures = 'nut_experimental_features';
 
-interface ExperimentalFeatures {
-  bugReports?: boolean;
-  upFrontPricing?: boolean;
+interface ExperimentalFeatures {}
+
+// Whether to enable UI for setting experimental features.
+export function hasExperimentalFeatures() {
+  return false;
 }
 
 export const experimentalFeaturesStore = atom<ExperimentalFeatures>(initStore());
