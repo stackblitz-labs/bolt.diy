@@ -156,6 +156,7 @@ const ChatImplementer = memo(() => {
         attachments,
         content: messageInput ?? '',
         hasInteracted: false,
+        componentReference,
       };
 
       addChatMessage(userMessage);

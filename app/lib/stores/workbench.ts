@@ -5,6 +5,7 @@ interface ReactComponent {
   name?: string;
   props?: Record<string, unknown>;
   state?: unknown;
+  selector?: string;
   type: 'class' | 'function' | 'host';
   source?: {
     fileName?: string;

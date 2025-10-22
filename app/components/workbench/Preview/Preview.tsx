@@ -8,8 +8,6 @@ import { RotateCw, Crosshair, MonitorSmartphone, Maximize2, Minimize2 } from '~/
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 
-const ENABLE_ELEMENT_PICKER = false;
-
 let gCurrentIFrameRef: React.RefObject<HTMLIFrameElement> | undefined;
 
 export function getCurrentIFrame() {
@@ -24,6 +22,7 @@ export const Preview = memo(() => {
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isElementPickerEnabled, setIsElementPickerEnabled] = useState(false);
+  const [isElementPickerReady, setIsElementPickerReady] = useState(false);
 
   const [url, setUrl] = useState('');
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
@@ -59,7 +58,6 @@ export const Preview = memo(() => {
   // Send postMessage to control element picker in iframe
   const toggleElementPicker = (enabled: boolean) => {
     if (iframeRef.current && iframeRef.current.contentWindow) {
-      console.log('[Preview] Sending element picker control message:', enabled);
       iframeRef.current.contentWindow.postMessage(
         {
           type: 'ELEMENT_PICKER_CONTROL',
@@ -76,7 +74,6 @@ export const Preview = memo(() => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'ELEMENT_PICKED') {
-        console.log('🎯 Element picked in iframe:', event.data);
         // Store the full element data including the react tree
         workbenchStore.setSelectedElement({
           component: event.data.react.component,
@@ -84,7 +81,8 @@ export const Preview = memo(() => {
         });
         setIsElementPickerEnabled(false);
       } else if (event.data.type === 'ELEMENT_PICKER_STATUS') {
-        console.log('📊 Element picker status:', event.data.active);
+      } else if (event.data.type === 'ELEMENT_PICKER_READY' && event.data.source === 'element-picker') {
+        setIsElementPickerReady(true);
       }
     };
 
@@ -102,6 +100,7 @@ export const Preview = memo(() => {
 
     setUrl(previewURL);
     setIframeUrl(previewURL);
+    setIsElementPickerReady(false);
   }, [previewURL]);
 
   // Handle OAuth authentication
@@ -216,7 +215,7 @@ export const Preview = memo(() => {
       )}
       <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 p-3 flex items-center gap-2 shadow-sm">
         <IconButton icon={<RotateCw size={20} />} onClick={() => reloadPreview()} />
-        {ENABLE_ELEMENT_PICKER && (
+        {isElementPickerReady && (
           <IconButton
             className={classNames({
               'bg-bolt-elements-background-depth-3': isElementPickerEnabled,
@@ -228,6 +227,7 @@ export const Preview = memo(() => {
               setIsElementPickerEnabled(newState);
               toggleElementPicker(newState);
             }}
+            title="Select element on page"
           />
         )}
         <div className="flex items-center gap-2 flex-grow bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textSecondary rounded-xl px-4 py-2 text-sm hover:bg-bolt-elements-background-depth-3 hover:border-bolt-elements-borderColor focus-within:bg-bolt-elements-background-depth-3 focus-within:border-blue-500/50 focus-within:text-bolt-elements-textPrimary transition-all duration-200 shadow-sm hover:shadow-md">
