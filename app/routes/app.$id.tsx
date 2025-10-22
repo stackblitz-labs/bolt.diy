@@ -6,6 +6,7 @@ import { setPermissions, setIsAppOwner, setPermissionsLoading, setIsAppOwnerLoad
 import { useParams } from '@remix-run/react';
 import { useStore } from '@nanostores/react';
 import { userStore } from '~/lib/stores/userAuth';
+import { maybeSetLocalAppsOwner } from '~/lib/persistence/apps';
 
 export async function loader(args: LoaderFunctionArgs) {
   return json({ id: args.params.id });
@@ -43,6 +44,7 @@ export default function AppRoute() {
 
     const loadIsOwner = async () => {
       try {
+        await maybeSetLocalAppsOwner();
         const isOwner = await isAppOwner(appId, user?.id || '');
         setIsAppOwner(isOwner);
         setIsAppOwnerLoading(false);

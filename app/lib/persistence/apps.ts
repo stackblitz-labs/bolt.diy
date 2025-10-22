@@ -34,12 +34,34 @@ function setLocalAppIds(appIds: string[] | undefined): void {
   }
 }
 
+// Update the owner of all apps that were created locally before logging in.
+export async function maybeSetLocalAppsOwner() {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return;
+  }
+
+  const localAppIds = getLocalAppIds();
+  if (localAppIds.length) {
+    try {
+      for (const appId of localAppIds) {
+        await setAppOwner(appId);
+      }
+      setLocalAppIds(undefined);
+    } catch (error) {
+      console.error('Error syncing local apps', error);
+    }
+  }
+}
+
 // Apps we've deleted locally. We never return these from the database afterwards
 // to present a coherent view of the apps in case the apps are queried before the
 // delete finishes.
 const deletedAppIds = new Set<string>();
 
 async function getAllAppEntries(): Promise<AppLibraryEntry[]> {
+  await maybeSetLocalAppsOwner();
+
   const userId = await getCurrentUserId();
   const localAppIds = getLocalAppIds();
 
@@ -50,17 +72,6 @@ async function getAllAppEntries(): Promise<AppLibraryEntry[]> {
         return entry;
       }),
     );
-  }
-
-  if (localAppIds.length) {
-    try {
-      for (const appId of localAppIds) {
-        await setAppOwner(appId);
-      }
-      setLocalAppIds(undefined);
-    } catch (error) {
-      console.error('Error syncing local apps', error);
-    }
   }
 
   const { entries } = await callNutAPI('get-user-app-entries', {});
