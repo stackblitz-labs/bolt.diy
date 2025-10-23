@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
 import { StartBuildingButton } from '~/components/chat/StartBuildingButton';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
+import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { Rocket } from '~/components/ui/Icon';
 
 interface ContinueBuildCardProps {
-  sendMessage?: (params: { messageInput: string; chatMode: ChatMode; payFeatures?: boolean }) => void;
+  sendMessage?: (params: ChatMessageParams) => void;
   setShowContinueBuildCard?: (show: boolean) => void;
   onMount?: () => void;
   unpaidFeatureCost?: number;

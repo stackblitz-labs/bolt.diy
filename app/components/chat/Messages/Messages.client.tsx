@@ -24,7 +24,8 @@ import { chatStore } from '~/lib/stores/chat';
 import { pendingMessageStatusStore } from '~/lib/stores/status';
 import { userStore } from '~/lib/stores/auth';
 import { peanutsStore } from '~/lib/stores/peanuts';
-import { ChatMode, shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
+import { shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
+import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { AppFeatureStatus } from '~/lib/persistence/messageAppSummary';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 
@@ -32,7 +33,7 @@ interface MessagesProps {
   id?: string;
   className?: string;
   onLastMessageCheckboxChange?: (contents: string, checked: boolean) => void;
-  sendMessage?: (params: { messageInput: string; chatMode: ChatMode; payFeatures?: boolean }) => void;
+  sendMessage?: (params: ChatMessageParams) => void;
 }
 
 function getUnpaidFeatureCost(appSummary: AppSummary | undefined, lastContinueBuildIteration: number) {

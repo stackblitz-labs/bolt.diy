@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StartBuildingButton } from '~/components/chat/StartBuildingButton';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
+import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { useStore } from '@nanostores/react';
@@ -9,7 +10,7 @@ import { Rocket } from '~/components/ui/Icon';
 
 interface StartBuildingCardProps {
   startPlanningRating: number;
-  sendMessage?: (params: { messageInput: string; chatMode: ChatMode }) => void;
+  sendMessage?: (params: ChatMessageParams) => void;
   onMount?: () => void;
 }
 
