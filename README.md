@@ -154,28 +154,51 @@ You have two options for running Bolt.DIY: directly on your machine or using Doc
    
 ### Option 2: Using Docker
 
-This option requires some familiarity with Docker but provides a more isolated environment.
+This option requires Docker and is great when you want an isolated environment or to mirror the production image.
 
 #### Additional Prerequisite
 
 - Install Docker: [Download Docker](https://www.docker.com/)
 
-#### Steps:
+#### Steps
 
-1. **Build the Docker Image**:
+1. **Prepare Environment Variables**
+
+   Copy the provided examples and add your provider keys:
 
    ```bash
-   # Using npm script:
-   npm run dockerbuild
-
-   # OR using direct Docker command:
-   docker build . --target bolt-ai-development
+   cp .env.example .env
+   cp .env.example .env.local
    ```
 
-2. **Run the Container**:
+   The runtime scripts inside the container source `.env` and `.env.local`, so keep any API keys you need in one of those files.
+
+2. **Build an Image**
+
    ```bash
+   # Development image (bind-mounts your local source when run)
+   pnpm run dockerbuild
+   # ≈ docker build -t bolt-ai:development -t bolt-ai:latest --target development .
+
+   # Production image (self-contained build artifacts)
+   pnpm run dockerbuild:prod
+   # ≈ docker build -t bolt-ai:production -t bolt-ai:latest --target bolt-ai-production .
+   ```
+
+3. **Run the Container**
+
+   ```bash
+   # Development workflow with hot reload
    docker compose --profile development up
+
+   # Production-style container using composed services
+   docker compose --profile production up
+
+   # One-off production container (exposes the app on port 5173)
+   docker run --rm -p 5173:5173 --env-file .env.local bolt-ai:latest
    ```
+
+   When the container starts it runs `pnpm run dockerstart`, which in turn executes `bindings.sh` to pass Cloudflare bindings through Wrangler. You can override this command in `docker-compose.yaml` if you need a different startup routine.
 
 ### Option 3: Desktop Application (Electron)
 
