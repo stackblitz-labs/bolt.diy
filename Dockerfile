@@ -2,6 +2,9 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
 # CI-friendly env
 ENV HUSKY=0
 ENV CI=true
@@ -35,6 +38,8 @@ FROM build AS prod-deps
 # Keep only production deps for runtime
 RUN pnpm prune --prod --ignore-scripts
 
+RUN corepack enable && pnpm add --global wrangler@4.5.1
+
 
 # ---- production stage ----
 FROM prod-deps AS bolt-ai-production
@@ -57,8 +62,8 @@ ENV WRANGLER_SEND_METRICS=false \
 # Note: API keys should be provided at runtime via docker run -e or docker-compose
 # Example: docker run -e OPENAI_API_KEY=your_key_here ...
 
-# Install curl for healthchecks and copy bindings script
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# Install curl for healthchecks and required runtime libraries
+RUN apt-get update && apt-get install -y --no-install-recommends curl libatomic1 \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy built files and scripts
