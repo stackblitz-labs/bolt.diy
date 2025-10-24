@@ -3,6 +3,9 @@ import { createTopoffCheckout } from '~/lib/stripe/client';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
 import { userStore } from '~/lib/stores/userAuth';
 import { useStore } from '@nanostores/react';
+import { accountModalStore } from '~/lib/stores/accountModal';
+import { Crown } from 'lucide-react';
+import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 
 interface AddPeanutsCardProps {
   onMount?: () => void;
@@ -11,6 +14,8 @@ interface AddPeanutsCardProps {
 export const AddPeanutsCard: React.FC<AddPeanutsCardProps> = ({ onMount }) => {
   const [loading, setLoading] = useState(false);
   const user = useStore(userStore.user);
+  const stripeSubscription = useStore(subscriptionStore.subscription);
+  const currentTier = stripeSubscription?.tier;
 
   useEffect(() => {
     if (onMount) {
@@ -50,6 +55,17 @@ export const AddPeanutsCard: React.FC<AddPeanutsCardProps> = ({ onMount }) => {
     }
   };
 
+  const handleSubscriptionToggle = async () => {
+    accountModalStore.open('billing');
+    if (window.analytics) {
+      window.analytics.track('Clicked View Plans button', {
+        timestamp: new Date().toISOString(),
+        userId: user?.id,
+        email: user?.email,
+      });
+    }
+  };
+
   return (
     <div className="w-full mt-5">
       <div className="bg-gradient-to-br from-orange-500/5 via-amber-500/5 to-yellow-500/5 border border-orange-500/20 rounded-2xl p-6 transition-all duration-300 hover:border-orange-500/30 hover:shadow-lg">
@@ -61,7 +77,7 @@ export const AddPeanutsCard: React.FC<AddPeanutsCardProps> = ({ onMount }) => {
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-bolt-elements-textHeading">Out of Peanuts!</h3>
             <p className="text-bolt-elements-textSecondary text-sm max-w-md">
-              You've run out of peanuts! Add more to continue building your application.
+              You will need to add more to continue building.
             </p>
           </div>
 
@@ -82,6 +98,19 @@ export const AddPeanutsCard: React.FC<AddPeanutsCardProps> = ({ onMount }) => {
               </>
             )}
           </button>
+          {currentTier === 'free' && (
+            <>
+              <p className="text-bolt-elements-textSecondary text-sm">Or Upgrade Plan</p>
+              <button
+                onClick={handleSubscriptionToggle}
+                disabled={loading}
+                className="w-full px-4 py-3 w-fit text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium shadow-sm hover:shadow-md group"
+              >
+                <Crown className="transition-transform duration-200 group-hover:scale-110" size={20} />
+                <span className="transition-transform duration-200 group-hover:scale-105">View Plans</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
