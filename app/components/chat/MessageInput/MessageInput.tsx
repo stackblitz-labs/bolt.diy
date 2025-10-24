@@ -4,11 +4,9 @@ import { classNames } from '~/utils/classNames';
 import { SendButton } from '~/components/chat/SendButton.client';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
-import { StartBuildingButton } from '~/components/chat/StartBuildingButton';
 import { BugReportComponent } from '~/components/chat/BugReportComponent';
 import { chatStore } from '~/lib/stores/chat';
 import { useStore } from '@nanostores/react';
-import { getDiscoveryRating } from '~/lib/persistence/message';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import {
   Breadcrumb,
@@ -45,9 +43,6 @@ interface SelectedElementData {
   tree: ReactComponent[];
 }
 import { workbenchStore } from '~/lib/stores/workbench';
-import { mobileNavStore } from '~/lib/stores/mobileNav';
-import { userStore } from '~/lib/stores/userAuth';
-import { peanutsStore } from '~/lib/stores/peanuts';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
 import { processImage, validateImageFile, formatFileSize } from '~/utils/imageProcessing';
 import { toast } from 'react-toastify';
@@ -94,11 +89,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const hasPendingMessage = useStore(chatStore.hasPendingMessage);
   const chatStarted = useStore(chatStore.started);
-  const messages = useStore(chatStore.messages);
   const appSummary = useStore(chatStore.appSummary);
   const hasAppSummary = !!appSummary;
-  const user = useStore(userStore.user);
-  const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
   const selectedElement = useStore(workbenchStore.selectedElement) as SelectedElementData | null;
   const { isMobile, isTablet } = useIsMobile();
 
@@ -158,11 +150,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       tree: newTree,
     });
   };
-
-  let startPlanningRating = 0;
-  if (!hasPendingMessage && !hasAppSummary) {
-    startPlanningRating = getDiscoveryRating(messages || []);
-  }
 
   const bugReports = appSummary?.bugReports?.filter(
     (report) => report.status === BugReportStatus.Open || report.status == BugReportStatus.WaitingForFeedback,
@@ -279,40 +266,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   const fullInput =
     `${input ? input + '\n\n' : ''}` + (checkedBoxes ? `${checkedBoxes.map((box) => `${box}`).join('\n')}` : '');
-
-  const handleStartBuilding = () => {
-    const message = (fullInput + '\n\nStart building the app based on these requirements.').trim();
-
-    // Transform selectedElement to API format
-    const componentReference = selectedElement?.tree
-      ? { componentNames: selectedElement.tree.map((comp: ReactComponent) => comp.displayName || 'Anonymous') }
-      : undefined;
-
-    handleSendMessage({
-      messageInput: message,
-      chatMode: ChatMode.DevelopApp,
-      componentReference,
-    });
-
-    // Clear selected element after sending
-    if (selectedElement) {
-      workbenchStore.setSelectedElement(null);
-    }
-
-    if (window.analytics) {
-      window.analytics.track('Clicked Start Building button', {
-        timestamp: new Date().toISOString(),
-        userId: user?.id,
-        email: user?.email,
-      });
-    }
-
-    setTimeout(() => {
-      workbenchStore.setShowWorkbench(true);
-      mobileNavStore.setShowMobileNav(true);
-      mobileNavStore.setActiveTab('preview');
-    }, 2000);
-  };
 
   return (
     <div
@@ -565,13 +518,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
         {(() => {
           const showSendButton = (hasPendingMessage || fullInput.length > 0 || uploadedFiles.length > 0) && chatStarted;
-          const showStartBuildingButton =
-            user &&
-            startPlanningRating > 0 &&
-            !showSendButton &&
-            !hasAppSummary &&
-            peanutsRemaining !== undefined &&
-            peanutsRemaining > 0;
 
           return (
             <>
@@ -608,14 +554,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                         }
                       }}
                     />
-                  )}
-                </ClientOnly>
-              )}
-
-              {showStartBuildingButton && (
-                <ClientOnly>
-                  {() => (
-                    <StartBuildingButton onClick={handleStartBuilding} startPlanningRating={startPlanningRating} />
                   )}
                 </ClientOnly>
               )}
