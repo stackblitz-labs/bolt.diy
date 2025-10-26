@@ -90,7 +90,7 @@ export async function streamText(props: {
       currentModel = model;
       currentProvider = provider;
       newMessage.content = sanitizeText(content);
-    } else if (message.role == 'assistant') {
+    } else if (message.role === 'assistant') {
       newMessage.content = sanitizeText(message.content);
     }
 

@@ -49,7 +49,7 @@ export default class GroqProvider extends BaseProvider {
     });
 
     if (!apiKey) {
-      throw `Missing Api Key configuration for ${this.name} provider`;
+      throw new Error(`Missing API key configuration for ${this.name} provider`);
     }
 
     const response = await fetch(`https://api.groq.com/openai/v1/models`, {

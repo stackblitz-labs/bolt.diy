@@ -28,7 +28,7 @@ export abstract class BaseProvider implements ProviderInfo {
     let settingsBaseUrl = providerSettings?.baseUrl;
     const manager = LLMManager.getInstance();
 
-    if (settingsBaseUrl && settingsBaseUrl.length == 0) {
+    if (settingsBaseUrl && settingsBaseUrl.length === 0) {
       settingsBaseUrl = undefined;
     }
 
