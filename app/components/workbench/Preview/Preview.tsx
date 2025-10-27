@@ -7,6 +7,7 @@ import { useVibeAppAuthPopup } from '~/lib/hooks/useVibeAppAuth';
 import { RotateCw, Crosshair, MonitorSmartphone, Maximize2, Minimize2 } from '~/components/ui/Icon';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
+import { useIsMobile } from '~/lib/hooks/useIsMobile';
 
 let gCurrentIFrameRef: React.RefObject<HTMLIFrameElement> | undefined;
 
@@ -18,6 +19,7 @@ export const Preview = memo(() => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { isMobile } = useIsMobile();
 
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -215,7 +217,7 @@ export const Preview = memo(() => {
       )}
       <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 p-3 flex items-center gap-2 shadow-sm">
         <IconButton icon={<RotateCw size={20} />} onClick={() => reloadPreview()} />
-        {isElementPickerReady && (
+        {isElementPickerReady && !isMobile && (
           <IconButton
             className={classNames({
               'bg-bolt-elements-background-depth-3': isElementPickerEnabled,
