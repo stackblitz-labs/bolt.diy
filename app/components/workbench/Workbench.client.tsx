@@ -51,23 +51,22 @@ export const Workbench = memo(({ chatStarted }: WorkspaceProps) => {
         className="z-workbench h-full"
       >
         <div
-          className={classNames(
-            'fixed mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier p-6 h-full',
-            {
-              'top-[calc(var(--header-height)+0rem)] bottom-13': isSmallViewport,
-              'top-[calc(var(--header-height)+1.5rem)] bottom-6': !isSmallViewport,
-              'w-full': isSmallViewport,
-              'left-0': showWorkbench && isSmallViewport,
-              'left-[100%]': !showWorkbench,
-            },
-          )}
+          className={classNames('fixed mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier p-6', {
+            'top-[calc(54px+0rem)]': isSmallViewport,
+            'top-[calc(54px+1.5rem)] bottom-6': !isSmallViewport,
+            'w-full': isSmallViewport,
+            'left-0': showWorkbench && isSmallViewport,
+            'left-[100%]': !showWorkbench,
+          })}
           style={
             !isSmallViewport
               ? {
                   width: `${workbenchWidth}px`,
                   left: showWorkbench ? `${workbenchLeft}px` : '100%',
                 }
-              : undefined
+              : {
+                  height: 'calc(100vh - 54px - 3.5rem)',
+                }
           }
         >
           <div
