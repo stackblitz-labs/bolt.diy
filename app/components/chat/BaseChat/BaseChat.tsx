@@ -229,7 +229,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           className={classNames('w-full h-full flex flex-col lg:flex-row overflow-hidden', {
             'overflow-y-auto': !chatStarted,
             'pt-2 pb-2 px-4': isSmallViewport && !appSummary && !showMobileNav,
-            'pt-2 pb-15 px-4': isSmallViewport && (!!appSummary || showMobileNav),
+            'pt-2 pb-16 px-4': isSmallViewport && (!!appSummary || showMobileNav),
             'p-6': !isSmallViewport && chatStarted,
             'p-6 pb-16': !isSmallViewport && !chatStarted,
           })}
