@@ -93,7 +93,10 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
           <UserPlus className="text-green-500" size={24} />
         </div>
         <h2 className="text-3xl font-bold text-bolt-elements-textHeading">Create Account</h2>
-        <p className="text-bolt-elements-textSecondary mt-2">Join us and start building amazing apps</p>
+        <p className="text-bolt-elements-textSecondary mt-2">
+          Join us and start building. After signing up, you will receive <b>1000 free peanuts (credits)</b> to use for
+          building your app.
+        </p>
       </div>
 
       <button
