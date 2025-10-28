@@ -104,11 +104,9 @@ export async function action({ request }: { request: Request }) {
 
   try {
     if (process.env.NODE_ENV === 'development' && !WEBHOOK_SECRET) {
-      console.log('⚠️ DEVELOPMENT MODE: Skipping webhook signature verification');
       event = JSON.parse(body);
     } else {
       event = stripe.webhooks.constructEvent(body, signature, WEBHOOK_SECRET);
-      console.log('✅ Webhook signature verified successfully');
     }
   } catch (error) {
     console.error('❌ Webhook signature verification failed:', error);
@@ -228,8 +226,6 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     if (!userId) {
       return;
     }
-
-    console.log(`❌ Payment failed for user ${userId}, invoice: ${invoice.id}`);
   } catch (error) {
     console.error('Error handling payment failure:', error);
   }

@@ -55,7 +55,14 @@ $code-font-size: 13px;
 
   h6 {
     font-size: 0.85em;
-    color: #6a737d;
+    color: var(--bolt-elements-textSecondary);
+  }
+
+  // Bold/strong text styling
+  strong,
+  b {
+    font-weight: 600;
+    color: var(--bolt-elements-textHeading);
   }
 
   p {
@@ -155,11 +162,11 @@ $code-font-size: 13px;
 
     :is(th, td) {
       padding: 6px 13px;
-      border: 1px solid #dfe2e5;
+      border: 1px solid var(--bolt-elements-borderColor);
     }
 
     tr:nth-child(2n) {
-      background-color: #f6f8fa;
+      background-color: var(--bolt-elements-background-depth-2);
     }
   }
 

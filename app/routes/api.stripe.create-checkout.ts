@@ -96,7 +96,6 @@ export async function action({ request }: { request: Request }) {
 
       if (targetCustomer) {
         customerId = targetCustomer.id;
-        console.log(`Reusing existing customer: ${customerId} for email: ${userEmail}, userId: ${userId}`);
 
         // Always update customer metadata with userId to ensure webhooks work
         // This makes Stripe the authoritative source for user identification
@@ -106,9 +105,7 @@ export async function action({ request }: { request: Request }) {
             userEmail,
           },
         });
-        console.log(`✅ Updated customer ${customerId} metadata - Stripe is now authoritative source`);
       } else {
-        console.log(`No existing customer found - creating new customer with metadata`);
         // Create customer explicitly with metadata
         const newCustomer = await stripe.customers.create({
           email: userEmail,
@@ -118,7 +115,6 @@ export async function action({ request }: { request: Request }) {
           },
         });
         customerId = newCustomer.id;
-        console.log(`✅ Created new customer ${customerId} with metadata`);
       }
     } catch (error) {
       console.error('Error checking for existing customer:', error);

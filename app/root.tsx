@@ -22,6 +22,7 @@ import { GlobalAppCardModal } from './components/chat/Messages/components/Global
 import { GlobalStatusModal } from './components/status-modal/GlobalStatusModal';
 import { GlobalDeployChatModal } from './components/header/DeployChat/components/GlobalDeployChatModal';
 import { GlobalAppSettingsModal } from './components/header/AppSettings/GlobalAppSettingsModal';
+import GlobalFeatureModal from './components/feature-modal/GlobalFeatureModal';
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
@@ -237,6 +238,7 @@ export default function App() {
         <GlobalStatusModal />
         <GlobalDeployChatModal />
         <GlobalAppSettingsModal />
+        <GlobalFeatureModal />
       </ClientOnly>
       <ScrollRestoration />
       <Scripts />

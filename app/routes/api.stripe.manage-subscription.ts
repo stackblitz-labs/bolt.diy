@@ -132,14 +132,12 @@ async function handleCancelSubscription(userEmail: string, userId: string, immed
       );
 
       message = 'Subscription canceled immediately';
-      console.log(`🔄 Immediately canceled subscription ${subscription.id} - webhook will process`);
     } else {
       // Cancel at period end (this will trigger webhook events)
       await stripe.subscriptions.update(subscription.id, {
         cancel_at_period_end: true,
       });
       message = 'Subscription will cancel at the end of current billing period';
-      console.log(`🔄 Scheduled cancellation for subscription ${subscription.id} at period end - webhook will process`);
     }
 
     return new Response(

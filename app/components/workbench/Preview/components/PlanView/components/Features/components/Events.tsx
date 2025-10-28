@@ -187,7 +187,7 @@ const Events = ({ featureName }: EventsProps) => {
     const visibleEvents = shouldShowExpander && !isExpanded ? events.slice(0, 3) : events;
 
     return (
-      <div key={index} className="border-t border-bolt-elements-borderColor border-opacity-50 mb-2">
+      <div key={index} className="border-t border-bolt-elements-borderColor border-opacity-50 mb-2 pt-4">
         <div className="p-4 pt-3 text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wider mb-2 bg-bolt-elements-background-depth-2 bg-opacity-30 px-2 py-1 rounded-md inline-block ml-2">
           <TooltipProvider>
             <WithTooltip tooltip={tooltip}>

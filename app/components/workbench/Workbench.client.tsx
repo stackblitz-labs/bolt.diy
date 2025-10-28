@@ -48,7 +48,7 @@ export const Workbench = memo(({ chatStarted }: WorkspaceProps) => {
         initial="closed"
         animate={showWorkbench ? 'open' : 'closed'}
         variants={workbenchVariants}
-        className="z-workbench h-full"
+        className="z-[15] h-full"
       >
         <div
           className={classNames('fixed mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier p-6', {

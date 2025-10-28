@@ -11,6 +11,7 @@ import WithTooltip from '~/components/ui/Tooltip';
 import { Info } from '~/components/ui/Icon';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { classNames } from '~/utils/classNames';
+import useViewport from '~/lib/hooks/useViewport';
 
 export type ResizeSide = 'left' | 'right' | null;
 
@@ -35,7 +36,7 @@ const AppView = ({
   const appSummary = useStore(chatStore.appSummary);
   const isMockupImplemented = isFeatureStatusImplemented(appSummary?.features?.[0]?.status);
   const initialBuildComplete = isFeatureStatusImplemented(appSummary?.features?.[2]?.status);
-
+  const isSmallViewport = useViewport(800);
   const handleTokenOrRepoChange = (params: URLSearchParams) => {
     setRedirectUrl(`https://${repositoryId}.http.replay.io/auth/callback#${params.toString()}`);
   };
@@ -65,14 +66,17 @@ const AppView = ({
         <div className={'relative w-full h-full'}>
           <div
             className={classNames('absolute inset-0', {
-              'p-[3px] app-progress-border opacity-80 rounded-b-xl': !initialBuildComplete,
+              'p-[3px] app-progress-border opacity-80': !initialBuildComplete,
+              'rounded-b-xl': !isSmallViewport,
             })}
           >
             <iframe
               key={actualIframeUrl}
               ref={iframeRef}
               title="preview"
-              className="w-full h-full bg-white transition-all duration-300 opacity-100 rounded-b-xl"
+              className={classNames('w-full h-full bg-white transition-all duration-300 opacity-100', {
+                'rounded-b-xl': !isSmallViewport,
+              })}
               src={actualIframeUrl}
               allowFullScreen
               sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-forms allow-modals"

@@ -149,7 +149,6 @@ export async function setAppPermissions(
   if (!Array.isArray(permissions)) {
     throw new Error('Invalid permissions: must be an array');
   }
-  console.log('permissions', permissions);
 
   // Validate each permission
   for (const permission of permissions) {

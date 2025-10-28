@@ -256,7 +256,6 @@ export const PermissionsSelectionComponent: React.FC = () => {
 
     // Add the new permission(s) and save to backend
     const updatedPermissions = [...permissions, ...permissionsToAdd];
-    console.log('updatedPermissions', updatedPermissions);
 
     try {
       setSaving(true);

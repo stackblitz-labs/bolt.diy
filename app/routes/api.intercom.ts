@@ -36,9 +36,6 @@ export const action: ActionFunction = async ({ request }: { request: Request }) 
   }
 
   try {
-    // Log contact creation without sensitive details
-    console.log('Creating Intercom contact for user');
-
     const response = await fetch('https://api.intercom.io/contacts', {
       method: 'POST',
       headers: {
@@ -56,9 +53,6 @@ export const action: ActionFunction = async ({ request }: { request: Request }) 
     });
 
     const responseData = await response.json();
-
-    // Log success without sensitive user data
-    console.log('Intercom contact created successfully');
 
     if (!response.ok) {
       // Log error without exposing sensitive response data

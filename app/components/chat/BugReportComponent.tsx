@@ -1,5 +1,4 @@
 import { TooltipProvider } from '@radix-ui/react-tooltip';
-import { motion } from 'framer-motion';
 import WithTooltip from '~/components/ui/Tooltip';
 import type { BugReport } from '~/lib/persistence/messageAppSummary';
 import { BugReportStatus } from '~/lib/persistence/messageAppSummary';
@@ -47,12 +46,7 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
   const { status, escalateTime } = report;
 
   return (
-    <motion.div
-      className="bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded-xl p-4 mb-3 mx-4 mt-3"
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-    >
+    <div>
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
           <Bug className="text-red-500" size={18} />
@@ -127,6 +121,6 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };

@@ -10,7 +10,6 @@ import { User } from '~/components/ui/Icon';
 import {
   MessageContents,
   JumpToBottom,
-  AppCards,
   StartBuildingCard,
   SignInCard,
   AddPeanutsCard,
@@ -18,7 +17,13 @@ import {
   ContinueBuildCard,
   SubscriptionCard,
 } from './components';
-import { APP_SUMMARY_CATEGORY, isFeatureStatusImplemented, type AppSummary } from '~/lib/persistence/messageAppSummary';
+import {
+  APP_SUMMARY_CATEGORY,
+  AppFeatureKind,
+  isFeatureStatusImplemented,
+  type AppFeature,
+  type AppSummary,
+} from '~/lib/persistence/messageAppSummary';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import { pendingMessageStatusStore } from '~/lib/stores/status';
@@ -28,6 +33,8 @@ import { shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { AppFeatureStatus } from '~/lib/persistence/messageAppSummary';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
+import { openFeatureModal } from '~/lib/stores/featureModal';
+import { InfoCard } from '~/components/ui/InfoCard';
 
 interface MessagesProps {
   id?: string;
@@ -176,24 +183,90 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       }
     }, [startPlanningRating]);
 
-    // Helper function to get AppSummary creation time
-    const getAppSummaryTime = (appSummary: Message): string => {
-      try {
-        if (appSummary.content) {
-          const summaryData = JSON.parse(appSummary.content);
-          return summaryData.time;
-        }
-      } catch {
-        // Fall through to createTime
-      }
-      return appSummary.createTime || new Date().toISOString();
-    };
-
     // Helper function to filter, deduplicate, and sort messages
     const processMessageGroup = (messageGroup: Message[]): Message[] => {
       return messageGroup
         .filter((message, index, array) => array.findIndex((m) => m.id === message.id) === index)
         .sort((a, b) => new Date(a.createTime!).getTime() - new Date(b.createTime!).getTime());
+    };
+
+    // Helper function to create timeline items from messages and features
+    const createTimelineItems = () => {
+      const timelineItems: Array<{
+        type: 'message' | 'feature';
+        data: Message | AppFeature;
+        timestamp: Date;
+        id: string;
+      }> = [];
+
+      // Add messages
+      const displayableMessages = processMessageGroup(messages.filter(shouldDisplayMessage));
+      displayableMessages.forEach((message) => {
+        if (message.createTime) {
+          timelineItems.push({
+            type: 'message',
+            data: message,
+            timestamp: new Date(message.createTime),
+            id: message.id,
+          });
+        }
+      });
+
+      // Add features
+      if (appSummary?.features) {
+        appSummary.features
+          .filter((f) => f.status == AppFeatureStatus.Implemented || f.status == AppFeatureStatus.Failed)
+          .forEach((feature) => {
+            if (feature.time) {
+              timelineItems.push({
+                type: 'feature',
+                data: feature,
+                timestamp: new Date(feature.time),
+                id: feature.name,
+              });
+            }
+          });
+      }
+
+      // Sort by timestamp
+      return timelineItems.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    };
+
+    const renderFeature = (feature: any) => {
+      const iconType =
+        feature.status === AppFeatureStatus.ImplementationInProgress
+          ? 'loading'
+          : feature.status === AppFeatureStatus.Failed
+            ? 'error'
+            : 'success';
+
+      const variant = feature.status === AppFeatureStatus.ImplementationInProgress ? 'active' : 'default';
+
+      // Find the index of this feature in the filtered array for modal
+      const filteredFeatures =
+        appSummary?.features?.filter(
+          (f) => f.kind !== AppFeatureKind.BuildInitialApp && f.kind !== AppFeatureKind.DesignAPIs,
+        ) || [];
+      const modalIndex = filteredFeatures.findIndex((f) => f === feature);
+
+      return (
+        <div className="mt-5">
+          <InfoCard
+            title={feature.name}
+            description={feature.description}
+            iconType={iconType}
+            variant={variant}
+            onCardClick={
+              modalIndex !== -1
+                ? () => {
+                    openFeatureModal(modalIndex, filteredFeatures.length);
+                  }
+                : undefined
+            }
+            className="shadow-sm"
+          />
+        </div>
+      );
     };
 
     const renderMessage = (message: Message, index: number) => {
@@ -295,45 +368,17 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
           className={classNames('flex-1 overflow-y-auto rounded-b-2xl', 'flex flex-col w-full max-w-chat pb-6 mx-auto')}
         >
           {(() => {
-            const firstAppSummary = messages.find((message) => message.category === APP_SUMMARY_CATEGORY);
-
-            if (!firstAppSummary) {
-              const displayableMessages = processMessageGroup(messages.filter(shouldDisplayMessage));
-              return (
-                <>
-                  {displayableMessages.map((message, index) => renderMessage(message, index))}
-                  <AppCards />
-                </>
-              );
-            }
-
-            const appSummaryTime = getAppSummaryTime(firstAppSummary);
-
-            const beforeMessages = processMessageGroup(
-              messages.filter(
-                (message) => shouldDisplayMessage(message) && message.createTime && message.createTime < appSummaryTime,
-              ),
-            );
-
-            const afterMessages = processMessageGroup(
-              messages.filter(
-                (message) =>
-                  shouldDisplayMessage(message) &&
-                  message.category !== APP_SUMMARY_CATEGORY &&
-                  message.createTime &&
-                  message.createTime > appSummaryTime,
-              ),
-            );
-
+            const timelineItems = createTimelineItems();
             return (
               <>
-                {beforeMessages.map((message, index) => renderMessage(message, index))}
-                <div className="w-full mt-5">
-                  <AppCards />
-                </div>
-                {afterMessages.length > 0 && (
-                  <div className="mt-5">{afterMessages.map((message, index) => renderMessage(message, index))}</div>
-                )}
+                {timelineItems.map((item, index) => {
+                  if (item.type === 'message') {
+                    return renderMessage(item.data as Message, index);
+                  } else if (item.type === 'feature') {
+                    return renderFeature(item.data as AppFeature);
+                  }
+                  return null;
+                })}
               </>
             );
           })()}

@@ -11,7 +11,7 @@ export async function supabaseSubmitFeedback(feedback: any) {
   const userId = user?.id || null;
 
   // Insert feedback into the feedback table
-  const { data, error } = await supabase.from('feedback').insert({
+  const { error } = await supabase.from('feedback').insert({
     user_id: userId,
     description: feedback.description || feedback.text || JSON.stringify(feedback),
     metadata: feedback,
@@ -23,8 +23,6 @@ export async function supabaseSubmitFeedback(feedback: any) {
 
     return false;
   }
-
-  console.log('Feedback submitted successfully:', data);
 
   return true;
 }

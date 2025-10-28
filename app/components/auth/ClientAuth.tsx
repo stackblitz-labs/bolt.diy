@@ -146,7 +146,7 @@ export function ClientAuth() {
           {showDropdown && (
             <div
               ref={dropdownRef}
-              className="absolute right-[-10px] mt-2 py-3 w-72 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-xl shadow-2xl z-10"
+              className="absolute right-[-10px] mt-2 py-3 w-72 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-xl shadow-2xl z-[100]"
             >
               <div className="px-6 py-4 border-b border-bolt-elements-borderColor">
                 <div className="flex items-center gap-3">

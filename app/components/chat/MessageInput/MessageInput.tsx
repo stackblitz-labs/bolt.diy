@@ -5,7 +5,6 @@ import { SendButton } from '~/components/chat/SendButton.client';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import { StartBuildingButton } from '~/components/chat/StartBuildingButton';
-import { BugReportComponent } from '~/components/chat/BugReportComponent';
 import { chatStore } from '~/lib/stores/chat';
 import { useStore } from '@nanostores/react';
 import { getDiscoveryRating } from '~/lib/persistence/message';
@@ -53,7 +52,6 @@ import { processImage, validateImageFile, formatFileSize } from '~/utils/imagePr
 import { toast } from 'react-toastify';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
-import { BugReportStatus } from '~/lib/persistence/messageAppSummary';
 import { getCurrentIFrame } from '~/components/workbench/Preview/Preview';
 import { Crosshair, Paperclip, X } from 'lucide-react';
 
@@ -163,10 +161,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   if (!hasPendingMessage && !hasAppSummary) {
     startPlanningRating = getDiscoveryRating(messages || []);
   }
-
-  const bugReports = appSummary?.bugReports?.filter(
-    (report) => report.status === BugReportStatus.Open || report.status == BugReportStatus.WaitingForFeedback,
-  );
 
   const handleFileUpload = () => {
     const input = document.createElement('input');
@@ -320,10 +314,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         'relative bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor backdrop-blur rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:border-bolt-elements-focus/30',
       )}
     >
-      {bugReports?.map((report) => (
-        <BugReportComponent key={report.name} report={report} handleSendMessage={handleSendMessage} />
-      ))}
-
       {checkedBoxes && checkedBoxes.length > 0 && (
         <div className="bg-bolt-elements-background-depth-2 border-b border-bolt-elements-borderColor rounded-t-2xl p-4">
           <div className="flex flex-col gap-2">
@@ -475,7 +465,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         <textarea
           ref={textareaRef}
           className={classNames(
-            'w-full px-6 py-4 pr-20 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-base',
+            'w-full px-6 py-4 pr-20 border-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-base',
             'transition-all duration-200',
             'focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50',
             checkedBoxes && checkedBoxes.length > 0 ? 'rounded-b-2xl' : 'rounded-2xl',

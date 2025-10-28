@@ -229,3 +229,15 @@ html[data-theme='dark'] .animate-shimmer::before,
 .animate-flow-left-to-right {
   animation: flow-left-to-right 4s ease-in-out infinite;
 }
+
+/* Slide up animation for expanding cards */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
