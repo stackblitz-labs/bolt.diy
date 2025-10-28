@@ -4,3 +4,10 @@ compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2025-03-28"
 pages_build_output_dir = "./build/client"
 send_metrics = false
+
+# Development-specific settings
+[dev]
+ip = "127.0.0.1"
+port = 8787
+local_protocol = "http"
+inspector_port = 9229

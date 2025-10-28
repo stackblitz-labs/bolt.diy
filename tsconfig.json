@@ -22,7 +22,8 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./app/*"]
+      "~/*": ["./app/*"],
+      "../build/*": ["./types/build/*"]
     },
     // vite takes care of building everything, not tsc
     "noEmit": true
@@ -30,9 +31,12 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    "**/*.d.ts",
     "**/.server/**/*.ts",
     "**/.server/**/*.tsx",
     "**/.client/**/*.ts",
-    "**/.client/**/*.tsx"
+    "**/.client/**/*.tsx",
+    "types/**/*.d.ts",
+    "functions/**/*.ts"
   ]
 }
