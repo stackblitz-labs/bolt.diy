@@ -215,7 +215,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       // Add features
       if (appSummary?.features) {
         appSummary.features
-          .filter((f) => f.status == AppFeatureStatus.Implemented || f.status == AppFeatureStatus.Failed)
+          .filter((f) => f.status === AppFeatureStatus.Implemented || f.status === AppFeatureStatus.Failed)
           .forEach((feature) => {
             if (feature.time) {
               timelineItems.push({

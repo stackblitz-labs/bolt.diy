@@ -108,56 +108,60 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [appSummary]);
 
     useEffect(() => {
+      const newCards: InfoCardData[] = [];
+
+      // Add feature cards
       if (appSummary?.features) {
         // Create filtered features array for modal
         const filteredFeatures = appSummary.features.filter(
           (f) => f.kind !== AppFeatureKind.BuildInitialApp && f.kind !== AppFeatureKind.DesignAPIs,
         );
 
-        setInfoCards((prevState) => [
-          ...prevState,
-          ...(appSummary.features ?? [])
-            .filter((f) => f.status === AppFeatureStatus.ImplementationInProgress)
-            .map((feature) => {
-              const iconType: 'loading' | 'error' | 'success' =
-                feature.status === AppFeatureStatus.ImplementationInProgress
-                  ? 'loading'
-                  : feature.status === AppFeatureStatus.Failed
-                    ? 'error'
-                    : 'success';
+        const featureCards = appSummary.features
+          .filter((f) => f.status === AppFeatureStatus.ImplementationInProgress && f.kind !== AppFeatureKind.FixBug)
+          .map((feature) => {
+            const iconType: 'loading' | 'error' | 'success' =
+              feature.status === AppFeatureStatus.ImplementationInProgress
+                ? 'loading'
+                : feature.status === AppFeatureStatus.Failed
+                  ? 'error'
+                  : 'success';
 
-              const variant: 'active' | 'default' =
-                feature.status === AppFeatureStatus.ImplementationInProgress ? 'active' : 'default';
+            const variant: 'active' | 'default' =
+              feature.status === AppFeatureStatus.ImplementationInProgress ? 'active' : 'default';
 
-              // Find the index of this feature in the filtered array
-              const modalIndex = filteredFeatures.findIndex((f) => f === feature);
+            // Find the index of this feature in the filtered array
+            const modalIndex = filteredFeatures.findIndex((f) => f === feature);
 
-              return {
-                id: feature.name,
-                title: feature.name,
-                description: feature.description,
-                iconType,
-                variant,
-                onCardClick:
-                  modalIndex !== -1
-                    ? () => {
-                        openFeatureModal(modalIndex, filteredFeatures.length);
-                      }
-                    : undefined,
-              };
-            }),
-        ]);
+            return {
+              id: feature.name,
+              title: feature.name,
+              description: feature.description,
+              iconType,
+              variant,
+              onCardClick:
+                modalIndex !== -1
+                  ? () => {
+                      openFeatureModal(modalIndex, filteredFeatures.length);
+                    }
+                  : undefined,
+            };
+          });
+
+        newCards.push(...featureCards);
       }
-    }, [appSummary]);
 
-    useEffect(() => {
-      setInfoCards((prevState) => [
-        ...prevState,
-        ...(appSummary?.bugReports?.filter((a) => a.status !== BugReportStatus.Resolved) ?? []).map((report) => ({
+      // Add bug report cards
+      const bugReportCards = (appSummary?.bugReports?.filter((a) => a.status !== BugReportStatus.Resolved) ?? []).map(
+        (report) => ({
           id: report.name,
           bugReport: report,
-        })),
-      ]);
+        }),
+      );
+
+      newCards.push(...bugReportCards);
+
+      setInfoCards(newCards);
     }, [appSummary]);
 
     const getComponentReference = useCallback(() => {

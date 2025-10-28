@@ -293,7 +293,9 @@ const StackedInfoCard = React.forwardRef<HTMLDivElement, StackedInfoCardProps>(
           ) : (
             <div
               ref={scrollContainerRef}
-              className="space-y-2 rounded-t-xl flex flex-col gap-1 max-h-[50vh] overflow-y-auto [box-shadow:inset_0_10px_8px_-8px_rgba(0,0,0,0.2)]"
+              className={cn('space-y-2 rounded-t-xl flex flex-col gap-1 max-h-[50vh] overflow-y-auto', {
+                '[box-shadow:inset_0_10px_8px_-8px_rgba(0,0,0,0.2)]': isExpanded,
+              })}
             >
               <div className=""></div>
               {cards.map((card) => (

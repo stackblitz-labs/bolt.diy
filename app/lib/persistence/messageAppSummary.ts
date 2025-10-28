@@ -82,6 +82,9 @@ export enum AppFeatureKind {
 
   // Write one or more integration tests and get them to pass.
   IntegrationTests = 'IntegrationTests',
+
+  // Bug fix
+  FixBug = 'FixBug',
 }
 
 export interface AppFeature {
