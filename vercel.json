@@ -1,12 +1,11 @@
 {
   "buildCommand": "pnpm run build",
   "outputDirectory": "build/client",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --prod=false",
   "framework": "remix",
   "regions": ["iad1"],
   "build": {
     "env": {
-      "NODE_ENV": "production",
       "VERCEL": "1"
     }
   },
