@@ -12,6 +12,10 @@ dotenv.config({ path: '.env' });
 dotenv.config();
 
 export default defineConfig((config) => {
+  // Detect if we're building for Vercel or other non-Cloudflare platforms
+  const isVercel = process.env.VERCEL === '1';
+  const isCloudflare = !isVercel && (process.env.CF_PAGES === '1' || process.env.CLOUDFLARE === '1');
+
   return {
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
@@ -43,7 +47,8 @@ export default defineConfig((config) => {
           return null;
         },
       },
-      config.mode !== 'test' && remixCloudflareDevProxy(),
+      // Only use Cloudflare dev proxy when not on Vercel and not in test mode
+      !isVercel && config.mode !== 'test' && remixCloudflareDevProxy(),
       remixVitePlugin({
         future: {
           v3_fetcherPersist: true,
