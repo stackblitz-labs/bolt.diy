@@ -46,13 +46,21 @@ export const useConnectionStatus = () => {
   }, [acknowledgedIssue]);
 
   const acknowledgeIssue = () => {
-    setAcknowledgedIssue(currentIssue);
+    try {
+      localStorage.setItem(ACKNOWLEDGED_CONNECTION_ISSUE_KEY, currentIssue || '');
+    } catch {
+      // Ignore localStorage errors
+    }
     setAcknowledgedIssue(currentIssue);
     setHasConnectionIssues(false);
   };
 
   const resetAcknowledgment = () => {
-    setAcknowledgedIssue(null);
+    try {
+      localStorage.removeItem(ACKNOWLEDGED_CONNECTION_ISSUE_KEY);
+    } catch {
+      // Ignore localStorage errors
+    }
     setAcknowledgedIssue(null);
     checkStatus();
   };

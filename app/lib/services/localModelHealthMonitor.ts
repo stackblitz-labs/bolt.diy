@@ -219,7 +219,9 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
    */
   private async _checkOllamaHealth(baseUrl: string, signal: AbortSignal): Promise<HealthCheckResult> {
     try {
-      console.log(`[Health Check] Checking Ollama at ${baseUrl}`);
+      if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.log(`[Health Check] Checking Ollama at ${baseUrl}`);
+      }
 
       // Check if Ollama is running
       const response = await fetch(`${baseUrl}/api/tags`, {
@@ -234,7 +236,9 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
       const data = (await response.json()) as { models?: Array<{ name: string }> };
       const models = data.models?.map((model) => model.name) || [];
 
-      console.log(`[Health Check] Ollama healthy with ${models.length} models`);
+      if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.log(`[Health Check] Ollama healthy with ${models.length} models`);
+      }
 
       // Try to get version info
       let version: string | undefined;
@@ -257,7 +261,9 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
         version,
       };
     } catch (error) {
-      console.error(`[Health Check] Ollama health check failed:`, error);
+      if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.error(`[Health Check] Ollama health check failed:`, error);
+      }
       return {
         isHealthy: false,
         responseTime: 0,
