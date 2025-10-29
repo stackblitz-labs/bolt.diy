@@ -1,4 +1,4 @@
-import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
+import { vitePlugin as remixVitePlugin } from '@remix-run/dev';
 import UnoCSS from 'unocss/vite';
 import { defineConfig, type ViteDevServer } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
@@ -12,16 +12,19 @@ dotenv.config({ path: '.env' });
 dotenv.config();
 
 export default defineConfig((config) => {
-  // Detect if we're building for Vercel or in CI/production
-  // Vercel sets multiple env vars, check them all
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isCI = process.env.CI === 'true' || process.env.CI === '1';
   const isVercel = process.env.VERCEL === '1' ||
                    process.env.VERCEL_ENV !== undefined ||
                    process.env.VERCEL_URL !== undefined;
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isCI = process.env.CI === 'true' || process.env.CI === '1';
 
-  // Only use Cloudflare proxy in local development
-  const useCloudflareProxy = !isVercel && !isProduction && !isCI;
+  // Only load Cloudflare proxy in local development (not in production/CI/Vercel)
+  const useCloudflareProxy = !isProduction && !isCI && !isVercel && config.mode !== 'test';
+
+  // Dynamically import Cloudflare plugin only when needed
+  const cloudflarePlugin = useCloudflareProxy
+    ? import('@remix-run/dev').then((mod) => mod.cloudflareDevProxyVitePlugin())
+    : Promise.resolve(false);
 
   return {
     define: {
@@ -54,8 +57,7 @@ export default defineConfig((config) => {
           return null;
         },
       },
-      // Only use Cloudflare dev proxy in local development
-      useCloudflareProxy && config.mode !== 'test' && remixCloudflareDevProxy(),
+      // Only use Cloudflare dev proxy in local development - DON'T import in production
       remixVitePlugin({
         future: {
           v3_fetcherPersist: true,
