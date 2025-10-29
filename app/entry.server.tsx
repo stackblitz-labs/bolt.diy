@@ -1,4 +1,5 @@
-import type { AppLoadContext } from '@remix-run/cloudflare';
+// Platform-agnostic imports - works on both Cloudflare and Vercel/Node.js
+import type { EntryContext } from '@remix-run/react';
 import { RemixServer } from '@remix-run/react';
 import { isbot } from 'isbot';
 import { renderToReadableStream } from 'react-dom/server';
@@ -10,8 +11,8 @@ export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
-  remixContext: any,
-  _loadContext: AppLoadContext,
+  remixContext: EntryContext,
+  _loadContext: any, // Generic load context - works on any platform
 ) {
   // await initializeModelList({});
 

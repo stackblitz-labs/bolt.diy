@@ -47,7 +47,10 @@ export default class SwitchableStream extends TransformStream {
         this._controller.enqueue(value);
       }
     } catch (error) {
-      console.log(error);
+      // Only log in development, use proper error handling in production
+      if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.error('[SwitchableStream] Stream pump error:', error);
+      }
       this._controller.error(error);
     }
   }
