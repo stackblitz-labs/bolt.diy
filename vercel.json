@@ -1,0 +1,40 @@
+{
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "build/client",
+  "installCommand": "pnpm install",
+  "framework": "remix",
+  "regions": ["iad1"],
+  "env": {
+    "NODE_VERSION": "18.18.0"
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
+}
