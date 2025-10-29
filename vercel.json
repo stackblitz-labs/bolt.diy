@@ -4,13 +4,10 @@
   "installCommand": "pnpm install",
   "framework": "remix",
   "regions": ["iad1"],
-  "env": {
-    "NODE_VERSION": "18.18.0",
-    "VERCEL": "1"
-  },
   "build": {
     "env": {
-      "NODE_ENV": "production"
+      "NODE_ENV": "production",
+      "VERCEL": "1"
     }
   },
   "headers": [
