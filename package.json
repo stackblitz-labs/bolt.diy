@@ -28,7 +28,7 @@
     "typecheck": "tsc",
     "typegen": "wrangler types",
     "preview": "pnpm run build && pnpm run start",
-    "prepare": "husky",
+    "prepare": "is-ci || husky",
     "clean": "node scripts/clean.js",
     "electron:dev": "node scripts/electron-dev.mjs",
     "electron:dev:inspect": "NODE_ENV=development electron --inspect=9229 build/electron/main/index.mjs",
