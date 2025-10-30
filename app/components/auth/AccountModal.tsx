@@ -4,7 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import type { ReactElement } from 'react';
 import { peanutsStore, refreshPeanutsStore } from '~/lib/stores/peanuts';
 import { useStore } from '@nanostores/react';
-import { createTopoffCheckout, cancelSubscription, manageBilling } from '~/lib/stripe/client';
+import { createTopoffCheckout, cancelSubscription, manageBilling, checkSubscriptionStatus } from '~/lib/stripe/client';
 import { classNames } from '~/utils/classNames';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
 import { ConfirmCancelModal } from '~/components/subscription/ConfirmCancelModal';
@@ -51,6 +51,8 @@ export const AccountModal = ({ user }: AccountModalProps) => {
     setLoading(true);
 
     const [history] = await Promise.all([getPeanutsHistory(), getPeanutsSubscription(), refreshPeanutsStore()]);
+    const stripeStatus = await checkSubscriptionStatus();
+    subscriptionStore.setSubscription(stripeStatus);
 
     history.reverse();
     setHistory(history);
