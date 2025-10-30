@@ -32,7 +32,32 @@ export function useUser() {
     }
 
     if (window.Intercom) {
-      fetch(`/api/intercom/jwt?user_id=${encodeURIComponent(user.id)}&email=${encodeURIComponent(user.email)}`)
+      // Get the access token from localStorage (where Supabase stores it)
+      const storageKey = `sb-${new URL(window.ENV.SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
+      const authData = localStorage.getItem(storageKey);
+      let accessToken = null;
+
+      if (authData) {
+        try {
+          const parsed = JSON.parse(authData);
+          accessToken = parsed.access_token;
+        } catch (e) {
+          console.error('Failed to parse auth token', e);
+        }
+      }
+
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      fetch(`/api/intercom/jwt`, {
+        method: 'GET',
+        headers,
+      })
         .then((res) => res.json())
         .then((data) => {
           if (data && data.jwt && window.Intercom) {
@@ -45,6 +70,9 @@ export function useUser() {
               name: user.user_metadata.full_name,
             });
           }
+        })
+        .catch((err) => {
+          console.error('Failed to get Intercom JWT:', err);
         });
     }
   }, [user?.id, user?.email]);

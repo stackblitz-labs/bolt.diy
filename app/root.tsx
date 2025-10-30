@@ -26,7 +26,7 @@ import GlobalFeatureModal from './components/feature-modal/GlobalFeatureModal';
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
-import { analyticsCode } from './embeds/anayltics';
+import { getAnalyticsCode } from './embeds/anayltics';
 
 import './styles/tailwind.css';
 
@@ -107,19 +107,24 @@ const intercomInit = stripIndents`
   (function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}else{var d=document;var i=function(){i.c(arguments);};i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;var l=function(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/k7f741xx';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);};if(document.readyState==='complete'){l();}else if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}}})();
 `;
 
-export const Head = createHead(() => (
-  <>
-    <meta charSet="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-    <Meta />
-    <Links />
-    <script src="https://cdn.lgrckt-in.com/LogRocket.min.js" crossOrigin="anonymous"></script>
-    <script dangerouslySetInnerHTML={{ __html: intercomInit }} />
-    <script dangerouslySetInnerHTML={{ __html: logRocketInit }} />
-    <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
-    <script dangerouslySetInnerHTML={{ __html: analyticsCode }} />
-  </>
-));
+export const Head = createHead(() => {
+  // Use default key - will be moved to env var in production
+  const analyticsCode = getAnalyticsCode('RA2xErHLQaGZ3YeTxzEYw3gmraAfWPIR');
+
+  return (
+    <>
+      <meta charSet="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+      <Meta />
+      <Links />
+      <script src="https://cdn.lgrckt-in.com/LogRocket.min.js" crossOrigin="anonymous"></script>
+      <script dangerouslySetInnerHTML={{ __html: intercomInit }} />
+      <script dangerouslySetInnerHTML={{ __html: logRocketInit }} />
+      <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
+      <script dangerouslySetInnerHTML={{ __html: analyticsCode }} />
+    </>
+  );
+});
 
 function ClientOnly({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);

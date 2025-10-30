@@ -55,9 +55,39 @@ export default async function handleRequest(
 </html>`;
 
   responseHeaders.set('Content-Type', 'text/html');
-  // Temporarily removed COOP/COEP headers to allow YouTube iframes
-  // responseHeaders.set('Cross-Origin-Embedder-Policy', 'credentialless');
+
+  // 🔒 SECURITY: Set comprehensive security headers
   responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+
+  // Content Security Policy
+  const cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.lgrckt-in.com https://widget.intercom.io https://js.intercomcdn.com https://cdn.segment.com https://js.stripe.com https://va.vercel-scripts.com blob:",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https://*.replay.io https://auth.nut.new https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://widget.intercom.io https://api.intercom.io https://api-iam.intercom.io wss://*.intercom.io https://telemetry.replay.io https://*.github.com https://*.githubusercontent.com https://*.sentry.io https://cdn.segment.com https://api.segment.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.lgrckt-in.com",
+    "frame-src 'self' https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://intercom-sheets.com https://*.replay.io",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ];
+
+  // Only add upgrade-insecure-requests in production
+  if (process.env.NODE_ENV === 'production') {
+    cspDirectives.push('upgrade-insecure-requests');
+  }
+
+  responseHeaders.set('Content-Security-Policy', cspDirectives.join('; '));
+
+  // Additional security headers
+  responseHeaders.set('X-Content-Type-Options', 'nosniff');
+  responseHeaders.set('X-Frame-Options', 'DENY');
+  responseHeaders.set('X-XSS-Protection', '1; mode=block');
+  responseHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  responseHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
 
   return new Response(html, {
     headers: responseHeaders,
