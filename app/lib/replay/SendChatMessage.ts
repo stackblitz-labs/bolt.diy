@@ -12,8 +12,6 @@ import { waitForTime } from '~/utils/nut';
 import type { ChatResponse } from '~/lib/persistence/response';
 import { getLastResponseTime } from './ResponseFilter';
 import type { SimulationData } from './MessageHandler';
-import { workbenchStore } from '~/lib/stores/workbench';
-import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
 
 const logger = createScopedLogger('ChatMessage');
 
@@ -43,7 +41,7 @@ export interface NutChatRequest {
   appId: string;
   mode?: ChatMode;
   messages?: Message[];
-  visit?: VisitData;
+  visitDataId?: string;
   retryBugReportName?: string;
   upFrontPricing?: boolean;
   payFeatures?: boolean;
@@ -87,17 +85,6 @@ export async function sendChatMessage(request: NutChatRequest, onResponse: ChatR
   if (usingMockChat()) {
     await sendChatMessageMocked(onResponse);
     return;
-  }
-
-  if (request.mode == ChatMode.UserMessage) {
-    const repositoryId = workbenchStore.repositoryId.get();
-    if (repositoryId) {
-      const simulationData = await flushSimulationData();
-      if (!request.visit) {
-        request.visit = { repositoryId };
-      }
-      request.visit.simulationData = simulationData;
-    }
   }
 
   logger.debug('sendChatMessage', JSON.stringify(request));

@@ -1,4 +1,5 @@
 import { getCurrentUserId, getCurrentAccessToken } from '~/lib/supabase/client';
+import type { VisitData } from '~/lib/replay/SendChatMessage';
 
 type ResponseCallback = (response: any) => void;
 
@@ -22,6 +23,11 @@ export class NutAPIError extends Error {
   }
 }
 
+function getMethodURL(method: string) {
+  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://agent.preprod.replay.io';
+  return `${apiHost}/nut/${method}`;
+}
+
 export async function callNutAPI(
   method: string,
   request: any,
@@ -31,8 +37,7 @@ export async function callNutAPI(
   const userId = overrideUserId ?? (await getCurrentUserId());
   const accessToken = await getCurrentAccessToken();
 
-  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://agent.preprod.replay.io';
-  const url = `${apiHost}/nut/${method}`;
+  const url = getMethodURL(method);
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -90,9 +95,8 @@ export async function callNutAPI(
   }
 }
 
-export async function createAttachment(mimeType: string, attachmentData: ArrayBuffer): Promise<string> {
-  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://dispatch.replay.io';
-  const url = `${apiHost}/nut/create-attachment`;
+async function callAPIStreamBuffer(method: string, buffer: ArrayBuffer, extraHeaders?: Record<string, string>) {
+  const url = getMethodURL(method);
 
   const userId = await getCurrentUserId();
   const accessToken = await getCurrentAccessToken();
@@ -100,9 +104,9 @@ export async function createAttachment(mimeType: string, attachmentData: ArrayBu
   const headers: HeadersInit = {
     'x-user-id': userId ?? '',
     Authorization: accessToken ? `Bearer ${accessToken}` : '',
-    'x-replay-attachment-type': mimeType,
     'Content-Type': 'application/octet-stream',
-    'Content-Length': attachmentData.byteLength.toString(),
+    'Content-Length': buffer.byteLength.toString(),
+    ...extraHeaders,
   };
 
   // Create a ReadableStream for streaming the attachment data
@@ -113,12 +117,12 @@ export async function createAttachment(mimeType: string, attachmentData: ArrayBu
       let offset = 0;
 
       const sendChunk = () => {
-        if (offset >= attachmentData.byteLength) {
+        if (offset >= buffer.byteLength) {
           controller.close();
           return;
         }
 
-        const chunk = attachmentData.slice(offset, offset + chunkSize);
+        const chunk = buffer.slice(offset, offset + chunkSize);
         controller.enqueue(new Uint8Array(chunk));
         offset += chunkSize;
 
@@ -140,10 +144,17 @@ export async function createAttachment(mimeType: string, attachmentData: ArrayBu
   const response = await fetch(url, fetchOptions);
   if (!response.ok) {
     const errorText = await response.text();
-    throw new NutAPIError('createAttachment', response.status, errorText);
+    throw new NutAPIError(`${method} failed`, response.status, errorText);
   }
-  const { attachmentId } = (await response.json()) as { attachmentId: string };
-  return attachmentId;
+
+  return response.json();
+}
+
+export async function createAttachment(mimeType: string, attachmentData: ArrayBuffer): Promise<string> {
+  const json = await callAPIStreamBuffer('create-attachment', attachmentData, {
+    'x-replay-attachment-type': mimeType,
+  });
+  return json.attachmentId;
 }
 
 export async function downloadAttachment(attachmentId: string): Promise<ArrayBuffer> {
@@ -202,4 +213,25 @@ export async function downloadAttachment(attachmentId: string): Promise<ArrayBuf
   }
 
   return result.buffer;
+}
+
+async function compressJSON(obj: any): Promise<ArrayBuffer> {
+  // Convert JSON to string, then to Uint8Array
+  const jsonString = JSON.stringify(obj);
+  const blob = new Blob([jsonString]);
+
+  // Compress using gzip
+  const compressedStream = blob.stream().pipeThrough(new CompressionStream('gzip'));
+
+  // Get the compressed data as a buffer
+  const compressedBlob = await new Response(compressedStream).blob();
+  const buffer = await compressedBlob.arrayBuffer();
+
+  return buffer;
+}
+
+export async function uploadVisitData(visitData: VisitData): Promise<string> {
+  const buffer = await compressJSON(visitData);
+  const json = await callAPIStreamBuffer('create-visit-data', buffer);
+  return json.visitDataId;
 }
