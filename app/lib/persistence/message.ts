@@ -12,9 +12,18 @@ export interface ChatMessageAttachment {
 export interface ChatReferenceComponent {
   componentNames: string[];
 }
+
+export interface MessageUserInfo {
+  id: string;
+  email?: string;
+  name: string;
+  avatar_url: string;
+}
+
 export interface Message {
   id: string;
   role: MessageRole;
+  userInfo?: MessageUserInfo;
   content: string;
   attachments?: ChatMessageAttachment[];
   repositoryId?: string;

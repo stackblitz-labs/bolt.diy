@@ -1,45 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { MessageUserInfo } from '~/lib/persistence/message';
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
   public: {
     Tables: {
-      problems: {
-        Row: {
-          id: string;
-          created_at: string;
-          updated_at: string;
-          title: string;
-          description: string;
-          status: 'Pending' | 'Solved' | 'Unsolved';
-          keywords: string[];
-          repository_id: string;
-          user_id: string | null;
-          problem_comments: Database['public']['Tables']['problem_comments']['Row'][];
-          solution: Json;
-          repository_contents_path: string | null;
-          prompt_path: string | null;
-          solution_path: string | null;
-        };
-        Insert: Omit<
-          Database['public']['Tables']['problems']['Row'],
-          'created_at' | 'updated_at' | 'problem_comments' | 'solution'
-        >;
-        Update: Partial<Database['public']['Tables']['problems']['Insert']>;
-      };
-      problem_comments: {
-        Row: {
-          id: string;
-          created_at: string;
-          problem_id: string;
-          content: string;
-          username: string;
-        };
-        Insert: Omit<Database['public']['Tables']['problem_comments']['Row'], 'id' | 'created_at'>;
-        Update: Partial<Database['public']['Tables']['problem_comments']['Insert']>;
-      };
       feedback: {
         Row: {
           id: string;
@@ -80,6 +47,19 @@ export async function getCurrentUser(): Promise<SupabaseUser | null> {
 export async function getCurrentUserId(): Promise<string | null> {
   const user = await getCurrentUser();
   return user?.id || null;
+}
+
+export async function getCurrentUserInfo(): Promise<MessageUserInfo | undefined> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return undefined;
+  }
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.user_metadata.name,
+    avatar_url: user.user_metadata.avatar_url,
+  };
 }
 
 export async function getNutIsAdmin(): Promise<boolean> {

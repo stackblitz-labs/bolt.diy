@@ -7,17 +7,15 @@ import { database } from '~/lib/persistence/apps';
 import { addChatMessage, chatStore, doAbortChat, doSendMessage } from '~/lib/stores/chat';
 import { cubicEasingFn } from '~/utils/easings';
 import { BaseChat } from '~/components/chat/BaseChat/BaseChat';
-// import Cookies from 'js-cookie';
 import { useSearchParams } from '@remix-run/react';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
-// import { anthropicNumFreeUsesCookieName, maxFreeUses } from '~/utils/freeUses';
 import { ChatMessageTelemetry } from '~/lib/hooks/pingTelemetry';
 import { type ChatMessageAttachment, type Message } from '~/lib/persistence/message';
-// import { usingMockChat } from '~/lib/replay/MockChat';
 import { assert, generateRandomId, navigateApp } from '~/utils/nut';
 import { createAttachment as createAttachmentAPI, uploadVisitData } from '~/lib/replay/NutAPI';
 import { shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
 import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
+import { getCurrentUserInfo } from '~/lib/supabase/client';
 
 let gActiveChatMessageTelemetry: ChatMessageTelemetry | undefined;
 
@@ -139,9 +137,11 @@ const ChatImplementer = memo(() => {
     const chatId = generateRandomId();
 
     if (messageInput || imageDataList.length) {
+      const userInfo = await getCurrentUserInfo();
       const attachments = await Promise.all(imageDataList.map(createAttachment));
       const userMessage: Message = {
         id: `user-${chatId}`,
+        userInfo,
         createTime: new Date().toISOString(),
         role: 'user',
         attachments,
