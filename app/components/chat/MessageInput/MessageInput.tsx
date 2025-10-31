@@ -70,7 +70,6 @@ export interface MessageInputProps {
   onStopListening?: () => void;
   minHeight?: number;
   maxHeight?: number;
-  checkedBoxes?: string[];
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -88,7 +87,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onStopListening = () => {},
   minHeight = 76,
   maxHeight = 200,
-  checkedBoxes,
 }) => {
   const hasPendingMessage = useStore(chatStore.hasPendingMessage);
   const chatStarted = useStore(chatStore.started);
@@ -271,11 +269,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  const fullInput =
-    `${input ? input + '\n\n' : ''}` + (checkedBoxes ? `${checkedBoxes.map((box) => `${box}`).join('\n')}` : '');
-
   const handleStartBuilding = () => {
-    const message = (fullInput + '\n\nStart building the app based on these requirements.').trim();
+    const message = (input + '\n\nStart building the app based on these requirements.').trim();
 
     // Transform selectedElement to API format
     const componentReference = selectedElement?.tree
@@ -314,21 +309,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         'relative bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor backdrop-blur rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:border-bolt-elements-focus/30',
       )}
     >
-      {checkedBoxes && checkedBoxes.length > 0 && (
-        <div className="bg-bolt-elements-background-depth-2 border-b border-bolt-elements-borderColor rounded-t-2xl p-4">
-          <div className="flex flex-col gap-2">
-            {checkedBoxes.map((text) => (
-              <div className="flex items-center gap-3 text-bolt-elements-textPrimary text-sm" key={text}>
-                <div className="w-5 h-5 bg-green-500/10 rounded-full flex items-center justify-center">
-                  <div className="i-ph:check text-green-500 text-sm"></div>
-                </div>
-                <div className="font-medium">{text}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {selectedElement && (
         <div className="bg-bolt-elements-background-depth-2 border-b border-bolt-elements-borderColor px-4 py-3">
           <div className="flex items-center justify-between">
@@ -468,8 +448,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             'w-full px-6 py-4 pr-20 border-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-base',
             'transition-all duration-200',
             'focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50',
-            checkedBoxes && checkedBoxes.length > 0 ? 'rounded-b-2xl' : 'rounded-2xl',
             { 'animate-pulse': !input && !chatStarted },
+            { 'opacity-50 cursor-not-allowed': hasPendingMessage },
           )}
           onDragEnter={(e) => {
             e.preventDefault();
@@ -510,7 +490,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               event.preventDefault();
 
               if (hasPendingMessage) {
-                handleStop();
+                chatStore.showStopConfirmation.set(true);
                 return;
               }
 
@@ -526,7 +506,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 : undefined;
 
               handleSendMessage({
-                messageInput: fullInput,
+                messageInput: input,
                 chatMode: ChatMode.UserMessage,
                 componentReference,
               });
@@ -545,6 +525,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             maxHeight,
             overflowY: 'auto',
           }}
+          disabled={hasPendingMessage}
           placeholder={
             !chatStarted
               ? '✨ What do you want to build? Start typing here...'
@@ -554,7 +535,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         />
 
         {(() => {
-          const showSendButton = (hasPendingMessage || fullInput.length > 0 || uploadedFiles.length > 0) && chatStarted;
+          const showSendButton = (hasPendingMessage || input.length > 0 || uploadedFiles.length > 0) && chatStarted;
           const showStartBuildingButton =
             user &&
             startPlanningRating > 0 &&
@@ -569,34 +550,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 <ClientOnly>
                   {() => (
                     <SendButton
-                      onClick={() => {
-                        if (hasPendingMessage) {
-                          handleStop();
-                          return;
-                        }
-
-                        if (fullInput.length > 0 || uploadedFiles.length > 0) {
-                          // Transform selectedElement to API format
-                          const componentReference = selectedElement?.tree
-                            ? {
-                                componentNames: selectedElement.tree.map(
-                                  (comp: ReactComponent) => comp.displayName || 'Anonymous',
-                                ),
-                              }
-                            : undefined;
-
-                          handleSendMessage({
-                            messageInput: fullInput,
-                            chatMode: ChatMode.UserMessage,
-                            componentReference,
-                          });
-
-                          // Clear selected element after sending
-                          if (selectedElement) {
-                            workbenchStore.setSelectedElement(null);
-                          }
-                        }
-                      }}
+                      handleStop={handleStop}
+                      handleSendMessage={handleSendMessage}
+                      input={input}
+                      uploadedFiles={uploadedFiles}
                     />
                   )}
                 </ClientOnly>

@@ -30,6 +30,9 @@ export class ChatStore {
   // Whether there is an outstanding message sent to the chat.
   hasPendingMessage = atom<boolean>(false);
 
+  // Whether to show the stop confirmation popup
+  showStopConfirmation = atom<boolean>(false);
+
   // Set if work to build the app is actively going on and we are listening for responses.
   listenResponses = atom<boolean>(false);
 
