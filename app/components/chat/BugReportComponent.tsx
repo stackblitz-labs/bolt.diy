@@ -12,7 +12,7 @@ import { Bug, CheckCircle, RotateCw, Hourglass, Loader2, Check, X } from '~/comp
 
 interface BugReportComponentProps {
   report: BugReport;
-  handleSendMessage?: (params: ChatMessageParams) => void;
+  handleSendMessage: (params: ChatMessageParams) => void;
 }
 
 export const BugReportComponent = ({ report, handleSendMessage }: BugReportComponentProps) => {
@@ -36,7 +36,7 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
       return;
     }
 
-    handleSendMessage?.({
+    handleSendMessage({
       messageInput: `Retry fixing bug report "${formatPascalCaseName(report.name)}".`,
       chatMode: ChatMode.UserMessage,
       retryBugReportName: report.name,

@@ -6,6 +6,7 @@ import { CheckCircle, Info, AlertTriangle, XCircle, Loader2, MoreHorizontal } fr
 import { formatPascalCaseName } from '~/utils/names';
 import { BugReportComponent } from '~/components/chat/BugReportComponent';
 import type { BugReport } from '~/lib/persistence/messageAppSummary';
+import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 
 const infoCardVariants = cva('flex items-start gap-3 rounded-2xl border p-4 transition-colors', {
   variants: {
@@ -55,6 +56,7 @@ export interface InfoCardProps extends React.HTMLAttributes<HTMLDivElement>, Var
   }[];
   onCardClick?: () => void;
   bugReport?: BugReport;
+  handleSendMessage: (params: ChatMessageParams) => void;
 }
 
 export interface InfoCardData {
@@ -70,6 +72,7 @@ export interface InfoCardData {
   }[];
   onCardClick?: () => void;
   bugReport?: BugReport;
+  handleSendMessage: (params: ChatMessageParams) => void;
 }
 const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
   (
@@ -83,6 +86,7 @@ const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
       actionButtons,
       onCardClick,
       bugReport,
+      handleSendMessage,
       ...props
     },
     ref,
@@ -117,7 +121,7 @@ const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
         onClick={onCardClick}
       >
         {bugReport ? (
-          <BugReportComponent report={bugReport} />
+          <BugReportComponent report={bugReport} handleSendMessage={handleSendMessage} />
         ) : (
           <>
             {/* Icon */}
@@ -180,10 +184,11 @@ export interface StackedInfoCardProps {
   cards: Array<InfoCardData>;
   className?: string;
   scrollToBottom?: () => void;
+  handleSendMessage: (params: ChatMessageParams) => void;
 }
 
 const StackedInfoCard = React.forwardRef<HTMLDivElement, StackedInfoCardProps>(
-  ({ cards, className, scrollToBottom }, ref) => {
+  ({ cards, className, scrollToBottom, handleSendMessage }, ref) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [wrapperHeight, setWrapperHeight] = useState(80); // Default height
@@ -262,6 +267,7 @@ const StackedInfoCard = React.forwardRef<HTMLDivElement, StackedInfoCardProps>(
                   className={cn('shadow-md', hoveredIndex === 0 && 'shadow-lg')}
                   onCardClick={cards[cards.length - 1].onCardClick}
                   bugReport={cards[cards.length - 1].bugReport}
+                  handleSendMessage={handleSendMessage}
                 />
               </div>
 
@@ -309,6 +315,7 @@ const StackedInfoCard = React.forwardRef<HTMLDivElement, StackedInfoCardProps>(
                   onCardClick={card.onCardClick}
                   className="shadow-sm"
                   bugReport={card.bugReport}
+                  handleSendMessage={handleSendMessage}
                 />
               ))}
             </div>

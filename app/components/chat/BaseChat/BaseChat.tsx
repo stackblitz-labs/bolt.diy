@@ -139,6 +139,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               description: feature.description,
               iconType,
               variant,
+              handleSendMessage,
               onCardClick:
                 modalIndex !== -1
                   ? () => {
@@ -156,6 +157,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         (report) => ({
           id: report.name,
           bugReport: report,
+          handleSendMessage,
         }),
       );
 
@@ -324,10 +326,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <Messages
                         ref={messageRef}
                         onLastMessageCheckboxChange={onLastMessageCheckboxChange}
-                        sendMessage={sendMessage}
+                        sendMessage={handleSendMessage}
                       />
                       {infoCards && infoCards.length > 0 && (
-                        <StackedInfoCard cards={infoCards} className="w-full mb-2" />
+                        <StackedInfoCard
+                          cards={infoCards}
+                          className="w-full mb-2"
+                          handleSendMessage={handleSendMessage}
+                        />
                       )}
                     </>
                   ) : null;
