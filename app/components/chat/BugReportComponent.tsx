@@ -16,7 +16,8 @@ interface BugReportComponentProps {
 }
 
 export const BugReportComponent = ({ report, handleSendMessage }: BugReportComponentProps) => {
-  const handleResolve = async () => {
+  const handleResolve = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     const appId = chatStore.currentAppId.get();
     if (!appId) {
       toast.error('No app selected');
@@ -29,7 +30,8 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
     }
   };
 
-  const handleRetry = async () => {
+  const handleRetry = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     const appId = chatStore.currentAppId.get();
     if (!appId) {
       toast.error('No app selected');
@@ -46,81 +48,71 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
   const { status, escalateTime } = report;
 
   return (
-    <div>
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Bug className="text-red-500" size={18} />
+    <TooltipProvider>
+      <div className="flex items-center gap-4 p-4 rounded-xl w-full h-full">
+        <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
+          <Bug className="text-red-500" size={20} />
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary mb-1">
+          <h3 className="text-sm font-semibold text-bolt-elements-textHeading mb-1.5">
             {formatPascalCaseName(report.name)}
           </h3>
-          <p className="text-sm text-bolt-elements-textSecondary">{report.description}</p>
+          <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">{report.description}</p>
         </div>
 
-        <div className="flex flex-col gap-2 flex-shrink-0">
+        <div className="flex flex-col items-center justify-center h-full gap-2 flex-shrink-0">
           {status === BugReportStatus.WaitingForFeedback && (
             <>
-              <TooltipProvider>
-                <WithTooltip tooltip="Mark this bug as fixed">
-                  <button
-                    onClick={handleResolve}
-                    className="w-7 h-7 flex items-center justify-center bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 rounded-lg transition-all duration-200 hover:scale-110 border border-green-500/20 hover:border-green-500/30"
-                  >
-                    <CheckCircle size={16} />
-                  </button>
-                </WithTooltip>
-              </TooltipProvider>
+              <WithTooltip tooltip="Mark this bug as fixed">
+                <button
+                  onClick={(e) => handleResolve(e)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 transition-colors border border-green-500/20 hover:border-green-500/40 active:scale-95"
+                >
+                  <CheckCircle size={18} />
+                </button>
+              </WithTooltip>
 
-              <TooltipProvider>
-                <WithTooltip tooltip="Retry fixing this bug">
-                  <button
-                    onClick={handleRetry}
-                    className="w-7 h-7 flex items-center justify-center bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-all duration-200 hover:scale-110 border border-blue-500/20 hover:border-blue-500/30"
-                  >
-                    <RotateCw size={16} />
-                  </button>
-                </WithTooltip>
-              </TooltipProvider>
+              <WithTooltip tooltip="Retry fixing this bug">
+                <button
+                  onClick={(e) => handleRetry(e)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/20 hover:border-blue-500/40 active:scale-95"
+                >
+                  <RotateCw size={18} />
+                </button>
+              </WithTooltip>
             </>
           )}
 
           {status === BugReportStatus.Open && (
-            <TooltipProvider>
-              <WithTooltip tooltip={escalateTime ? 'Escalated to developer support' : 'Fixing in progress'}>
-                <div className="w-7 h-7 flex items-center justify-center">
-                  {escalateTime ? (
-                    <Hourglass className="text-bolt-elements-textSecondary" size={16} />
-                  ) : (
-                    <Loader2 className="text-bolt-elements-textSecondary animate-spin" size={16} />
-                  )}
-                </div>
-              </WithTooltip>
-            </TooltipProvider>
+            <WithTooltip tooltip={escalateTime ? 'Escalated to developer support' : 'Fixing in progress'}>
+              <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor">
+                {escalateTime ? (
+                  <Hourglass className="text-bolt-elements-textSecondary" size={18} />
+                ) : (
+                  <Loader2 className="text-bolt-elements-textSecondary animate-spin" size={18} />
+                )}
+              </div>
+            </WithTooltip>
           )}
 
           {status === BugReportStatus.Resolved && (
-            <TooltipProvider>
-              <WithTooltip tooltip="Bug resolved">
-                <div className="w-7 h-7 flex items-center justify-center bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg border border-green-500/20">
-                  <Check size={16} />
-                </div>
-              </WithTooltip>
-            </TooltipProvider>
+            <WithTooltip tooltip="Bug resolved">
+              <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                <Check size={18} />
+              </div>
+            </WithTooltip>
           )}
 
           {status === BugReportStatus.Failed && (
-            <TooltipProvider>
-              <WithTooltip tooltip="Fix failed">
-                <div className="w-7 h-7 flex items-center justify-center bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg border border-red-500/20">
-                  <X size={16} />
-                </div>
-              </WithTooltip>
-            </TooltipProvider>
+            <WithTooltip tooltip="Fix failed">
+              <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                <X size={18} />
+              </div>
+            </WithTooltip>
           )}
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };

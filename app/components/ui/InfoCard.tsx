@@ -115,7 +115,7 @@ const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
       <div
         ref={ref}
         className={cn(infoCardVariants({ variant, size, className }), {
-          'cursor-pointer hover:bg-bolt-elements-background-depth-3': !!onCardClick,
+          'flex items-center cursor-pointer hover:bg-bolt-elements-background-depth-3': !!onCardClick,
         })}
         {...props}
         onClick={onCardClick}
