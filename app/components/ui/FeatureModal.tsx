@@ -37,14 +37,14 @@ const FeatureModal: React.FC = () => {
           return {
             icon: CreditCard,
             label: 'Payment Required',
-            className: 'text-bolt-elements-textPrimary bg-amber-50 border-amber-200',
+            className: 'text-bolt-elements-textPrimary border-amber-200',
             iconClassName: 'text-bolt-elements-textPrimary',
           };
         case AppFeatureStatus.NotStarted:
           return {
             icon: Hourglass,
             label: 'Pending',
-            className: 'text-bolt-elements-textPrimary bg-gray-50 border-gray-200',
+            className: 'text-bolt-elements-textPrimary border-gray-200',
             iconClassName: 'text-bolt-elements-textPrimary',
           };
         case AppFeatureStatus.ImplementationInProgress:
@@ -66,7 +66,7 @@ const FeatureModal: React.FC = () => {
           return {
             icon: XCircle,
             label: 'Failed',
-            className: 'text-red-600 bg-red-50 border-red-200',
+            className: 'text-red-600 border-red-200',
             iconClassName: 'text-red-500',
           };
         default:
@@ -81,7 +81,7 @@ const FeatureModal: React.FC = () => {
 
     return (
       <div
-        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border font-medium text-sm transition-all duration-200 ${config.className}`}
+        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border font-medium text-sm transition-all duration-200 bg-bolt-elements-background-depth-2 ${config.className}`}
       >
         {config.showSpinner ? (
           <div className="flex items-center gap-2">
