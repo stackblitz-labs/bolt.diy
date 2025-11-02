@@ -30,4 +30,5 @@ export interface ProviderConfig {
   baseUrlKey?: string;
   baseUrl?: string;
   apiTokenKey?: string;
+  resourceNameKey?: string;
 }

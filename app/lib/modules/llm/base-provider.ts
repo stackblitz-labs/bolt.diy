@@ -23,8 +23,10 @@ export abstract class BaseProvider implements ProviderInfo {
     serverEnv?: Record<string, string>;
     defaultBaseUrlKey: string;
     defaultApiTokenKey: string;
+    defaultResourceNameKey?: string;
   }) {
-    const { apiKeys, providerSettings, serverEnv, defaultBaseUrlKey, defaultApiTokenKey } = options;
+    const { apiKeys, providerSettings, serverEnv, defaultBaseUrlKey, defaultApiTokenKey, defaultResourceNameKey } =
+      options;
     let settingsBaseUrl = providerSettings?.baseUrl;
     const manager = LLMManager.getInstance();
 
@@ -48,9 +50,17 @@ export abstract class BaseProvider implements ProviderInfo {
     const apiKey =
       apiKeys?.[this.name] || serverEnv?.[apiTokenKey] || process?.env?.[apiTokenKey] || manager.env?.[apiTokenKey];
 
+    const resourceNameKey = this.config.resourceNameKey || defaultResourceNameKey;
+    const resourceName =
+      providerSettings?.resourceName ||
+      serverEnv?.[resourceNameKey] ||
+      process?.env?.[resourceNameKey] ||
+      manager.env?.[resourceNameKey];
+
     return {
       baseUrl,
       apiKey,
+      resourceName,
     };
   }
   getModelsFromCache(options: {
