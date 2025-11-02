@@ -1,3 +1,4 @@
+import { diff_match_patch } from 'diff-match-patch-typescript';
 import type { WebContainer } from '@webcontainer/api';
 import { path } from '~/utils/path';
 import { atom, map, type MapStore } from 'nanostores';
@@ -66,6 +67,7 @@ class ActionCommandError extends Error {
 export class ActionRunner {
   #webcontainer: Promise<WebContainer>;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
+  #fileLocks = new Set<string>();
   #shellTerminal: () => BoltShell;
   runnerId = atom<string>(`${Date.now()}`);
   actions: ActionsMap = map({});
@@ -275,6 +277,14 @@ export class ActionRunner {
       unreachable('Expected file action');
     }
 
+    if (this.#fileLocks.has(action.filePath)) {
+      // File is locked, retry after a short delay
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return this.#runFileAction(action);
+    }
+
+    this.#fileLocks.add(action.filePath);
+
     const webcontainer = await this.#webcontainer;
     const relativePath = path.relative(webcontainer.workdir, action.filePath);
 
@@ -293,10 +303,39 @@ export class ActionRunner {
     }
 
     try {
-      await webcontainer.fs.writeFile(relativePath, action.content);
-      logger.debug(`File written ${relativePath}`);
+      let existingContent = '';
+      try {
+        existingContent = await webcontainer.fs.readFile(relativePath, 'utf-8');
+      } catch (error) {
+        // File does not exist, so we can just write the new content.
+      }
+
+      if (existingContent === action.content) {
+        logger.debug(`File content is identical, skipping write for ${relativePath}`);
+        return;
+      }
+
+      if (existingContent) {
+        const dmp = new diff_match_patch();
+        const diff = dmp.diff_main(existingContent, action.content);
+        const patch = dmp.patch_make(existingContent, diff);
+        const [patchedContent, results] = dmp.patch_apply(patch, existingContent);
+
+        if (results.some((r) => !r)) {
+          logger.warn(`Patch failed for ${relativePath}, falling back to overwrite.`);
+          await webcontainer.fs.writeFile(relativePath, action.content);
+        } else {
+          await webcontainer.fs.writeFile(relativePath, patchedContent);
+          logger.debug(`File patched ${relativePath}`);
+        }
+      } else {
+        await webcontainer.fs.writeFile(relativePath, action.content);
+        logger.debug(`File written ${relativePath}`);
+      }
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
+    } finally {
+      this.#fileLocks.delete(action.filePath);
     }
   }
   #updateAction(id: string, newState: ActionStateUpdate) {
