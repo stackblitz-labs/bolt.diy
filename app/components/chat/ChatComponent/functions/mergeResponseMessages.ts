@@ -15,6 +15,13 @@ function mergeResponseMessage(msg: Message, messages: Message[]): Message[] {
       hasInteracted: lastMessage.hasInteracted,
     });
   } else {
+    // We shouldn't see the same message twice, log an error when this occurs.
+    const existing = messages.find((m) => m.id == msg.id);
+    if (existing) {
+      console.error('mergeResponseMessage: duplicate message', existing, msg, messages);
+      debugger;
+      return messages;
+    }
     messages.push(msg);
   }
   return messages;

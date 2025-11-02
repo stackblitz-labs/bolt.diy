@@ -66,11 +66,6 @@ export function addAppResponse(response: ChatResponse) {
   return true;
 }
 
-export function clearAppResponses() {
-  gResponsesByTime.clear();
-  gLastResponseTime = new Date(0).toISOString();
-}
-
 export function getLastResponseTime() {
   return gLastResponseTime;
 }

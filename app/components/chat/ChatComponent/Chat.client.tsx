@@ -10,7 +10,6 @@ import { database } from '~/lib/persistence/apps';
 import { Unauthorized } from '~/components/chat/Unauthorized';
 import { useStore } from '@nanostores/react';
 import { statusModalStore } from '~/lib/stores/statusModal';
-import { clearAppResponses } from '~/lib/replay/ResponseFilter';
 import { AppLoadingScreen } from '~/components/ui/AppLoadingScreen';
 import {
   isAppOwnerLoadingStore,
@@ -144,7 +143,6 @@ export function Chat() {
         return;
       }
 
-      clearAppResponses();
       await updateAppState(appId);
 
       // Always check for ongoing work when we first start the chat.
