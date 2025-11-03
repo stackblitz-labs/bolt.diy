@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { appSettingsModalStore } from '~/lib/stores/appSettingsModal';
 import { chatStore } from '~/lib/stores/chat';
@@ -8,11 +9,12 @@ import { SecretsComponent } from './components/SecretsComponent';
 import { PermissionsSelectionComponent } from './components/PermissionsSelectionComponent';
 import { ExperimentalFeaturesComponent } from './components/ExperimentalFeaturesComponent';
 import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
-import { isAppOwnerStore, permissionsStore } from '~/lib/stores/permissions';
+import { isAppOwnerStore, permissionsStore, setIsAppOwner } from '~/lib/stores/permissions';
 import { userStore } from '~/lib/stores/userAuth';
 import CopyApp from './components/CopyApp';
 import { X, Settings, Type } from '~/components/ui/Icon';
 import { hasExperimentalFeatures } from '~/lib/stores/experimentalFeatures';
+import { isAppOwner } from '~/lib/api/permissions';
 
 export function GlobalAppSettingsModal() {
   const isOpen = useStore(appSettingsModalStore.isOpen);
@@ -21,8 +23,16 @@ export function GlobalAppSettingsModal() {
   const allSecrets = appSummary?.features?.flatMap((f) => f.secrets ?? []) ?? [];
   const appId = useStore(chatStore.currentAppId);
   const permissions = useStore(permissionsStore);
-  const isAppOwner = useStore(isAppOwnerStore);
+  const isOwner = useStore(isAppOwnerStore);
   const user = useStore(userStore.user);
+
+  useEffect(() => {
+    const loadIsOwner = async () => {
+      const isOwner = await isAppOwner(appId ?? '', user?.id ?? '');
+      setIsAppOwner(isOwner);
+    };
+    loadIsOwner();
+  }, [appId]);
 
   const handleCloseModal = () => {
     appSettingsModalStore.close();
@@ -123,7 +133,7 @@ export function GlobalAppSettingsModal() {
                   </div>
 
                   {/* Copy App */}
-                  {appId && isAppAccessAllowed(permissions, AppAccessKind.Copy, user?.email ?? '', isAppOwner) && (
+                  {appId && isAppAccessAllowed(permissions, AppAccessKind.Copy, user?.email ?? '', isOwner) && (
                     <CopyApp />
                   )}
 
@@ -132,7 +142,7 @@ export function GlobalAppSettingsModal() {
 
                   {/* Permissions */}
                   {appId &&
-                    isAppAccessAllowed(permissions, AppAccessKind.SetPermissions, user?.email ?? '', isAppOwner) && (
+                    isAppAccessAllowed(permissions, AppAccessKind.SetPermissions, user?.email ?? '', isOwner) && (
                       <PermissionsSelectionComponent />
                     )}
 
