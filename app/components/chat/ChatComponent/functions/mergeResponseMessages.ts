@@ -5,24 +5,18 @@ function mergeResponseMessage(msg: Message, messages: Message[]): Message[] {
     return [msg];
   }
   messages = [...messages];
-  const lastMessage = messages[messages.length - 1];
-  if (lastMessage.id == msg.id) {
-    messages.pop();
-    messages.push({
-      ...msg,
-      attachments: (lastMessage.attachments ?? []).concat(msg.attachments ?? []),
-      content: lastMessage.content + msg.content,
-      hasInteracted: lastMessage.hasInteracted,
-    });
-  } else {
-    // We shouldn't see the same message twice, log an error when this occurs.
-    const existing = messages.find((m) => m.id == msg.id);
-    if (existing) {
-      console.error('mergeResponseMessage: duplicate message', existing, msg, messages);
-      debugger;
-      return messages;
-    }
+
+  const existingIndex = messages.findIndex((m) => m.id == msg.id);
+  if (existingIndex == -1) {
     messages.push(msg);
+  } else {
+    const existing = messages[existingIndex];
+    messages[existingIndex] = {
+      ...existing,
+      attachments: (existing.attachments ?? []).concat(msg.attachments ?? []),
+      content: existing.content + msg.content,
+      hasInteracted: existing.hasInteracted,
+    };
   }
   return messages;
 }
