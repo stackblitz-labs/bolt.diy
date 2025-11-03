@@ -54,7 +54,7 @@ export const CodeBlock = memo(
         <div
           className={classNames(
             styles.CopyButtonContainer,
-            'bg-transparant absolute top-[10px] right-[10px] rounded-md z-10 text-lg flex items-center justify-center opacity-0 group-hover:opacity-100',
+            'absolute top-[10px] right-[10px] rounded-md z-10 text-lg flex items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity',
             {
               'rounded-l-0 opacity-100': copied,
             },
@@ -63,7 +63,7 @@ export const CodeBlock = memo(
           {!disableCopy && (
             <button
               className={classNames(
-                'flex items-center bg-accent-500 p-[6px] justify-center before:bg-white before:rounded-l-md before:text-gray-500 before:border-r before:border-gray-300 rounded-md transition-theme',
+                'flex items-center bg-gray-800 hover:bg-gray-700 text-white p-[6px] justify-center before:bg-white before:rounded-l-md before:text-gray-500 before:border-r before:border-gray-300 rounded-md transition-all border border-gray-600 shadow-lg',
                 {
                   'before:opacity-0': !copied,
                   'before:opacity-100': copied,

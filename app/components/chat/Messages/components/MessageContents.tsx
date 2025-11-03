@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
 import { buildBreadcrumbData } from '~/utils/componentBreadcrumb';
+import { autoFenceCodeBlocks } from '~/utils/markdown-preprocessor';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 
 interface MessageContentsProps {
@@ -45,6 +46,15 @@ export function MessageContents({ message, messages = [], onCheckboxChange, send
   const firstReact = breadcrumbData?.firstReact;
   const lastReact = breadcrumbData?.lastReact;
   const lastHtml = breadcrumbData?.lastHtml;
+
+  // Process only user messages to auto-fence code blocks
+  // Assistant messages should already have proper code fencing
+  const processedContent = React.useMemo(() => {
+    if (message.role === 'user') {
+      return autoFenceCodeBlocks(message.content);
+    }
+    return message.content;
+  }, [message.content, message.role]);
 
   return (
     <div data-testid="message-content" className="overflow-hidden">
@@ -116,7 +126,7 @@ export function MessageContents({ message, messages = [], onCheckboxChange, send
           onCheckboxChange={onCheckboxChange}
           onChecklistSubmit={sendMessage}
         >
-          {message.content}
+          {processedContent}
         </Markdown>
       </div>
       {message.attachments && message.attachments.length > 0 && (
