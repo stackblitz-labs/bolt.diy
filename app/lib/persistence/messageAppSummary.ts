@@ -143,6 +143,9 @@ export enum BugReportStatus {
 
   // The bug was not fixed successfully. The cost of the app was refunded.
   Failed = 'Failed',
+
+  // The bug was canceled by the user.
+  Canceled = 'Canceled',
 }
 
 export interface BugReport {
@@ -191,6 +194,7 @@ export enum AppUpdateReasonKind {
   ManualUpdate = 'ManualUpdate',
   ResolveBugReport = 'ResolveBugReport',
   EscalateBugReport = 'EscalateBugReport',
+  CancelBugReport = 'CancelBugReport',
 }
 
 // Describes why the app's summary was updated.

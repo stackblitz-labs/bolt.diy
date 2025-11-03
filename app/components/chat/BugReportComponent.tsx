@@ -45,6 +45,20 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
     });
   };
 
+  const handleCancel = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    const appId = chatStore.currentAppId.get();
+    if (!appId) {
+      toast.error('No app selected');
+      return;
+    }
+
+    const { response } = await callNutAPI('cancel-bug-report', { appId, bugReportName: report.name });
+    if (response) {
+      onChatResponse(response, 'CancelBugReport');
+    }
+  };
+
   const { status, escalateTime } = report;
 
   return (
@@ -84,6 +98,21 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
             </>
           )}
 
+          {status !== BugReportStatus.Failed && (
+            <WithTooltip
+              tooltip={
+                status === BugReportStatus.WaitingForFeedback ? 'Dismiss this bug report' : 'Cancel this bug report'
+              }
+            >
+              <button
+                onClick={(e) => handleCancel(e)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors border border-red-500/20 hover:border-red-500/40 active:scale-95"
+              >
+                <X size={18} />
+              </button>
+            </WithTooltip>
+          )}
+
           {status === BugReportStatus.Open && (
             <WithTooltip tooltip={escalateTime ? 'Escalated to developer support' : 'Fixing in progress'}>
               <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor">
@@ -105,11 +134,25 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
           )}
 
           {status === BugReportStatus.Failed && (
-            <WithTooltip tooltip="Fix failed">
-              <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-                <X size={18} />
-              </div>
-            </WithTooltip>
+            <>
+              <WithTooltip tooltip="Fix failed, cancel?">
+                <button
+                  onClick={(e) => handleCancel(e)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors border border-red-500/20 hover:border-red-500/40 active:scale-95"
+                >
+                  <X size={18} />
+                </button>
+              </WithTooltip>
+
+              <WithTooltip tooltip="Retry fixing this bug">
+                <button
+                  onClick={(e) => handleRetry(e)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/20 hover:border-blue-500/40 active:scale-95"
+                >
+                  <RotateCw size={18} />
+                </button>
+              </WithTooltip>
+            </>
           )}
         </div>
       </div>
