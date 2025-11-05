@@ -5,7 +5,7 @@ import { getAppPermissions, isAppOwner } from '~/lib/api/permissions';
 import { setPermissions, setIsAppOwner, setPermissionsLoading, setIsAppOwnerLoading } from '~/lib/stores/permissions';
 import { useParams } from '@remix-run/react';
 import { useStore } from '@nanostores/react';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { maybeSetLocalAppsOwner } from '~/lib/persistence/apps';
 
 export async function loader(args: LoaderFunctionArgs) {
@@ -15,7 +15,7 @@ export async function loader(args: LoaderFunctionArgs) {
 export default function AppRoute() {
   const params = useParams();
   const appId = params.id;
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
 
   useEffect(() => {
     if (!appId) {

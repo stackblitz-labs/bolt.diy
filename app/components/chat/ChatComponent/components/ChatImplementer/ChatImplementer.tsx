@@ -137,7 +137,7 @@ const ChatImplementer = memo(() => {
     const chatId = generateRandomId();
 
     if (messageInput || imageDataList.length) {
-      const userInfo = await getCurrentUserInfo();
+      const userInfo = getCurrentUserInfo();
       const attachments = await Promise.all(imageDataList.map(createAttachment));
       const userMessage: Message = {
         id: `user-${chatId}`,

@@ -21,7 +21,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { useStore } from '@nanostores/react';
 import useViewport from '~/lib/hooks';
 import { chatStore } from '~/lib/stores/chat';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { useLayoutWidths } from '~/lib/hooks/useLayoutWidths';
@@ -71,7 +71,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const appSummary = useStore(chatStore.appSummary);
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 300 : 200;
     const isSmallViewport = useViewport(800);
-    const user = useStore(userStore.user);
+    const user = useStore(userStore);
     const { chatWidth } = useLayoutWidths(!!user);
     const showWorkbench = useStore(workbenchStore.showWorkbench);
     const selectedElement = useStore(workbenchStore.selectedElement);

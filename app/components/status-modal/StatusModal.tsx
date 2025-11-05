@@ -7,7 +7,7 @@ import { AppFeatureStatus, isFeatureStatusImplemented, type AppSummary } from '~
 import { peanutsStore } from '~/lib/stores/peanuts';
 import WithTooltip from '~/components/ui/Tooltip';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
 import { createTopoffCheckout } from '~/lib/stripe/client';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
@@ -23,7 +23,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
   const isOpen = useStore(statusModalStore.isOpen);
   const peanutsErrorInfo = useStore(peanutsStore.peanutsErrorInfo);
   const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
   const [loading, setLoading] = useState(false);
   const hasSubscription = useStore(subscriptionStore.hasSubscription);
 

@@ -36,7 +36,7 @@ function setLocalAppIds(appIds: string[] | undefined): void {
 
 // Update the owner of all apps that were created locally before logging in.
 export async function maybeSetLocalAppsOwner() {
-  const userId = await getCurrentUserId();
+  const userId = getCurrentUserId();
   if (!userId) {
     return;
   }
@@ -62,7 +62,7 @@ const deletedAppIds = new Set<string>();
 async function getAllAppEntries(): Promise<AppLibraryEntry[]> {
   await maybeSetLocalAppsOwner();
 
-  const userId = await getCurrentUserId();
+  const userId = getCurrentUserId();
   const localAppIds = getLocalAppIds();
 
   if (!userId) {
@@ -86,7 +86,7 @@ async function setAppOwner(appId: string): Promise<void> {
 async function deleteApp(appId: string): Promise<void> {
   deletedAppIds.add(appId);
 
-  const userId = await getCurrentUserId();
+  const userId = getCurrentUserId();
 
   if (!userId) {
     const localAppIds = getLocalAppIds().filter((id) => id != appId);
@@ -99,7 +99,7 @@ async function deleteApp(appId: string): Promise<void> {
 async function createApp(): Promise<string> {
   const { appId } = await callNutAPI('create-app', {});
 
-  const userId = await getCurrentUserId();
+  const userId = getCurrentUserId();
   if (!userId) {
     const localAppIds = getLocalAppIds();
     localAppIds.push(appId);

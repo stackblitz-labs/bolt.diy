@@ -7,7 +7,7 @@ import { generateRandomId } from '~/utils/nut';
 import { DeployStatus } from '~/components/header/DeployChat/DeployChatButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeploymentSuccessful from './DeploymentSuccessful';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { X, Rocket, CheckCircle, AlertTriangle } from '~/components/ui/Icon';
 
 const MAX_SITE_NAME_LENGTH = 63;
@@ -19,7 +19,7 @@ export function GlobalDeployChatModal() {
   const error = useStore(deployModalStore.error);
   const databaseFound = useStore(deployModalStore.databaseFound);
   const loadingData = useStore(deployModalStore.loadingData);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
 
   const appId = useStore(chatStore.currentAppId);
 

@@ -5,7 +5,7 @@ import { useEditAppTitle } from '~/lib/hooks/useEditAppTitle';
 import { chatStore } from '~/lib/stores/chat';
 import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
 import { isAppOwnerStore } from '~/lib/stores/permissions';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { permissionsStore } from '~/lib/stores/permissions';
 import { Check, PenLine } from '~/components/ui/Icon';
 
@@ -14,7 +14,7 @@ export function ChatDescription() {
   const appId = useStore(chatStore.currentAppId);
   const permissions = useStore(permissionsStore);
   const isAppOwner = useStore(isAppOwnerStore);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
 
   const { editing, handleChange, handleSubmit, handleKeyDown, currentTitle, toggleEditMode } = useEditAppTitle({
     initialTitle,

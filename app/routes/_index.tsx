@@ -25,6 +25,9 @@ export default function Index() {
       if (user) {
         const stripeStatus = await checkSubscriptionStatus();
         subscriptionStore.setSubscription(stripeStatus);
+      } else {
+        // Clear subscription when user signs out
+        subscriptionStore.setSubscription({ hasSubscription: false, subscription: null });
       }
     };
 

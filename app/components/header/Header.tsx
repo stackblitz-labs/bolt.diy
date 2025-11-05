@@ -6,7 +6,7 @@ import { Suspense, useState } from 'react';
 import { ClientAuth } from '~/components/auth/ClientAuth';
 import { sidebarMenuStore } from '~/lib/stores/sidebarMenu';
 import { IconButton } from '~/components/ui/IconButton';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { DeployChatButton } from './DeployChat/DeployChatButton';
@@ -24,7 +24,7 @@ import { useLocation } from '@remix-run/react';
 
 export function Header() {
   const chatStarted = useStore(chatStore.started);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
   const appSummary = useStore(chatStore.appSummary);
   const appId = useStore(chatStore.currentAppId);
   const isSmallViewport = useViewport(800);

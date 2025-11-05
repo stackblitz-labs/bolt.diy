@@ -5,13 +5,13 @@ import { downloadRepository } from '~/lib/replay/Deploy';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { useStore } from '@nanostores/react';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { Download } from '~/components/ui/Icon';
 
 ReactModal.setAppElement('#root');
 
 export function DownloadButton() {
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
 
   const handleDownload = async () => {
     const repositoryId = workbenchStore.repositoryId.get();

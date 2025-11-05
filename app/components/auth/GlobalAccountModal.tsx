@@ -1,9 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { accountModalStore } from '~/lib/stores/accountModal';
 import { AccountModal } from './AccountModal';
-import { getSupabase } from '~/lib/supabase/client';
-import { useState, useEffect } from 'react';
-import type { User } from '@supabase/supabase-js';
+import { userStore } from '~/lib/stores/auth';
 import { SubscriptionModal } from '~/components/subscription/SubscriptionModal';
 import { subscriptionModalStore } from '~/lib/stores/subscriptionModal';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
@@ -13,27 +11,9 @@ import { User as UserIcon, CreditCard, ArrowLeft, X } from '~/components/ui/Icon
 export function GlobalAccountModal() {
   const isOpen = useStore(accountModalStore.isOpen);
   const { currentTier } = useStore(subscriptionModalStore);
-  const [user, setUser] = useState<User | undefined>(undefined);
+  const user = useStore(userStore);
   const activeTab = useStore(accountModalStore.activeTab);
   const { isMobile } = useIsMobile();
-
-  useEffect(() => {
-    async function getUser() {
-      try {
-        const { data, error } = await getSupabase().auth.getUser();
-        if (error) {
-          console.error('GlobalAccountModal - Auth error:', error);
-        }
-        setUser(data.user ?? undefined);
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      }
-    }
-
-    if (isOpen) {
-      getUser();
-    }
-  }, [isOpen]);
 
   if (!isOpen) {
     return null;

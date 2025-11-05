@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { useStore } from '@nanostores/react';
 import { accountModalStore } from '~/lib/stores/accountModal';
 import { Crown } from '~/components/ui/Icon';
@@ -10,7 +10,7 @@ interface SubscriptionCardProps {
 
 export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ onMount }) => {
   const [loading, setLoading] = useState(false);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
 
   useEffect(() => {
     if (onMount) {

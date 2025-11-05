@@ -8,7 +8,7 @@ import { renderLogger } from '~/utils/logger';
 import { Preview } from './Preview/Preview';
 import useViewport from '~/lib/hooks';
 import { useLayoutWidths } from '~/lib/hooks/useLayoutWidths';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -36,7 +36,7 @@ export const Workbench = memo(({ chatStarted }: WorkspaceProps) => {
   renderLogger.trace('Workbench');
 
   const showWorkbench = useStore(workbenchStore.showWorkbench);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
   const { workbenchWidth, workbenchLeft } = useLayoutWidths(!!user);
   const workbenchVariants = createWorkbenchVariants(workbenchWidth);
 

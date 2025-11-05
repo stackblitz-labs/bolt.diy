@@ -34,7 +34,7 @@ export async function callNutAPI(
   responseCallback?: ResponseCallback,
   overrideUserId?: string,
 ): Promise<any> {
-  const userId = overrideUserId ?? (await getCurrentUserId());
+  const userId = overrideUserId ?? getCurrentUserId();
   const accessToken = await getCurrentAccessToken();
 
   const url = getMethodURL(method);
@@ -98,7 +98,7 @@ export async function callNutAPI(
 async function callAPIStreamBuffer(method: string, buffer: ArrayBuffer, extraHeaders?: Record<string, string>) {
   const url = getMethodURL(method);
 
-  const userId = await getCurrentUserId();
+  const userId = getCurrentUserId();
   const accessToken = await getCurrentAccessToken();
 
   const headers: HeadersInit = {
@@ -161,7 +161,7 @@ export async function downloadAttachment(attachmentId: string): Promise<ArrayBuf
   const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://dispatch.replay.io';
   const url = `${apiHost}/nut/download-attachment`;
 
-  const userId = await getCurrentUserId();
+  const userId = getCurrentUserId();
   const accessToken = await getCurrentAccessToken();
 
   const headers: HeadersInit = {

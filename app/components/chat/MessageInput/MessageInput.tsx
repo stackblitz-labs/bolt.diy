@@ -45,7 +45,7 @@ interface SelectedElementData {
 }
 import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { peanutsStore } from '~/lib/stores/peanuts';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
 import { processImage, validateImageFile, formatFileSize } from '~/utils/imageProcessing';
@@ -93,7 +93,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const messages = useStore(chatStore.messages);
   const appSummary = useStore(chatStore.appSummary);
   const hasAppSummary = !!appSummary;
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
   const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
   const selectedElement = useStore(workbenchStore.selectedElement) as SelectedElementData | null;
   const { isMobile, isTablet } = useIsMobile();

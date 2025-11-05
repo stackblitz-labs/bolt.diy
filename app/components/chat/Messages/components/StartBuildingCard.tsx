@@ -5,7 +5,7 @@ import type { ChatMessageParams } from '~/components/chat/ChatComponent/componen
 import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { useStore } from '@nanostores/react';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { Rocket } from '~/components/ui/Icon';
 
 interface StartBuildingCardProps {
@@ -15,7 +15,7 @@ interface StartBuildingCardProps {
 }
 
 export const StartBuildingCard: React.FC<StartBuildingCardProps> = ({ startPlanningRating, sendMessage, onMount }) => {
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
   useEffect(() => {
     if (onMount) {
       onMount();

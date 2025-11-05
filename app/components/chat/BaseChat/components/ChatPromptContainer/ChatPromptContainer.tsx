@@ -8,7 +8,7 @@ import { MessageInput } from '~/components/chat/MessageInput/MessageInput';
 import { isAppOwnerStore, permissionsStore } from '~/lib/stores/permissions';
 import { useStore } from '@nanostores/react';
 import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 
 interface ChatPromptContainerProps {
   uploadedFiles: File[];
@@ -27,7 +27,7 @@ export const ChatPromptContainer: React.FC<ChatPromptContainerProps> = ({
 }) => {
   const permissions = useStore(permissionsStore);
   const isAppOwner = useStore(isAppOwnerStore);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
 
   return (
     <div

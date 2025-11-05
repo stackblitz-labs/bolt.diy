@@ -19,7 +19,7 @@ import {
 } from '~/lib/stores/permissions';
 import type { AppPermissions } from '~/lib/api/permissions';
 import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import {
   authorizedCopyStore,
   isCopyingStore,
@@ -88,7 +88,7 @@ export function Chat() {
   const unauthorized = useStore(unauthorizedStore);
   const authorizedCopy = useStore(authorizedCopyStore);
   const permissions = useStore(permissionsStore);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
   const permissionsLoading = useStore(permissionsLoadingStore);
   const isAppOwnerLoading = useStore(isAppOwnerLoadingStore);
 

@@ -16,7 +16,7 @@ export class PeanutsStore {
 export const peanutsStore = new PeanutsStore();
 
 export async function refreshPeanutsStore() {
-  const userId = await getCurrentUserId();
+  const userId = getCurrentUserId();
   const peanuts = userId ? await getPeanutsRemaining() : undefined;
   peanutsStore.peanutsRemaining.set(peanuts);
   if (peanuts && peanuts > 0) {

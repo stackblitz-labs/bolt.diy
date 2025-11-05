@@ -15,14 +15,14 @@ export const authStatusStore = {
   isLoggedIn: atom<boolean | null>(null),
 
   // Initialize auth status store
-  async init() {
+  init() {
     // subscribe to the userStore
     userStore.listen((user) => {
       this.isLoggedIn.set(!!user);
     });
 
-    // Check initial auth state
-    const authenticated = await isAuthenticated();
+    // Check initial auth state (now synchronous!)
+    const authenticated = isAuthenticated();
     this.isLoggedIn.set(authenticated);
   },
 };
@@ -64,6 +64,11 @@ export async function initializeAuth() {
         userId: session.user.id,
         email: session.user.email,
       });
+    } else {
+      // No session - user is not logged in (this is normal)
+      userStore.set(null);
+      sessionStore.set(null);
+      logStore.logSystem('Auth initialized - no active session');
     }
 
     // Listen for auth changes
@@ -71,6 +76,14 @@ export async function initializeAuth() {
       data: { subscription },
     } = getSupabase().auth.onAuthStateChange(async (event, session) => {
       logStore.logSystem('Auth state changed', { event });
+
+      // Handle token refresh errors - clear invalid sessions
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        logStore.logSystem('Token refresh failed - clearing auth state');
+        userStore.set(null);
+        sessionStore.set(null);
+        return;
+      }
 
       if (session) {
         userStore.set(session.user);
@@ -171,15 +184,38 @@ export async function signOut() {
   try {
     isLoadingStore.set(true);
 
-    const { error } = await getSupabase().auth.signOut();
+    // Try to sign out from Supabase, but don't fail if there's no session
+    try {
+      const { error } = await getSupabase().auth.signOut();
 
-    if (error) {
-      throw error;
+      // Ignore session missing errors - just means user was already signed out
+      if (error) {
+        const isSessionMissingError =
+          error.message?.includes('Auth session missing') ||
+          error.message?.includes('session_missing') ||
+          error.name === 'AuthSessionMissingError';
+
+        if (!isSessionMissingError) {
+          logStore.logError('Error during Supabase sign out', error);
+        }
+      }
+    } catch (supabaseError) {
+      // Ignore Supabase errors - we'll clear local state anyway
+      logStore.logSystem(
+        'Supabase sign out error (continuing anyway)',
+        supabaseError instanceof Error ? { message: supabaseError.message } : {},
+      );
     }
 
+    // Always clear local state, regardless of Supabase API result
+    userStore.set(null);
+    sessionStore.set(null);
     refreshPeanutsStore();
   } catch (error) {
     logStore.logError('Failed to sign out', error);
+    // Still clear local state even if something went wrong
+    userStore.set(null);
+    sessionStore.set(null);
     throw error;
   } finally {
     isLoadingStore.set(false);

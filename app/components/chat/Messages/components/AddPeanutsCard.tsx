@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createTopoffCheckout } from '~/lib/stripe/client';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import { useStore } from '@nanostores/react';
 import { accountModalStore } from '~/lib/stores/accountModal';
 import { Crown } from 'lucide-react';
@@ -13,7 +13,7 @@ interface AddPeanutsCardProps {
 
 export const AddPeanutsCard: React.FC<AddPeanutsCardProps> = ({ onMount }) => {
   const [loading, setLoading] = useState(false);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
   const stripeSubscription = useStore(subscriptionStore.subscription);
   const currentTier = stripeSubscription?.tier;
 

@@ -10,7 +10,7 @@ import { PermissionsSelectionComponent } from './components/PermissionsSelection
 import { ExperimentalFeaturesComponent } from './components/ExperimentalFeaturesComponent';
 import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
 import { isAppOwnerStore, permissionsStore, setIsAppOwner } from '~/lib/stores/permissions';
-import { userStore } from '~/lib/stores/userAuth';
+import { userStore } from '~/lib/stores/auth';
 import CopyApp from './components/CopyApp';
 import { X, Settings, Type } from '~/components/ui/Icon';
 import { hasExperimentalFeatures } from '~/lib/stores/experimentalFeatures';
@@ -24,7 +24,7 @@ export function GlobalAppSettingsModal() {
   const appId = useStore(chatStore.currentAppId);
   const permissions = useStore(permissionsStore);
   const isOwner = useStore(isAppOwnerStore);
-  const user = useStore(userStore.user);
+  const user = useStore(userStore);
 
   useEffect(() => {
     const loadIsOwner = async () => {

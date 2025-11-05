@@ -3,6 +3,7 @@ import { getSupabase } from '~/lib/supabase/client';
 import type { AuthError } from '@supabase/supabase-js';
 import { GoogleIcon } from '~/components/icons/google-icon';
 import { LogIn } from '~/components/ui/Icon';
+import { authModalStore } from '~/lib/stores/authModal';
 
 interface SignInFormProps {
   onToggleForm: () => void;
@@ -56,6 +57,7 @@ export function SignInForm({ onToggleForm, onError, onForgotPassword }: SignInFo
       onError(authError.message || 'Failed to sign in');
     } finally {
       setIsProcessing(false);
+      authModalStore.close();
     }
   };
 
