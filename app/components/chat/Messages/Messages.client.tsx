@@ -12,7 +12,7 @@ import {
   JumpToBottom,
   StartBuildingCard,
   SignInCard,
-  AddPeanutsCard,
+  // AddPeanutsCard,
   StopBuildCard,
   ContinueBuildCard,
   SubscriptionCard,
@@ -391,11 +391,11 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
 
           {!user && startPlanningRating === 10 && <SignInCard onMount={scrollToBottom} />}
 
-          {user &&
+          {/* {user &&
             (isFeatureStatusImplemented(appSummary?.features?.[0]?.status) || startPlanningRating === 10) &&
             peanutsRemaining !== undefined &&
             (!peanutsRemaining || peanutsRemaining < unpaidFeatureCost) &&
-            hasSubscription && <AddPeanutsCard onMount={scrollToBottom} />}
+            hasSubscription && <AddPeanutsCard onMount={scrollToBottom} />} */}
 
           {user &&
             (isFeatureStatusImplemented(appSummary?.features?.[0]?.status) || startPlanningRating === 10) &&

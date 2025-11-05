@@ -21,7 +21,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { useStore } from '@nanostores/react';
 import useViewport from '~/lib/hooks';
 import { chatStore } from '~/lib/stores/chat';
-import { userStore } from '~/lib/stores/auth';
+import { userStore, isLoadingStore } from '~/lib/stores/auth';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { useLayoutWidths } from '~/lib/hooks/useLayoutWidths';
@@ -29,6 +29,10 @@ import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { StackedInfoCard, type InfoCardData } from '~/components/ui/InfoCard';
 import { AppFeatureKind, AppFeatureStatus, BugReportStatus } from '~/lib/persistence/messageAppSummary';
 import { openFeatureModal } from '~/lib/stores/featureModal';
+import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
+import { toast } from 'react-toastify';
+import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
+import { PlanUpgradeBlock } from './components/PlanUpgradeBlock';
 
 export const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -72,12 +76,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 300 : 200;
     const isSmallViewport = useViewport(800);
     const user = useStore(userStore);
+    const isAuthLoading = useStore(isLoadingStore);
     const { chatWidth } = useLayoutWidths(!!user);
     const showWorkbench = useStore(workbenchStore.showWorkbench);
     const selectedElement = useStore(workbenchStore.selectedElement);
     const repositoryId = useStore(workbenchStore.repositoryId);
     const showMobileNav = useStore(mobileNavStore.showMobileNav);
     const [infoCards, setInfoCards] = useState<InfoCardData[]>([]);
+    const stripeSubscription = useStore(subscriptionStore.subscription);
+    const isSubscriptionStoreLoaded = useStore(subscriptionStore.isLoaded);
+    const [list, setList] = useState<AppLibraryEntry[] | undefined>(undefined);
+    const [isLoadingList, setIsLoadingList] = useState(true);
+
+    const loadEntries = useCallback(() => {
+      setIsLoadingList(true);
+      database
+        .getAllAppEntries()
+        .then(setList)
+        .catch((error) => toast.error(error.message))
+        .finally(() => setIsLoadingList(false));
+    }, []);
+
+    useEffect(() => {
+      loadEntries();
+    }, [loadEntries, user]);
 
     const onTranscriptChange = useCallback(
       (transcript: string) => {
@@ -297,16 +319,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {user && <ClientOnly>{() => <Menu />}</ClientOnly>}
         <div
           ref={scrollRef}
-          className={classNames('w-full h-full flex flex-col lg:flex-row overflow-hidden', {
+          className={classNames('w-full h-full flex flex-col lg:flex-row overflow-x-hidden', {
             'overflow-y-auto': !chatStarted,
+            'overflow-y-hidden': chatStarted,
             'pt-2 pb-2 px-4': isSmallViewport && !appSummary && !showMobileNav,
             'pt-2 pb-16 px-4': isSmallViewport && (!!appSummary || showMobileNav),
             'p-6': !isSmallViewport && chatStarted,
-            'p-6 pb-16': !isSmallViewport && !chatStarted,
+            'pt-12 px-6 pb-16': !isSmallViewport && !chatStarted,
           })}
         >
           <div
-            className={classNames(styles.Chat, 'flex flex-col h-full', {
+            className={classNames(styles.Chat, 'flex flex-col', {
+              'h-full': chatStarted,
+              'min-h-full': !chatStarted,
               'flex-grow': isSmallViewport,
               'flex-shrink-0': !isSmallViewport,
               'pb-2': isSmallViewport,
@@ -350,13 +375,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   ) : null;
                 }}
               </ClientOnly>
-              <ChatPromptContainer
-                uploadedFiles={uploadedFiles}
-                setUploadedFiles={setUploadedFiles!}
-                imageDataList={imageDataList}
-                setImageDataList={setImageDataList!}
-                messageInputProps={messageInputProps}
-              />
+              {(() => {
+                const isLoadingData = isAuthLoading || (user && !isSubscriptionStoreLoaded) || isLoadingList;
+
+                if (isLoadingData && !chatStarted) {
+                  return (
+                    <div className="flex items-center justify-center min-h-[176.5px]">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary rounded-full animate-spin"></div>
+                        <p className="text-sm text-bolt-elements-textSecondary">Loading...</p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const hasNoPaidPlan = !stripeSubscription || stripeSubscription.tier === 'free';
+
+                const shouldShowUpgradeBlock = user && hasNoPaidPlan && list && list.length > 0 && !chatStarted;
+
+                return shouldShowUpgradeBlock ? (
+                  <PlanUpgradeBlock />
+                ) : (
+                  <ChatPromptContainer
+                    uploadedFiles={uploadedFiles}
+                    setUploadedFiles={setUploadedFiles!}
+                    imageDataList={imageDataList}
+                    setImageDataList={setImageDataList!}
+                    messageInputProps={messageInputProps}
+                  />
+                );
+              })()}
             </div>
             {!chatStarted && (
               <>

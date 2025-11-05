@@ -2,9 +2,17 @@ import { getPeanutsHistory, getPeanutsSubscription, type PeanutHistoryEntry } fr
 import { useState, useEffect, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { ReactElement } from 'react';
-import { peanutsStore, refreshPeanutsStore } from '~/lib/stores/peanuts';
+import {
+  // peanutsStore,
+  refreshPeanutsStore,
+} from '~/lib/stores/peanuts';
 import { useStore } from '@nanostores/react';
-import { createTopoffCheckout, cancelSubscription, manageBilling, checkSubscriptionStatus } from '~/lib/stripe/client';
+import {
+  // createTopoffCheckout,
+  cancelSubscription,
+  manageBilling,
+  checkSubscriptionStatus,
+} from '~/lib/stripe/client';
 import { classNames } from '~/utils/classNames';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
 import { ConfirmCancelModal } from '~/components/subscription/ConfirmCancelModal';
@@ -21,7 +29,7 @@ interface AccountModalProps {
 
 export const AccountModal = ({ user }: AccountModalProps) => {
   const { isMobile } = useIsMobile();
-  const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
+  // const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
   const stripeSubscription = useStore(subscriptionStore.subscription);
   const [history, setHistory] = useState<PeanutHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,16 +82,16 @@ export const AccountModal = ({ user }: AccountModalProps) => {
     });
   };
 
-  const formatPeanutChange = (delta: number) => {
-    const sign = delta >= 0 ? '+' : '';
-    const color = delta >= 0 ? 'text-green-500' : 'text-red-500';
-    return (
-      <span className={`${color} font-medium`}>
-        {sign}
-        {delta}
-      </span>
-    );
-  };
+  // const formatPeanutChange = (delta: number) => {
+  //   const sign = delta >= 0 ? '+' : '';
+  //   const color = delta >= 0 ? 'text-green-500' : 'text-red-500';
+  //   return (
+  //     <span className={`${color} font-medium`}>
+  //       {sign}
+  //       {delta}
+  //     </span>
+  //   );
+  // };
 
   const renderFeature = (why: string, appId: string | undefined, featureName: string | undefined): ReactElement => {
     // Find the app title from filteredList using the appId
@@ -145,7 +153,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
           <div className="text-sm text-bolt-elements-textSecondary bg-bolt-elements-background-depth-3 bg-opacity-30 px-3 py-1.5 rounded-lg border border-bolt-elements-borderColor border-opacity-30 font-medium self-start">
             {formatTime(item.time)}
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          {/* <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <span className="text-bolt-elements-textPrimary font-semibold text-right sm:text-left">
               {formatPeanutChange(item.peanutsDelta)} peanuts
             </span>
@@ -155,7 +163,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
             <span className="text-bolt-elements-textHeading font-bold bg-bolt-elements-background-depth-3 bg-opacity-30 px-2 py-1 rounded-md border border-bolt-elements-borderColor border-opacity-30 self-start sm:self-auto">
               {item.peanutsRemaining} total
             </span>
-          </div>
+          </div> */}
         </div>
         <div className="text-sm text-bolt-elements-textSecondary font-medium leading-relaxed">
           {renderHistoryEntry(item)}
@@ -164,27 +172,27 @@ export const AccountModal = ({ user }: AccountModalProps) => {
     );
   };
 
-  const handleAddPeanuts = async () => {
-    if (!user?.id || !user?.email) {
-      stripeStatusModalActions.showError(
-        'Sign In Required',
-        'Please sign in to add peanuts.',
-        'You need to be signed in to purchase peanut top-ups.',
-      );
-      return;
-    }
+  // const handleAddPeanuts = async () => {
+  //   if (!user?.id || !user?.email) {
+  //     stripeStatusModalActions.showError(
+  //       'Sign In Required',
+  //       'Please sign in to add peanuts.',
+  //       'You need to be signed in to purchase peanut top-ups.',
+  //     );
+  //     return;
+  //   }
 
-    try {
-      await createTopoffCheckout();
-    } catch (error) {
-      console.error('Error creating peanut top-off:', error);
-      stripeStatusModalActions.showError(
-        'Checkout Failed',
-        "We couldn't create the checkout session.",
-        'Please try again in a few moments, or contact support if the issue persists.',
-      );
-    }
-  };
+  //   try {
+  //     await createTopoffCheckout();
+  //   } catch (error) {
+  //     console.error('Error creating peanut top-off:', error);
+  //     stripeStatusModalActions.showError(
+  //       'Checkout Failed',
+  //       "We couldn't create the checkout session.",
+  //       'Please try again in a few moments, or contact support if the issue persists.',
+  //     );
+  //   }
+  // };
 
   const handleCancelSubscription = () => {
     if (!user?.email) {
@@ -299,8 +307,8 @@ export const AccountModal = ({ user }: AccountModalProps) => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-bolt-elements-background-depth-2 bg-opacity-50 rounded-2xl p-6 border border-bolt-elements-borderColor border-opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group backdrop-blur-sm">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
+          {/* <div className="bg-bolt-elements-background-depth-2 bg-opacity-50 rounded-2xl p-6 border border-bolt-elements-borderColor border-opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group backdrop-blur-sm">
             <div className="flex items-center justify-center mb-4">
               <div className="w-16 h-16 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-2xl flex items-center justify-center shadow-lg border border-yellow-500/20">
                 <span className="text-3xl drop-shadow-sm">🥜</span>
@@ -312,25 +320,25 @@ export const AccountModal = ({ user }: AccountModalProps) => {
               </div>
               <div className="text-sm text-bolt-elements-textSecondary font-medium">Peanuts Available</div>
             </div>
-          </div>
+          </div> */}
 
-          <div className="bg-bolt-elements-background-depth-2 bg-opacity-50 rounded-2xl p-6 border border-bolt-elements-borderColor border-opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group backdrop-blur-sm">
+          <div className="flex flex-col items-center bg-bolt-elements-background-depth-2 bg-opacity-50 rounded-2xl p-6 border border-bolt-elements-borderColor border-opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group backdrop-blur-sm">
             <div className="flex items-center justify-center mb-4">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl flex items-center justify-center shadow-lg border border-blue-500/20">
                 <Crown className="text-blue-600 transition-transform duration-200 group-hover:scale-110" size={24} />
               </div>
             </div>
-            <div className="text-center">
+            <div className="flex flex-col items-center">
               {stripeSubscription ? (
                 <>
                   <div className="text-3xl font-bold text-bolt-elements-textHeading mb-2 transition-transform duration-200 group-hover:scale-105">
-                    {stripeSubscription.peanuts.toLocaleString()}
+                    {stripeSubscription.tier === 'builder' ? '$20' : '$0'}
                   </div>
-                  <div className="text-sm text-bolt-elements-textSecondary mb-2 font-medium">Peanuts per month</div>
-                  <div className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-3 bg-opacity-50 px-3 py-1.5 rounded-lg border border-bolt-elements-borderColor border-opacity-30">
+                  <div className="text-sm text-bolt-elements-textSecondary mb-2 font-medium">per month</div>
+                  <div className="w-full text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-3 bg-opacity-50 px-3 py-1.5 rounded-lg border border-bolt-elements-borderColor border-opacity-30">
                     {stripeSubscription.tier.charAt(0).toUpperCase() + stripeSubscription.tier.slice(1)} Plan
                   </div>
-                  <div className="text-xs text-bolt-elements-textSecondary mt-1">
+                  <div className="text-xs text-bolt-elements-textSecondary mt-2">
                     Next billing:{' '}
                     {stripeSubscription.currentPeriodEnd
                       ? new Date(stripeSubscription.currentPeriodEnd).toLocaleDateString()
@@ -375,7 +383,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
               </button>
             )}
 
-            {stripeSubscription && !loading && (
+            {/* {stripeSubscription && !loading && (
               <button
                 onClick={handleAddPeanuts}
                 disabled={loading}
@@ -399,7 +407,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
                   </>
                 )}
               </button>
-            )}
+            )} */}
           </div>
         )}
       </div>
@@ -429,7 +437,9 @@ export const AccountModal = ({ user }: AccountModalProps) => {
             </p>
           </div>
         ) : (
-          <div className="space-y-4 max-h-80 overflow-y-auto">{history.map(renderHistoryItem)}</div>
+          <div className="space-y-4 max-h-80 overflow-y-auto">
+            {history.filter((item) => item.reason !== 'AddPeanuts').map(renderHistoryItem)}
+          </div>
         )}
       </div>
 

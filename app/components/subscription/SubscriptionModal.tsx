@@ -72,38 +72,7 @@ export function SubscriptionModal({ currentTier: propCurrentTier }: Subscription
           </div>
         </div>
 
-        <div className="px-6 sm:px-8 pt-2 pb-6">
-          <div className="p-4 sm:p-6 bg-gradient-to-r from-bolt-elements-background-depth-2/30 to-bolt-elements-background-depth-3/20 rounded-2xl border border-bolt-elements-borderColor border-opacity-30 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center mt-1 flex-shrink-0 border border-blue-500/30 shadow-sm">
-                <Info className="text-blue-500" size={18} />
-              </div>
-              <div className="text-sm text-bolt-elements-textSecondary">
-                <p className="font-semibold text-bolt-elements-textHeading mb-3 text-base">Important Notes:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 gap-x-6">
-                  <div className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>
-                    <span>Peanuts do not roll over between billing cycles</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>
-                    <span>You can upgrade or downgrade your plan at any time</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>
-                    <span>Cancellation takes effect at the end of your current billing period</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>
-                    <span>All plans include access to all Nut features</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-6 sm:px-8 pb-6 sm:pb-8">
+        <div className="p-6 sm:p-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
             {(
               Object.entries(SUBSCRIPTION_TIERS) as [SubscriptionTier, (typeof SUBSCRIPTION_TIERS)[SubscriptionTier]][]
@@ -269,6 +238,33 @@ export function SubscriptionModal({ currentTier: propCurrentTier }: Subscription
                     <ArrowUpRight className="text-white" size={18} />
                     <span>Join Waitlist</span>
                   </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 sm:px-8 pt-2 pb-6">
+          <div className="p-4 sm:p-6 bg-gradient-to-r from-bolt-elements-background-depth-2/30 to-bolt-elements-background-depth-3/20 rounded-2xl border border-bolt-elements-borderColor border-opacity-30 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center mt-1 flex-shrink-0 border border-blue-500/30 shadow-sm">
+                <Info className="text-blue-500" size={18} />
+              </div>
+              <div className="text-sm text-bolt-elements-textSecondary">
+                <p className="font-semibold text-bolt-elements-textHeading mb-3 text-base">Important Notes:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 gap-x-6">
+                  <div className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>
+                    <span>You can upgrade or downgrade your plan at any time</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>
+                    <span>Cancellation takes effect at the end of your current billing period</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>
+                    <span>All plans include access to all Nut features</span>
+                  </div>
                 </div>
               </div>
             </div>

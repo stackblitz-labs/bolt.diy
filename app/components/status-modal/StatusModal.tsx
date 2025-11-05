@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useStore } from '@nanostores/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { statusModalStore } from '~/lib/stores/statusModal';
 import { classNames } from '~/utils/classNames';
 import { AppFeatureStatus, isFeatureStatusImplemented, type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { peanutsStore } from '~/lib/stores/peanuts';
-import WithTooltip from '~/components/ui/Tooltip';
-import { TooltipProvider } from '@radix-ui/react-tooltip';
-import { userStore } from '~/lib/stores/auth';
-import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
-import { createTopoffCheckout } from '~/lib/stripe/client';
+// import WithTooltip from '~/components/ui/Tooltip';
+// import { TooltipProvider } from '@radix-ui/react-tooltip';
+// import { userStore } from '~/lib/stores/auth';
+// import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
+// import { createTopoffCheckout } from '~/lib/stripe/client';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { openSubscriptionModal } from '~/lib/stores/subscriptionModal';
 import { X, CheckCircle, AlertTriangle, Circle, Crown, Rocket } from '~/components/ui/Icon';
@@ -21,10 +21,10 @@ interface StatusModalProps {
 
 export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinueBuilding }) => {
   const isOpen = useStore(statusModalStore.isOpen);
-  const peanutsErrorInfo = useStore(peanutsStore.peanutsErrorInfo);
+  // const peanutsErrorInfo = useStore(peanutsStore.peanutsErrorInfo);
   const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
-  const user = useStore(userStore);
-  const [loading, setLoading] = useState(false);
+  // const user = useStore(userStore);
+  // const [loading, setLoading] = useState(false);
   const hasSubscription = useStore(subscriptionStore.hasSubscription);
 
   const features = appSummary.features?.slice(1) || [];
@@ -41,37 +41,37 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
     onContinueBuilding();
   };
 
-  const handleAddPeanuts = async () => {
-    if (!user?.id || !user?.email) {
-      stripeStatusModalActions.showError(
-        'Sign In Required',
-        'Please sign in to add peanuts.',
-        'You need to be signed in to purchase peanut top-ups.',
-      );
-      return;
-    }
+  // const handleAddPeanuts = async () => {
+  //   if (!user?.id || !user?.email) {
+  //     stripeStatusModalActions.showError(
+  //       'Sign In Required',
+  //       'Please sign in to add peanuts.',
+  //       'You need to be signed in to purchase peanut top-ups.',
+  //     );
+  //     return;
+  //   }
 
-    setLoading(true);
-    try {
-      await createTopoffCheckout();
-      if (window.analytics) {
-        window.analytics.track('Peanuts Added', {
-          timestamp: new Date().toISOString(),
-          userId: user?.id,
-          email: user?.email,
-        });
-      }
-    } catch (error) {
-      console.error('Error creating peanut top-off:', error);
-      stripeStatusModalActions.showError(
-        'Checkout Failed',
-        "We couldn't create the checkout session.",
-        'Please try again in a few moments, or contact support if the issue persists.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  //   setLoading(true);
+  //   try {
+  //     await createTopoffCheckout();
+  //     if (window.analytics) {
+  //       window.analytics.track('Peanuts Added', {
+  //         timestamp: new Date().toISOString(),
+  //         userId: user?.id,
+  //         email: user?.email,
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error('Error creating peanut top-off:', error);
+  //     stripeStatusModalActions.showError(
+  //       'Checkout Failed',
+  //       "We couldn't create the checkout session.",
+  //       'Please try again in a few moments, or contact support if the issue persists.',
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleSubscriptionToggle = async () => {
     openSubscriptionModal();
@@ -275,7 +275,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9, duration: 0.5 }}
               >
-                {peanutsRemaining !== undefined && peanutsRemaining <= 0 && hasSubscription && (
+                {/* {peanutsRemaining !== undefined && peanutsRemaining <= 0 && hasSubscription && (
                   <div className="flex flex-col items-center w-full">
                     <TooltipProvider>
                       <WithTooltip tooltip={peanutsErrorInfo}>
@@ -308,7 +308,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                       {peanutsErrorInfo}
                     </div>
                   </div>
-                )}
+                )} */}
                 {peanutsRemaining !== undefined && peanutsRemaining <= 0 && !hasSubscription && (
                   <div className="flex flex-col items-center w-full">
                     <div className="text-xl font-semibold text-bolt-elements-textSecondary mb-2">No Subscription</div>
@@ -317,12 +317,8 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                     </div>
                     <button
                       onClick={handleSubscriptionToggle}
-                      disabled={loading}
                       className={classNames(
                         'px-6 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group flex items-center justify-center gap-3 min-h-[48px] bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600',
-                        {
-                          'opacity-60 cursor-not-allowed hover:scale-100': loading,
-                        },
                       )}
                     >
                       <Crown className="transition-transform duration-200 group-hover:scale-110" size={20} />

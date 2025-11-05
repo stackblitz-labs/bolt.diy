@@ -7,7 +7,7 @@ export const IntroSection: React.FC = () => {
 
   if (isSmallViewport) {
     return (
-      <div id="intro" className="max-w-4xl mx-auto text-center px-4 mt-8">
+      <div id="intro" className="max-w-4xl mx-auto text-center px-4 pt-4 mt-8">
         <h1 className="text-3xl font-bold text-bolt-elements-textHeading mb-4 animate-fade-in leading-tight">
           Build web apps
           <span className="bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent block">
@@ -44,10 +44,10 @@ export const IntroSection: React.FC = () => {
   }
 
   return (
-    <div id="intro" className="max-w-4xl mx-auto text-center px-6 lg:px-8">
+    <div id="intro" className="max-w-4xl mx-auto text-center px-6 lg:px-8 pt-4 mt-8">
       <div className="inline-flex items-center gap-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded-full px-4 py-2 mb-8 animate-fade-in">
         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-        <span className="text-sm font-medium text-bolt-elements-textSecondary">We’re in BETA</span>
+        <span className="text-sm font-medium text-bolt-elements-textSecondary">We're in BETA</span>
       </div>
 
       <h1 className="text-4xl lg:text-7xl font-bold text-bolt-elements-textHeading mb-6 animate-fade-in animation-delay-100 leading-tight">

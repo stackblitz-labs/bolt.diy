@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { isAuthenticated } from '~/lib/supabase/client';
 import { pingTelemetry } from '~/lib/hooks/pingTelemetry';
 import { refreshPeanutsStore } from './peanuts';
+import { subscriptionStore } from './subscriptionStatus';
 
 export const userStore = atom<User | null>(null);
 export const sessionStore = atom<Session | null>(null);
@@ -95,6 +96,7 @@ export async function initializeAuth() {
       } else {
         userStore.set(null);
         sessionStore.set(null);
+        subscriptionStore.clearSubscription();
         logStore.logSystem('User signed out');
       }
     });
