@@ -174,6 +174,7 @@ export async function action({ request }: { request: Request }) {
           quantity: 1,
         },
       ],
+      allow_promotion_codes: true,
       // Always use customer ID (we ensure one exists above)
       customer: customerId,
       client_reference_id: userId,
