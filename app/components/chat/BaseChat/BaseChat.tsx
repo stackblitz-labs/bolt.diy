@@ -396,27 +396,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 return shouldShowUpgradeBlock ? (
                   <PlanUpgradeBlock />
                 ) : (
-                  <ChatPromptContainer
-                    uploadedFiles={uploadedFiles}
-                    setUploadedFiles={setUploadedFiles!}
-                    imageDataList={imageDataList}
-                    setImageDataList={setImageDataList!}
-                    messageInputProps={messageInputProps}
-                  />
+                  <>
+                    <ChatPromptContainer
+                      uploadedFiles={uploadedFiles}
+                      setUploadedFiles={setUploadedFiles!}
+                      imageDataList={imageDataList}
+                      setImageDataList={setImageDataList!}
+                      messageInputProps={messageInputProps}
+                    />
+                    {!chatStarted && (
+                      <>
+                        {ExamplePrompts((event: React.UIEvent, messageInput: string) => {
+                          if (hasPendingMessage) {
+                            handleStop?.();
+                            return;
+                          }
+                          handleSendMessage({ messageInput, chatMode: ChatMode.UserMessage });
+                        })}
+                      </>
+                    )}
+                  </>
                 );
               })()}
             </div>
-            {!chatStarted && (
-              <>
-                {ExamplePrompts((event: React.UIEvent, messageInput: string) => {
-                  if (hasPendingMessage) {
-                    handleStop?.();
-                    return;
-                  }
-                  handleSendMessage({ messageInput, chatMode: ChatMode.UserMessage });
-                })}
-              </>
-            )}
           </div>
           <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>
         </div>
