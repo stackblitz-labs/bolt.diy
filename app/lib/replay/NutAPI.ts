@@ -230,8 +230,13 @@ async function compressJSON(obj: any): Promise<ArrayBuffer> {
   return buffer;
 }
 
-export async function uploadVisitData(visitData: VisitData): Promise<string> {
+export async function uploadVisitData(visitData: VisitData): Promise<string | undefined> {
   const buffer = await compressJSON(visitData);
-  const json = await callAPIStreamBuffer('create-visit-data', buffer);
-  return json.visitDataId;
+  try {
+    const json = await callAPIStreamBuffer('create-visit-data', buffer);
+    return json.visitDataId;
+  } catch (e) {
+    console.error('uploadVisitData failed', e);
+    return undefined;
+  }
 }
