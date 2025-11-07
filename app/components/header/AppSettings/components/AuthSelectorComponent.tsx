@@ -9,13 +9,14 @@ import { assert } from '~/utils/nut';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { Skeleton } from '~/components/ui/Skeleton';
-import { Globe, Lock, Trash2, Plus, ShieldCheck } from '~/components/ui/Icon';
+import { Globe, Lock, Trash2, Plus, ShieldCheck, MessageSquare } from '~/components/ui/Icon';
 
 interface AuthSelectorComponentProps {
   appSummary: AppSummary;
 }
 
 const AuthRequiredSecret = 'VITE_AUTH_REQUIRED';
+const AppMessagesSecret = 'VITE_ENABLE_APP_MESSAGES';
 
 function isValidDomain(domain: string): boolean {
   const value = domain.trim();
@@ -42,8 +43,9 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
 
   const [saving, setSaving] = useState(false);
   const authRequired = appSummary?.setSecrets?.includes(AuthRequiredSecret);
+  const appMessagesEnabled = appSummary?.setSecrets?.includes(AppMessagesSecret);
 
-  const handleToggle = async () => {
+  const handleAuthToggle = async () => {
     setSaving(true);
 
     try {
@@ -70,13 +72,40 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
     }
   };
 
+  const handleAppMessagesToggle = async () => {
+    setSaving(true);
+
+    try {
+      const { response } = await callNutAPI('set-app-secrets', {
+        appId,
+        secrets: [
+          {
+            key: AppMessagesSecret,
+            value: appMessagesEnabled ? undefined : 'true',
+          },
+        ],
+      });
+
+      if (response) {
+        onChatResponse(response, 'ToggleAppMessages');
+      }
+
+      toast.success('In-app feedback settings updated successfully');
+    } catch (error) {
+      toast.error('Failed to update in-app feedback settings');
+      console.error('Failed to update in-app feedback settings:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getDescription = () => {
     return authRequired
       ? 'Users must create accounts and log in to access the application'
       : 'Application is open to all users without requiring authentication';
   };
 
-  const getToggleControl = () => {
+  const getAuthToggleControl = () => {
     const tooltipText = authRequired
       ? 'Disable authentication - anyone can access your app'
       : 'Enable authentication - requires user accounts to access your app';
@@ -90,7 +119,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
                 ? 'border-bolt-elements-borderColor border-opacity-30 cursor-not-allowed opacity-60'
                 : 'border-bolt-elements-borderColor hover:border-bolt-elements-focus/60 hover:bg-bolt-elements-background-depth-3 hover:shadow-md hover:scale-[1.02] cursor-pointer'
             }`}
-            onClick={!saving ? handleToggle : undefined}
+            onClick={!saving ? handleAuthToggle : undefined}
             disabled={saving}
           >
             <div className="flex items-center justify-between">
@@ -115,7 +144,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
                 )}
                 <Switch
                   checked={authRequired}
-                  onCheckedChange={!saving ? handleToggle : undefined}
+                  onCheckedChange={!saving ? handleAuthToggle : undefined}
                   className={`${saving ? 'opacity-50' : 'group-hover:scale-110'} transition-all duration-200 pointer-events-none`}
                 />
               </div>
@@ -207,9 +236,60 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
     } catch (error) {
       console.error('Failed to save allowed domains', error);
       toast.error('Failed to save allowed domains');
+    } finally {
       setSaving(false);
     }
   }, [haveAny, allValid, domains, appId]);
+
+  const getAppMessagesToggleControl = () => {
+    const tooltipText = appMessagesEnabled
+      ? 'Disable in-app updates and bug reporting'
+      : 'Enable updating and reporting bugs directly from the app';
+
+    return (
+      <TooltipProvider>
+        <WithTooltip tooltip={tooltipText}>
+          <button
+            className={`group p-4 bg-bolt-elements-background-depth-2 rounded-xl border transition-all duration-200 w-full shadow-sm ${
+              saving
+                ? 'border-bolt-elements-borderColor border-opacity-30 cursor-not-allowed opacity-60'
+                : 'border-bolt-elements-borderColor hover:border-bolt-elements-focus/60 hover:bg-bolt-elements-background-depth-3 hover:shadow-md hover:scale-[1.02] cursor-pointer'
+            }`}
+            onClick={!saving ? handleAppMessagesToggle : undefined}
+            disabled={saving}
+            type="button"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MessageSquare
+                  className={appMessagesEnabled ? 'text-bolt-elements-icon-success' : 'text-bolt-elements-textPrimary'}
+                  size={18}
+                />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-bolt-elements-textPrimary transition-transform duration-200 group-hover:scale-105">
+                    {appMessagesEnabled ? 'In-App Feedback Enabled' : 'Enable In-App Feedback'}
+                  </span>
+                  <span className="text-xs text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary transition-all duration-200">
+                    {saving ? 'Updating...' : appMessagesEnabled ? 'Users can report issues or request updates directly in the app' : 'Allow users to send feedback without leaving the app'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {saving && (
+                  <div className="w-4 h-4 rounded-full border-2 border-bolt-elements-borderColor border-t-blue-500 animate-spin" />
+                )}
+                <Switch
+                  checked={appMessagesEnabled}
+                  onCheckedChange={!saving ? handleAppMessagesToggle : undefined}
+                  className={`${saving ? 'opacity-50' : 'group-hover:scale-110'} transition-all duration-200 pointer-events-none`}
+                />
+              </div>
+            </div>
+          </button>
+        </WithTooltip>
+      </TooltipProvider>
+    );
+  };
 
   return (
     <AppCard
@@ -221,7 +301,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
       progressText="Configured"
     >
       <div className="space-y-3">
-        {getToggleControl()}
+        {getAuthToggleControl()}
         {authRequired && (
           <div className="p-5 space-y-4">
             <div>
@@ -325,6 +405,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
             </div>
           </div>
         )}
+        {getAppMessagesToggleControl()}
       </div>
     </AppCard>
   );
