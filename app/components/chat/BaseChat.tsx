@@ -14,7 +14,6 @@ import { getApiKeysFromCookies } from './APIKeyManager';
 import Cookies from 'js-cookie';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import styles from './BaseChat.module.scss';
-import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import GitCloneButton from './GitCloneButton';
 import type { ProviderInfo } from '~/types/model';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
@@ -468,12 +467,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </StickToBottom>
             <div className="flex flex-col justify-center">
               {!chatStarted && (
-                <>
-                  <div className="flex justify-center gap-2">
-                    {ImportButtons(importChat)}
-                    <GitCloneButton importChat={importChat} />
-                  </div>
-                </>
+                <div className="flex justify-center gap-2">
+                  <GitCloneButton importChat={importChat} />
+                </div>
               )}
             </div>
           </div>

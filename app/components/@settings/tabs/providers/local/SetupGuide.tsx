@@ -645,20 +645,6 @@ function SetupGuide({ onBack }: { onBack: () => void }) {
                   </div>
                   <p className="text-xs text-bolt-elements-textSecondary">Access to 100+ models through unified API</p>
                 </div>
-                <div className="p-3 rounded-lg bg-bolt-elements-background-depth-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Server className="w-4 h-4 text-red-500" />
-                    <span className="font-medium text-bolt-elements-textPrimary">Together AI</span>
-                  </div>
-                  <p className="text-xs text-bolt-elements-textSecondary">Fast inference with open-source models</p>
-                </div>
-                <div className="p-3 rounded-lg bg-bolt-elements-background-depth-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Activity className="w-4 h-4 text-pink-500" />
-                    <span className="font-medium text-bolt-elements-textPrimary">Groq</span>
-                  </div>
-                  <p className="text-xs text-bolt-elements-textSecondary">Ultra-fast LPU inference for Llama models</p>
-                </div>
               </div>
             </div>
           </div>

@@ -198,6 +198,12 @@ export class LLMManager {
   }
 
   getDefaultProvider(): BaseProvider {
+    const preferredProvider = this._providers.get('OpenAI');
+
+    if (preferredProvider) {
+      return preferredProvider;
+    }
+
     const firstProvider = this._providers.values().next().value;
 
     if (!firstProvider) {

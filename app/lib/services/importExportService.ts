@@ -225,7 +225,7 @@ export class ImportExportService {
       // Handle both old and new template formats
       let normalizedKey = key;
 
-      // Check if this is the old format (e.g., "Anthropic_API_KEY")
+      // Check if this is the old format (e.g., "OpenAI_API_KEY")
       if (key.includes('_API_KEY')) {
         // Extract the provider name from the old format
         normalizedKey = key.replace('_API_KEY', '');
@@ -234,7 +234,7 @@ export class ImportExportService {
       /*
        * Only add non-empty keys
        * Use the normalized key in the correct format
-       * (e.g., "OpenAI", "Google", "Anthropic")
+       * (e.g., "OpenAI", "Google")
        */
       if (value) {
         newKeys[normalizedKey] = value;
@@ -254,19 +254,10 @@ export class ImportExportService {
      * This matches how the application stores API keys in cookies
      */
     const template = {
-      Anthropic: '',
       OpenAI: '',
       Google: '',
-      Groq: '',
-      HuggingFace: '',
       OpenRouter: '',
-      Deepseek: '',
-      Mistral: '',
       OpenAILike: '',
-      Together: '',
-      xAI: '',
-      Perplexity: '',
-      Cohere: '',
       AzureOpenAI: '',
     };
 

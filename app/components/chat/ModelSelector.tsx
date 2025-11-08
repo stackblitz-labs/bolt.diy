@@ -519,7 +519,7 @@ export const ModelSelector = ({
                   </div>
                   {debouncedProviderSearchQuery && (
                     <div className="text-xs text-bolt-elements-textTertiary">
-                      Try searching for provider names like "OpenAI", "Anthropic", or "Google"
+                      Try searching for provider names like "OpenAI", "Google", or "OpenRouter"
                     </div>
                   )}
                 </div>
