@@ -4,7 +4,9 @@ import type { Template } from '~/types/template';
 import { STARTER_TEMPLATES } from './constants';
 
 const starterTemplateSelectionPrompt = (templates: Template[]) => `
-You are an experienced developer who helps people choose the best starter template for their projects, Vite is preferred.
+You are an experienced developer who helps people choose the best starter template for their projects.
+IMPORTANT: Vite is preferred
+IMPORTANT: Only choose shadcn templates if the user explicitly asks for shadcn.
 
 Available templates:
 <template>

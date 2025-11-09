@@ -1,12 +1,12 @@
 import type { Message } from 'ai';
 import { useCallback, useState } from 'react';
-import { StreamingMessageParser } from '~/lib/runtime/message-parser';
+import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('useMessageParser');
 
-const messageParser = new StreamingMessageParser({
+const messageParser = new EnhancedStreamingMessageParser({
   callbacks: {
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
@@ -22,7 +22,10 @@ const messageParser = new StreamingMessageParser({
     onActionOpen: (data) => {
       logger.trace('onActionOpen', data.action);
 
-      // we only add shell actions when when the close tag got parsed because only then we have the content
+      /*
+       * File actions are streamed, so we add them immediately to show progress
+       * Shell actions are complete when created by enhanced parser, so we wait for close
+       */
       if (data.action.type === 'file') {
         workbenchStore.addAction(data);
       }
@@ -30,6 +33,10 @@ const messageParser = new StreamingMessageParser({
     onActionClose: (data) => {
       logger.trace('onActionClose', data.action);
 
+      /*
+       * Add non-file actions (shell, build, start, etc.) when they close
+       * Enhanced parser creates complete shell actions, so they're ready to execute
+       */
       if (data.action.type !== 'file') {
         workbenchStore.addAction(data);
       }

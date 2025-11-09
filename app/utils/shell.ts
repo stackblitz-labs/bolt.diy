@@ -36,6 +36,24 @@ export async function newShellProcess(webcontainer: WebContainer, terminal: ITer
         }
 
         terminal.write(data);
+
+        // Capture terminal output for debugging
+        try {
+          import('~/utils/debugLogger')
+            .then(({ captureTerminalLog }) => {
+              // Clean the data by removing ANSI escape sequences for logging
+              const cleanData = data.replace(/\x1b\[[0-9;]*[mG]/g, '').trim();
+
+              if (cleanData) {
+                captureTerminalLog(cleanData, 'output');
+              }
+            })
+            .catch(() => {
+              // Ignore if debug logger is not available
+            });
+        } catch {
+          // Ignore errors in debug logging
+        }
       },
     }),
   );
@@ -45,6 +63,24 @@ export async function newShellProcess(webcontainer: WebContainer, terminal: ITer
 
     if (isInteractive) {
       input.write(data);
+
+      // Capture terminal input for debugging
+      try {
+        import('~/utils/debugLogger')
+          .then(({ captureTerminalLog }) => {
+            // Clean the data and check if it's a command (not just cursor movement)
+            const cleanData = data.replace(/\x1b\[[0-9;]*[A-Z]/g, '').trim();
+
+            if (cleanData && cleanData !== '\r' && cleanData !== '\n') {
+              captureTerminalLog(cleanData, 'input');
+            }
+          })
+          .catch(() => {
+            // Ignore if debug logger is not available
+          });
+      } catch {
+        // Ignore errors in debug logging
+      }
     }
   });
 

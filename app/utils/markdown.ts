@@ -8,6 +8,7 @@ import type { UnistNode, UnistParent } from 'node_modules/unist-util-visit/lib';
 export const allowedHTMLElements = [
   'a',
   'b',
+  'button',
   'blockquote',
   'br',
   'code',
@@ -55,6 +56,7 @@ export const allowedHTMLElements = [
   'ul',
   'var',
   'think',
+  'header',
 ];
 
 // Add custom rehype plugin
@@ -84,9 +86,18 @@ const rehypeSanitizeOptions: RehypeSanitizeOptions = {
     div: [
       ...(defaultSchema.attributes?.div ?? []),
       'data*',
-      ['className', '__boltArtifact__', '__boltThought__'],
+      ['className', '__boltArtifact__', '__boltThought__', '__boltQuickAction', '__boltSelectedElement__'],
 
       // ['className', '__boltThought__']
+    ],
+    button: [
+      ...(defaultSchema.attributes?.button ?? []),
+      'data*',
+      'type',
+      'disabled',
+      'name',
+      'value',
+      ['className', '__boltArtifact__', '__boltThought__', '__boltQuickAction'],
     ],
   },
   strip: [],

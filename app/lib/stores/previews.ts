@@ -20,43 +20,47 @@ const PREVIEW_CHANNEL = 'preview-updates';
 export class PreviewsStore {
   #availablePreviews = new Map<number, PreviewInfo>();
   #webcontainer: Promise<WebContainer>;
-  #broadcastChannel: BroadcastChannel;
+  #broadcastChannel?: BroadcastChannel;
   #lastUpdate = new Map<string, number>();
   #watchedFiles = new Set<string>();
   #refreshTimeouts = new Map<string, NodeJS.Timeout>();
   #REFRESH_DELAY = 300;
-  #storageChannel: BroadcastChannel;
+  #storageChannel?: BroadcastChannel;
 
   previews = atom<PreviewInfo[]>([]);
 
   constructor(webcontainerPromise: Promise<WebContainer>) {
     this.#webcontainer = webcontainerPromise;
-    this.#broadcastChannel = new BroadcastChannel(PREVIEW_CHANNEL);
-    this.#storageChannel = new BroadcastChannel('storage-sync-channel');
+    this.#broadcastChannel = this.#maybeCreateChannel(PREVIEW_CHANNEL);
+    this.#storageChannel = this.#maybeCreateChannel('storage-sync-channel');
 
-    // Listen for preview updates from other tabs
-    this.#broadcastChannel.onmessage = (event) => {
-      const { type, previewId } = event.data;
+    if (this.#broadcastChannel) {
+      // Listen for preview updates from other tabs
+      this.#broadcastChannel.onmessage = (event) => {
+        const { type, previewId } = event.data;
 
-      if (type === 'file-change') {
-        const timestamp = event.data.timestamp;
-        const lastUpdate = this.#lastUpdate.get(previewId) || 0;
+        if (type === 'file-change') {
+          const timestamp = event.data.timestamp;
+          const lastUpdate = this.#lastUpdate.get(previewId) || 0;
 
-        if (timestamp > lastUpdate) {
-          this.#lastUpdate.set(previewId, timestamp);
-          this.refreshPreview(previewId);
+          if (timestamp > lastUpdate) {
+            this.#lastUpdate.set(previewId, timestamp);
+            this.refreshPreview(previewId);
+          }
         }
-      }
-    };
+      };
+    }
 
-    // Listen for storage sync messages
-    this.#storageChannel.onmessage = (event) => {
-      const { storage, source } = event.data;
+    if (this.#storageChannel) {
+      // Listen for storage sync messages
+      this.#storageChannel.onmessage = (event) => {
+        const { storage, source } = event.data;
 
-      if (storage && source !== this._getTabId()) {
-        this._syncStorage(storage);
-      }
-    };
+        if (storage && source !== this._getTabId()) {
+          this._syncStorage(storage);
+        }
+      };
+    }
 
     // Override localStorage setItem to catch all changes
     if (typeof window !== 'undefined') {
@@ -69,6 +73,29 @@ export class PreviewsStore {
     }
 
     this.#init();
+  }
+
+  #maybeCreateChannel(name: string): BroadcastChannel | undefined {
+    if (typeof globalThis === 'undefined') {
+      return undefined;
+    }
+
+    const globalBroadcastChannel = (
+      globalThis as typeof globalThis & {
+        BroadcastChannel?: typeof BroadcastChannel;
+      }
+    ).BroadcastChannel;
+
+    if (typeof globalBroadcastChannel !== 'function') {
+      return undefined;
+    }
+
+    try {
+      return new globalBroadcastChannel(name);
+    } catch (error) {
+      console.warn('[Preview] BroadcastChannel unavailable:', error);
+      return undefined;
+    }
   }
 
   // Generate a unique ID for this tab
@@ -130,7 +157,7 @@ export class PreviewsStore {
         }
       }
 
-      this.#storageChannel.postMessage({
+      this.#storageChannel?.postMessage({
         type: 'storage-sync',
         storage,
         source: this._getTabId(),
@@ -150,45 +177,6 @@ export class PreviewsStore {
       // Initial storage sync when preview is ready
       this._broadcastStorageSync();
     });
-
-    try {
-      // Watch for file changes
-      webcontainer.internal.watchPaths(
-        {
-          // Only watch specific file types that affect the preview
-          include: ['**/*.html', '**/*.css', '**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.json'],
-          exclude: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**', '**/coverage/**'],
-        },
-        async (_events) => {
-          const previews = this.previews.get();
-
-          for (const preview of previews) {
-            const previewId = this.getPreviewId(preview.baseUrl);
-
-            if (previewId) {
-              this.broadcastFileChange(previewId);
-            }
-          }
-        },
-      );
-
-      // Watch for DOM changes that might affect storage
-      if (typeof window !== 'undefined') {
-        const observer = new MutationObserver((_mutations) => {
-          // Broadcast storage changes when DOM changes
-          this._broadcastStorageSync();
-        });
-
-        observer.observe(document.body, {
-          childList: true,
-          subtree: true,
-          characterData: true,
-          attributes: true,
-        });
-      }
-    } catch (error) {
-      console.error('[Preview] Error setting up watchers:', error);
-    }
 
     // Listen for port events
     webcontainer.on('port', (port, type, url) => {
@@ -231,7 +219,7 @@ export class PreviewsStore {
     const timestamp = Date.now();
     this.#lastUpdate.set(previewId, timestamp);
 
-    this.#broadcastChannel.postMessage({
+    this.#broadcastChannel?.postMessage({
       type: 'state-change',
       previewId,
       timestamp,
@@ -243,7 +231,7 @@ export class PreviewsStore {
     const timestamp = Date.now();
     this.#lastUpdate.set(previewId, timestamp);
 
-    this.#broadcastChannel.postMessage({
+    this.#broadcastChannel?.postMessage({
       type: 'file-change',
       previewId,
       timestamp,
@@ -258,7 +246,7 @@ export class PreviewsStore {
       const timestamp = Date.now();
       this.#lastUpdate.set(previewId, timestamp);
 
-      this.#broadcastChannel.postMessage({
+      this.#broadcastChannel?.postMessage({
         type: 'file-change',
         previewId,
         timestamp,

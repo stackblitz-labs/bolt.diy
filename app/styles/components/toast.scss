@@ -1,3 +1,9 @@
+@use '../z-index';
+
+.Toastify__toast-container {
+  @extend .z-toast;
+}
+
 .Toastify__toast {
   --at-apply: shadow-md;
 

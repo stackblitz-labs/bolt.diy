@@ -50,4 +50,19 @@ export class TerminalStore {
       process.resize({ cols, rows });
     }
   }
+
+  async detachTerminal(terminal: ITerminal) {
+    const terminalIndex = this.#terminals.findIndex((t) => t.terminal === terminal);
+
+    if (terminalIndex !== -1) {
+      const { process } = this.#terminals[terminalIndex];
+
+      try {
+        process.kill();
+      } catch (error) {
+        console.warn('Failed to kill terminal process:', error);
+      }
+      this.#terminals.splice(terminalIndex, 1);
+    }
+  }
 }

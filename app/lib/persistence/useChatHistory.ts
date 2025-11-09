@@ -199,7 +199,7 @@ ${value.content}
 
   const takeSnapshot = useCallback(
     async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {
-      const id = _chatId || chatId.get();
+      const id = chatId.get();
 
       if (!id || !db) {
         return;

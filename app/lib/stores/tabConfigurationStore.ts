@@ -10,22 +10,19 @@ export interface TabConfig {
 
 interface TabConfigurationStore {
   userTabs: TabConfig[];
-  developerTabs: TabConfig[];
-  get: () => { userTabs: TabConfig[]; developerTabs: TabConfig[] };
-  set: (config: { userTabs: TabConfig[]; developerTabs: TabConfig[] }) => void;
+  get: () => { userTabs: TabConfig[] };
+  set: (config: { userTabs: TabConfig[] }) => void;
   reset: () => void;
 }
 
 const DEFAULT_CONFIG = {
   userTabs: [],
-  developerTabs: [],
 };
 
 export const tabConfigurationStore = create<TabConfigurationStore>((set, get) => ({
   ...DEFAULT_CONFIG,
   get: () => ({
     userTabs: get().userTabs,
-    developerTabs: get().developerTabs,
   }),
   set: (config) => set(config),
   reset: () => set(DEFAULT_CONFIG),

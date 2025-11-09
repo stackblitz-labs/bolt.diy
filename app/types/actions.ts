@@ -59,7 +59,16 @@ export interface DeployAlert {
   stage?: 'building' | 'deploying' | 'complete';
   buildStatus?: 'pending' | 'running' | 'complete' | 'failed';
   deployStatus?: 'pending' | 'running' | 'complete' | 'failed';
-  source?: 'vercel' | 'netlify' | 'github';
+  source?: 'vercel' | 'netlify' | 'github' | 'gitlab';
+}
+
+export interface LlmErrorAlertType {
+  type: 'error' | 'warning';
+  title: string;
+  description: string;
+  content?: string;
+  provider?: string;
+  errorType?: 'authentication' | 'rate_limit' | 'quota' | 'network' | 'unknown';
 }
 
 export interface FileHistory {

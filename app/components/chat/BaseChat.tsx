@@ -6,44 +6,34 @@ import type { JSONValue, Message } from 'ai';
 import React, { type RefCallback, useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
-import { IconButton } from '~/components/ui/IconButton';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { Messages } from './Messages.client';
-import { SendButton } from './SendButton.client';
-import { APIKeyManager, getApiKeysFromCookies } from './APIKeyManager';
+import { getApiKeysFromCookies } from './APIKeyManager';
 import Cookies from 'js-cookie';
 import * as Tooltip from '@radix-ui/react-tooltip';
-
 import styles from './BaseChat.module.scss';
-import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 import GitCloneButton from './GitCloneButton';
-
-import FilePreview from './FilePreview';
-import { ModelSelector } from '~/components/chat/ModelSelector';
-import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import type { ProviderInfo } from '~/types/model';
-import { ScreenshotStateManager } from './ScreenshotStateManager';
-import { toast } from 'react-toastify';
 import StarterTemplates from './StarterTemplates';
-import type { ActionAlert, SupabaseAlert, DeployAlert } from '~/types/actions';
+import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
 import ChatAlert from './ChatAlert';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import ProgressCompilation from './ProgressCompilation';
 import type { ProgressAnnotation } from '~/types/context';
-import type { ActionRunner } from '~/lib/runtime/action-runner';
-import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
-import { SupabaseConnection } from './SupabaseConnection';
-import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 import { WebSearch } from './WebSearch.client';
+import { ChatBox } from './ChatBox';
+import type { DesignScheme } from '~/types/design-scheme';
+import type { ElementInfo } from '~/components/workbench/Inspector';
+import LlmErrorAlert from './LLMApiAlert';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -81,9 +71,19 @@ interface BaseChatProps {
   clearSupabaseAlert?: () => void;
   deployAlert?: DeployAlert;
   clearDeployAlert?: () => void;
+  llmErrorAlert?: LlmErrorAlertType;
+  clearLlmErrorAlert?: () => void;
   data?: JSONValue[] | undefined;
   actionRunner?: ActionRunner;
   onWebSearchResult?: (result: string) => void;
+  chatMode?: 'discuss' | 'build';
+  setChatMode?: (mode: 'discuss' | 'build') => void;
+  append?: (message: Message) => void;
+  designScheme?: DesignScheme;
+  setDesignScheme?: (scheme: DesignScheme) => void;
+  selectedElement?: ElementInfo | null;
+  setSelectedElement?: (element: ElementInfo | null) => void;
+  addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -120,9 +120,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       clearDeployAlert,
       supabaseAlert,
       clearSupabaseAlert,
+      llmErrorAlert,
+      clearLlmErrorAlert,
       data,
       actionRunner,
       onWebSearchResult,
+      chatMode,
+      setChatMode,
+      append,
+      designScheme,
+      setDesignScheme,
+      selectedElement,
+      setSelectedElement,
+      addToolResult = () => {
+        throw new Error('addToolResult not implemented');
+      },
     },
     ref,
   ) => {
@@ -262,6 +274,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
       if (sendMessage) {
         sendMessage(event, messageInput);
+        setSelectedElement?.(null);
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
@@ -341,7 +354,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
-              <div id="intro" className="mt-[16vh] max-w-chat mx-auto text-center px-4 lg:px-0">
+              <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
                 <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
                   Where ideas begin
                 </h1>
@@ -357,18 +370,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               resize="smooth"
               initial="smooth"
             >
-              <StickToBottom.Content className="flex flex-col gap-4">
+              <StickToBottom.Content className="flex flex-col gap-4 relative ">
                 <ClientOnly>
                   {() => {
                     return chatStarted ? (
                       <Messages
-                        className="flex flex-col w-full flex-1 max-w-chat pb-6 mx-auto z-1"
+                        className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
                         messages={messages}
                         isStreaming={isStreaming}
+                        append={append}
+                        chatMode={chatMode}
+                        setChatMode={setChatMode}
+                        provider={provider}
+                        model={model}
+                        addToolResult={addToolResult}
                       />
                     ) : null;
                   }}
                 </ClientOnly>
+                <ScrollToBottom />
               </StickToBottom.Content>
               <div
                 className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
@@ -406,8 +426,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }}
                     />
                   )}
+                  {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
                 </div>
-                <ScrollToBottom />
                 {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
                 <div
                   className={classNames(
@@ -651,6 +671,48 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </div>
                   </div>
                 </div>
+                <ChatBox
+                  isModelSettingsCollapsed={isModelSettingsCollapsed}
+                  setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
+                  provider={provider}
+                  setProvider={setProvider}
+                  providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
+                  model={model}
+                  setModel={setModel}
+                  modelList={modelList}
+                  apiKeys={apiKeys}
+                  isModelLoading={isModelLoading}
+                  onApiKeysChange={onApiKeysChange}
+                  uploadedFiles={uploadedFiles}
+                  setUploadedFiles={setUploadedFiles}
+                  imageDataList={imageDataList}
+                  setImageDataList={setImageDataList}
+                  textareaRef={textareaRef}
+                  input={input}
+                  handleInputChange={handleInputChange}
+                  handlePaste={handlePaste}
+                  TEXTAREA_MIN_HEIGHT={TEXTAREA_MIN_HEIGHT}
+                  TEXTAREA_MAX_HEIGHT={TEXTAREA_MAX_HEIGHT}
+                  isStreaming={isStreaming}
+                  handleStop={handleStop}
+                  handleSendMessage={handleSendMessage}
+                  enhancingPrompt={enhancingPrompt}
+                  enhancePrompt={enhancePrompt}
+                  isListening={isListening}
+                  startListening={startListening}
+                  stopListening={stopListening}
+                  chatStarted={chatStarted}
+                  exportChat={exportChat}
+                  qrModalOpen={qrModalOpen}
+                  setQrModalOpen={setQrModalOpen}
+                  handleFileUpload={handleFileUpload}
+                  chatMode={chatMode}
+                  setChatMode={setChatMode}
+                  designScheme={designScheme}
+                  setDesignScheme={setDesignScheme}
+                  selectedElement={selectedElement}
+                  setSelectedElement={setSelectedElement}
+                />
               </div>
             </StickToBottom>
             <div className="flex flex-col justify-center">
@@ -676,11 +738,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </div>
           <ClientOnly>
             {() => (
-              <Workbench
-                actionRunner={actionRunner ?? ({} as ActionRunner)}
-                chatStarted={chatStarted}
-                isStreaming={isStreaming}
-              />
+              <Workbench chatStarted={chatStarted} isStreaming={isStreaming} setSelectedElement={setSelectedElement} />
             )}
           </ClientOnly>
         </div>
@@ -696,13 +754,16 @@ function ScrollToBottom() {
 
   return (
     !isAtBottom && (
-      <button
-        className="absolute z-50 top-[0%] translate-y-[-100%] text-4xl rounded-lg left-[50%] translate-x-[-50%] px-1.5 py-0.5 flex items-center gap-2 bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm"
-        onClick={() => scrollToBottom()}
-      >
-        Go to last message
-        <span className="i-ph:arrow-down animate-bounce" />
-      </button>
+      <>
+        <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-bolt-elements-background-depth-1 to-transparent h-20 z-10" />
+        <button
+          className="sticky z-50 bottom-0 left-0 right-0 text-4xl rounded-lg px-1.5 py-0.5 flex items-center justify-center mx-auto gap-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm"
+          onClick={() => scrollToBottom()}
+        >
+          Go to last message
+          <span className="i-ph:arrow-down animate-bounce" />
+        </button>
+      </>
     )
   );
 }

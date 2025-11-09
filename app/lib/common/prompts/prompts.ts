@@ -1,3 +1,4 @@
+import type { DesignScheme } from '~/types/design-scheme';
 import { WORK_DIR } from '~/utils/constants';
 import { allowedHTMLElements } from '~/utils/markdown';
 import { stripIndents } from '~/utils/stripIndent';
@@ -9,6 +10,7 @@ export const getSystemPrompt = (
     hasSelectedProject: boolean;
     credentials?: { anonKey?: string; supabaseUrl?: string };
   },
+  designScheme?: DesignScheme,
 ) => `
 You are Bolt, an expert AI assistant and exceptional senior software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
 
@@ -424,6 +426,14 @@ You are Bolt, an expert AI assistant and exceptional senior software developer w
       - Ensure consistency in design language and interactions throughout.
       - Pay meticulous attention to detail and polish.
       - Always prioritize user needs and iterate based on feedback.
+      
+      <user_provided_design>
+        USER PROVIDED DESIGN SCHEME:
+        - ALWAYS use the user provided design scheme when creating designs ensuring it complies with the professionalism of design instructions below, unless the user specifically requests otherwise.
+        FONT: ${JSON.stringify(designScheme?.font)}
+        COLOR PALETTE: ${JSON.stringify(designScheme?.palette)}
+        FEATURES: ${JSON.stringify(designScheme?.features)}
+      </user_provided_design>
   </design_instructions>
 </artifact_info>
 
