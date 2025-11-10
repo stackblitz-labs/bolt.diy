@@ -3,14 +3,12 @@ import { accountModalStore } from '~/lib/stores/accountModal';
 import { AccountModal } from './AccountModal';
 import { userStore } from '~/lib/stores/auth';
 import { SubscriptionModal } from '~/components/subscription/SubscriptionModal';
-import { subscriptionModalStore } from '~/lib/stores/subscriptionModal';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
 import { IconButton } from '~/components/ui/IconButton';
 import { User as UserIcon, CreditCard, ArrowLeft, X } from '~/components/ui/Icon';
 
 export function GlobalAccountModal() {
   const isOpen = useStore(accountModalStore.isOpen);
-  const { currentTier } = useStore(subscriptionModalStore);
   const user = useStore(userStore);
   const activeTab = useStore(accountModalStore.activeTab);
   const { isMobile } = useIsMobile();
@@ -117,7 +115,7 @@ export function GlobalAccountModal() {
 
             {/* Content */}
             <div className="flex-1 overflow-auto">
-              {activeTab === 'account' ? <AccountModal user={user} /> : <SubscriptionModal currentTier={currentTier} />}
+              {activeTab === 'account' ? <AccountModal user={user} /> : <SubscriptionModal />}
             </div>
           </div>
         )}

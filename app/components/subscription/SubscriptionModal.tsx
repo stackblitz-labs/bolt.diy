@@ -13,17 +13,13 @@ import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
 import { Info, Gift, Rocket, Check, Sparkles, ArrowUpRight } from '~/components/ui/Icon';
 
-interface SubscriptionModalProps {
-  currentTier?: SubscriptionTier;
-}
-
-export function SubscriptionModal({ currentTier: propCurrentTier }: SubscriptionModalProps) {
+export function SubscriptionModal() {
   const { isMobile } = useIsMobile();
   const [loading, setLoading] = useState<SubscriptionTier | null>(null);
   const stripeSubscription = useStore(subscriptionStore.subscription);
   const user = useStore(userStore);
 
-  const currentTier = stripeSubscription?.tier ?? propCurrentTier;
+  const currentTier = stripeSubscription ? stripeSubscription.tier : 'free';
 
   const handleSubscribe = async (tier: SubscriptionTier) => {
     if (!user?.id || !user?.email) {
@@ -156,7 +152,7 @@ export function SubscriptionModal({ currentTier: propCurrentTier }: Subscription
 
                   <div className="mt-auto">
                     <button
-                      onClick={!currentTier ? () => handleSubscribe(tier) : () => handleManageSubscription()}
+                      onClick={!stripeSubscription ? () => handleSubscribe(tier) : () => handleManageSubscription()}
                       disabled={isCurrentTier || isLoading}
                       className={classNames(
                         'w-full py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl group/btn min-h-[56px]',
@@ -179,9 +175,9 @@ export function SubscriptionModal({ currentTier: propCurrentTier }: Subscription
                           ? '✓ Current Plan'
                           : isLoading
                             ? 'Processing...'
-                            : !!currentTier
-                              ? 'Upgrade Subscription'
-                              : 'Subscribe'}
+                            : tier === 'free'
+                              ? 'Downgrade Subscription'
+                              : 'Upgrade Subscription'}
                       </span>
                     </button>
                   </div>
@@ -255,7 +251,7 @@ export function SubscriptionModal({ currentTier: propCurrentTier }: Subscription
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 gap-x-6">
                   <div className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>
-                    <span>You can upgrade or downgrade your plan at any time</span>
+                    <span>You can upgrade or cancel your plan at any time</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>

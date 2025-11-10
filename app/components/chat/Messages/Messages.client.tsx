@@ -34,6 +34,7 @@ import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { openFeatureModal } from '~/lib/stores/featureModal';
 import { InfoCard } from '~/components/ui/InfoCard';
 import type { AppLibraryEntry } from '~/lib/persistence/apps';
+import { buildAccessStore } from '~/lib/stores/buildAccess';
 
 interface MessagesProps {
   id?: string;
@@ -76,6 +77,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     const lastMessageIteration = useStore(chatStore.lastMessageIteration);
     const subscription = useStore(subscriptionStore.subscription);
     const unpaidFeatureCost = getUnpaidFeatureCost(appSummary, lastMessageIteration);
+    const hasBuildAccess = useStore(buildAccessStore.hasAccess);
 
     // Calculate startPlanningRating for the card display
     let startPlanningRating = 0;
@@ -88,7 +90,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
         (unpaidFeatureCost || (!hasPendingMessage && !listenResponses)) &&
         appSummary?.features?.length &&
         !isFullyComplete &&
-        (subscription?.tier === 'builder' || (subscription?.tier === 'free' && (list?.length ?? 0 <= 1)));
+        hasBuildAccess;
 
       if (shouldShow) {
         const timer = setTimeout(() => {
@@ -391,8 +393,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
 
           {user &&
             (isFeatureStatusImplemented(appSummary?.features?.[0]?.status) || startPlanningRating === 10) &&
-            (!subscription || (subscription?.tier === 'free' && (list?.length ?? 0 >= 1))) &&
-            !hasSubscription && <SubscriptionCard onMount={scrollToBottom} />}
+            (!hasBuildAccess || !hasSubscription) && <SubscriptionCard onMount={scrollToBottom} />}
 
           {!showContinueBuildCard &&
             listenResponses &&
@@ -409,15 +410,13 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
             />
           )}
 
-          {user &&
-            startPlanningRating === 10 &&
-            (subscription?.tier === 'builder' || (subscription?.tier === 'free' && (list?.length ?? 0 <= 1))) && (
-              <StartBuildingCard
-                startPlanningRating={startPlanningRating}
-                sendMessage={sendMessage}
-                onMount={scrollToBottom}
-              />
-            )}
+          {user && startPlanningRating === 10 && hasBuildAccess && (
+            <StartBuildingCard
+              startPlanningRating={startPlanningRating}
+              sendMessage={sendMessage}
+              onMount={scrollToBottom}
+            />
+          )}
 
           {hasPendingMessage && (
             <div className="w-full mt-3">

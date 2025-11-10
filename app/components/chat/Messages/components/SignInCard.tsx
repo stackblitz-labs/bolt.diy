@@ -29,7 +29,8 @@ export const SignInCard: React.FC<SignInCardProps> = ({ onMount }) => {
             <h3 className="text-lg font-semibold text-bolt-elements-textHeading">Sign In to Continue Building</h3>
             <p className="text-bolt-elements-textSecondary text-sm max-w-md">
               To start building and deploying your application, you'll need to sign in or create an account. After sign
-              up, you will receive 1000 free peanuts (credits) to use for building your app.
+              up, you will be able to build one app on our free plan or unlimited apps if you upgrade to our builder
+              plan.
             </p>
           </div>
 
