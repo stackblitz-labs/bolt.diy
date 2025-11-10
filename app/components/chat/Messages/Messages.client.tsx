@@ -12,7 +12,6 @@ import {
   JumpToBottom,
   StartBuildingCard,
   SignInCard,
-  // AddPeanutsCard,
   StopBuildCard,
   ContinueBuildCard,
   SubscriptionCard,
@@ -28,19 +27,20 @@ import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import { pendingMessageStatusStore } from '~/lib/stores/status';
 import { userStore } from '~/lib/stores/auth';
-import { peanutsStore } from '~/lib/stores/peanuts';
 import { shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { AppFeatureStatus } from '~/lib/persistence/messageAppSummary';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { openFeatureModal } from '~/lib/stores/featureModal';
 import { InfoCard } from '~/components/ui/InfoCard';
+import type { AppLibraryEntry } from '~/lib/persistence/apps';
 
 interface MessagesProps {
   id?: string;
   className?: string;
   onLastMessageCheckboxChange?: (contents: string, checked: boolean) => void;
   sendMessage: (params: ChatMessageParams) => void;
+  list?: AppLibraryEntry[] | undefined;
 }
 
 function getUnpaidFeatureCost(appSummary: AppSummary | undefined, lastContinueBuildIteration: number) {
@@ -57,12 +57,11 @@ function getUnpaidFeatureCost(appSummary: AppSummary | undefined, lastContinueBu
 }
 
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
-  ({ onLastMessageCheckboxChange, sendMessage }, ref) => {
+  ({ onLastMessageCheckboxChange, sendMessage, list }, ref) => {
     const [showJumpToBottom, setShowJumpToBottom] = useState(false);
     const [showContinueBuildCard, setShowContinueBuildCard] = useState(false);
     const user = useStore(userStore);
     const appSummary = useStore(chatStore.appSummary);
-    const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
     const listenResponses = useStore(chatStore.listenResponses);
     const [showTopShadow, setShowTopShadow] = useState(false);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -75,7 +74,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     const isFullyComplete = completedFeatures === totalFeatures && totalFeatures && totalFeatures > 0;
     const hasSubscription = useStore(subscriptionStore.hasSubscription);
     const lastMessageIteration = useStore(chatStore.lastMessageIteration);
-
+    const subscription = useStore(subscriptionStore.subscription);
     const unpaidFeatureCost = getUnpaidFeatureCost(appSummary, lastMessageIteration);
 
     // Calculate startPlanningRating for the card display
@@ -89,9 +88,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
         (unpaidFeatureCost || (!hasPendingMessage && !listenResponses)) &&
         appSummary?.features?.length &&
         !isFullyComplete &&
-        peanutsRemaining !== undefined &&
-        peanutsRemaining > 0 &&
-        peanutsRemaining >= unpaidFeatureCost;
+        (subscription?.tier === 'builder' || (subscription?.tier === 'free' && (list?.length ?? 0 <= 1)));
 
       if (shouldShow) {
         const timer = setTimeout(() => {
@@ -107,8 +104,9 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       listenResponses,
       appSummary?.features?.length,
       isFullyComplete,
-      peanutsRemaining,
       unpaidFeatureCost,
+      subscription,
+      list,
     ]);
 
     const setRefs = useCallback(
@@ -391,16 +389,9 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
 
           {!user && startPlanningRating === 10 && <SignInCard onMount={scrollToBottom} />}
 
-          {/* {user &&
-            (isFeatureStatusImplemented(appSummary?.features?.[0]?.status) || startPlanningRating === 10) &&
-            peanutsRemaining !== undefined &&
-            (!peanutsRemaining || peanutsRemaining < unpaidFeatureCost) &&
-            hasSubscription && <AddPeanutsCard onMount={scrollToBottom} />} */}
-
           {user &&
             (isFeatureStatusImplemented(appSummary?.features?.[0]?.status) || startPlanningRating === 10) &&
-            peanutsRemaining !== undefined &&
-            (!peanutsRemaining || peanutsRemaining < unpaidFeatureCost) &&
+            (!subscription || (subscription?.tier === 'free' && (list?.length ?? 0 >= 1))) &&
             !hasSubscription && <SubscriptionCard onMount={scrollToBottom} />}
 
           {!showContinueBuildCard &&
@@ -418,13 +409,15 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
             />
           )}
 
-          {user && startPlanningRating === 10 && peanutsRemaining !== undefined && peanutsRemaining > 0 && (
-            <StartBuildingCard
-              startPlanningRating={startPlanningRating}
-              sendMessage={sendMessage}
-              onMount={scrollToBottom}
-            />
-          )}
+          {user &&
+            startPlanningRating === 10 &&
+            (subscription?.tier === 'builder' || (subscription?.tier === 'free' && (list?.length ?? 0 <= 1))) && (
+              <StartBuildingCard
+                startPlanningRating={startPlanningRating}
+                sendMessage={sendMessage}
+                onMount={scrollToBottom}
+              />
+            )}
 
           {hasPendingMessage && (
             <div className="w-full mt-3">

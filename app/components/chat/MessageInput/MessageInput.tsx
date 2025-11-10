@@ -24,6 +24,18 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
 import { buildBreadcrumbData } from '~/utils/componentBreadcrumb';
+import { workbenchStore } from '~/lib/stores/workbench';
+import { mobileNavStore } from '~/lib/stores/mobileNav';
+import { userStore } from '~/lib/stores/auth';
+import { useIsMobile } from '~/lib/hooks/useIsMobile';
+import { processImage, validateImageFile, formatFileSize } from '~/utils/imageProcessing';
+import { toast } from 'react-toastify';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
+import WithTooltip from '~/components/ui/Tooltip';
+import { getCurrentIFrame } from '~/components/workbench/Preview/Preview';
+import { Crosshair, Paperclip, X } from 'lucide-react';
+import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
+import type { AppLibraryEntry } from '~/lib/persistence/apps';
 
 interface ReactComponent {
   displayName?: string;
@@ -43,17 +55,6 @@ interface SelectedElementData {
   component: ReactComponent | null;
   tree: ReactComponent[];
 }
-import { workbenchStore } from '~/lib/stores/workbench';
-import { mobileNavStore } from '~/lib/stores/mobileNav';
-import { userStore } from '~/lib/stores/auth';
-import { peanutsStore } from '~/lib/stores/peanuts';
-import { useIsMobile } from '~/lib/hooks/useIsMobile';
-import { processImage, validateImageFile, formatFileSize } from '~/utils/imageProcessing';
-import { toast } from 'react-toastify';
-import { TooltipProvider } from '@radix-ui/react-tooltip';
-import WithTooltip from '~/components/ui/Tooltip';
-import { getCurrentIFrame } from '~/components/workbench/Preview/Preview';
-import { Crosshair, Paperclip, X } from 'lucide-react';
 
 export interface MessageInputProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
@@ -70,6 +71,7 @@ export interface MessageInputProps {
   onStopListening?: () => void;
   minHeight?: number;
   maxHeight?: number;
+  list?: AppLibraryEntry[] | undefined;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -87,6 +89,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onStopListening = () => {},
   minHeight = 76,
   maxHeight = 200,
+  list,
 }) => {
   const hasPendingMessage = useStore(chatStore.hasPendingMessage);
   const chatStarted = useStore(chatStore.started);
@@ -94,9 +97,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const appSummary = useStore(chatStore.appSummary);
   const hasAppSummary = !!appSummary;
   const user = useStore(userStore);
-  const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
   const selectedElement = useStore(workbenchStore.selectedElement) as SelectedElementData | null;
   const { isMobile, isTablet } = useIsMobile();
+  const subscription = useStore(subscriptionStore.subscription);
 
   // Helper functions for element highlighting
   const highlightElement = (component: ReactComponent) => {
@@ -541,8 +544,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             startPlanningRating > 0 &&
             !showSendButton &&
             !hasAppSummary &&
-            peanutsRemaining !== undefined &&
-            peanutsRemaining > 0;
+            (subscription?.tier === 'builder' || (subscription?.tier === 'free' && (list?.length ?? 0 <= 1)));
 
           return (
             <>

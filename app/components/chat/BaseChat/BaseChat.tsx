@@ -308,6 +308,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       onStopListening: stopListening,
       minHeight: TEXTAREA_MIN_HEIGHT,
       maxHeight: TEXTAREA_MAX_HEIGHT,
+      list,
     };
 
     const baseChat = (
@@ -359,6 +360,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         ref={messageRef}
                         onLastMessageCheckboxChange={onLastMessageCheckboxChange}
                         sendMessage={handleSendMessage}
+                        list={list}
                       />
                       {infoCards && infoCards.length > 0 && (
                         <div className="flex justify-center">

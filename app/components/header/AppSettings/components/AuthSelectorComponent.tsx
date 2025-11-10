@@ -270,7 +270,11 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
                     {appMessagesEnabled ? 'In-App Feedback Enabled' : 'Enable In-App Feedback'}
                   </span>
                   <span className="text-xs text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary transition-all duration-200">
-                    {saving ? 'Updating...' : appMessagesEnabled ? 'Users can report issues or request updates directly in the app' : 'Allow users to send feedback without leaving the app'}
+                    {saving
+                      ? 'Updating...'
+                      : appMessagesEnabled
+                        ? 'Users can report issues or request updates directly in the app'
+                        : 'Allow users to send feedback without leaving the app'}
                   </span>
                 </div>
               </div>

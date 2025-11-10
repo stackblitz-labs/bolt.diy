@@ -1,27 +1,13 @@
-import { getPeanutsHistory, getPeanutsSubscription, type PeanutHistoryEntry } from '~/lib/replay/Account';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import type { User } from '@supabase/supabase-js';
-import type { ReactElement } from 'react';
-import {
-  // peanutsStore,
-  refreshPeanutsStore,
-} from '~/lib/stores/peanuts';
 import { useStore } from '@nanostores/react';
-import {
-  // createTopoffCheckout,
-  cancelSubscription,
-  manageBilling,
-  checkSubscriptionStatus,
-} from '~/lib/stripe/client';
+import { cancelSubscription, manageBilling, checkSubscriptionStatus } from '~/lib/stripe/client';
 import { classNames } from '~/utils/classNames';
 import { stripeStatusModalActions } from '~/lib/stores/stripeStatusModal';
 import { ConfirmCancelModal } from '~/components/subscription/ConfirmCancelModal';
-import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
-import { toast } from 'react-toastify';
-import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
-import { User as UserIcon, Crown, Settings, RotateCw, List } from '~/components/ui/Icon';
+import { User as UserIcon, Crown, Settings } from '~/components/ui/Icon';
 
 interface AccountModalProps {
   user: User | undefined;
@@ -29,170 +15,22 @@ interface AccountModalProps {
 
 export const AccountModal = ({ user }: AccountModalProps) => {
   const { isMobile } = useIsMobile();
-  // const peanutsRemaining = useStore(peanutsStore.peanutsRemaining);
   const stripeSubscription = useStore(subscriptionStore.subscription);
-  const [history, setHistory] = useState<PeanutHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [list, setList] = useState<AppLibraryEntry[] | undefined>(undefined);
-  const [loadingList, setLoadingList] = useState(true);
-  const { filteredItems: filteredList } = useSearchFilter({
-    items: list ?? [],
-    searchFields: ['title'],
-  });
-
-  const loadEntries = useCallback(() => {
-    setList(undefined);
-    setLoadingList(true);
-    database
-      .getAllAppEntries()
-      .then(setList)
-      .catch((error) => toast.error(error.message))
-      .finally(() => setLoadingList(false));
-  }, []);
-
-  useEffect(() => {
-    loadEntries();
-  }, []);
 
   const reloadAccountData = async () => {
     setLoading(true);
 
-    const [history] = await Promise.all([getPeanutsHistory(), getPeanutsSubscription(), refreshPeanutsStore()]);
     const stripeStatus = await checkSubscriptionStatus();
     subscriptionStore.setSubscription(stripeStatus);
 
-    history.reverse();
-    setHistory(history);
     setLoading(false);
   };
 
   useEffect(() => {
     reloadAccountData();
   }, []);
-
-  const formatTime = (timeString: string) => {
-    const date = new Date(timeString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  // const formatPeanutChange = (delta: number) => {
-  //   const sign = delta >= 0 ? '+' : '';
-  //   const color = delta >= 0 ? 'text-green-500' : 'text-red-500';
-  //   return (
-  //     <span className={`${color} font-medium`}>
-  //       {sign}
-  //       {delta}
-  //     </span>
-  //   );
-  // };
-
-  const renderFeature = (why: string, appId: string | undefined, featureName: string | undefined): ReactElement => {
-    // Find the app title from filteredList using the appId
-    const appTitle = appId ? filteredList.find((app) => app.id === appId)?.title : undefined;
-
-    return (
-      <div className="space-y-2">
-        {appTitle && (
-          <div>
-            <span className="text-bolt-elements-textSecondary text-sm">App: </span>
-            <a
-              href={`/app/${appId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 font-medium hover:text-blue-600 transition-colors underline decoration-transparent hover:decoration-blue-500"
-            >
-              {appTitle}
-            </a>
-          </div>
-        )}
-        <div>
-          <span className="text-bolt-elements-textSecondary text-sm">
-            {why === 'Feature implemented' ? 'Feature implemented' : 'Feature validated'}:{' '}
-          </span>
-          <span className="text-bolt-elements-textHeading font-medium">{featureName || 'Unknown feature'}</span>
-        </div>
-      </div>
-    );
-  };
-
-  const renderHistoryEntry = (entry: PeanutHistoryEntry): string | ReactElement => {
-    switch (entry.reason) {
-      case 'SetSubscription':
-        if (entry.subscriptionPeanuts) {
-          return `Subscription set to ${entry.subscriptionPeanuts} peanuts per month`;
-        } else {
-          return 'Subscription canceled';
-        }
-      case 'SubscriptionReload':
-        return 'Monthly subscription reload';
-      case 'AddPeanuts':
-        return 'Manual peanut addition';
-      case 'FeatureImplemented':
-        return renderFeature('Feature implemented', entry.appId, entry.featureName);
-      case 'FeatureValidated':
-        return renderFeature('Feature validated', entry.appId, entry.featureName);
-      default:
-        return entry.reason;
-    }
-  };
-
-  const renderHistoryItem = (item: PeanutHistoryEntry, index: number) => {
-    return (
-      <div
-        key={`${item.time}-${index}`}
-        className="p-4 sm:p-5 bg-bolt-elements-background-depth-2 bg-opacity-50 rounded-xl border border-bolt-elements-borderColor border-opacity-50 hover:bg-bolt-elements-background-depth-3 bg-opacity-50 hover:border-bolt-elements-borderColor border-opacity-70 transition-all duration-200 shadow-sm hover:shadow-md group backdrop-blur-sm"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-          <div className="text-sm text-bolt-elements-textSecondary bg-bolt-elements-background-depth-3 bg-opacity-30 px-3 py-1.5 rounded-lg border border-bolt-elements-borderColor border-opacity-30 font-medium self-start">
-            {formatTime(item.time)}
-          </div>
-          {/* <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            <span className="text-bolt-elements-textPrimary font-semibold text-right sm:text-left">
-              {formatPeanutChange(item.peanutsDelta)} peanuts
-            </span>
-            <span className="text-bolt-elements-textSecondary transition-transform duration-200 group-hover:scale-110 hidden sm:inline">
-              →
-            </span>
-            <span className="text-bolt-elements-textHeading font-bold bg-bolt-elements-background-depth-3 bg-opacity-30 px-2 py-1 rounded-md border border-bolt-elements-borderColor border-opacity-30 self-start sm:self-auto">
-              {item.peanutsRemaining} total
-            </span>
-          </div> */}
-        </div>
-        <div className="text-sm text-bolt-elements-textSecondary font-medium leading-relaxed">
-          {renderHistoryEntry(item)}
-        </div>
-      </div>
-    );
-  };
-
-  // const handleAddPeanuts = async () => {
-  //   if (!user?.id || !user?.email) {
-  //     stripeStatusModalActions.showError(
-  //       'Sign In Required',
-  //       'Please sign in to add peanuts.',
-  //       'You need to be signed in to purchase peanut top-ups.',
-  //     );
-  //     return;
-  //   }
-
-  //   try {
-  //     await createTopoffCheckout();
-  //   } catch (error) {
-  //     console.error('Error creating peanut top-off:', error);
-  //     stripeStatusModalActions.showError(
-  //       'Checkout Failed',
-  //       "We couldn't create the checkout session.",
-  //       'Please try again in a few moments, or contact support if the issue persists.',
-  //     );
-  //   }
-  // };
 
   const handleCancelSubscription = () => {
     if (!user?.email) {
@@ -261,7 +99,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
     }
   };
 
-  if (loading || loadingList) {
+  if (loading) {
     return (
       <div
         className={classNames(
@@ -277,7 +115,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
             <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-opacity-30 border-t-blue-500 rounded-full animate-spin" />
           </div>
           <h3 className="text-lg font-semibold text-bolt-elements-textHeading mb-2">Loading Account Data</h3>
-          <p className="text-bolt-elements-textSecondary">Fetching your usage history and subscription details...</p>
+          <p className="text-bolt-elements-textSecondary">Fetching your subscription details...</p>
         </div>
       </div>
     );
@@ -308,20 +146,6 @@ export const AccountModal = ({ user }: AccountModalProps) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
-          {/* <div className="bg-bolt-elements-background-depth-2 bg-opacity-50 rounded-2xl p-6 border border-bolt-elements-borderColor border-opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group backdrop-blur-sm">
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-2xl flex items-center justify-center shadow-lg border border-yellow-500/20">
-                <span className="text-3xl drop-shadow-sm">🥜</span>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-bolt-elements-textHeading mb-2 transition-transform duration-200 group-hover:scale-105">
-                {peanutsRemaining ?? '---'}
-              </div>
-              <div className="text-sm text-bolt-elements-textSecondary font-medium">Peanuts Available</div>
-            </div>
-          </div> */}
-
           <div className="flex flex-col items-center bg-bolt-elements-background-depth-2 bg-opacity-50 rounded-2xl p-6 border border-bolt-elements-borderColor border-opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group backdrop-blur-sm">
             <div className="flex items-center justify-center mb-4">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl flex items-center justify-center shadow-lg border border-blue-500/20">
@@ -412,7 +236,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
         )}
       </div>
 
-      <div className="border-t border-bolt-elements-borderColor border-opacity-50 pt-8">
+      {/* <div className="border-t border-bolt-elements-borderColor border-opacity-50 pt-8">
         <div className="flex items-center gap-4 mb-6">
           <div
             onClick={reloadAccountData}
@@ -441,7 +265,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
             {history.filter((item) => item.reason !== 'AddPeanuts').map(renderHistoryItem)}
           </div>
         )}
-      </div>
+      </div> */}
 
       <ConfirmCancelModal
         isOpen={showCancelConfirm}

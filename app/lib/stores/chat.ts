@@ -3,7 +3,7 @@ import mergeResponseMessage from '~/components/chat/ChatComponent/functions/merg
 import type { Message } from '~/lib/persistence/message';
 import type { ChatResponse } from '~/lib/persistence/response';
 import { clearPendingMessageStatus } from './status';
-import { sendChatMessage, listenAppResponses, ChatMode, type NutChatRequest } from '~/lib/replay/SendChatMessage';
+import { sendChatMessage, listenAppResponses, type NutChatRequest } from '~/lib/replay/SendChatMessage';
 import { setPendingMessageStatus } from './status';
 import {
   APP_SUMMARY_CATEGORY,
@@ -13,7 +13,6 @@ import {
 } from '~/lib/persistence/messageAppSummary';
 import { updateDevelopmentServer } from '~/lib/replay/DevelopmentServer';
 import { toast } from 'react-toastify';
-import { peanutsStore, refreshPeanutsStore } from './peanuts';
 import { callNutAPI, NutAPIError } from '~/lib/replay/NutAPI';
 import { statusModalStore } from './statusModal';
 import { addAppResponse } from '~/lib/replay/ResponseFilter';
@@ -184,14 +183,6 @@ export function onChatResponse(response: ChatResponse, reason: string) {
 export async function doSendMessage(request: NutChatRequest) {
   const numAbortsAtStart = chatStore.numAborts.get();
 
-  if (request.mode == ChatMode.DevelopApp) {
-    await refreshPeanutsStore();
-    if (peanutsStore.peanutsErrorInfo.get()) {
-      toast.error(peanutsStore.peanutsErrorInfo.get());
-      return;
-    }
-  }
-
   chatStore.hasPendingMessage.set(true);
   chatStore.lastMessageIteration.set(chatStore.appSummary.get()?.iteration ?? 0);
   clearPendingMessageStatus();
@@ -249,8 +240,6 @@ export async function doListenAppResponses(wasStatusModalOpen = false, hasFeatur
   }
 
   chatStore.listenResponses.set(false);
-
-  await refreshPeanutsStore();
 
   if (hasFeatures) {
     statusModalStore.open();
