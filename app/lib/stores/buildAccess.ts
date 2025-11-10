@@ -9,7 +9,7 @@ export const buildAccessStore = {
   isLoaded: atom<boolean>(false),
 
   // Helper methods
-  setAccess(subscription: Subscription | null, listLength: number) {
+  setAccess(subscription: Subscription, listLength: number) {
     this.hasAccess.set(subscription?.tier === 'builder' || listLength < 1);
     this.isLoaded.set(true);
   },

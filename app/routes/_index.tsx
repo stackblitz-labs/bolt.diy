@@ -28,7 +28,7 @@ export default function Index() {
         const stripeStatus = await checkSubscriptionStatus();
         const list = await database.getAllAppEntries();
 
-        buildAccessStore.setAccess(stripeStatus, list.length ?? 0);
+        buildAccessStore.setAccess(stripeStatus.subscription, list.length ?? 0);
         subscriptionStore.setSubscription(stripeStatus);
       } else {
         // Clear subscription when user signs out
