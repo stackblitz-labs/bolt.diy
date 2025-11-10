@@ -81,7 +81,7 @@ export function HistoryItem({ item, onDelete, onDuplicate }: HistoryItemProps) {
                   toggleEditMode();
                 }}
               />
-              {stripeSubscription?.tier === 'builder' && (
+              {stripeSubscription && stripeSubscription.tier === 'builder' && (
                 <Dialog.Trigger asChild>
                   <ChatActionButton
                     toolTipContent="Delete app"

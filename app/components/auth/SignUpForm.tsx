@@ -94,8 +94,8 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
         </div>
         <h2 className="text-3xl font-bold text-bolt-elements-textHeading">Create Account</h2>
         <p className="text-bolt-elements-textSecondary mt-2">
-          Join us and start building. After signing up, you will receive <b>1000 free peanuts (credits)</b> to use for
-          building your app.
+          Join us and start building. After signing up, you will be able to build one app on our free plan or unlimited
+          apps if you upgrade to our builder plan.
         </p>
       </div>
 
