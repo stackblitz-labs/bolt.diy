@@ -12,6 +12,7 @@ import { AppAccessKind, isAppAccessAllowed } from '~/lib/api/permissions';
 import { isAppOwnerStore, permissionsStore, setIsAppOwner } from '~/lib/stores/permissions';
 import { userStore } from '~/lib/stores/auth';
 import CopyApp from './components/CopyApp';
+import ClearAppHistory from './components/ClearAppHistory';
 import { X, Settings, Type } from '~/components/ui/Icon';
 import { hasExperimentalFeatures } from '~/lib/stores/experimentalFeatures';
 import { isAppOwner } from '~/lib/api/permissions';
@@ -135,6 +136,11 @@ export function GlobalAppSettingsModal() {
                   {/* Copy App */}
                   {appId && isAppAccessAllowed(permissions, AppAccessKind.Copy, user?.email ?? '', isOwner) && (
                     <CopyApp />
+                  )}
+
+                  {/* Clear App History */}
+                  {appId && isAppAccessAllowed(permissions, AppAccessKind.Delete, user?.email ?? '', isOwner) && (
+                    <ClearAppHistory />
                   )}
 
                   {/* Authentication Settings */}

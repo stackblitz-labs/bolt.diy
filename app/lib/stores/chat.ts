@@ -108,8 +108,7 @@ function showPreview(appSummary: AppSummary) {
     return false;
   }
 
-  // Don't show preliminary repositories before the app finishes the mockup
-  // or at least one feature.
+  // Don't show preliminary repositories before the app finishes at least one feature.
   if (!appSummary.features?.some(({ status }) => isFeatureStatusImplemented(status))) {
     return false;
   }

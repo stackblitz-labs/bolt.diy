@@ -357,7 +357,7 @@ export const PermissionsSelectionComponent: React.FC = () => {
       [AppAccessKind.View]: 'View App',
       [AppAccessKind.SendMessage]: 'Send Messages',
       [AppAccessKind.SetTitle]: 'Rename App',
-      //   [AppAccessKind.Delete]: 'Delete App',
+      [AppAccessKind.Delete]: 'Delete App',
       [AppAccessKind.SetPermissions]: 'Manage Permissions',
     };
     return labels[access] || access;
@@ -376,7 +376,7 @@ export const PermissionsSelectionComponent: React.FC = () => {
       [AppAccessKind.SetTitle]: (
         <Pencil className={`text-xs ${allowed ? 'text-blue-500' : 'text-red-500'}`} size={16} />
       ),
-      // [AppAccessKind.Delete]: <Trash className="text-blue-500" size={16} />,
+      [AppAccessKind.Delete]: <Trash2 className="text-blue-500" size={16} />,
       [AppAccessKind.SetPermissions]: (
         <KeyRound className={`text-xs ${allowed ? 'text-blue-500' : 'text-red-500'}`} size={16} />
       ),

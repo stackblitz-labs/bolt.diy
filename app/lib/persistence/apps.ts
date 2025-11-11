@@ -149,6 +149,13 @@ async function copyApp(appId: string): Promise<string> {
   return newAppId;
 }
 
+async function clearAppHistory(appId: string): Promise<void> {
+  const { response } = await callNutAPI('clear-app-history', { appId });
+  if (response) {
+    onChatResponse(response, 'ClearAppHistory');
+  }
+}
+
 export const database = {
   getAllAppEntries,
   deleteApp,
@@ -160,4 +167,5 @@ export const database = {
   getAppHistory,
   revertApp,
   copyApp,
+  clearAppHistory,
 };

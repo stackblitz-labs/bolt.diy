@@ -17,7 +17,7 @@ export enum AppAccessKind {
   SetTitle = 'RenameApp',
 
   /** Delete the app. */
-  //   Delete = 'DeleteApp',
+  Delete = 'DeleteApp',
 
   /** Set new permissions for the app. */
   SetPermissions = 'SetPermissions',
