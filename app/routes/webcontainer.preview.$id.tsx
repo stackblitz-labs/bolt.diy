@@ -46,17 +46,22 @@ export default function WebContainerPreview() {
   }, [previewId, previewUrl]);
 
   useEffect(() => {
-    // Initialize broadcast channel
-    broadcastChannelRef.current = new BroadcastChannel(PREVIEW_CHANNEL);
+    const supportsBroadcastChannel = typeof window !== 'undefined' && typeof window.BroadcastChannel === 'function';
 
-    // Listen for preview updates
-    broadcastChannelRef.current.onmessage = (event) => {
-      if (event.data.previewId === previewId) {
-        if (event.data.type === 'refresh-preview' || event.data.type === 'file-change') {
-          handleRefresh();
+    if (supportsBroadcastChannel) {
+      broadcastChannelRef.current = new window.BroadcastChannel(PREVIEW_CHANNEL);
+
+      // Listen for preview updates
+      broadcastChannelRef.current.onmessage = (event) => {
+        if (event.data.previewId === previewId) {
+          if (event.data.type === 'refresh-preview' || event.data.type === 'file-change') {
+            handleRefresh();
+          }
         }
-      }
-    };
+      };
+    } else {
+      broadcastChannelRef.current = undefined;
+    }
 
     // Construct the WebContainer preview URL
     const url = `https://${previewId}.local-credentialless.webcontainer-api.io`;

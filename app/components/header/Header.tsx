@@ -10,7 +10,7 @@ export function Header() {
 
   return (
     <header
-      className={classNames('flex items-center p-5 border-b h-[var(--header-height)]', {
+      className={classNames('flex items-center px-4 border-b h-[var(--header-height)]', {
         'border-transparent': !chat.started,
         'border-bolt-elements-borderColor': chat.started,
       })}
@@ -30,8 +30,8 @@ export function Header() {
           </span>
           <ClientOnly>
             {() => (
-              <div className="mr-1">
-                <HeaderActionButtons />
+              <div className="">
+                <HeaderActionButtons chatStarted={chat.started} />
               </div>
             )}
           </ClientOnly>

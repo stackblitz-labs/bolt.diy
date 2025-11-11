@@ -7,7 +7,6 @@ import { diffLines, type Change } from 'diff';
 import { getHighlighter } from 'shiki';
 import '~/styles/diff-view.css';
 import { diffFiles, extractRelativePath } from '~/utils/diff';
-import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { FileHistory } from '~/types/actions';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import { themeStore } from '~/lib/stores/theme';
@@ -542,8 +541,53 @@ const FileInfo = memo(
   },
 );
 
+// Create and manage a single highlighter instance at the module level
+let highlighterInstance: any = null;
+let highlighterPromise: Promise<any> | null = null;
+
+const getSharedHighlighter = async () => {
+  if (highlighterInstance) {
+    return highlighterInstance;
+  }
+
+  if (highlighterPromise) {
+    return highlighterPromise;
+  }
+
+  highlighterPromise = getHighlighter({
+    themes: ['github-dark', 'github-light'],
+    langs: [
+      'typescript',
+      'javascript',
+      'json',
+      'html',
+      'css',
+      'jsx',
+      'tsx',
+      'python',
+      'php',
+      'java',
+      'c',
+      'cpp',
+      'csharp',
+      'go',
+      'ruby',
+      'rust',
+      'plaintext',
+    ],
+  });
+
+  highlighterInstance = await highlighterPromise;
+  highlighterPromise = null;
+
+  // Clear the promise once resolved
+  return highlighterInstance;
+};
+
 const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }: CodeComparisonProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Use state to hold the shared highlighter instance
   const [highlighter, setHighlighter] = useState<any>(null);
   const theme = useStore(themeStore);
 
@@ -554,32 +598,30 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
   const { unifiedBlocks, hasChanges, isBinary, error } = useProcessChanges(beforeCode, afterCode);
 
   useEffect(() => {
-    getHighlighter({
-      themes: ['github-dark', 'github-light'],
-      langs: [
-        'typescript',
-        'javascript',
-        'json',
-        'html',
-        'css',
-        'jsx',
-        'tsx',
-        'python',
-        'php',
-        'java',
-        'c',
-        'cpp',
-        'csharp',
-        'go',
-        'ruby',
-        'rust',
-        'plaintext',
-      ],
-    }).then(setHighlighter);
-  }, []);
+    // Fetch the shared highlighter instance
+    getSharedHighlighter().then(setHighlighter);
+
+    /*
+     * No cleanup needed here for the highlighter instance itself,
+     * as it's managed globally. Shiki instances don't typically
+     * need disposal unless you are dynamically loading/unloading themes/languages.
+     * If you were dynamically loading, you might need a more complex
+     * shared instance manager with reference counting or similar.
+     * For static themes/langs, a single instance is sufficient.
+     */
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   if (isBinary || error) {
     return renderContentWarning(isBinary ? 'binary' : 'error');
+  }
+
+  // Render a loading state or null while highlighter is not ready
+  if (!highlighter) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-bolt-elements-textTertiary">Loading diff...</div>
+      </div>
+    );
   }
 
   return (
@@ -602,7 +644,7 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
                   lineNumber={block.lineNumber}
                   content={block.content}
                   type={block.type}
-                  highlighter={highlighter}
+                  highlighter={highlighter} // Pass the shared instance
                   language={language}
                   block={block}
                   theme={theme}
@@ -621,7 +663,6 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
 interface DiffViewProps {
   fileHistory: Record<string, FileHistory>;
   setFileHistory: React.Dispatch<React.SetStateAction<Record<string, FileHistory>>>;
-  actionRunner: ActionRunner;
 }
 
 export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) => {

@@ -34,6 +34,10 @@ if (!import.meta.env.SSR) {
 
         const { workbenchStore } = await import('~/lib/stores/workbench');
 
+        const response = await fetch('/inspector-script.js');
+        const inspectorScript = await response.text();
+        await webcontainer.setPreviewScript(inspectorScript);
+
         // Listen for preview errors
         webcontainer.on('preview-message', (message) => {
           console.log('WebContainer preview message:', message);

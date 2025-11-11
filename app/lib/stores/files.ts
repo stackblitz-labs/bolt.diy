@@ -597,7 +597,11 @@ export class FilesStore {
 
     // Set up file watcher
     webcontainer.internal.watchPaths(
-      { include: [`${WORK_DIR}/**`], exclude: ['**/node_modules', '.git'], includeContent: true },
+      {
+        include: [`${WORK_DIR}/**`],
+        exclude: ['**/node_modules', '.git', '**/package-lock.json'],
+        includeContent: true,
+      },
       bufferWatchEvents(100, this.#processEventBuffer.bind(this)),
     );
 
@@ -692,27 +696,9 @@ export class FilesStore {
   #processEventBuffer(events: Array<[events: PathWatcherEvent[]]>) {
     const watchEvents = events.flat(2);
 
-    for (const { type, path: eventPath, buffer } of watchEvents) {
+    for (const { type, path, buffer } of watchEvents) {
       // remove any trailing slashes
-      const sanitizedPath = eventPath.replace(/\/+$/g, '');
-
-      // Skip processing if this file/folder was explicitly deleted
-      if (this.#deletedPaths.has(sanitizedPath)) {
-        continue;
-      }
-
-      let isInDeletedFolder = false;
-
-      for (const deletedPath of this.#deletedPaths) {
-        if (sanitizedPath.startsWith(deletedPath + '/')) {
-          isInDeletedFolder = true;
-          break;
-        }
-      }
-
-      if (isInDeletedFolder) {
-        continue;
-      }
+      const sanitizedPath = path.replace(/\/+$/g, '');
 
       switch (type) {
         case 'add_dir': {
@@ -738,38 +724,21 @@ export class FilesStore {
           }
 
           let content = '';
+
+          /**
+           * @note This check is purely for the editor. The way we detect this is not
+           * bullet-proof and it's a best guess so there might be false-positives.
+           * The reason we do this is because we don't want to display binary files
+           * in the editor nor allow to edit them.
+           */
           const isBinary = isBinaryFile(buffer);
 
-          if (isBinary && buffer) {
-            // For binary files, we need to preserve the content as base64
-            content = Buffer.from(buffer).toString('base64');
-          } else if (!isBinary) {
+          if (!isBinary) {
             content = this.#decodeFileContent(buffer);
-
-            /*
-             * If the content is a single space and this is from our empty file workaround,
-             * convert it back to an actual empty string
-             */
-            if (content === ' ' && type === 'add_file') {
-              content = '';
-            }
           }
 
-          const existingFile = this.files.get()[sanitizedPath];
+          this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
 
-          if (existingFile?.type === 'file' && existingFile.isBinary && existingFile.content && !content) {
-            content = existingFile.content;
-          }
-
-          // Preserve lock state if the file already exists
-          const isLocked = existingFile?.type === 'file' ? existingFile.isLocked : false;
-
-          this.files.setKey(sanitizedPath, {
-            type: 'file',
-            content,
-            isBinary,
-            isLocked,
-          });
           break;
         }
         case 'remove_file': {

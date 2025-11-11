@@ -19,6 +19,7 @@ export interface IProviderSetting {
   baseUrl?: string;
   customModels?: ModelInfo[];
   customHeaders?: Record<string, string>;
+  OPENAI_LIKE_API_MODELS?: string;
 }
 
 export type IProviderConfig = ProviderInfo & {

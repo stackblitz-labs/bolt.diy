@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
 import { providerBaseUrlEnvKeys } from '~/utils/constants';
-import { SiAmazon, SiGoogle, SiHuggingface, SiPerplexity, SiOpenai } from 'react-icons/si';
+import { SiAmazon, SiGoogle, SiGithub, SiHuggingface, SiPerplexity, SiOpenai } from 'react-icons/si';
 import { BsRobot, BsCloud } from 'react-icons/bs';
 import { TbBrain, TbCloudComputing } from 'react-icons/tb';
 import { BiCodeBlock, BiChip } from 'react-icons/bi';
@@ -24,6 +24,7 @@ type ProviderName =
   | 'Anthropic'
   | 'Cohere'
   | 'Deepseek'
+  | 'Github'
   | 'Google'
   | 'Groq'
   | 'HuggingFace'
@@ -42,6 +43,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   Anthropic: FaBrain,
   Cohere: BiChip,
   Deepseek: BiCodeBlock,
+  Github: SiGithub,
   Google: SiGoogle,
   Groq: BsCloud,
   HuggingFace: SiHuggingface,
@@ -58,6 +60,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
 // Update PROVIDER_DESCRIPTIONS to use the same type
 const PROVIDER_DESCRIPTIONS: Partial<Record<ProviderName, string>> = {
   Anthropic: 'Access Claude and other Anthropic models',
+  Github: 'Use OpenAI models hosted through GitHub infrastructure',
   OpenAI: 'Use GPT-4, GPT-3.5, and other OpenAI models',
   Portkey: 'AI gateway with custom model configuration',
 };

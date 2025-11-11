@@ -17,6 +17,7 @@ import HyperbolicProvider from './providers/hyperbolic';
 import AmazonBedrockProvider from './providers/amazon-bedrock';
 import GithubProvider from './providers/github';
 import PortkeyProvider from './providers/portkey';
+import MoonshotProvider from './providers/moonshot';
 
 export {
   AnthropicProvider,
@@ -27,6 +28,7 @@ export {
   HuggingFaceProvider,
   HyperbolicProvider,
   MistralProvider,
+  MoonshotProvider,
   OllamaProvider,
   OpenAIProvider,
   OpenRouterProvider,
