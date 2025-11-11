@@ -10,7 +10,6 @@ export function includeHistorySummary(summary: AppSummary): boolean {
   }
 
   switch (summary.reason.kind) {
-    case AppUpdateReasonKind.MockupImplemented:
     case AppUpdateReasonKind.FeatureImplemented:
     case AppUpdateReasonKind.BuildInitialApp:
     case AppUpdateReasonKind.RevertApp:
@@ -94,8 +93,6 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
   const renderUpdateReason = (reason: AppUpdateReason | undefined, history: AppSummary[]) => {
     assert(reason, 'Reason is required');
     switch (reason.kind) {
-      case AppUpdateReasonKind.MockupImplemented:
-        return { text: 'Mockup completed', icon: '✓', type: 'success' as const };
       case AppUpdateReasonKind.FeatureImplemented:
         return { text: `Feature implemented: ${reason.featureName}`, icon: '⚡', type: 'feature' as const };
       case AppUpdateReasonKind.BuildInitialApp:

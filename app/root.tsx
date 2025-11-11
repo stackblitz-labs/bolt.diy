@@ -18,7 +18,6 @@ import { GlobalAccountModal } from './components/auth/GlobalAccountModal';
 import { GlobalAuthModal } from './components/auth/GlobalAuthModal';
 import AppHistoryModal from './components/workbench/VesionHistory/AppHistoryModal';
 import { GlobalStripeStatusModal } from './components/stripe/GlobalStripeStatusModal';
-import { GlobalAppCardModal } from './components/chat/Messages/components/GlobalAppCardModal';
 import { GlobalStatusModal } from './components/status-modal/GlobalStatusModal';
 import { GlobalDeployChatModal } from './components/header/DeployChat/components/GlobalDeployChatModal';
 import { GlobalAppSettingsModal } from './components/header/AppSettings/GlobalAppSettingsModal';
@@ -239,7 +238,6 @@ export default function App() {
         <GlobalAuthModal />
         <AppHistoryModal />
         <GlobalStripeStatusModal />
-        <GlobalAppCardModal />
         <GlobalStatusModal />
         <GlobalDeployChatModal />
         <GlobalAppSettingsModal />

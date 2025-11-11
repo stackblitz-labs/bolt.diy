@@ -71,9 +71,6 @@ export enum AppFeatureStatus {
 }
 
 export enum AppFeatureKind {
-  // Build the app's mockup.
-  BuildMockup = 'BuildMockup',
-
   // Initial design work for the database and backend/reducer APIs.
   DesignAPIs = 'DesignAPIs',
 
@@ -185,8 +182,6 @@ export enum AppUpdateReasonKind {
   StartImplementFeature = 'StartImplementFeature',
   FeatureImplemented = 'FeatureImplemented',
   FeatureCanceled = 'FeatureCanceled',
-  StartMockup = 'StartMockup',
-  MockupImplemented = 'MockupImplemented',
   SetSecrets = 'SetSecrets',
   RevertApp = 'RevertApp',
   CopyApp = 'CopyApp',

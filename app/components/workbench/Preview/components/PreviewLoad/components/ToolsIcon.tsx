@@ -1,17 +1,16 @@
 import { motion } from 'framer-motion';
-import { Wrench, Hammer, Zap } from 'lucide-react';
+import { Wrench, Zap } from 'lucide-react';
 
 export function ToolsIcon() {
   return (
     <motion.div
-      className="bg-card rounded-lg p-4 w-full max-w-sm mx-auto overflow-hidden flex flex-col items-center justify-center space-y-4"
+      className="rounded-lg p-4 w-full max-w-sm mx-auto overflow-visible flex flex-col items-center justify-center space-y-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
       {/* Main tools with consistent animation */}
       <motion.div
-        className="flex items-center space-x-2"
         animate={{
           scale: [1, 1.05, 1],
           rotate: [0, 2, 0, -2, 0],
@@ -22,8 +21,7 @@ export function ToolsIcon() {
           repeatType: 'reverse',
         }}
       >
-        <Wrench className="h-6 w-6 text-bolt-elements-textPrimary mb-8" />
-        <Hammer className="h-6 w-6 text-bolt-elements-textPrimary mb-8" />
+        <Wrench size={24} className="h-16 w-16 text-bolt-elements-textPrimary mb-8" />
       </motion.div>
 
       {/* Sparks effect */}
@@ -44,7 +42,7 @@ export function ToolsIcon() {
               delay: i * 0.4,
             }}
           >
-            <Zap className="h-3 w-3 text-yellow-500" />
+            <Zap size={12} className="h-3 w-3 text-yellow-500" />
           </motion.div>
         ))}
       </div>

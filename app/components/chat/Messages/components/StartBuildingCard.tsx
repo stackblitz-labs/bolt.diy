@@ -24,7 +24,7 @@ export const StartBuildingCard: React.FC<StartBuildingCardProps> = ({ startPlann
 
   const handleStartBuilding = () => {
     if (sendMessage) {
-      const message = 'Start building the app preview based on these requirements.';
+      const message = 'Start building the app based on these requirements.';
 
       sendMessage({ messageInput: message, chatMode: ChatMode.DevelopApp });
 
@@ -53,11 +53,9 @@ export const StartBuildingCard: React.FC<StartBuildingCardProps> = ({ startPlann
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-bolt-elements-textHeading">
-              Ready to Create Your Free App Preview?
-            </h3>
+            <h3 className="text-lg font-semibold text-bolt-elements-textHeading">Ready to Create Your App?</h3>
             <p className="text-bolt-elements-textSecondary text-sm max-w-md">
-              I have all the information I need to start generating a non-functional preview of your app.
+              I have all the information I need to start generating your app.
             </p>
           </div>
 
@@ -65,7 +63,7 @@ export const StartBuildingCard: React.FC<StartBuildingCardProps> = ({ startPlann
             <StartBuildingButton
               onClick={handleStartBuilding}
               startPlanningRating={startPlanningRating}
-              buttonText="Create Free Preview!"
+              buttonText="Start Building!"
             />
           </div>
         </div>

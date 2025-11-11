@@ -11,14 +11,6 @@ interface AppEventStartFeature {
   why: 'implement' | 'validate';
 }
 
-interface AppEventStartMockup {
-  name: 'start-mockup';
-}
-
-interface AppEventWriteMockupTest {
-  name: 'write-mockup-tests';
-}
-
 interface AppEventRunTests {
   name: 'run-tests';
 }
@@ -54,8 +46,6 @@ interface AppEventLandChanges {
 
 export type AppEvent =
   | AppEventStartFeature
-  | AppEventStartMockup
-  | AppEventWriteMockupTest
   | AppEventRunTests
   | AppEventsTestFailure
   | AppEventAnalyzeTestFailure

@@ -3,7 +3,6 @@ import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import { openAppCardModal, type AppCardModalType } from '~/lib/stores/appCardModal';
 import { FeaturesCard } from './FeaturesCard';
-import { MockupCard } from './MockupCard';
 import { SecretsCard } from './SecretsCard';
 import { AuthSelectorCard } from './AuthSelectorCard';
 import {
@@ -63,18 +62,6 @@ export const AppCards: React.FC = () => {
 
   const visibleCardTypes = getVisibleCardTypes(appSummary);
   const cards = [];
-
-  // Render cards in progressive order based on visibility
-  if (visibleCardTypes.includes('mockup')) {
-    cards.push(
-      <MockupCard
-        key="mockup"
-        mockupStatus={appSummary.features?.[0]?.status || AppFeatureStatus.NotStarted}
-        appSummary={appSummary}
-        onViewDetails={() => openModal('mockup')}
-      />,
-    );
-  }
 
   if (visibleCardTypes.includes('auth')) {
     cards.push(<AuthSelectorCard key="auth" appSummary={appSummary} />);

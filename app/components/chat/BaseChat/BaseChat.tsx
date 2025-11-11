@@ -133,9 +133,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       // Add feature cards
       if (appSummary?.features) {
         // Create filtered features array for modal
-        const filteredFeatures = appSummary.features.filter(
-          (f) => f.kind !== AppFeatureKind.BuildInitialApp && f.kind !== AppFeatureKind.DesignAPIs,
-        );
+        const filteredFeatures = appSummary.features.filter((f) => f.kind !== AppFeatureKind.DesignAPIs);
 
         const featureCards = appSummary.features
           .filter((f) => f.status === AppFeatureStatus.ImplementationInProgress && f.kind !== AppFeatureKind.FixBug)
@@ -178,9 +176,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           (a) => a.status !== BugReportStatus.Resolved && a.status !== BugReportStatus.Canceled,
         ) ?? []
       ).map((report) => {
-        const filteredFeatures = appSummary?.features?.filter(
-          (f) => f.kind !== AppFeatureKind.BuildInitialApp && f.kind !== AppFeatureKind.DesignAPIs,
-        );
+        const filteredFeatures = appSummary?.features?.filter((f) => f.kind !== AppFeatureKind.DesignAPIs);
 
         const featureIndex = filteredFeatures?.findIndex((f) => f.name === report.name);
 

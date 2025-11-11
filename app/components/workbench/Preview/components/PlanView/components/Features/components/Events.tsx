@@ -20,7 +20,7 @@ function responseStartsFeature(response: ChatResponse, featureName: string | und
   if (featureName) {
     return response.event.name === 'start-feature' && response.event.featureName === featureName;
   }
-  return response.event.name === 'start-mockup';
+  return false;
 }
 
 function isWorkTimedOut(events: ChatResponse[]) {
@@ -85,10 +85,6 @@ const Events = ({ featureName }: EventsProps) => {
     switch (event.name) {
       case 'start-feature':
         return event.why === 'implement' ? 'Writing the feature' : 'Writing tests';
-      case 'start-mockup':
-        return 'Building the mockup';
-      case 'write-mockup-tests':
-        return 'Writing tests for mockup';
       case 'run-tests':
         return 'Running tests';
       case 'test-failure':
@@ -167,19 +163,16 @@ const Events = ({ featureName }: EventsProps) => {
           tooltip = 'Work completed';
         } else {
           tooltip = 'No charge, work not completed';
-          peanuts = 0;
         }
       } else {
         if (isWorkTimedOut(events)) {
           tooltip = `No charge, worker timed out`;
-          peanuts = 0;
         } else {
           tooltip = 'Work in progress';
         }
       }
     } else {
-      tooltip = 'No charge for mockup';
-      peanuts = 0;
+      tooltip = 'No charge for feature';
     }
 
     const isExpanded = expandedWorkers.has(index);

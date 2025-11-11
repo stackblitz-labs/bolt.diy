@@ -25,9 +25,7 @@ const FeatureModal: React.FC = () => {
   }
 
   // Filter features to match the same filtering logic used in BaseChat
-  const filteredFeatures = appSummary.features.filter(
-    (feature) => feature.kind !== AppFeatureKind.BuildInitialApp && feature.kind !== AppFeatureKind.DesignAPIs,
-  );
+  const filteredFeatures = appSummary.features.filter((feature) => feature.kind !== AppFeatureKind.DesignAPIs);
   const currentFeature = filteredFeatures[modalState.currentFeatureIndex];
 
   const renderFeatureStatus = (status: AppFeatureStatus) => {
@@ -157,6 +155,8 @@ const FeatureModal: React.FC = () => {
               {/* Content */}
               <div className="flex-1 p-6 overflow-y-auto max-h-[calc(90vh-120px)] ">
                 <div className="space-y-6">
+                  {currentFeature.kind === AppFeatureKind.BuildInitialApp && <Pages />}
+
                   {currentFeature.databaseChange &&
                     currentFeature.databaseChange.tables &&
                     currentFeature.databaseChange.tables.length > 0 && <DatabaseChanges feature={currentFeature} />}
@@ -174,13 +174,6 @@ const FeatureModal: React.FC = () => {
                   )}
 
                   <Events featureName={currentFeature.name} />
-
-                  {currentFeature.kind === 'BuildMockup' && (
-                    <>
-                      <Pages />
-                      <Events featureName={undefined} />
-                    </>
-                  )}
                 </div>
               </div>
             </div>

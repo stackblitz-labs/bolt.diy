@@ -1,7 +1,7 @@
 import { atom } from 'nanostores';
 import { type AppSummary, type AppFeature } from '~/lib/persistence/messageAppSummary';
 
-export type AppCardModalType = 'project-description' | 'features' | 'mockup' | 'secrets' | 'auth';
+export type AppCardModalType = 'project-description' | 'features' | 'secrets' | 'auth';
 
 interface AppCardModalState {
   isOpen: boolean;

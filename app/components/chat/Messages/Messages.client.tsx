@@ -243,10 +243,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       const variant = feature.status === AppFeatureStatus.ImplementationInProgress ? 'active' : 'default';
 
       // Find the index of this feature in the filtered array for modal
-      const filteredFeatures =
-        appSummary?.features?.filter(
-          (f) => f.kind !== AppFeatureKind.BuildInitialApp && f.kind !== AppFeatureKind.DesignAPIs,
-        ) || [];
+      const filteredFeatures = appSummary?.features?.filter((f) => f.kind !== AppFeatureKind.DesignAPIs) || [];
       const modalIndex = filteredFeatures.findIndex((f) => f === feature);
 
       return (
