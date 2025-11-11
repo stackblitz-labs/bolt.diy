@@ -23,9 +23,12 @@ export class NutAPIError extends Error {
   }
 }
 
+function getAPIHost() {
+  return import.meta.env.VITE_REPLAY_API_HOST || 'https://agent.preprod.replay.io';
+}
+
 function getMethodURL(method: string) {
-  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://agent.preprod.replay.io';
-  return `${apiHost}/nut/${method}`;
+  return `${getAPIHost()}/nut/${method}`;
 }
 
 export async function callNutAPI(
@@ -158,8 +161,7 @@ export async function createAttachment(mimeType: string, attachmentData: ArrayBu
 }
 
 export async function downloadAttachment(attachmentId: string): Promise<ArrayBuffer> {
-  const apiHost = import.meta.env.VITE_REPLAY_API_HOST || 'https://dispatch.replay.io';
-  const url = `${apiHost}/nut/download-attachment`;
+  const url = `${getAPIHost()}/nut/download-attachment`;
 
   const userId = getCurrentUserId();
   const accessToken = await getCurrentAccessToken();

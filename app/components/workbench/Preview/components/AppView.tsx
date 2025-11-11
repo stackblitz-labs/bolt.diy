@@ -7,9 +7,6 @@ import { useVibeAppAuthQuery } from '~/lib/hooks/useVibeAppAuth';
 import { chatStore } from '~/lib/stores/chat';
 import PreviewLoad from './PreviewLoad/PreviewLoad';
 import { isFeatureStatusImplemented } from '~/lib/persistence/messageAppSummary';
-import WithTooltip from '~/components/ui/Tooltip';
-import { Info } from '~/components/ui/Icon';
-import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { classNames } from '~/utils/classNames';
 import useViewport from '~/lib/hooks/useViewport';
 
@@ -34,8 +31,7 @@ const AppView = ({
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const repositoryId = useStore(workbenchStore.repositoryId);
   const appSummary = useStore(chatStore.appSummary);
-  const isMockupImplemented = isFeatureStatusImplemented(appSummary?.features?.[0]?.status);
-  const initialBuildComplete = isFeatureStatusImplemented(appSummary?.features?.[2]?.status);
+  const initialBuildComplete = isFeatureStatusImplemented(appSummary?.features?.[0]?.status);
   const isSmallViewport = useViewport(800);
   const handleTokenOrRepoChange = (params: URLSearchParams) => {
     setRedirectUrl(`https://${repositoryId}.http.replay.io/auth/callback#${params.toString()}`);
@@ -83,19 +79,9 @@ const AppView = ({
               loading="eager"
             />
           </div>
-          {!initialBuildComplete && (
-            <TooltipProvider>
-              <WithTooltip tooltip="Your app’s functionality hasn’t been built yet. This is a quick mockup showing the general structure.">
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 py-1 px-4 text-center bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm rounded-t-lg flex items-center gap-2 cursor-help">
-                  Preview (App build in progress)
-                  <Info size={14} />
-                </div>
-              </WithTooltip>
-            </TooltipProvider>
-          )}
         </div>
       ) : (
-        <div className="w-full h-full">{isMockupImplemented ? <PreviewLoad /> : <ProgressStatus />}</div>
+        <div className="w-full h-full">{initialBuildComplete ? <PreviewLoad /> : <ProgressStatus />}</div>
       )}
 
       {isDeviceModeOn && previewURL && (
