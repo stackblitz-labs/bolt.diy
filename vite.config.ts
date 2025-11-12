@@ -6,7 +6,7 @@ import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import * as dotenv from 'dotenv';
 
-// Load environment variables from multiple files
+// Load environment variables
 dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
 dotenv.config();
@@ -18,6 +18,11 @@ export default defineConfig((config) => {
     },
     build: {
       target: 'esnext',
+    },
+    server: {
+      host: true, // <-- allows all hosts (needed for Render deployment)
+      // OR, for more security:
+      // allowedHosts: ['bolt-diy-1-dujf.onrender.com']
     },
     plugins: [
       nodePolyfills({
@@ -39,7 +44,6 @@ export default defineConfig((config) => {
               map: null,
             };
           }
-
           return null;
         },
       },
@@ -91,20 +95,16 @@ function chrome129IssuePlugin() {
     configureServer(server: ViteDevServer) {
       server.middlewares.use((req, res, next) => {
         const raw = req.headers['user-agent']?.match(/Chrom(e|ium)\/([0-9]+)\./);
-
         if (raw) {
           const version = parseInt(raw[2], 10);
-
           if (version === 129) {
             res.setHeader('content-type', 'text/html');
             res.end(
               '<body><h1>Please use Chrome Canary for testing.</h1><p>Chrome 129 has an issue with JavaScript modules & Vite local development, see <a href="https://github.com/stackblitz/bolt.new/issues/86#issuecomment-2395519258">for more information.</a></p><p><b>Note:</b> This only impacts <u>local development</u>. `pnpm run build` and `pnpm run start` will work fine in this browser.</p></body>',
             );
-
             return;
           }
         }
-
         next();
       });
     },
