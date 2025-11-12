@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from '@remix-run/react';
+import { useSearchParams } from '@remix-run/react';
 import { getSupabase } from '~/lib/supabase/client';
 import { callNutAPI } from '~/lib/replay/NutAPI';
 
 export default function AuthCallback() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -15,8 +14,8 @@ export default function AuthCallback() {
 
         if (error) {
           console.error('Auth callback error:', error);
-          // Redirect to home with error
-          navigate('/?auth_error=' + encodeURIComponent(error.message));
+          // Redirect to home with error - use full page reload
+          window.location.href = '/?auth_error=' + encodeURIComponent(error.message);
           return;
         }
 
@@ -129,26 +128,28 @@ export default function AuthCallback() {
         }
 
         // Navigate to the appropriate page
+        // Use window.location.href instead of navigate() to force a full page reload
+        // This ensures CSS modules and styles are properly loaded after authentication
         if (data.session && isValidRedirect(redirectTo)) {
           const decodedRedirect = decodeURIComponent(redirectTo!);
           // Remove sensitive information from logs
-          navigate(decodedRedirect);
+          window.location.href = decodedRedirect;
         } else {
           // Log security event if invalid redirect attempted
           if (redirectTo && redirectTo !== 'null' && redirectTo !== '') {
             console.warn('Invalid redirect URL attempted:', redirectTo.substring(0, 50) + '...');
           }
           // Fallback to home if no valid redirect specified
-          navigate('/');
+          window.location.href = '/';
         }
       } catch (error) {
         console.error('Unexpected auth callback error:', error);
-        navigate('/?auth_error=' + encodeURIComponent('Authentication failed'));
+        window.location.href = '/?auth_error=' + encodeURIComponent('Authentication failed');
       }
     };
 
     handleCallback();
-  }, [navigate, searchParams]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-bolt-elements-background-depth-1 flex items-center justify-center px-4">
