@@ -32,6 +32,9 @@ export interface File {
   isBinary: boolean;
   isLocked?: boolean;
   lockedByFolder?: string; // Path of the folder that locked this file
+  version?: number; // Version number for conflict detection
+  lastModified?: number; // Timestamp of last modification
+  modifiedBy?: 'user' | 'ai' | 'external'; // Source of last modification
 }
 
 export interface Folder {
@@ -569,9 +572,11 @@ export class FilesStore {
         this.#modifiedFiles.set(filePath, oldContent);
       }
 
-      // Get the current lock state before updating
+      // Get the current file state before updating
       const currentFile = this.files.get()[filePath];
       const isLocked = currentFile?.type === 'file' ? currentFile.isLocked : false;
+      const currentVersion = currentFile?.type === 'file' ? currentFile.version || 0 : 0;
+      const lockedByFolder = currentFile?.type === 'file' ? currentFile.lockedByFolder : undefined;
 
       // we immediately update the file and don't rely on the `change` event coming from the watcher
       this.files.setKey(filePath, {
@@ -579,6 +584,10 @@ export class FilesStore {
         content,
         isBinary: false,
         isLocked,
+        lockedByFolder,
+        version: currentVersion + 1, // Increment version
+        lastModified: Date.now(), // Update timestamp
+        modifiedBy: 'user', // Mark as user modification
       });
 
       logger.info('File updated');
@@ -794,6 +803,9 @@ export class FilesStore {
           content: base64Content,
           isBinary: true,
           isLocked: false,
+          version: 1, // Initial version
+          lastModified: Date.now(),
+          modifiedBy: 'ai', // New files from AI
         });
 
         this.#modifiedFiles.set(filePath, base64Content);
@@ -806,6 +818,9 @@ export class FilesStore {
           content: content as string,
           isBinary: false,
           isLocked: false,
+          version: 1, // Initial version
+          lastModified: Date.now(),
+          modifiedBy: 'ai', // New files from AI
         });
 
         this.#modifiedFiles.set(filePath, content as string);

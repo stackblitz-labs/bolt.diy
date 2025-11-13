@@ -5,10 +5,19 @@ const logger = createScopedLogger('LockedFiles');
 // Key for storing locked files in localStorage
 export const LOCKED_FILES_KEY = 'bolt.lockedFiles';
 
+// Default lock timeout: 30 minutes
+export const DEFAULT_LOCK_TIMEOUT_MS = 30 * 60 * 1000;
+
+// Cleanup interval for expired locks: 5 minutes
+const LOCK_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
 export interface LockedItem {
   chatId: string; // Chat ID to scope locks to a specific project
   path: string;
   isFolder: boolean; // Indicates if this is a folder lock
+  lockedAt?: number; // Timestamp when the lock was acquired
+  lockTimeout?: number; // Lock timeout duration in milliseconds (default: 30 minutes)
+  autoLock?: boolean; // Whether this lock was automatically acquired
 }
 
 // In-memory cache for locked items to reduce localStorage reads
@@ -134,17 +143,65 @@ export function getLockedItems(): LockedItem[] {
 }
 
 /**
+ * Check if a lock has expired based on its timestamp and timeout
+ * @param item The locked item to check
+ * @returns true if the lock has expired, false otherwise
+ */
+export function isLockExpired(item: LockedItem): boolean {
+  // If no timestamp, treat as non-expiring (legacy lock)
+  if (!item.lockedAt) {
+    return false;
+  }
+
+  const timeout = item.lockTimeout || DEFAULT_LOCK_TIMEOUT_MS;
+  const now = Date.now();
+  const expiresAt = item.lockedAt + timeout;
+
+  return now > expiresAt;
+}
+
+/**
+ * Remove expired locks from the locked items list
+ * @returns Number of locks removed
+ */
+export function cleanupExpiredLocks(): number {
+  const lockedItems = getLockedItems();
+  const validItems = lockedItems.filter((item) => !isLockExpired(item));
+  const removedCount = lockedItems.length - validItems.length;
+
+  if (removedCount > 0) {
+    saveLockedItems(validItems);
+    logger.info(`Cleaned up ${removedCount} expired locks`);
+  }
+
+  return removedCount;
+}
+
+/**
  * Add a file or folder to the locked items list
  * @param chatId The chat ID to scope the lock to
  * @param path The path of the file or folder to lock
  * @param isFolder Whether this is a folder lock
+ * @param options Optional lock options (timeout, autoLock)
  */
-export function addLockedItem(chatId: string, path: string, isFolder: boolean = false): void {
+export function addLockedItem(
+  chatId: string,
+  path: string,
+  isFolder: boolean = false,
+  options?: { timeout?: number; autoLock?: boolean },
+): void {
   // Ensure cache is initialized
   const lockedItems = getLockedItems();
 
-  // Create the new item
-  const newItem = { chatId, path, isFolder };
+  // Create the new item with timestamp
+  const newItem: LockedItem = {
+    chatId,
+    path,
+    isFolder,
+    lockedAt: Date.now(),
+    lockTimeout: options?.timeout || DEFAULT_LOCK_TIMEOUT_MS,
+    autoLock: options?.autoLock || false,
+  };
 
   // Update the in-memory map directly for faster access
   const chatMap = getChatMap(chatId, true)!;
@@ -157,7 +214,9 @@ export function addLockedItem(chatId: string, path: string, isFolder: boolean = 
   // Save the updated list (this will update the cache and maps)
   saveLockedItems(filteredItems);
 
-  logger.info(`Added locked ${isFolder ? 'folder' : 'file'}: ${path} for chat: ${chatId}`);
+  logger.info(
+    `Added ${options?.autoLock ? 'auto-' : ''}locked ${isFolder ? 'folder' : 'file'}: ${path} for chat: ${chatId}`,
+  );
 }
 
 /**
@@ -255,7 +314,13 @@ export function isFileLocked(chatId: string, filePath: string): { locked: boolea
     const directLock = chatMap.get(filePath);
 
     if (directLock && !directLock.isFolder) {
-      return { locked: true, lockedBy: filePath };
+      // Check if lock has expired
+      if (isLockExpired(directLock)) {
+        // Remove expired lock
+        removeLockedItem(chatId, filePath);
+      } else {
+        return { locked: true, lockedBy: filePath };
+      }
     }
   }
 
@@ -281,7 +346,13 @@ export function isFolderLocked(chatId: string, folderPath: string): { locked: bo
     const directLock = chatMap.get(folderPath);
 
     if (directLock && directLock.isFolder) {
-      return { locked: true, lockedBy: folderPath };
+      // Check if lock has expired
+      if (isLockExpired(directLock)) {
+        // Remove expired lock
+        removeLockedItem(chatId, folderPath);
+      } else {
+        return { locked: true, lockedBy: folderPath };
+      }
     }
   }
 
@@ -312,6 +383,13 @@ function checkParentFolderLocks(chatId: string, path: string): { locked: boolean
     const folderLock = chatMap.get(currentPath);
 
     if (folderLock && folderLock.isFolder) {
+      // Check if lock has expired
+      if (isLockExpired(folderLock)) {
+        // Remove expired lock
+        removeLockedItem(chatId, currentPath);
+        continue;
+      }
+
       return { locked: true, lockedBy: currentPath };
     }
   }
@@ -451,11 +529,15 @@ export function batchLockItems(chatId: string, items: Array<{ path: string; isFo
   // Filter out existing items for these paths
   const filteredItems = lockedItems.filter((item) => !(item.chatId === chatId && pathsToLock.has(item.path)));
 
-  // Add all the new items
+  // Add all the new items with timestamps
+  const now = Date.now();
   const newItems = items.map((item) => ({
     chatId,
     path: item.path,
     isFolder: item.isFolder,
+    lockedAt: now,
+    lockTimeout: DEFAULT_LOCK_TIMEOUT_MS,
+    autoLock: false,
   }));
 
   // Combine and save
@@ -495,6 +577,22 @@ export function batchUnlockItems(chatId: string, paths: string[]): void {
   saveLockedItems(filteredItems);
 
   logger.info(`Batch unlocked ${paths.length} items for chat: ${chatId}`);
+}
+
+/**
+ * Set up periodic cleanup of expired locks
+ * Runs every 5 minutes to remove stale locks
+ */
+if (typeof window !== 'undefined') {
+  // Run cleanup on initial load
+  setTimeout(() => {
+    cleanupExpiredLocks();
+  }, 5000); // Wait 5 seconds after page load
+
+  // Set up periodic cleanup
+  setInterval(() => {
+    cleanupExpiredLocks();
+  }, LOCK_CLEANUP_INTERVAL_MS);
 }
 
 /**
