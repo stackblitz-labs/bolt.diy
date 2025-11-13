@@ -10,7 +10,7 @@ export const HeroSection = () => {
       </h1>
 
       <p className="text-xl text-bolt-elements-textSecondary mb-8 max-w-3xl mx-auto leading-relaxed">
-        Tell us what you've been struggling to build, and get $50 in credits along with tech support to get it working.
+        Tell us what you’ve been struggling to build, and get three months of our Builder Plan for free ($60 value)
       </p>
 
       <a

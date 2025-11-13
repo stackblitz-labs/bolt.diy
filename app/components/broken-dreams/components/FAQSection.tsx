@@ -14,7 +14,7 @@ export const FaqSection = () => {
     {
       question: 'Do I need to create a Nut.new account before submitting my app?',
       answer:
-        'Yes, it would make things easier if you create an account before filling out the submission form, and be sure to use the same email that is connected to your Nut.new account, so we can find it, and stuff it with free credits.',
+        'Yes, it would make things easier if you create an account before filling out the submission form, and be sure to use the same email that is connected to your Nut.new account.',
     },
     {
       question: 'What makes Nut.new different than other vibecoding tools out there?',
@@ -24,12 +24,7 @@ export const FaqSection = () => {
     {
       question: 'Am I required to become a paying customer?',
       answer:
-        "Nope. After you use your free $50 in credits (we call them Peanuts, btw), you can continue using Nut on our free plan. Of course, we'd love to have you as a paying customer, but not a requirement for this.",
-    },
-    {
-      question: 'How many credits do I get for $50?',
-      answer:
-        "$50 is 5,000 peanuts (that's our cute name for our credits). That's a significant amount of peanuts to build real stuff with Nut. In addition to the 5k peanuts, all new customers are giving 1,000 peanuts to start with. So you'll have 6,000 peanuts to work with. Pretty sweet, eh?",
+        'Nope. You can cancel before the end of your three free months of the Builder Plan, and you will not be charged going forward.',
     },
     {
       question: "What if you can't help me get my app working?",
@@ -40,10 +35,6 @@ export const FaqSection = () => {
       question: 'What makes the team confident they can rebuild my broken app, anyway?',
       answer:
         "So glad you asked! Our team has been spending their careers creating code debugging software, and it turns out that vibecoding with AI writes a lot of buggy code (go figure!). We built Nut.new around our core deterministic debugging tools, which makes us very very different from all of the other vibecoder tools out there.\n\nWe are NOT just a wrapper on an LLM. Nut writes code, but it also writes automated tests to verify that the code it wrote actually works. When it doesn't work, we use our baked-in debugging software (Replay) to analyze what happened in your entire code base, and helps the AI fix it.",
-    },
-    {
-      question: 'How will I claim my free credits?',
-      answer: "After you submit your app via the form, we'll reach out with instructions.",
     },
   ];
 
