@@ -10,6 +10,9 @@ export const modificationsRegex = new RegExp(
 interface ModifiedFile {
   type: 'diff' | 'file';
   content: string;
+  timestamp?: number; // When the modification was made
+  modifiedBy?: 'user' | 'ai' | 'external'; // Source of the modification
+  version?: number; // Version number of the file
 }
 
 type FileModifications = Record<string, ModifiedFile>;
@@ -35,12 +38,19 @@ export function computeFileModifications(files: FileMap, modifiedFiles: Map<stri
 
     hasModifiedFiles = true;
 
+    // Extract metadata from file
+    const metadata = {
+      timestamp: file.lastModified || Date.now(),
+      modifiedBy: file.modifiedBy || ('external' as const),
+      version: file.version,
+    };
+
     if (unifiedDiff.length > file.content.length) {
       // if there are lots of changes we simply grab the current file content since it's smaller than the diff
-      modifications[filePath] = { type: 'file', content: file.content };
+      modifications[filePath] = { type: 'file', content: file.content, ...metadata };
     } else {
       // otherwise we use the diff since it's smaller
-      modifications[filePath] = { type: 'diff', content: unifiedDiff };
+      modifications[filePath] = { type: 'diff', content: unifiedDiff, ...metadata };
     }
   }
 

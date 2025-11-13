@@ -2,6 +2,8 @@ import { atom, computed, map, type MapStore, type WritableAtom } from 'nanostore
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import type { FileMap, FilesStore } from './files';
 import { createScopedLogger } from '~/utils/logger';
+import { getCurrentChatId } from '~/utils/fileLocks';
+import { addLockedItem } from '~/lib/persistence/lockedFiles';
 
 export type EditorDocuments = Record<string, EditorDocument>;
 
@@ -11,6 +13,8 @@ const logger = createScopedLogger('EditorStore');
 
 export class EditorStore {
   #filesStore: FilesStore;
+  #autoLockEnabled = true; // Enable automatic lock acquisition
+  #autoLockTimers: Map<string, ReturnType<typeof setTimeout>> = new Map(); // Track debounce timers for auto-locking
 
   selectedFile: SelectedFile = import.meta.hot?.data.selectedFile ?? atom<string | undefined>();
   documents: MapStore<EditorDocuments> = import.meta.hot?.data.documents ?? map({});
@@ -30,6 +34,43 @@ export class EditorStore {
       import.meta.hot.data.documents = this.documents;
       import.meta.hot.data.selectedFile = this.selectedFile;
     }
+  }
+
+  /**
+   * Automatically lock a file when user starts editing
+   * Uses a short delay to avoid locking files that are just being viewed
+   */
+  #autoLockFile(filePath: string) {
+    if (!this.#autoLockEnabled) {
+      return;
+    }
+
+    // Clear any existing timer for this file
+    const existingTimer = this.#autoLockTimers.get(filePath);
+
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    // Set a new timer to lock the file after a short delay (2 seconds of editing)
+    const timer = setTimeout(() => {
+      try {
+        const chatId = getCurrentChatId();
+        const file = this.#filesStore.getFile(filePath);
+
+        // Only auto-lock if not already locked
+        if (file && !file.isLocked) {
+          addLockedItem(chatId, filePath, false, { autoLock: true });
+          logger.info(`Auto-locked file: ${filePath}`);
+        }
+      } catch (error) {
+        logger.error(`Failed to auto-lock file: ${filePath}`, error);
+      } finally {
+        this.#autoLockTimers.delete(filePath);
+      }
+    }, 2000); // 2 second delay before auto-locking
+
+    this.#autoLockTimers.set(filePath, timer);
   }
 
   setDocuments(files: FileMap) {
@@ -104,6 +145,9 @@ export class EditorStore {
     const contentChanged = currentContent !== newContent;
 
     if (contentChanged) {
+      // Trigger auto-lock on edit
+      this.#autoLockFile(filePath);
+
       this.documents.setKey(filePath, {
         ...documentState,
         value: newContent,

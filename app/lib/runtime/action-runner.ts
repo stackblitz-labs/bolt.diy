@@ -6,6 +6,7 @@ import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import type { BoltShell } from '~/utils/shell';
+import { isFileLocked, getCurrentChatId } from '~/utils/fileLocks';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -316,6 +317,34 @@ export class ActionRunner {
     const webcontainer = await this.#webcontainer;
     const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
 
+    // CONFLICT PREVENTION: Check if the file is locked before attempting to write
+    const chatId = getCurrentChatId();
+    const lockStatus = isFileLocked(chatId, action.filePath);
+
+    if (lockStatus.locked) {
+      const errorMessage = `Cannot modify locked file: ${action.filePath}${lockStatus.lockedBy ? ` (locked by: ${lockStatus.lockedBy})` : ''}`;
+      logger.warn(errorMessage);
+
+      // Trigger an alert to notify the user
+      this.onAlert?.({
+        type: 'error',
+        title: 'File Locked',
+        description: errorMessage,
+      });
+
+      throw new Error(errorMessage);
+    }
+
+    /*
+     * FUTURE ENHANCEMENT: Version-based conflict detection
+     * TODO: Add version checking to detect if file was modified externally
+     * This would require:
+     * 1. Passing FilesStore to ActionRunner
+     * 2. Checking file.version before writing
+     * 3. Comparing with expected version from when action was created
+     * 4. Providing conflict resolution UI if mismatch detected
+     */
+
     let folder = nodePath.dirname(relativePath);
 
     // remove trailing slashes
@@ -335,6 +364,7 @@ export class ActionRunner {
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
+      throw error;
     }
   }
 
