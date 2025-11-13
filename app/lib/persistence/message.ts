@@ -27,7 +27,6 @@ export interface Message {
   content: string;
   attachments?: ChatMessageAttachment[];
   repositoryId?: string;
-  peanuts?: number;
   category?: string;
   createTime?: string;
 

@@ -1,11 +1,63 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-import { callNutAPI } from '~/lib/replay/NutAPI';
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-07-30.basil',
 });
+
+// Helper function to get valid price IDs
+function getValidPriceIds(): Set<string> {
+  return new Set(
+    [process.env.STRIPE_PRICE_FREE, process.env.STRIPE_PRICE_STARTER, process.env.STRIPE_PRICE_PRO].filter(
+      Boolean,
+    ) as string[],
+  );
+}
+
+// Helper function to find customer with valid subscription (optimized with parallel batching)
+async function findCustomerWithValidSubscription(
+  customers: Stripe.Customer[],
+): Promise<{ customer: Stripe.Customer; subscription: Stripe.Subscription; priceId: string } | null> {
+  if (customers.length === 0) {
+    return null;
+  }
+
+  const validPriceIds = getValidPriceIds();
+
+  // Sort customers by creation date (newest first) to prioritize recent customers
+  const sortedCustomers = [...customers].sort((a, b) => (b.created || 0) - (a.created || 0));
+
+  // Check customers in parallel batches to improve performance
+  const checkCustomer = async (cust: Stripe.Customer) => {
+    const subscriptions = await stripe.subscriptions.list({
+      customer: cust.id,
+      status: 'active',
+      limit: 10,
+    });
+
+    for (const sub of subscriptions.data) {
+      const subPriceId = sub.items.data[0]?.price.id;
+      if (subPriceId && validPriceIds.has(subPriceId)) {
+        return { customer: cust, subscription: sub, priceId: subPriceId };
+      }
+    }
+    return null;
+  };
+
+  // Process in batches of 5 to avoid rate limits while maintaining parallelism
+  const batchSize = 5;
+  for (let i = 0; i < sortedCustomers.length; i += batchSize) {
+    const batch = sortedCustomers.slice(i, i + batchSize);
+    const results = await Promise.all(batch.map(checkCustomer));
+    const validResult = results.find((result) => result !== null);
+    if (validResult) {
+      return validResult;
+    }
+  }
+
+  return null;
+}
 
 // Helper function to get authenticated user
 async function getAuthenticatedUser(request: Request) {
@@ -84,10 +136,10 @@ export async function action({ request }: { request: Request }) {
 // Internal function to cancel subscription (triggers webhook)
 async function handleCancelSubscription(userEmail: string, userId: string, immediate: boolean = false) {
   try {
-    // Find customer by email
+    // Find ALL customers by email (handle edge case of duplicate emails)
     const customers = await stripe.customers.list({
       email: userEmail,
-      limit: 1,
+      limit: 100,
     });
 
     if (customers.data.length === 0) {
@@ -97,39 +149,23 @@ async function handleCancelSubscription(userEmail: string, userId: string, immed
       });
     }
 
-    const customer = customers.data[0];
+    // Find customer with valid subscription using optimized helper
+    const customerResult = await findCustomerWithValidSubscription(customers.data);
 
-    // Get active subscriptions
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customer.id,
-      status: 'active',
-      limit: 1,
-    });
-
-    if (subscriptions.data.length === 0) {
+    if (!customerResult) {
       return new Response(JSON.stringify({ error: 'No active subscription found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const subscription = subscriptions.data[0];
+    const { subscription } = customerResult;
 
     let message: string;
 
     if (immediate) {
       // Cancel immediately (this will trigger webhook events)
       await stripe.subscriptions.cancel(subscription.id);
-
-      await callNutAPI(
-        'set-peanuts-subscription',
-        {
-          userId,
-          peanuts: undefined,
-        },
-        undefined, // no streaming callback
-        userId, // use this userId instead of session-based lookup
-      );
 
       message = 'Subscription canceled immediately';
     } else {
@@ -162,10 +198,10 @@ async function handleCancelSubscription(userEmail: string, userId: string, immed
 // Internal function to get subscription status from Stripe
 async function handleGetSubscriptionStatus(userEmail: string) {
   try {
-    // Find customer by email
+    // Find ALL customers by email (handle edge case of duplicate emails)
     const customers = await stripe.customers.list({
       email: userEmail,
-      limit: 1,
+      limit: 100, // Get all customers with this email
     });
 
     if (customers.data.length === 0) {
@@ -181,16 +217,10 @@ async function handleGetSubscriptionStatus(userEmail: string) {
       );
     }
 
-    const customer = customers.data[0];
+    // Find customer with valid subscription using optimized helper
+    const customerResult = await findCustomerWithValidSubscription(customers.data);
 
-    // Get active subscriptions
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customer.id,
-      status: 'active',
-      limit: 1,
-    });
-
-    if (subscriptions.data.length === 0) {
+    if (!customerResult) {
       return new Response(
         JSON.stringify({
           hasSubscription: false,
@@ -203,22 +233,17 @@ async function handleGetSubscriptionStatus(userEmail: string) {
       );
     }
 
-    const subscription = subscriptions.data[0];
-    const priceId = subscription.items.data[0]?.price.id;
+    const { subscription, priceId } = customerResult;
 
     // Map price ID to tier using environment variables
     let tier = 'unknown';
-    let peanuts = 0;
 
     if (priceId === process.env.STRIPE_PRICE_FREE) {
       tier = 'free';
-      peanuts = 500;
     } else if (priceId === process.env.STRIPE_PRICE_STARTER) {
       tier = 'builder';
-      peanuts = 2000;
     } else if (priceId === process.env.STRIPE_PRICE_PRO) {
       tier = 'pro';
-      peanuts = 12000;
     }
 
     // Get period dates from subscription items (they have the actual billing periods)
@@ -232,7 +257,6 @@ async function handleGetSubscriptionStatus(userEmail: string) {
         id: subscription.id,
         status: subscription.status,
         tier,
-        peanuts,
         currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000).toISOString() : null,
         currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000).toISOString() : null,
         cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
@@ -260,9 +284,10 @@ async function handleGetSubscriptionStatus(userEmail: string) {
 }
 
 async function handleManageBilling(userEmail: string, targetUrl: string) {
+  // Find ALL customers by email (handle edge case of duplicate emails)
   const customers = await stripe.customers.list({
     email: userEmail,
-    limit: 1,
+    limit: 100,
   });
 
   if (customers.data.length === 0) {
@@ -272,7 +297,9 @@ async function handleManageBilling(userEmail: string, targetUrl: string) {
     });
   }
 
-  const customer = customers.data[0];
+  // Find customer with valid subscription, or use first customer as fallback
+  const result = await findCustomerWithValidSubscription(customers.data);
+  const customer = result?.customer || customers.data[0];
 
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: customer.id,
@@ -286,9 +313,10 @@ async function handleManageBilling(userEmail: string, targetUrl: string) {
 }
 
 async function handleManageSubscription(userEmail: string, targetUrl: string) {
+  // Find ALL customers by email (handle edge case of duplicate emails)
   const customers = await stripe.customers.list({
     email: userEmail,
-    limit: 1,
+    limit: 100,
   });
 
   if (customers.data.length === 0) {
@@ -298,13 +326,17 @@ async function handleManageSubscription(userEmail: string, targetUrl: string) {
     });
   }
 
-  const customer = customers.data[0];
+  // Find customer with valid subscription using optimized helper
+  const result = await findCustomerWithValidSubscription(customers.data);
 
-  const subscriptions = await stripe.subscriptions.list({
-    customer: customer.id,
-    status: 'active',
-    limit: 1,
-  });
+  if (!result) {
+    return new Response(JSON.stringify({ error: 'No valid subscription found' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { customer, subscription } = result;
 
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: customer.id,
@@ -312,7 +344,7 @@ async function handleManageSubscription(userEmail: string, targetUrl: string) {
     flow_data: {
       type: 'subscription_update',
       subscription_update: {
-        subscription: subscriptions?.data?.[0]?.id,
+        subscription: subscription.id,
       },
       after_completion: {
         type: 'redirect',

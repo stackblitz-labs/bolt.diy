@@ -8,14 +8,12 @@ interface ContinueBuildCardProps {
   sendMessage?: (params: ChatMessageParams) => void;
   setShowContinueBuildCard?: (show: boolean) => void;
   onMount?: () => void;
-  unpaidFeatureCost?: number;
 }
 
 export const ContinueBuildCard: React.FC<ContinueBuildCardProps> = ({
   sendMessage,
   onMount,
   setShowContinueBuildCard,
-  unpaidFeatureCost,
 }) => {
   useEffect(() => {
     if (onMount) {
@@ -46,19 +44,9 @@ export const ContinueBuildCard: React.FC<ContinueBuildCardProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-bolt-elements-textHeading">
-              {unpaidFeatureCost ? "Continue Building Your App's Features?" : 'Continue Building Your App!'}
-            </h3>
+            <h3 className="text-lg font-semibold text-bolt-elements-textHeading">Continue Building Your App!</h3>
             <p className="text-bolt-elements-textSecondary text-sm max-w-md">
-              {unpaidFeatureCost ? (
-                <>
-                  <b>Build Cost: {unpaidFeatureCost} peanuts</b>
-                  <br />
-                  To continue building your app's features, we'll deduct the peanuts from your account.
-                </>
-              ) : (
-                'Ready to continue building your app? Click the button below to pick up where you left off.'
-              )}
+              Ready to continue building your app? Click the button below to pick up where you left off.
             </p>
           </div>
 
@@ -66,7 +54,7 @@ export const ContinueBuildCard: React.FC<ContinueBuildCardProps> = ({
             <StartBuildingButton
               onClick={handleContinueBuilding}
               buttonText="Continue Building!"
-              tooltip={unpaidFeatureCost ? "Build Your App's Features!" : 'Continue Building Your App!'}
+              tooltip="Continue Building Your App!"
             />
           </div>
         </div>

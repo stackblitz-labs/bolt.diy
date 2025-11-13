@@ -8,6 +8,7 @@ import { ConfirmCancelModal } from '~/components/subscription/ConfirmCancelModal
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
 import { User as UserIcon, Crown, Settings } from '~/components/ui/Icon';
+import { accountModalStore } from '~/lib/stores/accountModal';
 
 interface AccountModalProps {
   user: User | undefined;
@@ -17,15 +18,18 @@ export const AccountModal = ({ user }: AccountModalProps) => {
   const { isMobile } = useIsMobile();
   const stripeSubscription = useStore(subscriptionStore.subscription);
   const [loading, setLoading] = useState(true);
+  const [loadingBilling, setLoadingBilling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const reloadAccountData = async () => {
     setLoading(true);
+    setLoadingBilling(true);
 
     const stripeStatus = await checkSubscriptionStatus();
     subscriptionStore.setSubscription(stripeStatus);
 
     setLoading(false);
+    setLoadingBilling(false);
   };
 
   useEffect(() => {
@@ -57,7 +61,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
       stripeStatusModalActions.showSuccess(
         '✅ Subscription Canceled',
         'Your subscription has been successfully canceled.',
-        "You'll continue to have access until the end of your current billing period, and you'll keep access to your remaining peanuts.",
+        "You'll continue to have access until the end of your current billing period.",
       );
       reloadAccountData();
     } catch (error) {
@@ -71,6 +75,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
   };
 
   const handleManageBilling = async () => {
+    setLoadingBilling(true);
     if (!user?.email) {
       stripeStatusModalActions.showError(
         'Sign In Required',
@@ -89,6 +94,7 @@ export const AccountModal = ({ user }: AccountModalProps) => {
           email: user?.email,
         });
       }
+      setLoadingBilling(false);
     } catch (error) {
       console.error('Error opening billing portal:', error);
       stripeStatusModalActions.showError(
@@ -96,7 +102,13 @@ export const AccountModal = ({ user }: AccountModalProps) => {
         "We couldn't open your billing portal right now.",
         'Please try again in a few moments, or contact support if the issue persists.',
       );
+    } finally {
+      setLoadingBilling(false);
     }
+  };
+
+  const handleViewPlans = () => {
+    accountModalStore.open('billing');
   };
 
   if (loading) {
@@ -183,8 +195,19 @@ export const AccountModal = ({ user }: AccountModalProps) => {
                 </>
               ) : (
                 <>
-                  <div className="text-xl font-semibold text-bolt-elements-textSecondary mb-2">No Subscription</div>
-                  <div className="text-sm text-bolt-elements-textSecondary">Subscribe for monthly peanuts</div>
+                  <div className="text-xl font-semibold text-bolt-elements-textSecondary mb-2">
+                    You are on the Free Plan
+                  </div>
+                  <div className="text-sm text-bolt-elements-textSecondary mb-4 font-medium">
+                    Upgrade to builder plan to build unlimited apps
+                  </div>
+                  <button
+                    onClick={handleViewPlans}
+                    className="flex items-center justify-center w-fit px-4 py-3 text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-lg transition-all duration-200 gap-3 font-medium shadow-sm hover:shadow-md group"
+                  >
+                    <Crown className="transition-transform duration-200 group-hover:scale-110" size={20} />
+                    <span className="transition-transform duration-200 group-hover:scale-105">View Plans</span>
+                  </button>
                 </>
               )}
             </div>
@@ -196,9 +219,9 @@ export const AccountModal = ({ user }: AccountModalProps) => {
             {stripeSubscription && !loading && (
               <button
                 onClick={handleManageBilling}
-                disabled={loading}
+                disabled={loadingBilling}
                 className={classNames(
-                  'px-6 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group flex items-center justify-center gap-3 min-h-[48px]',
+                  'px-6 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group flex items-center justify-center gap-3 min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed',
                   'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
                 )}
               >

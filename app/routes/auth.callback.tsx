@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useSearchParams } from '@remix-run/react';
 import { getSupabase } from '~/lib/supabase/client';
-import { callNutAPI } from '~/lib/replay/NutAPI';
 
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
@@ -86,16 +85,6 @@ export default function AuthCallback() {
               isSignupFlow || isEmailConfirm || new Date(user.created_at).getTime() > Date.now() - 60000; // Within last minute
 
             if (isNewUser) {
-              await callNutAPI(
-                'add-peanuts',
-                {
-                  userId: user.id,
-                  peanuts: 1000,
-                },
-                undefined,
-                user.id,
-              );
-
               // Track as signup
               window.analytics.identify(user.id, {
                 name: user.user_metadata.full_name,

@@ -147,13 +147,6 @@ const Events = ({ featureName }: EventsProps) => {
   };
 
   const renderWorkerEvents = (events: ChatResponse[], index: number) => {
-    let peanuts = 0;
-    for (const event of events) {
-      if (event.kind === 'app-event' && event.peanuts && event.peanuts > peanuts) {
-        peanuts = event.peanuts;
-      }
-    }
-
     let tooltip;
     if (featureName) {
       const finished = events.some(isWorkerFinishedResponse);
@@ -184,9 +177,7 @@ const Events = ({ featureName }: EventsProps) => {
         <div className="p-4 pt-3 text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wider mb-2 bg-bolt-elements-background-depth-2 bg-opacity-30 px-2 py-1 rounded-md inline-block ml-2">
           <TooltipProvider>
             <WithTooltip tooltip={tooltip}>
-              <span>
-                Worker {index + 1} ({peanuts} peanuts)
-              </span>
+              <span>Worker {index + 1}</span>
             </WithTooltip>
           </TooltipProvider>
         </div>

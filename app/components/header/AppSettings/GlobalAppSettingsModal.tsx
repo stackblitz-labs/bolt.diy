@@ -32,7 +32,10 @@ export function GlobalAppSettingsModal() {
       const isOwner = await isAppOwner(appId ?? '', user?.id ?? '');
       setIsAppOwner(isOwner);
     };
-    loadIsOwner();
+
+    if (appId && user?.id) {
+      loadIsOwner();
+    }
   }, [appId]);
 
   const handleCloseModal = () => {

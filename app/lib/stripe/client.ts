@@ -105,7 +105,6 @@ export const SUBSCRIPTION_TIERS = {
   free: {
     name: 'Free',
     price: 0,
-    peanuts: 500,
     description: 'Our free tier to get you started.',
     // features: ['500 Peanuts per month'],
     features: ['One project', 'Limited customer support'],
@@ -113,7 +112,6 @@ export const SUBSCRIPTION_TIERS = {
   builder: {
     name: 'Builder',
     price: 20,
-    peanuts: 2000,
     description: 'No limits on any features. Go nuts!',
     // features: ['2000 Peanuts per month (rolls over)', 'Pay-as-you-go to top off balance'],
     features: [
@@ -130,7 +128,6 @@ export interface Subscription {
   id: string;
   status: string;
   tier: SubscriptionTier;
-  peanuts: number;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;

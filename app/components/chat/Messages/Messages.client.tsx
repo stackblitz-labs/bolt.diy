@@ -21,7 +21,6 @@ import {
   AppFeatureKind,
   isFeatureStatusImplemented,
   type AppFeature,
-  type AppSummary,
 } from '~/lib/persistence/messageAppSummary';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
@@ -44,19 +43,6 @@ interface MessagesProps {
   list?: AppLibraryEntry[] | undefined;
 }
 
-function getUnpaidFeatureCost(appSummary: AppSummary | undefined, lastContinueBuildIteration: number) {
-  if ((appSummary?.iteration ?? 0) <= lastContinueBuildIteration) {
-    return 0;
-  }
-  let total = 0;
-  for (const { status, cost } of appSummary?.features || []) {
-    if (status === AppFeatureStatus.PaymentNeeded) {
-      total += cost ?? 0;
-    }
-  }
-  return total;
-}
-
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
   ({ onLastMessageCheckboxChange, sendMessage, list }, ref) => {
     const [showJumpToBottom, setShowJumpToBottom] = useState(false);
@@ -74,9 +60,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     const totalFeatures = appSummary?.features?.slice(1).length;
     const isFullyComplete = completedFeatures === totalFeatures && totalFeatures && totalFeatures > 0;
     const hasSubscription = useStore(subscriptionStore.hasSubscription);
-    const lastMessageIteration = useStore(chatStore.lastMessageIteration);
     const subscription = useStore(subscriptionStore.subscription);
-    const unpaidFeatureCost = getUnpaidFeatureCost(appSummary, lastMessageIteration);
     const hasBuildAccess = useStore(buildAccessStore.hasAccess);
 
     // Calculate startPlanningRating for the card display
@@ -87,10 +71,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
 
     useEffect(() => {
       const shouldShow =
-        (unpaidFeatureCost || (!hasPendingMessage && !listenResponses)) &&
-        appSummary?.features?.length &&
-        !isFullyComplete &&
-        hasBuildAccess;
+        !hasPendingMessage && !listenResponses && appSummary?.features?.length && !isFullyComplete && hasBuildAccess;
 
       if (shouldShow) {
         const timer = setTimeout(() => {
@@ -101,15 +82,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       } else {
         setShowContinueBuildCard(false);
       }
-    }, [
-      hasPendingMessage,
-      listenResponses,
-      appSummary?.features?.length,
-      isFullyComplete,
-      unpaidFeatureCost,
-      subscription,
-      list,
-    ]);
+    }, [hasPendingMessage, listenResponses, appSummary?.features?.length, isFullyComplete, subscription, list]);
 
     const setRefs = useCallback(
       (element: HTMLDivElement | null) => {
@@ -403,7 +376,6 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
               onMount={scrollToBottom}
               sendMessage={sendMessage}
               setShowContinueBuildCard={setShowContinueBuildCard}
-              unpaidFeatureCost={unpaidFeatureCost}
             />
           )}
 
