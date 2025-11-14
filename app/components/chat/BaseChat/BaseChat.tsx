@@ -4,7 +4,6 @@
  */
 import React, { type RefCallback, useCallback, useEffect, useRef, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
-import { Menu } from '~/components/sidebar/Menu.client';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { MobileNav } from '~/components/mobile-nav/MobileNav.client';
 import { classNames } from '~/utils/classNames';
@@ -29,11 +28,19 @@ import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { StackedInfoCard, type InfoCardData } from '~/components/ui/InfoCard';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '~/components/ui/resizable';
 import { AppFeatureKind, AppFeatureStatus, BugReportStatus } from '~/lib/persistence/messageAppSummary';
+import { VerticalNav } from '~/components/header/VerticalNav';
 import { openFeatureModal } from '~/lib/stores/featureModal';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { toast } from 'react-toastify';
 import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
 import { PlanUpgradeBlock } from './components/PlanUpgradeBlock';
+import { Sidebar } from '~/components/sidebar/Sidebar.client';
+import { sidebarMenuStore } from '~/lib/stores/sidebarMenu';
+import { activeSidebarTab } from '~/lib/stores/sidebarNav';
+import { DesignSystemPanel } from '~/components/panels/DesignSystemPanel';
+import { DeployPanel } from '~/components/panels/DeployPanel';
+import { VersionHistoryPanel } from '~/components/panels/VersionHistoryPanel';
+import { AppSettingsPanel } from '~/components/panels/AppSettingsPanel';
 
 export const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -74,6 +81,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   ) => {
     const hasPendingMessage = useStore(chatStore.hasPendingMessage);
     const appSummary = useStore(chatStore.appSummary);
+    const appTitle = useStore(chatStore.appTitle);
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 300 : 200;
     const isSmallViewport = useViewport(800);
     const user = useStore(userStore);
@@ -88,6 +96,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const isSubscriptionStoreLoaded = useStore(subscriptionStore.isLoaded);
     const [list, setList] = useState<AppLibraryEntry[] | undefined>(undefined);
     const [isLoadingList, setIsLoadingList] = useState(true);
+    const isSidebarOpen = useStore(sidebarMenuStore.isOpen);
+    const activeTab = useStore(activeSidebarTab);
 
     const loadEntries = useCallback(() => {
       setIsLoadingList(true);
@@ -308,6 +318,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const shouldUseResizable = chatStarted && showWorkbench && !isSmallViewport;
+    const showPanel = activeTab !== 'chat';
+
+    // Render panel content based on active tab
+    const renderPanelContent = () => {
+      switch (activeTab) {
+        case 'design-system':
+          return <DesignSystemPanel />;
+        case 'deploy':
+          return <DeployPanel />;
+        case 'version-history':
+          return <VersionHistoryPanel />;
+        case 'app-settings':
+          return <AppSettingsPanel />;
+        default:
+          return null;
+      }
+    };
 
     const baseChat = (
       <div
@@ -315,45 +342,228 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
         data-chat-visible={showChat}
       >
-        {user && <ClientOnly>{() => <Menu />}</ClientOnly>}
-        {shouldUseResizable ? (
-          <ResizablePanelGroup direction="horizontal" className="h-full w-full">
-            <ResizablePanel defaultSize={40} minSize={30} maxSize={60} className="relative">
-              <div
-                ref={scrollRef}
-                className={classNames('w-full h-full overflow-y-auto', {
-                  'p-6': chatStarted,
-                  'pt-12 px-6 pb-16': !chatStarted,
-                })}
-              >
+        {user && (
+          <>
+            <div className="fixed left-0 top-0 bottom-0 z-30">
+              <ClientOnly>{() => <VerticalNav />}</ClientOnly>
+            </div>
+            <ClientOnly>
+              {() => <Sidebar isOpen={isSidebarOpen} onToggle={() => sidebarMenuStore.toggle()} />}
+            </ClientOnly>
+          </>
+        )}
+        <div className={classNames('flex-1 h-full', { 'ml-16': user })}>
+          {shouldUseResizable ? (
+            <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+              <ResizablePanel defaultSize={40} minSize={30} maxSize={60} className="relative">
+                {showPanel ? (
+                  <div className="w-full h-full pl-0 pr-1 py-2">{renderPanelContent()}</div>
+                ) : (
+                  <div
+                    ref={scrollRef}
+                    className={classNames('w-full h-full overflow-y-auto', {
+                      'pl-0 pr-1 py-2': chatStarted,
+                      'pt-12 px-6 pb-16': !chatStarted,
+                    })}
+                  >
+                    <div
+                      className={classNames(
+                        styles.Chat,
+                        'flex flex-col h-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden',
+                        {
+                          'landing-page-layout': !chatStarted,
+                        },
+                      )}
+                    >
+                      {!chatStarted && (
+                        <>
+                          <IntroSection />
+                        </>
+                      )}
+                      {chatStarted && (
+                        <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 shadow-sm rounded-t-xl">
+                          <div className="flex items-center gap-2 px-4 h-[38px]">
+                            <div className="flex-1 text-bolt-elements-textSecondary text-sm font-medium truncate">
+                              {appTitle || 'New App'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      <div
+                        className={classNames('h-full flex flex-col px-6 relative', {
+                          'flex-1 overflow-hidden': chatStarted,
+                        })}
+                      >
+                        <ClientOnly>
+                          {() => {
+                            return chatStarted ? (
+                              <div className="flex-1 min-h-0 flex flex-col relative">
+                                <div className="flex-1 overflow-y-auto">
+                                  <Messages
+                                    ref={messageRef}
+                                    onLastMessageCheckboxChange={onLastMessageCheckboxChange}
+                                    sendMessage={handleSendMessage}
+                                    list={list}
+                                  />
+                                  {infoCards && infoCards.length > 0 && (
+                                    <div className="pb-4">
+                                      <div className="flex justify-center">
+                                        <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
+                                          <div style={{ height: '120px' }} />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                {infoCards && infoCards.length > 0 && (
+                                  <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center px-6 pt-4 bg-gradient-to-t from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1/95 to-transparent pointer-events-none">
+                                    <div
+                                      className="pointer-events-auto"
+                                      style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}
+                                    >
+                                      <StackedInfoCard
+                                        cards={infoCards}
+                                        className="w-full mb-2"
+                                        handleSendMessage={handleSendMessage}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : null;
+                          }}
+                        </ClientOnly>
+                        {(() => {
+                          const isLoadingData = isAuthLoading || (user && !isSubscriptionStoreLoaded) || isLoadingList;
+
+                          if (isLoadingData && !chatStarted) {
+                            return (
+                              <div className="flex items-center justify-center min-h-[176.5px]">
+                                <div className="flex flex-col items-center gap-4">
+                                  <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary rounded-full animate-spin"></div>
+                                  <p className="text-sm text-bolt-elements-textSecondary">Loading...</p>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          const hasNoPaidPlan = !stripeSubscription || stripeSubscription.tier === 'free';
+
+                          const shouldShowUpgradeBlock =
+                            user && hasNoPaidPlan && list && list.length > 0 && !chatStarted;
+
+                          return shouldShowUpgradeBlock ? (
+                            <PlanUpgradeBlock />
+                          ) : (
+                            <>
+                              <ChatPromptContainer
+                                uploadedFiles={uploadedFiles}
+                                setUploadedFiles={setUploadedFiles!}
+                                imageDataList={imageDataList}
+                                setImageDataList={setImageDataList!}
+                                messageInputProps={messageInputProps}
+                              />
+                              {!chatStarted && (
+                                <>
+                                  {ExamplePrompts((event: React.UIEvent, messageInput: string) => {
+                                    if (hasPendingMessage) {
+                                      handleStop?.();
+                                      return;
+                                    }
+                                    handleSendMessage({ messageInput, chatMode: ChatMode.UserMessage });
+                                  })}
+                                </>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={60} minSize={40} maxSize={70} className="relative">
+                <ClientOnly>{() => <Workbench chatStarted={chatStarted} isInResizablePanel={true} />}</ClientOnly>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          ) : (
+            <div
+              ref={scrollRef}
+              className={classNames('w-full h-full flex flex-col lg:flex-row overflow-x-hidden', {
+                'overflow-y-auto': !chatStarted,
+                'overflow-y-hidden': chatStarted,
+                'pt-2 pb-2 pr-4': isSmallViewport && !appSummary && !showMobileNav,
+                'pt-2 pb-16 pr-4': isSmallViewport && (!!appSummary || showMobileNav),
+                'pt-2 pb-2 pr-2': !isSmallViewport && chatStarted,
+                'pt-2': !isSmallViewport && !chatStarted,
+              })}
+            >
+              {showPanel ? (
+                <div className="w-full h-full p-2">{renderPanelContent()}</div>
+              ) : (
                 <div
-                  className={classNames(
-                    styles.Chat,
-                    'flex flex-col h-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor',
-                    {
-                      'landing-page-layout': !chatStarted,
-                    },
-                  )}
+                  className={classNames(styles.Chat, 'flex flex-col', {
+                    'h-full': chatStarted,
+                    'min-h-full': !chatStarted,
+                    'flex-grow': isSmallViewport,
+                    'flex-shrink-0': !isSmallViewport,
+                    'pb-2': isSmallViewport,
+                    'landing-page-layout': !chatStarted,
+                    'bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden':
+                      chatStarted && !isSmallViewport,
+                  })}
+                  style={!isSmallViewport && showWorkbench ? { width: `${chatWidth}px` } : { width: '100%' }}
                 >
                   {!chatStarted && (
                     <>
                       <IntroSection />
                     </>
                   )}
-                  <div className={classNames('h-full flex flex-col px-6 py-4', {})}>
+                  {chatStarted && !isSmallViewport && (
+                    <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 shadow-sm rounded-t-xl">
+                      <div className="flex items-center gap-2 px-4 h-[38px]">
+                        <div className="flex-1 text-bolt-elements-textSecondary text-sm font-medium truncate">
+                          {appTitle || 'New App'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    className={classNames({
+                      'pr-4': !isSmallViewport && showWorkbench,
+                      'h-full flex flex-col flex-1 overflow-hidden': chatStarted,
+                      'px-2': !isSmallViewport,
+                      'px-6 pb-4': chatStarted && !isSmallViewport,
+                    })}
+                  >
                     <ClientOnly>
                       {() => {
                         return chatStarted ? (
-                          <>
-                            <Messages
-                              ref={messageRef}
-                              onLastMessageCheckboxChange={onLastMessageCheckboxChange}
-                              sendMessage={handleSendMessage}
-                              list={list}
-                            />
+                          <div className="flex-1 min-h-0 flex flex-col relative">
+                            <div className="flex-1 overflow-y-auto">
+                              <Messages
+                                ref={messageRef}
+                                onLastMessageCheckboxChange={onLastMessageCheckboxChange}
+                                sendMessage={handleSendMessage}
+                                list={list}
+                              />
+                              {infoCards && infoCards.length > 0 && (
+                                <div className="pb-4">
+                                  <div className="flex justify-center">
+                                    <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
+                                      <div style={{ height: '120px' }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                             {infoCards && infoCards.length > 0 && (
-                              <div className="flex justify-center">
-                                <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
+                              <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center px-6 pt-4 bg-gradient-to-t from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1/95 to-transparent pointer-events-none">
+                                <div
+                                  className="pointer-events-auto"
+                                  style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}
+                                >
                                   <StackedInfoCard
                                     cards={infoCards}
                                     className="w-full mb-2"
@@ -362,7 +572,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                 </div>
                               </div>
                             )}
-                          </>
+                          </div>
                         ) : null;
                       }}
                     </ClientOnly>
@@ -411,125 +621,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     })()}
                   </div>
                 </div>
-              </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={60} minSize={40} maxSize={70} className="relative">
-              <ClientOnly>{() => <Workbench chatStarted={chatStarted} isInResizablePanel={true} />}</ClientOnly>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        ) : (
-          <div
-            ref={scrollRef}
-            className={classNames('w-full h-full flex flex-col lg:flex-row overflow-x-hidden', {
-              'overflow-y-auto': !chatStarted,
-              'overflow-y-hidden': chatStarted,
-              'pt-2 pb-2 px-4': isSmallViewport && !appSummary && !showMobileNav,
-              'pt-2 pb-16 px-4': isSmallViewport && (!!appSummary || showMobileNav),
-              'p-6': !isSmallViewport && chatStarted,
-              'pt-12 px-6 pb-16': !isSmallViewport && !chatStarted,
-            })}
-          >
-            <div
-              className={classNames(styles.Chat, 'flex flex-col', {
-                'h-full': chatStarted,
-                'min-h-full': !chatStarted,
-                'flex-grow': isSmallViewport,
-                'flex-shrink-0': !isSmallViewport,
-                'pb-2': isSmallViewport,
-                'landing-page-layout': !chatStarted,
-                'bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor':
-                  chatStarted && !isSmallViewport,
-              })}
-              style={!isSmallViewport && showWorkbench ? { width: `${chatWidth}px` } : { width: '100%' }}
-            >
-              {!chatStarted && (
-                <>
-                  <IntroSection />
-                </>
               )}
-              <div
-                className={classNames({
-                  'pr-4': !isSmallViewport && showWorkbench,
-                  'h-full flex flex-col': chatStarted,
-                  'px-2': !isSmallViewport,
-                  'px-6 py-4': chatStarted && !isSmallViewport,
-                })}
-              >
-                <ClientOnly>
-                  {() => {
-                    return chatStarted ? (
-                      <>
-                        <Messages
-                          ref={messageRef}
-                          onLastMessageCheckboxChange={onLastMessageCheckboxChange}
-                          sendMessage={handleSendMessage}
-                          list={list}
-                        />
-                        {infoCards && infoCards.length > 0 && (
-                          <div className="flex justify-center">
-                            <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
-                              <StackedInfoCard
-                                cards={infoCards}
-                                className="w-full mb-2"
-                                handleSendMessage={handleSendMessage}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : null;
-                  }}
-                </ClientOnly>
-                {(() => {
-                  const isLoadingData = isAuthLoading || (user && !isSubscriptionStoreLoaded) || isLoadingList;
-
-                  if (isLoadingData && !chatStarted) {
-                    return (
-                      <div className="flex items-center justify-center min-h-[176.5px]">
-                        <div className="flex flex-col items-center gap-4">
-                          <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary rounded-full animate-spin"></div>
-                          <p className="text-sm text-bolt-elements-textSecondary">Loading...</p>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  const hasNoPaidPlan = !stripeSubscription || stripeSubscription.tier === 'free';
-
-                  const shouldShowUpgradeBlock = user && hasNoPaidPlan && list && list.length > 0 && !chatStarted;
-
-                  return shouldShowUpgradeBlock ? (
-                    <PlanUpgradeBlock />
-                  ) : (
-                    <>
-                      <ChatPromptContainer
-                        uploadedFiles={uploadedFiles}
-                        setUploadedFiles={setUploadedFiles!}
-                        imageDataList={imageDataList}
-                        setImageDataList={setImageDataList!}
-                        messageInputProps={messageInputProps}
-                      />
-                      {!chatStarted && (
-                        <>
-                          {ExamplePrompts((event: React.UIEvent, messageInput: string) => {
-                            if (hasPendingMessage) {
-                              handleStop?.();
-                              return;
-                            }
-                            handleSendMessage({ messageInput, chatMode: ChatMode.UserMessage });
-                          })}
-                        </>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
+              <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>
             </div>
-            <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>
-          </div>
-        )}
-        {isSmallViewport && (appSummary || showMobileNav) && <ClientOnly>{() => <MobileNav />}</ClientOnly>}
+          )}
+          {isSmallViewport && (appSummary || showMobileNav) && <ClientOnly>{() => <MobileNav />}</ClientOnly>}
+        </div>
       </div>
     );
 

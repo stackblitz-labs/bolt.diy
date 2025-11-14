@@ -3,6 +3,7 @@ import { database } from '~/lib/persistence/apps';
 import { AppUpdateReasonKind, type AppSummary, type AppUpdateReason } from '~/lib/persistence/messageAppSummary';
 import { assert } from '~/utils/nut';
 import { getRepositoryURL } from '~/lib/replay/DevelopmentServer';
+import { Skeleton } from '~/components/ui/Skeleton';
 
 export function includeHistorySummary(summary: AppSummary): boolean {
   if (!summary.reason) {
@@ -137,12 +138,41 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <div className="p-6 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor shadow-lg">
-          <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-bolt-elements-borderColor border-t-blue-500 shadow-sm"></div>
-            <div className="text-bolt-elements-textSecondary font-medium">Loading history...</div>
-          </div>
+      <div className="space-y-8 p-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-7 w-24" />
+        </div>
+
+        <div className="space-y-6">
+          {[1, 2, 3].map((index) => (
+            <div
+              key={index}
+              className="group relative bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-xl p-6 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-6">
+                <div className="flex-1 min-w-0 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-8 w-20 rounded-lg" />
+                    <Skeleton className="h-7 w-24 rounded-lg" />
+                  </div>
+
+                  <div>
+                    <Skeleton className="h-9 w-48 rounded-xl" />
+                  </div>
+
+                  <div>
+                    <Skeleton className="h-7 w-40 rounded-lg" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 min-w-0">
+                  <Skeleton className="h-10 w-24 rounded-xl" />
+                  <Skeleton className="h-10 w-24 rounded-xl" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );

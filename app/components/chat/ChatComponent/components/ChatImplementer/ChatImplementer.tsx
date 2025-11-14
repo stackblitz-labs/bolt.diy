@@ -16,6 +16,7 @@ import { createAttachment as createAttachmentAPI, uploadVisitData } from '~/lib/
 import { shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
 import { flushSimulationData } from '~/components/chat/ChatComponent/functions/flushSimulationData';
 import { getCurrentUserInfo } from '~/lib/supabase/client';
+import { sidebarMenuStore } from '~/lib/stores/sidebarMenu';
 
 let gActiveChatMessageTelemetry: ChatMessageTelemetry | undefined;
 
@@ -123,6 +124,9 @@ const ChatImplementer = memo(() => {
     chatStore.started.set(true);
 
     setChatStarted(true);
+
+    // Close sidebar when chat starts
+    sidebarMenuStore.close();
   };
 
   const sendMessage = async (params: ChatMessageParams) => {

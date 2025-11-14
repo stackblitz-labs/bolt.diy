@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { Header } from '~/components/header/Header';
 import { Footer } from '~/components/footer/Footer';
 import BackgroundRays from '~/components/ui/BackgroundRays';
 import useViewport from '~/lib/hooks/useViewport';
@@ -38,10 +37,9 @@ export const PageContainer: React.FC<PageContainerProps> = ({ children }) => {
   return (
     <div className="w-full flex flex-col bg-bolt-elements-background-depth-1 dark:bg-black app-height">
       {!chatStarted && !isLoggedIn && !isLoading && location.pathname === '/' && <BrokenDreamsBanner />}
-      <Header />
       <BackgroundRays />
       <div className="flex-1 w-full page-content overflow-hidden">{children}</div>
-      {!chatStarted && !isSmallViewport && <Footer />}
+      {!chatStarted && !isSmallViewport && !isLoading && <Footer />}
     </div>
   );
 };

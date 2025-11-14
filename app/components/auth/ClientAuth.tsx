@@ -89,7 +89,7 @@ export function ClientAuth() {
               <img
                 src={user.user_metadata.avatar_url}
                 alt="User avatar"
-                className="w-full h-full rounded-lg object-cover transition-transform duration-200 group-hover:scale-110"
+                className="w-full h-full rounded-full object-cover transition-transform duration-200 group-hover:scale-110"
               />
             ) : (
               <span className="text-sm font-semibold transition-transform duration-200 group-hover:scale-110">

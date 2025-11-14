@@ -10,7 +10,7 @@ import { database } from '~/lib/persistence/apps';
 import { Unauthorized } from '~/components/chat/Unauthorized';
 import { useStore } from '@nanostores/react';
 import { statusModalStore } from '~/lib/stores/statusModal';
-import { AppLoadingScreen } from '~/components/ui/AppLoadingScreen';
+import { AppSkeleton } from '~/components/ui/AppSkeleton';
 import {
   isAppOwnerLoadingStore,
   isAppOwnerStore,
@@ -186,7 +186,7 @@ export function Chat() {
 
   return (
     <>
-      {!ready && initialAppId && !unauthorized && <AppLoadingScreen appId={initialAppId} />}
+      {!ready && initialAppId && !unauthorized && <AppSkeleton />}
       {ready && !unauthorized && <ChatImplementer />}
       {ready && unauthorized && (
         <Unauthorized authorizedCopy={authorizedCopy} handleCopyApp={handleCopyApp} isCopying={isCopying} />

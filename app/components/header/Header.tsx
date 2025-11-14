@@ -4,8 +4,6 @@ import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
 import { Suspense, useState } from 'react';
 import { ClientAuth } from '~/components/auth/ClientAuth';
-import { sidebarMenuStore } from '~/lib/stores/sidebarMenu';
-import { IconButton } from '~/components/ui/IconButton';
 import { userStore } from '~/lib/stores/auth';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
@@ -18,7 +16,6 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { database } from '~/lib/persistence/apps';
 import { type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { includeHistorySummary } from '~/components/workbench/VesionHistory/AppHistory';
-import { PanelLeft } from '~/components/ui/Icon';
 import { useEffect } from 'react';
 import { useLocation } from '@remix-run/react';
 
@@ -58,15 +55,6 @@ export function Header() {
       )}
     >
       <div className="flex items-center gap-4 text-bolt-elements-textPrimary">
-        {user && (
-          <IconButton
-            onClick={() => sidebarMenuStore.toggle()}
-            data-testid="sidebar-icon"
-            icon={<PanelLeft />}
-            size="xl"
-            title="Toggle Sidebar"
-          />
-        )}
         {!user && location.pathname !== '/rebuild-broken-dreams' && <ThemeSwitch />}
         {appSummary && !isSmallViewport && <ChatDescription />}
       </div>

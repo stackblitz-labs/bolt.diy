@@ -137,7 +137,14 @@ function ThemeProvider() {
   const theme = useStore(themeStore);
 
   useEffect(() => {
-    document.querySelector('html')?.setAttribute('data-theme', theme);
+    // Theme is already set by setTheme function, but we ensure it's synced
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const effectiveTheme = mediaQuery.matches ? 'dark' : 'light';
+      document.querySelector('html')?.setAttribute('data-theme', effectiveTheme);
+    } else {
+      document.querySelector('html')?.setAttribute('data-theme', theme);
+    }
   }, [theme]);
 
   return null;

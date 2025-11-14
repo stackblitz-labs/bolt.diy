@@ -215,14 +215,17 @@ export const Preview = memo(() => {
       {isPortDropdownOpen && (
         <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
       )}
-      <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 p-3 flex items-center gap-2 shadow-sm">
-        <IconButton icon={<RotateCw size={20} />} onClick={() => reloadPreview()} />
+      <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 px-4 h-[38px] flex items-center gap-2 shadow-sm">
+        <IconButton
+          icon={<RotateCw size={20} />}
+          onClick={() => reloadPreview()}
+          className="bg-transparent border-none shadow-none hover:bg-transparent hover:shadow-none"
+        />
         {isElementPickerReady && !isMobile && (
           <IconButton
-            className={classNames({
-              'bg-bolt-elements-background-depth-3': isElementPickerEnabled,
+            className={classNames('bg-transparent border-none shadow-none hover:bg-transparent hover:shadow-none', {
+              'text-[#4da3ff]': isElementPickerEnabled,
             })}
-            iconClassName={isElementPickerEnabled ? 'text-[#4da3ff]' : ''}
             icon={<Crosshair size={20} />}
             onClick={() => {
               const newState = !isElementPickerEnabled;
@@ -232,18 +235,11 @@ export const Preview = memo(() => {
             title="Select element on page"
           />
         )}
-        <div
-          className={classNames(
-            'flex items-center gap-2 flex-grow bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textSecondary px-4 py-2 text-sm hover:bg-bolt-elements-background-depth-3 hover:border-bolt-elements-borderColor focus-within:bg-bolt-elements-background-depth-3 focus-within:border-blue-500/50 focus-within:text-bolt-elements-textPrimary transition-all duration-200 shadow-sm hover:shadow-md',
-            {
-              'rounded-xl': !isSmallViewport,
-            },
-          )}
-        >
+        <div className="flex items-center gap-2 flex-grow">
           <input
             title="URL"
             ref={inputRef}
-            className="w-full bg-transparent border-none outline-none focus:ring-0 focus:ring-offset-0"
+            className="w-full bg-transparent border-none outline-none text-bolt-elements-textSecondary text-sm focus:text-bolt-elements-textPrimary placeholder:text-bolt-elements-textSecondary/50"
             type="text"
             value={url}
             onChange={(event) => {
@@ -270,6 +266,7 @@ export const Preview = memo(() => {
             icon={<MonitorSmartphone size={20} />}
             onClick={toggleDeviceMode}
             title={isDeviceModeOn ? 'Switch to Responsive Mode' : 'Switch to Device Mode'}
+            className="bg-transparent border-none shadow-none hover:bg-transparent hover:shadow-none"
           />
         )}
         {!isSmallViewport && (
@@ -277,6 +274,7 @@ export const Preview = memo(() => {
             icon={isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
             onClick={toggleFullscreen}
             title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+            className="bg-transparent border-none shadow-none hover:bg-transparent hover:shadow-none"
           />
         )}
       </div>

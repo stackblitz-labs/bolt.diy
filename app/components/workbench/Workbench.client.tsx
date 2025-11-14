@@ -46,7 +46,7 @@ export const Workbench = memo(({ chatStarted, isInResizablePanel = false }: Work
   // When in resizable panel, use simple relative positioning
   if (isInResizablePanel) {
     return chatStarted && showWorkbench ? (
-      <div className="h-full w-full p-6">
+      <div className="h-full w-full pr-2 pl-1 py-2">
         <div className="h-full flex flex-col bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-lg rounded-xl overflow-hidden">
           <div className="relative flex-1 overflow-hidden">
             <Preview />

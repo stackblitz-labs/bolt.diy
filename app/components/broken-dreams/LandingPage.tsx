@@ -1,13 +1,23 @@
 import { ClientOnly } from 'remix-utils/client-only';
 import { VideoSection, HeroSection, HowItWorksSection, FaqSection } from './components';
-import { Menu } from '~/components/sidebar/Menu.client';
+import { Sidebar } from '~/components/sidebar/Sidebar.client';
 import { useStore } from '@nanostores/react';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { authStatusStore } from '~/lib/stores/auth';
 import { Home } from '~/components/ui/Icon';
+import { sidebarMenuStore } from '~/lib/stores/sidebarMenu';
+import { useEffect } from 'react';
 
 const LandingPage = () => {
   const isLoggedIn = useStore(authStatusStore.isLoggedIn);
+  const isSidebarOpen = useStore(sidebarMenuStore.isOpen);
+
+  // Ensure sidebar is open on homepage
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      sidebarMenuStore.open();
+    }
+  }, [isSidebarOpen]);
 
   return (
     <TooltipProvider>
@@ -26,7 +36,11 @@ const LandingPage = () => {
           </div>
         )}
         <main className="pt-6 sm:pt-20 pb-8">
-          {isLoggedIn && <ClientOnly>{() => <Menu />}</ClientOnly>}
+          {isLoggedIn && (
+            <ClientOnly>
+              {() => <Sidebar isOpen={isSidebarOpen} onToggle={() => sidebarMenuStore.toggle()} />}
+            </ClientOnly>
+          )}
           <div className="max-w-6xl mx-auto px-6">
             <VideoSection />
 

@@ -3,10 +3,12 @@
  * Preventing TS checks with files presented in the video for a better presentation.
  */
 import { ClientOnly } from 'remix-utils/client-only';
-import { Menu } from '~/components/sidebar/Menu.client';
+import { Sidebar } from '~/components/sidebar/Sidebar.client';
 import { classNames } from '~/utils/classNames';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { KeySquare, Copy } from '~/components/ui/Icon';
+import { useStore } from '@nanostores/react';
+import { sidebarMenuStore } from '~/lib/stores/sidebarMenu';
 
 export const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -17,10 +19,12 @@ interface UnauthorizedProps {
 }
 
 export const Unauthorized = ({ handleCopyApp, isCopying, authorizedCopy }: UnauthorizedProps) => {
+  const isSidebarOpen = useStore(sidebarMenuStore.isOpen);
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className={classNames('relative flex h-full w-full overflow-hidden')}>
-        <ClientOnly>{() => <Menu />}</ClientOnly>
+        <ClientOnly>{() => <Sidebar isOpen={isSidebarOpen} onToggle={() => sidebarMenuStore.toggle()} />}</ClientOnly>
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="max-w-lg w-full">
             <div className="bg-bolt-elements-background-depth-2 rounded-2xl border border-bolt-elements-borderColor border-opacity-30 shadow-lg p-8 text-center backdrop-blur-sm">

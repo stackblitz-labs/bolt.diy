@@ -3,7 +3,7 @@ import { MessageSquare } from '~/components/ui/Icon';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full bg-bolt-elements-background-depth-1 border-t border-bolt-elements-borderColor border-opacity-50 px-6 h-[40px] flex items-center justify-center">
+    <footer className="w-full bg-bolt-elements-background-depth-1 border-t border-bolt-elements-borderColor border-opacity-50 px-6 h-[40px] flex items-center justify-center fixed bottom-0 left-0 right-0">
       <div className="flex items-center justify-center text-xs gap-6">
         <div className="flex items-center">
           <a
