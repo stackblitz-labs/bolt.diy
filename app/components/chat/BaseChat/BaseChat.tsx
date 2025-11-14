@@ -27,6 +27,7 @@ import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { useLayoutWidths } from '~/lib/hooks/useLayoutWidths';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { StackedInfoCard, type InfoCardData } from '~/components/ui/InfoCard';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '~/components/ui/resizable';
 import { AppFeatureKind, AppFeatureStatus, BugReportStatus } from '~/lib/persistence/messageAppSummary';
 import { openFeatureModal } from '~/lib/stores/featureModal';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
@@ -306,6 +307,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       maxHeight: TEXTAREA_MAX_HEIGHT,
     };
 
+    const shouldUseResizable = chatStarted && showWorkbench && !isSmallViewport;
+
     const baseChat = (
       <div
         ref={ref}
@@ -313,112 +316,219 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         data-chat-visible={showChat}
       >
         {user && <ClientOnly>{() => <Menu />}</ClientOnly>}
-        <div
-          ref={scrollRef}
-          className={classNames('w-full h-full flex flex-col lg:flex-row overflow-x-hidden', {
-            'overflow-y-auto': !chatStarted,
-            'overflow-y-hidden': chatStarted,
-            'pt-2 pb-2 px-4': isSmallViewport && !appSummary && !showMobileNav,
-            'pt-2 pb-16 px-4': isSmallViewport && (!!appSummary || showMobileNav),
-            'p-6': !isSmallViewport && chatStarted,
-            'pt-12 px-6 pb-16': !isSmallViewport && !chatStarted,
-          })}
-        >
-          <div
-            className={classNames(styles.Chat, 'flex flex-col', {
-              'h-full': chatStarted,
-              'min-h-full': !chatStarted,
-              'flex-grow': isSmallViewport,
-              'flex-shrink-0': !isSmallViewport,
-              'pb-2': isSmallViewport,
-              'landing-page-layout': !chatStarted,
-            })}
-            style={!isSmallViewport && showWorkbench ? { width: `${chatWidth}px` } : { width: '100%' }}
-          >
-            {!chatStarted && (
-              <>
-                <IntroSection />
-              </>
-            )}
-            <div
-              className={classNames({
-                'pr-4': !isSmallViewport && showWorkbench,
-                'h-full flex flex-col': chatStarted,
-                'px-2': !isSmallViewport,
-              })}
-            >
-              <ClientOnly>
-                {() => {
-                  return chatStarted ? (
+        {shouldUseResizable ? (
+          <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+            <ResizablePanel defaultSize={40} minSize={30} maxSize={60} className="relative">
+              <div
+                ref={scrollRef}
+                className={classNames('w-full h-full overflow-y-auto', {
+                  'p-6': chatStarted,
+                  'pt-12 px-6 pb-16': !chatStarted,
+                })}
+              >
+                <div
+                  className={classNames(
+                    styles.Chat,
+                    'flex flex-col h-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor',
+                    {
+                      'landing-page-layout': !chatStarted,
+                    },
+                  )}
+                >
+                  {!chatStarted && (
                     <>
-                      <Messages
-                        ref={messageRef}
-                        onLastMessageCheckboxChange={onLastMessageCheckboxChange}
-                        sendMessage={handleSendMessage}
-                        list={list}
-                      />
-                      {infoCards && infoCards.length > 0 && (
-                        <div className="flex justify-center">
-                          <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
-                            <StackedInfoCard
-                              cards={infoCards}
-                              className="w-full mb-2"
-                              handleSendMessage={handleSendMessage}
+                      <IntroSection />
+                    </>
+                  )}
+                  <div className={classNames('h-full flex flex-col px-6 py-4', {})}>
+                    <ClientOnly>
+                      {() => {
+                        return chatStarted ? (
+                          <>
+                            <Messages
+                              ref={messageRef}
+                              onLastMessageCheckboxChange={onLastMessageCheckboxChange}
+                              sendMessage={handleSendMessage}
+                              list={list}
                             />
+                            {infoCards && infoCards.length > 0 && (
+                              <div className="flex justify-center">
+                                <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
+                                  <StackedInfoCard
+                                    cards={infoCards}
+                                    className="w-full mb-2"
+                                    handleSendMessage={handleSendMessage}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : null;
+                      }}
+                    </ClientOnly>
+                    {(() => {
+                      const isLoadingData = isAuthLoading || (user && !isSubscriptionStoreLoaded) || isLoadingList;
+
+                      if (isLoadingData && !chatStarted) {
+                        return (
+                          <div className="flex items-center justify-center min-h-[176.5px]">
+                            <div className="flex flex-col items-center gap-4">
+                              <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary rounded-full animate-spin"></div>
+                              <p className="text-sm text-bolt-elements-textSecondary">Loading...</p>
+                            </div>
                           </div>
+                        );
+                      }
+
+                      const hasNoPaidPlan = !stripeSubscription || stripeSubscription.tier === 'free';
+
+                      const shouldShowUpgradeBlock = user && hasNoPaidPlan && list && list.length > 0 && !chatStarted;
+
+                      return shouldShowUpgradeBlock ? (
+                        <PlanUpgradeBlock />
+                      ) : (
+                        <>
+                          <ChatPromptContainer
+                            uploadedFiles={uploadedFiles}
+                            setUploadedFiles={setUploadedFiles!}
+                            imageDataList={imageDataList}
+                            setImageDataList={setImageDataList!}
+                            messageInputProps={messageInputProps}
+                          />
+                          {!chatStarted && (
+                            <>
+                              {ExamplePrompts((event: React.UIEvent, messageInput: string) => {
+                                if (hasPendingMessage) {
+                                  handleStop?.();
+                                  return;
+                                }
+                                handleSendMessage({ messageInput, chatMode: ChatMode.UserMessage });
+                              })}
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={60} minSize={40} maxSize={70} className="relative">
+              <ClientOnly>{() => <Workbench chatStarted={chatStarted} isInResizablePanel={true} />}</ClientOnly>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div
+            ref={scrollRef}
+            className={classNames('w-full h-full flex flex-col lg:flex-row overflow-x-hidden', {
+              'overflow-y-auto': !chatStarted,
+              'overflow-y-hidden': chatStarted,
+              'pt-2 pb-2 px-4': isSmallViewport && !appSummary && !showMobileNav,
+              'pt-2 pb-16 px-4': isSmallViewport && (!!appSummary || showMobileNav),
+              'p-6': !isSmallViewport && chatStarted,
+              'pt-12 px-6 pb-16': !isSmallViewport && !chatStarted,
+            })}
+          >
+            <div
+              className={classNames(styles.Chat, 'flex flex-col', {
+                'h-full': chatStarted,
+                'min-h-full': !chatStarted,
+                'flex-grow': isSmallViewport,
+                'flex-shrink-0': !isSmallViewport,
+                'pb-2': isSmallViewport,
+                'landing-page-layout': !chatStarted,
+                'bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor':
+                  chatStarted && !isSmallViewport,
+              })}
+              style={!isSmallViewport && showWorkbench ? { width: `${chatWidth}px` } : { width: '100%' }}
+            >
+              {!chatStarted && (
+                <>
+                  <IntroSection />
+                </>
+              )}
+              <div
+                className={classNames({
+                  'pr-4': !isSmallViewport && showWorkbench,
+                  'h-full flex flex-col': chatStarted,
+                  'px-2': !isSmallViewport,
+                  'px-6 py-4': chatStarted && !isSmallViewport,
+                })}
+              >
+                <ClientOnly>
+                  {() => {
+                    return chatStarted ? (
+                      <>
+                        <Messages
+                          ref={messageRef}
+                          onLastMessageCheckboxChange={onLastMessageCheckboxChange}
+                          sendMessage={handleSendMessage}
+                          list={list}
+                        />
+                        {infoCards && infoCards.length > 0 && (
+                          <div className="flex justify-center">
+                            <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
+                              <StackedInfoCard
+                                cards={infoCards}
+                                className="w-full mb-2"
+                                handleSendMessage={handleSendMessage}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : null;
+                  }}
+                </ClientOnly>
+                {(() => {
+                  const isLoadingData = isAuthLoading || (user && !isSubscriptionStoreLoaded) || isLoadingList;
+
+                  if (isLoadingData && !chatStarted) {
+                    return (
+                      <div className="flex items-center justify-center min-h-[176.5px]">
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary rounded-full animate-spin"></div>
+                          <p className="text-sm text-bolt-elements-textSecondary">Loading...</p>
                         </div>
+                      </div>
+                    );
+                  }
+
+                  const hasNoPaidPlan = !stripeSubscription || stripeSubscription.tier === 'free';
+
+                  const shouldShowUpgradeBlock = user && hasNoPaidPlan && list && list.length > 0 && !chatStarted;
+
+                  return shouldShowUpgradeBlock ? (
+                    <PlanUpgradeBlock />
+                  ) : (
+                    <>
+                      <ChatPromptContainer
+                        uploadedFiles={uploadedFiles}
+                        setUploadedFiles={setUploadedFiles!}
+                        imageDataList={imageDataList}
+                        setImageDataList={setImageDataList!}
+                        messageInputProps={messageInputProps}
+                      />
+                      {!chatStarted && (
+                        <>
+                          {ExamplePrompts((event: React.UIEvent, messageInput: string) => {
+                            if (hasPendingMessage) {
+                              handleStop?.();
+                              return;
+                            }
+                            handleSendMessage({ messageInput, chatMode: ChatMode.UserMessage });
+                          })}
+                        </>
                       )}
                     </>
-                  ) : null;
-                }}
-              </ClientOnly>
-              {(() => {
-                const isLoadingData = isAuthLoading || (user && !isSubscriptionStoreLoaded) || isLoadingList;
-
-                if (isLoadingData && !chatStarted) {
-                  return (
-                    <div className="flex items-center justify-center min-h-[176.5px]">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary rounded-full animate-spin"></div>
-                        <p className="text-sm text-bolt-elements-textSecondary">Loading...</p>
-                      </div>
-                    </div>
                   );
-                }
-
-                const hasNoPaidPlan = !stripeSubscription || stripeSubscription.tier === 'free';
-
-                const shouldShowUpgradeBlock = user && hasNoPaidPlan && list && list.length > 0 && !chatStarted;
-
-                return shouldShowUpgradeBlock ? (
-                  <PlanUpgradeBlock />
-                ) : (
-                  <>
-                    <ChatPromptContainer
-                      uploadedFiles={uploadedFiles}
-                      setUploadedFiles={setUploadedFiles!}
-                      imageDataList={imageDataList}
-                      setImageDataList={setImageDataList!}
-                      messageInputProps={messageInputProps}
-                    />
-                    {!chatStarted && (
-                      <>
-                        {ExamplePrompts((event: React.UIEvent, messageInput: string) => {
-                          if (hasPendingMessage) {
-                            handleStop?.();
-                            return;
-                          }
-                          handleSendMessage({ messageInput, chatMode: ChatMode.UserMessage });
-                        })}
-                      </>
-                    )}
-                  </>
-                );
-              })()}
+                })()}
+              </div>
             </div>
+            <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>
           </div>
-          <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>
-        </div>
+        )}
         {isSmallViewport && (appSummary || showMobileNav) && <ClientOnly>{() => <MobileNav />}</ClientOnly>}
       </div>
     );

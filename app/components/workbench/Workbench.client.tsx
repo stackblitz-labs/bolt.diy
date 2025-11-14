@@ -12,6 +12,7 @@ import { userStore } from '~/lib/stores/auth';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
+  isInResizablePanel?: boolean;
 }
 
 const createWorkbenchVariants = (workbenchWidth: number) =>
@@ -32,7 +33,7 @@ const createWorkbenchVariants = (workbenchWidth: number) =>
     },
   }) satisfies Variants;
 
-export const Workbench = memo(({ chatStarted }: WorkspaceProps) => {
+export const Workbench = memo(({ chatStarted, isInResizablePanel = false }: WorkspaceProps) => {
   renderLogger.trace('Workbench');
 
   const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -42,6 +43,20 @@ export const Workbench = memo(({ chatStarted }: WorkspaceProps) => {
 
   const isSmallViewport = useViewport(800);
 
+  // When in resizable panel, use simple relative positioning
+  if (isInResizablePanel) {
+    return chatStarted && showWorkbench ? (
+      <div className="h-full w-full p-6">
+        <div className="h-full flex flex-col bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-lg rounded-xl overflow-hidden">
+          <div className="relative flex-1 overflow-hidden">
+            <Preview />
+          </div>
+        </div>
+      </div>
+    ) : null;
+  }
+
+  // Original fixed positioning behavior for non-resizable layouts
   return (
     chatStarted && (
       <motion.div
