@@ -41,6 +41,8 @@ export class ChatStore {
 
   messages = atom<Message[]>([]);
   events = atom<ChatResponse[]>([]);
+
+  previewLoading = atom<boolean>(false);
 }
 
 export const chatStore = new ChatStore();
@@ -135,7 +137,7 @@ export function onChatResponse(response: ChatResponse, reason: string) {
             chatStore.appSummary.set(appSummary);
           }
 
-          if (showPreview(appSummary) && existingRepositoryId != appSummary.repositoryId) {
+          if (showPreview(appSummary) && existingRepositoryId !== appSummary.repositoryId) {
             updateDevelopmentServer(appSummary.repositoryId);
           }
         }

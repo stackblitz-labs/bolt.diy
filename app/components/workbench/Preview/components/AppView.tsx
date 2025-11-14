@@ -33,9 +33,11 @@ const AppView = ({
   const appSummary = useStore(chatStore.appSummary);
   const initialBuildComplete = isFeatureStatusImplemented(appSummary?.features?.[0]?.status);
   const isSmallViewport = useViewport(800);
+  const previewLoading = useStore(chatStore.previewLoading);
   const handleTokenOrRepoChange = (params: URLSearchParams) => {
     setRedirectUrl(`https://${repositoryId}.http.replay.io/auth/callback#${params.toString()}`);
   };
+  console.log('previewLoading', previewLoading);
 
   useVibeAppAuthQuery({
     iframeForceReload,
@@ -58,7 +60,7 @@ const AppView = ({
       }}
       className="bg-bolt-elements-background-depth-1"
     >
-      {previewURL ? (
+      {previewURL && !previewLoading ? (
         <div className={'relative w-full h-full'}>
           <div
             className={classNames('absolute inset-0', {
