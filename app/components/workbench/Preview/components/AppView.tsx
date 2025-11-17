@@ -37,7 +37,6 @@ const AppView = ({
   const handleTokenOrRepoChange = (params: URLSearchParams) => {
     setRedirectUrl(`https://${repositoryId}.http.replay.io/auth/callback#${params.toString()}`);
   };
-  console.log('previewLoading', previewLoading);
 
   useVibeAppAuthQuery({
     iframeForceReload,

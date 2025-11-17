@@ -62,6 +62,13 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     const subscription = useStore(subscriptionStore.subscription);
     const hasBuildAccess = useStore(buildAccessStore.hasAccess);
 
+    // Lazy loading state
+    const [visibleItemsCount, setVisibleItemsCount] = useState(25);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const loadTriggerRef = useRef<HTMLDivElement | null>(null);
+    const previousScrollHeight = useRef<number>(0);
+    const hasScrolledRef = useRef(false);
+
     // Calculate startPlanningRating for the card display
     let startPlanningRating = 0;
     if (!hasPendingMessage && !hasAppSummary) {
@@ -104,9 +111,33 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
+      // Mark that user has scrolled
+      if (scrollTop > 0) {
+        hasScrolledRef.current = true;
+      }
+
       setShowJumpToBottom(distanceFromBottom > 50);
       setShowTopShadow(scrollTop > 10);
     };
+
+    // Load more items when scrolling to the top
+    const loadMoreItems = useCallback(() => {
+      if (isLoadingMore) {
+        return;
+      }
+
+      setIsLoadingMore(true);
+
+      // Store current scroll position
+      if (containerRef.current) {
+        previousScrollHeight.current = containerRef.current.scrollHeight;
+      }
+
+      setTimeout(() => {
+        setVisibleItemsCount((prev) => prev + 25);
+        setIsLoadingMore(false);
+      }, 10);
+    }, [isLoadingMore]);
 
     const scrollToBottom = () => {
       if (!containerRef.current) {
@@ -127,6 +158,72 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       }
       return undefined;
     }, []);
+
+    // IntersectionObserver for lazy loading
+    useEffect(() => {
+      const trigger = loadTriggerRef.current;
+      const container = containerRef.current;
+      if (!trigger || !container) {
+        return;
+      }
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          // Only load more if:
+          // 1. Element is intersecting
+          // 2. Not already loading
+          // 3. User has scrolled (prevents immediate trigger on mount)
+          // 4. Container is actually scrollable and scrolled up
+          if (entry.isIntersecting && !isLoadingMore && hasScrolledRef.current && container.scrollTop > 0) {
+            loadMoreItems();
+          }
+        },
+        {
+          root: container,
+          rootMargin: '100px',
+          threshold: 0.1,
+        },
+      );
+
+      observer.observe(trigger);
+
+      return () => {
+        observer.disconnect();
+      };
+    }, [loadMoreItems, isLoadingMore]);
+
+    // Maintain scroll position after loading more items
+    useEffect(() => {
+      if (containerRef.current && previousScrollHeight.current > 0) {
+        const newScrollHeight = containerRef.current.scrollHeight;
+        const scrollDiff = newScrollHeight - previousScrollHeight.current;
+
+        if (scrollDiff > 0) {
+          containerRef.current.scrollTop += scrollDiff;
+          previousScrollHeight.current = 0;
+        }
+      }
+    }, [visibleItemsCount]);
+
+    // Handle messages count changes - reset on new chat, expand on new messages during active chat
+    const previousMessagesLengthRef = useRef(messages.length);
+    useEffect(() => {
+      const currentLength = messages.length;
+      const previousLength = previousMessagesLengthRef.current;
+
+      // If messages dropped significantly (e.g., new chat started), reset to 25
+      if (currentLength < previousLength / 2 && currentLength < 50) {
+        setVisibleItemsCount(25);
+        hasScrolledRef.current = false; // Reset scroll flag for new chat
+      }
+      // If messages increased and we're showing all current items, expand to show new ones
+      else if (currentLength > previousLength && visibleItemsCount >= previousLength) {
+        setVisibleItemsCount((prev) => Math.max(prev, currentLength));
+      }
+
+      previousMessagesLengthRef.current = currentLength;
+    }, [messages.length, visibleItemsCount]);
 
     useEffect(() => {
       if (!showJumpToBottom) {
@@ -344,9 +441,27 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
         >
           {(() => {
             const timelineItems = createTimelineItems();
+            const totalItems = timelineItems.length;
+            const startIndex = Math.max(0, totalItems - visibleItemsCount);
+            const visibleItems = timelineItems.slice(startIndex);
+            const hasMoreToLoad = startIndex > 0;
+
             return (
               <>
-                {timelineItems.map((item, index) => {
+                {hasMoreToLoad && (
+                  <div ref={loadTriggerRef} className="flex items-center justify-center py-4 mb-4">
+                    {isLoadingMore ? (
+                      <div className="flex items-center gap-3 text-bolt-elements-textSecondary">
+                        <div className="w-5 h-5 border-2 border-bolt-elements-textSecondary border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm">Loading earlier messages...</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-bolt-elements-textTertiary opacity-60">Scroll up to load more</div>
+                    )}
+                  </div>
+                )}
+
+                {visibleItems.map((item, index) => {
                   if (item.type === 'message') {
                     return renderMessage(item.data as Message, index);
                   } else if (item.type === 'feature') {
