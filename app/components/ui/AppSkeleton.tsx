@@ -2,6 +2,7 @@ import { Skeleton } from './Skeleton';
 import { VerticalNav } from '~/components/header/VerticalNav';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '~/components/ui/resizable';
 import { ClientOnly } from 'remix-utils/client-only';
+import { getDefaultChatPanelSize } from '~/lib/utils/panelSizes';
 
 export const AppSkeleton = () => {
   return (
@@ -15,7 +16,7 @@ export const AppSkeleton = () => {
       <div className="flex-1 h-full ml-16">
         <ResizablePanelGroup direction="horizontal" className="h-full w-full">
           {/* Chat Panel */}
-          <ResizablePanel defaultSize={40} minSize={30} maxSize={60} className="relative">
+          <ResizablePanel defaultSize={getDefaultChatPanelSize()} minSize={30} maxSize={60} className="relative">
             <div className="w-full h-full pl-0 pr-1 py-2">
               <div className="flex flex-col h-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden">
                 {/* Chat Header */}
@@ -49,7 +50,7 @@ export const AppSkeleton = () => {
           <ResizableHandle withHandle />
 
           {/* Workbench Panel */}
-          <ResizablePanel defaultSize={60} minSize={40} className="relative">
+          <ResizablePanel defaultSize={100 - getDefaultChatPanelSize()} minSize={40} className="relative">
             <div className="w-full h-full pl-1 pr-0 py-2">
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden">
                 {/* Workbench Header */}
@@ -84,4 +85,3 @@ export const AppSkeleton = () => {
     </div>
   );
 };
-

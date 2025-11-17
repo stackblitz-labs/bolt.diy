@@ -24,15 +24,23 @@ export function includeHistorySummary(summary: AppSummary): boolean {
 
 interface AppHistoryProps {
   appId: string;
+  cachedHistory?: AppSummary[];
+  isLoading?: boolean;
 }
 
-const AppHistory = ({ appId }: AppHistoryProps) => {
+const AppHistory = ({ appId, cachedHistory, isLoading: externalLoading }: AppHistoryProps) => {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<AppSummary[]>([]);
 
+  // Use cached data if provided, otherwise fetch
   useEffect(() => {
-    fetchHistory();
-  }, [appId]);
+    if (cachedHistory !== undefined) {
+      setHistory(cachedHistory);
+      setLoading(externalLoading ?? false);
+    } else {
+      fetchHistory();
+    }
+  }, [appId, cachedHistory, externalLoading]);
 
   const fetchHistory = async () => {
     try {
@@ -133,7 +141,15 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
 
   const handleRevertToVersion = async (summary: AppSummary) => {
     await database.revertApp(appId, summary.iteration);
-    fetchHistory();
+    // If using cached data, refresh it; otherwise fetch locally
+    if (cachedHistory !== undefined) {
+      // Import the store to refresh cached data
+      import('~/lib/stores/versionHistory').then(({ versionHistoryStore }) => {
+        versionHistoryStore.fetchHistory(appId);
+      });
+    } else {
+      fetchHistory();
+    }
   };
 
   if (loading) {

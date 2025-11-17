@@ -2,9 +2,9 @@ import { TweakCN } from '~/components/chat/Messages/components';
 
 import { ChevronRight, ChevronLeft, ChevronDown } from '~/components/ui/Icon';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-import { getAvailableThemes } from '~/lib/replay/themeHelper';
+import { getAvailableThemes, findMatchingTheme } from '~/lib/replay/themeHelper';
 
 import {
   DropdownMenu,
@@ -17,14 +17,81 @@ import {
 
 import { classNames } from '~/utils/classNames';
 
+import { useStore } from '@nanostores/react';
+
+import { activeSidebarTab } from '~/lib/stores/sidebarNav';
+
+const CUSTOM_THEME_NAME = 'custom';
+
 export const DesignSystemPanel = () => {
-  const [selectedTheme, setSelectedTheme] = useState('modern-minimal');
+  const activeTab = useStore(activeSidebarTab);
+  const [selectedTheme, setSelectedTheme] = useState<string>('modern-minimal');
   const [hoveredTheme, setHoveredTheme] = useState<string | null>(null);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
+  const [isCustomTheme, setIsCustomTheme] = useState(false);
+  const hasLoadedThemeRef = useRef(false);
   const availableThemes = getAvailableThemes();
 
+  // Load current theme from iframe when design tab is opened
+  useEffect(() => {
+    if (activeTab === 'design-system' && !hasLoadedThemeRef.current) {
+      hasLoadedThemeRef.current = true;
+
+      // Request current theme variables from iframe
+      const iframe = document.querySelector('iframe');
+      if (iframe?.contentWindow) {
+        const requestId = Date.now().toString();
+        const handleMessage = (event: MessageEvent) => {
+          if (
+            event.data?.id === requestId &&
+            event.data?.response &&
+            event.data?.source === '@@replay-nut'
+          ) {
+            window.removeEventListener('message', handleMessage);
+
+            const currentVariables = event.data.response as Record<string, string>;
+            if (currentVariables && Object.keys(currentVariables).length > 0) {
+              // Try to find a matching theme
+              const matchingTheme = findMatchingTheme(currentVariables);
+              if (matchingTheme) {
+                setSelectedTheme(matchingTheme);
+                setIsCustomTheme(false);
+              } else {
+                setSelectedTheme(CUSTOM_THEME_NAME);
+                setIsCustomTheme(true);
+              }
+            }
+          }
+        };
+
+        window.addEventListener('message', handleMessage);
+        iframe.contentWindow.postMessage(
+          {
+            id: requestId,
+            request: 'get-custom-variables',
+            source: '@@replay-nut',
+          },
+          '*',
+        );
+
+        // Cleanup timeout
+        setTimeout(() => {
+          window.removeEventListener('message', handleMessage);
+        }, 5000);
+      }
+    } else if (activeTab !== 'design-system') {
+      // Reset when leaving design tab
+      hasLoadedThemeRef.current = false;
+    }
+  }, [activeTab]);
+
   const handleThemeChange = (themeName: string) => {
+    if (themeName === CUSTOM_THEME_NAME) {
+      // Don't allow selecting custom directly
+      return;
+    }
     setSelectedTheme(themeName);
+    setIsCustomTheme(false);
     setHoveredTheme(null);
     setIsThemeDropdownOpen(false);
   };
@@ -38,12 +105,18 @@ export const DesignSystemPanel = () => {
   };
 
   const handlePreviousTheme = () => {
+    if (isCustomTheme) {
+      return; // Don't navigate when on custom theme
+    }
     const currentIndex = availableThemes.findIndex((t) => t.name === selectedTheme);
     const previousIndex = currentIndex > 0 ? currentIndex - 1 : availableThemes.length - 1;
     handleThemeChange(availableThemes[previousIndex].name);
   };
 
   const handleNextTheme = () => {
+    if (isCustomTheme) {
+      return; // Don't navigate when on custom theme
+    }
     const currentIndex = availableThemes.findIndex((t) => t.name === selectedTheme);
     const nextIndex = currentIndex < availableThemes.length - 1 ? currentIndex + 1 : 0;
     handleThemeChange(availableThemes[nextIndex].name);
@@ -62,7 +135,9 @@ export const DesignSystemPanel = () => {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 px-2 py-1 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 rounded-md transition-colors">
                   <span className="truncate font-medium">
-                    {availableThemes.find((t) => t.name === selectedTheme)?.title || 'Select Theme'}
+                    {isCustomTheme
+                      ? 'Custom'
+                      : availableThemes.find((t) => t.name === selectedTheme)?.title || 'Select Theme'}
                   </span>
                   <ChevronDown size={14} className="flex-shrink-0" />
                 </button>
@@ -70,6 +145,22 @@ export const DesignSystemPanel = () => {
               <DropdownMenuContent className="w-64 max-h-80 overflow-y-auto" onCloseAutoFocus={handleThemeHoverEnd}>
                 <DropdownMenuLabel>Available Themes</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {isCustomTheme && (
+                  <DropdownMenuItem
+                    className="bg-bolt-elements-background-depth-2 cursor-default"
+                    onMouseEnter={handleThemeHoverEnd}
+                  >
+                    <div className="flex flex-col gap-1 w-full">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">Custom</span>
+                        <span className="text-xs">✓</span>
+                      </div>
+                      <span className="text-xs text-bolt-elements-textSecondary line-clamp-2">
+                        Custom theme with modifications
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                )}
                 {availableThemes.map((theme) => (
                   <DropdownMenuItem
                     key={theme.name}
@@ -77,13 +168,13 @@ export const DesignSystemPanel = () => {
                     onMouseEnter={() => handleThemeHover(theme.name)}
                     onMouseLeave={handleThemeHoverEnd}
                     className={classNames({
-                      'bg-bolt-elements-background-depth-2': selectedTheme === theme.name,
+                      'bg-bolt-elements-background-depth-2': selectedTheme === theme.name && !isCustomTheme,
                     })}
                   >
                     <div className="flex flex-col gap-1 w-full">
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm">{theme.title}</span>
-                        {selectedTheme === theme.name && <span className="text-xs">✓</span>}
+                        {selectedTheme === theme.name && !isCustomTheme && <span className="text-xs">✓</span>}
                       </div>
                       <span className="text-xs text-bolt-elements-textSecondary line-clamp-2">{theme.description}</span>
                     </div>

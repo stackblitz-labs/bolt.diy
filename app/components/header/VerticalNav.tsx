@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { MessageCircle, Palette, History, Settings, Rocket } from '~/components/ui/Icon';
 
@@ -18,11 +18,11 @@ import { UserProfileMenu } from '~/components/header/UserProfileMenu';
 
 import type { LucideIcon } from 'lucide-react';
 
-import { database } from '~/lib/persistence/apps';
+import { themeChangesStore, resetThemeChanges } from '~/lib/stores/themeChanges';
 
-import { includeHistorySummary } from '~/components/workbench/VesionHistory/AppHistory';
+import { UnsavedChangesDialog } from '~/components/panels/UnsavedChangesDialog';
 
-import type { AppSummary } from '~/lib/persistence/messageAppSummary';
+import { versionHistoryStore } from '~/lib/stores/versionHistory';
 
 interface NavItem {
   id: SidebarNavTab;
@@ -66,32 +66,41 @@ const navItems: NavItem[] = [
 export const VerticalNav = () => {
   const activeTab = useStore(activeSidebarTab);
   const appId = useStore(chatStore.currentAppId);
-  const appSummary = useStore(chatStore.appSummary);
   const repositoryId = useStore(workbenchStore.repositoryId);
   const user = useStore(userStore);
-  const [_history, setHistory] = useState<AppSummary[]>([]);
+  const themeChanges = useStore(themeChangesStore);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingTab, setPendingTab] = useState<SidebarNavTab | null>(null);
+  const versionHistory = useStore(versionHistoryStore.history);
 
   const handleTabClick = (tabId: SidebarNavTab) => {
+    // Check if we're leaving the design-system tab and there are unsaved changes
+    if (activeTab === 'design-system' && tabId !== 'design-system' && themeChanges.hasChanges) {
+      setPendingTab(tabId);
+      setShowUnsavedDialog(true);
+      return;
+    }
+
     sidebarNavStore.setActiveTab(tabId);
   };
 
-  const fetchHistory = async () => {
-    if (!appId) {
-      return;
+  const handleConfirmLeave = () => {
+    // Reset theme changes and switch to the pending tab
+    resetThemeChanges();
+    if (pendingTab) {
+      sidebarNavStore.setActiveTab(pendingTab);
     }
-    try {
-      const history = await database.getAppHistory(appId);
-      setHistory(history.filter(includeHistorySummary));
-    } catch (err) {
-      console.error('Failed to fetch app history:', err);
-    }
+    setShowUnsavedDialog(false);
+    setPendingTab(null);
   };
 
-  useEffect(() => {
-    if (appId) {
-      fetchHistory();
-    }
-  }, [appSummary, appId]);
+  const handleCancelLeave = () => {
+    setShowUnsavedDialog(false);
+    setPendingTab(null);
+  };
+
+  // Get version count from store
+  const versionCount = versionHistory.length;
 
   return (
     <div className="flex flex-col w-16 bg-bolt-elements-background-depth-1 py-2.5 h-full">
@@ -118,6 +127,7 @@ export const VerticalNav = () => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           const isDisabled = item.requiresApp && (!appId || !repositoryId);
+          const showBadge = item.id === 'version-history' && versionCount > 0;
 
           return (
             <button
@@ -125,7 +135,7 @@ export const VerticalNav = () => {
               onClick={() => !isDisabled && handleTabClick(item.id)}
               disabled={isDisabled}
               className={classNames(
-                'flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-all duration-200',
+                'flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-all duration-200 relative',
                 isActive
                   ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary shadow-sm'
                   : isDisabled
@@ -134,7 +144,14 @@ export const VerticalNav = () => {
               )}
               title={item.label}
             >
-              <Icon size={20} />
+              <div className="relative">
+                <Icon size={20} />
+                {showBadge && (
+                  <span className="absolute -top-2 -right-4 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-semibold text-white bg-blue-500 rounded-full border-2 border-bolt-elements-background-depth-1">
+                    {versionCount > 99 ? '99+' : versionCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-medium leading-tight text-center">{item.label}</span>
             </button>
           );
@@ -147,6 +164,9 @@ export const VerticalNav = () => {
           <UserProfileMenu />
         </div>
       )}
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog isOpen={showUnsavedDialog} onConfirm={handleConfirmLeave} onCancel={handleCancelLeave} />
     </div>
   );
 };

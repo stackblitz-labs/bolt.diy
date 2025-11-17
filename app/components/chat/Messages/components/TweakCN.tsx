@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { Layout, Type, Settings, Search } from '~/components/ui/Icon';
 
@@ -16,6 +16,10 @@ import { getThemeCSSVariables, flattenThemeVariablesWithModes } from '~/lib/repl
 import { classNames } from '~/utils/classNames';
 
 import { ChevronDown } from 'lucide-react';
+
+import { markThemeChanged, resetThemeChanges } from '~/lib/stores/themeChanges';
+
+import { themeIsDark } from '~/lib/stores/theme';
 
 type TabType = 'colors' | 'typography' | 'other';
 
@@ -174,6 +178,16 @@ export const TweakCN: React.FC<TweakCNProps> = ({
   // Theme customization state
   const [customTheme, setCustomTheme] = useState<Record<string, string>>({});
   const [_hoveredCustomization, setHoveredCustomization] = useState<Record<string, string> | null>(null);
+
+  // Store original values for tracking changes
+  const originalValuesRef = useRef<{
+    colors: Record<string, string>;
+    fonts: { sans: string; serif: string; mono: string };
+    radius: number;
+    spacingUnit: number;
+    borderWidth: number;
+    additionalColors: Record<string, string>;
+  } | null>(null);
 
   // Font selections
   const [sansSerifFont, setSansSerifFont] = useState('Inter, sans-serif');
@@ -444,9 +458,153 @@ export const TweakCN: React.FC<TweakCNProps> = ({
     );
   };
 
+  // Helper to parse CSS variable values (handles .dark: separator)
+  const parseVariableValue = (value: string): { light?: string; dark?: string } => {
+    if (value.includes('.dark:')) {
+      const [lightPart, darkPart] = value.split('.dark:');
+      return {
+        light: lightPart.trim(),
+        dark: darkPart?.trim(),
+      };
+    }
+    return { light: value };
+  };
+
+  // Helper to load theme variables from iframe for custom theme
+  const loadCustomThemeFromIframe = () => {
+    const iframe = getIframe();
+    if (!iframe?.contentWindow) {
+      return;
+    }
+
+    const requestId = Date.now().toString();
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.id === requestId && event.data?.response && event.data?.source === '@@replay-nut') {
+        window.removeEventListener('message', handleMessage);
+
+        const currentVariables = event.data.response as Record<string, string>;
+        if (currentVariables && Object.keys(currentVariables).length > 0) {
+          // Parse variables and load into state
+          const lightColors: Record<string, string> = {};
+          const darkColors: Record<string, string> = {};
+          const themeVars: Record<string, string> = {};
+
+          Object.entries(currentVariables).forEach(([key, value]) => {
+            if (key.startsWith('--font-') || key === '--radius') {
+              themeVars[key.replace('--', '')] = value;
+            } else if (key.endsWith('-dark')) {
+              const baseKey = key.slice(0, -5);
+              darkColors[baseKey.replace('--', '')] = value;
+            } else {
+              const parsed = parseVariableValue(value);
+              const baseKey = key.replace('--', '');
+              if (parsed.light) {
+                lightColors[baseKey] = parsed.light;
+              }
+              if (parsed.dark) {
+                darkColors[baseKey] = parsed.dark;
+              }
+            }
+          });
+
+          // Update colors state
+          const newColors = {
+            primary: lightColors.primary || '38 92% 50%',
+            primaryForeground: lightColors['primary-foreground'] || '0 0% 0%',
+            secondary: lightColors.secondary || '220 14% 96%',
+            secondaryForeground: lightColors['secondary-foreground'] || '215 14% 34%',
+            accent: lightColors.accent || '48 100% 96%',
+            accentForeground: lightColors['accent-foreground'] || '23 83% 31%',
+            background: lightColors.background || '0 0% 100%',
+            foreground: lightColors.foreground || '0 0% 15%',
+            card: lightColors.card || '0 0% 100%',
+            cardForeground: lightColors['card-foreground'] || '0 0% 15%',
+            muted: lightColors.muted || '210 20% 98%',
+            mutedForeground: lightColors['muted-foreground'] || '220 9% 46%',
+            border: lightColors.border || '220 13% 91%',
+            destructive: lightColors.destructive || '0 84% 60%',
+            destructiveForeground: lightColors['destructive-foreground'] || '0 0% 100%',
+          };
+
+          setColors(newColors);
+
+          // Update fonts and radius
+          if (themeVars['font-sans']) {
+            setSansSerifFont(themeVars['font-sans']);
+          }
+          if (themeVars['font-serif']) {
+            setSerifFont(themeVars['font-serif']);
+          }
+          if (themeVars['font-mono']) {
+            setMonoFont(themeVars['font-mono']);
+          }
+          if (themeVars.radius) {
+            const radiusValue = parseFloat(themeVars.radius);
+            if (!isNaN(radiusValue)) {
+              setRadius(radiusValue);
+            }
+          }
+
+          // Store original values
+          originalValuesRef.current = {
+            colors: { ...newColors },
+            fonts: {
+              sans: themeVars['font-sans'] || 'Inter, sans-serif',
+              serif: themeVars['font-serif'] || 'Source Serif 4, serif',
+              mono: themeVars['font-mono'] || 'JetBrains Mono, monospace',
+            },
+            radius: themeVars.radius ? parseFloat(themeVars.radius) : 0.625,
+            spacingUnit: 4,
+            borderWidth: 1,
+            additionalColors: {
+              success: lightColors.success || '142 71% 45%',
+              successForeground: lightColors['success-foreground'] || '0 0% 100%',
+              warning: lightColors.warning || '38 92% 50%',
+              warningForeground: lightColors['warning-foreground'] || '0 0% 0%',
+              danger: lightColors.danger || '0 84% 60%',
+              dangerForeground: lightColors['danger-foreground'] || '0 0% 100%',
+              sidebar: lightColors.sidebar || '240 5% 6%',
+              sidebarForeground: lightColors['sidebar-foreground'] || '240 5% 90%',
+              sidebarPrimary: lightColors['sidebar-primary'] || '240 6% 10%',
+              sidebarPrimaryForeground: lightColors['sidebar-primary-foreground'] || '0 0% 98%',
+              sidebarAccent: lightColors['sidebar-accent'] || '240 4% 16%',
+              sidebarAccentForeground: lightColors['sidebar-accent-foreground'] || '240 6% 90%',
+              sidebarBorder: lightColors['sidebar-border'] || '240 4% 16%',
+              sidebarRing: lightColors['sidebar-ring'] || '217 91% 60%',
+            },
+          };
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    iframe.contentWindow.postMessage(
+      {
+        id: requestId,
+        request: 'get-custom-variables',
+        source: '@@replay-nut',
+      },
+      '*',
+    );
+
+    setTimeout(() => {
+      window.removeEventListener('message', handleMessage);
+    }, 5000);
+  };
+
   // Apply theme when selected and load its values into the panel
   useEffect(() => {
     console.log('[TweakCN] Selected theme changed to:', selectedTheme);
+
+    // If custom theme, load current values from iframe
+    if (selectedTheme === 'custom') {
+      loadCustomThemeFromIframe();
+      return;
+    }
+
+    // Reset theme changes when switching themes
+    resetThemeChanges();
+
     sendThemeToIframe(selectedTheme);
 
     // Load the theme's CSS variables into our state
@@ -456,7 +614,7 @@ export const TweakCN: React.FC<TweakCNProps> = ({
       const lightColors = cssVars.light || {};
       const themeVars = cssVars.theme || {};
 
-      setColors({
+      const newColors = {
         primary: lightColors.primary || '38 92% 50%',
         primaryForeground: lightColors['primary-foreground'] || '0 0% 0%',
         secondary: lightColors.secondary || '220 14% 96%',
@@ -472,24 +630,51 @@ export const TweakCN: React.FC<TweakCNProps> = ({
         border: lightColors.border || '220 13% 91%',
         destructive: lightColors.destructive || '0 84% 60%',
         destructiveForeground: lightColors['destructive-foreground'] || '0 0% 100%',
-      });
+      };
+
+      setColors(newColors);
 
       // Load font settings
-      if (themeVars['font-sans']) {
-        setSansSerifFont(themeVars['font-sans']);
+      const newSansFont = themeVars['font-sans'] || 'Inter, sans-serif';
+      const newSerifFont = themeVars['font-serif'] || 'Source Serif 4, serif';
+      const newMonoFont = themeVars['font-mono'] || 'JetBrains Mono, monospace';
+      const newRadius = themeVars.radius ? parseFloat(themeVars.radius) : 0.625;
+
+      setSansSerifFont(newSansFont);
+      setSerifFont(newSerifFont);
+      setMonoFont(newMonoFont);
+      if (!isNaN(newRadius)) {
+        setRadius(newRadius);
       }
-      if (themeVars['font-serif']) {
-        setSerifFont(themeVars['font-serif']);
-      }
-      if (themeVars['font-mono']) {
-        setMonoFont(themeVars['font-mono']);
-      }
-      if (themeVars.radius) {
-        const radiusValue = parseFloat(themeVars.radius);
-        if (!isNaN(radiusValue)) {
-          setRadius(radiusValue);
-        }
-      }
+
+      // Store original values for change tracking
+      originalValuesRef.current = {
+        colors: { ...newColors },
+        fonts: {
+          sans: newSansFont,
+          serif: newSerifFont,
+          mono: newMonoFont,
+        },
+        radius: newRadius,
+        spacingUnit: 4, // Default spacing unit
+        borderWidth: 1, // Default border width
+        additionalColors: {
+          success: lightColors.success || '142 71% 45%',
+          successForeground: lightColors['success-foreground'] || '0 0% 100%',
+          warning: lightColors.warning || '38 92% 50%',
+          warningForeground: lightColors['warning-foreground'] || '0 0% 0%',
+          danger: lightColors.danger || '0 84% 60%',
+          dangerForeground: lightColors['danger-foreground'] || '0 0% 100%',
+          sidebar: lightColors.sidebar || '240 5% 6%',
+          sidebarForeground: lightColors['sidebar-foreground'] || '240 5% 90%',
+          sidebarPrimary: lightColors['sidebar-primary'] || '240 6% 10%',
+          sidebarPrimaryForeground: lightColors['sidebar-primary-foreground'] || '0 0% 98%',
+          sidebarAccent: lightColors['sidebar-accent'] || '240 4% 16%',
+          sidebarAccentForeground: lightColors['sidebar-accent-foreground'] || '240 6% 90%',
+          sidebarBorder: lightColors['sidebar-border'] || '240 4% 16%',
+          sidebarRing: lightColors['sidebar-ring'] || '217 91% 60%',
+        },
+      };
     }
   }, [selectedTheme]);
 
@@ -536,6 +721,17 @@ export const TweakCN: React.FC<TweakCNProps> = ({
       setHoveredCustomization({ [varName]: font });
       sendCustomizationToIframe({ [varName]: font });
     } else {
+      // Get original value for tracking
+      const originalValue =
+        fontType === 'sans'
+          ? originalValuesRef.current?.fonts.sans || ''
+          : fontType === 'serif'
+            ? originalValuesRef.current?.fonts.serif || ''
+            : originalValuesRef.current?.fonts.mono || '';
+
+      // Track change in store (app-settings category)
+      markThemeChanged(varName, originalValue, font, 'app-settings');
+
       if (fontType === 'sans') {
         setSansSerifFont(font);
       } else if (fontType === 'serif') {
@@ -558,6 +754,19 @@ export const TweakCN: React.FC<TweakCNProps> = ({
       setHoveredCustomization({ [varName]: varValue });
       sendCustomizationToIframe({ [varName]: varValue });
     } else {
+      // Get original value for tracking
+      const originalValue =
+        key === 'radius'
+          ? `${originalValuesRef.current?.radius || 0.625}rem`
+          : key === 'spacing-unit'
+            ? `${originalValuesRef.current?.spacingUnit || 4}px`
+            : key === 'border-width'
+              ? `${originalValuesRef.current?.borderWidth || 1}px`
+              : '';
+
+      // Track change in store (app-settings category)
+      markThemeChanged(varName, originalValue, varValue, 'app-settings');
+
       if (key === 'radius') {
         setRadius(value);
       }
@@ -582,14 +791,19 @@ export const TweakCN: React.FC<TweakCNProps> = ({
   const handleColorChange = (colorKey: string, value: string) => {
     console.log('[TweakCN] Color changed:', colorKey, '=', value);
 
+    // Get original value for tracking
+    const originalValue = originalValuesRef.current?.colors[colorKey] || '';
+    const isDarkMode = themeIsDark();
+
+    // Track change in store
+    const cssVarName = colorKey.replace(/([A-Z])/g, '-$1').toLowerCase();
+    markThemeChanged(`--${cssVarName}`, originalValue, value, isDarkMode);
+
     // Update local state
     setColors((prev) => ({
       ...prev,
       [colorKey]: value,
     }));
-
-    // Convert camelCase to kebab-case for CSS variable names
-    const cssVarName = colorKey.replace(/([A-Z])/g, '-$1').toLowerCase();
 
     console.log('[TweakCN] Sending to iframe:', `--${cssVarName}`, '=', value);
 
@@ -601,6 +815,26 @@ export const TweakCN: React.FC<TweakCNProps> = ({
       ...prev,
       [`--${cssVarName}`]: value,
     }));
+  };
+
+  // Handle additional color changes (success, warning, danger, sidebar)
+  const handleAdditionalColorChange = (colorKey: string, value: string) => {
+    // Get original value for tracking
+    const originalValue = originalValuesRef.current?.additionalColors[colorKey] || '';
+    const isDarkMode = themeIsDark();
+
+    // Track change in store
+    const cssVarName = colorKey.replace(/([A-Z])/g, '-$1').toLowerCase();
+    markThemeChanged(`--${cssVarName}`, originalValue, value, isDarkMode);
+
+    // Update local state
+    setAdditionalColors((prev) => ({
+      ...prev,
+      [colorKey]: value,
+    }));
+
+    // Send to iframe immediately
+    sendCustomizationToIframe({ [`--${cssVarName}`]: value });
   };
 
   const tabs = [
@@ -795,50 +1029,32 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                   <ColorPicker
                     label="Success"
                     value={additionalColors.success}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, success: value });
-                      sendCustomizationToIframe({ '--success': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('success', value)}
                   />
                   <ColorPicker
                     label="Success Foreground"
                     value={additionalColors.successForeground}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, successForeground: value });
-                      sendCustomizationToIframe({ '--success-foreground': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('successForeground', value)}
                   />
                   <ColorPicker
                     label="Warning"
                     value={additionalColors.warning}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, warning: value });
-                      sendCustomizationToIframe({ '--warning': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('warning', value)}
                   />
                   <ColorPicker
                     label="Warning Foreground"
                     value={additionalColors.warningForeground}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, warningForeground: value });
-                      sendCustomizationToIframe({ '--warning-foreground': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('warningForeground', value)}
                   />
                   <ColorPicker
                     label="Danger"
                     value={additionalColors.danger}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, danger: value });
-                      sendCustomizationToIframe({ '--danger': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('danger', value)}
                   />
                   <ColorPicker
                     label="Danger Foreground"
                     value={additionalColors.dangerForeground}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, dangerForeground: value });
-                      sendCustomizationToIframe({ '--danger-foreground': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('dangerForeground', value)}
                   />
                 </CollapsibleContent>
               </div>
@@ -855,66 +1071,42 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                   <ColorPicker
                     label="Sidebar"
                     value={additionalColors.sidebar}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, sidebar: value });
-                      sendCustomizationToIframe({ '--sidebar': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('sidebar', value)}
                   />
                   <ColorPicker
                     label="Sidebar Foreground"
                     value={additionalColors.sidebarForeground}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, sidebarForeground: value });
-                      sendCustomizationToIframe({ '--sidebar-foreground': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('sidebarForeground', value)}
                   />
                   <ColorPicker
                     label="Sidebar Primary"
                     value={additionalColors.sidebarPrimary}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, sidebarPrimary: value });
-                      sendCustomizationToIframe({ '--sidebar-primary': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('sidebarPrimary', value)}
                   />
                   <ColorPicker
                     label="Sidebar Primary Foreground"
                     value={additionalColors.sidebarPrimaryForeground}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, sidebarPrimaryForeground: value });
-                      sendCustomizationToIframe({ '--sidebar-primary-foreground': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('sidebarPrimaryForeground', value)}
                   />
                   <ColorPicker
                     label="Sidebar Accent"
                     value={additionalColors.sidebarAccent}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, sidebarAccent: value });
-                      sendCustomizationToIframe({ '--sidebar-accent': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('sidebarAccent', value)}
                   />
                   <ColorPicker
                     label="Sidebar Accent Foreground"
                     value={additionalColors.sidebarAccentForeground}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, sidebarAccentForeground: value });
-                      sendCustomizationToIframe({ '--sidebar-accent-foreground': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('sidebarAccentForeground', value)}
                   />
                   <ColorPicker
                     label="Sidebar Border"
                     value={additionalColors.sidebarBorder}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, sidebarBorder: value });
-                      sendCustomizationToIframe({ '--sidebar-border': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('sidebarBorder', value)}
                   />
                   <ColorPicker
                     label="Sidebar Ring"
                     value={additionalColors.sidebarRing}
-                    onChange={(value) => {
-                      setAdditionalColors({ ...additionalColors, sidebarRing: value });
-                      sendCustomizationToIframe({ '--sidebar-ring': value });
-                    }}
+                    onChange={(value) => handleAdditionalColorChange('sidebarRing', value)}
                   />
                 </CollapsibleContent>
               </div>
@@ -1174,8 +1366,11 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     <button
                       key={preset.value}
                       onClick={() => {
+                        const originalValue = `${originalValuesRef.current?.spacingUnit || 4}px`;
+                        const newValue = `${preset.value}px`;
+                        markThemeChanged('--spacing-unit', originalValue, newValue, 'app-settings');
                         setSpacingUnit(preset.value);
-                        sendCustomizationToIframe({ '--spacing-unit': `${preset.value}px` });
+                        sendCustomizationToIframe({ '--spacing-unit': newValue });
                       }}
                       className={classNames(
                         'flex flex-col items-center justify-center p-3 rounded-lg border transition-all',
@@ -1184,14 +1379,14 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                           : 'border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2',
                       )}
                     >
-                      <div className="w-10 h-10 mb-2 flex items-center justify-center gap-1">
+                      <div className="w-10 h-10 mb-2 flex items-center justify-center gap-0.5">
                         {[0, 1, 2].map((i) => (
                           <div
                             key={i}
                             className="bg-bolt-elements-textPrimary rounded-sm"
                             style={{
-                              width: `${preset.value * 0.5}px`,
-                              height: `${preset.value * 2}px`,
+                              width: `${Math.max(2, preset.value * 0.75)}px`,
+                              height: `${preset.value * 3}px`,
                             }}
                           />
                         ))}
@@ -1221,8 +1416,11 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     <button
                       key={preset.value}
                       onClick={() => {
+                        const originalValue = `${originalValuesRef.current?.borderWidth || 1}px`;
+                        const newValue = `${preset.value}px`;
+                        markThemeChanged('--border-width', originalValue, newValue, 'app-settings');
                         setBorderWidth(preset.value);
-                        sendCustomizationToIframe({ '--border-width': `${preset.value}px` });
+                        sendCustomizationToIframe({ '--border-width': newValue });
                       }}
                       className={classNames(
                         'flex flex-col items-center justify-center p-3 rounded-lg border transition-all',

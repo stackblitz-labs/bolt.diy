@@ -2,9 +2,12 @@ import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import AppHistory from '~/components/workbench/VesionHistory/AppHistory';
 import { History } from '~/components/ui/Icon';
+import { versionHistoryStore } from '~/lib/stores/versionHistory';
 
 export const VersionHistoryPanel = () => {
   const appId = useStore(chatStore.currentAppId);
+  const history = useStore(versionHistoryStore.history);
+  const isLoading = useStore(versionHistoryStore.isLoading);
 
   if (!appId) {
     return (
@@ -22,7 +25,7 @@ export const VersionHistoryPanel = () => {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
-        <AppHistory appId={appId} />
+        <AppHistory appId={appId} cachedHistory={history} isLoading={isLoading} />
       </div>
     </div>
   );

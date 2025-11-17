@@ -24,50 +24,12 @@ export const DeployPanel = () => {
   const appId = useStore(chatStore.currentAppId);
   const repositoryId = useStore(workbenchStore.repositoryId);
 
-  // Load deploy settings when panel mounts
+  // Load deploy settings when app/repository changes (data is cached in store)
   useEffect(() => {
-    const loadData = async () => {
-      if (!appId || !repositoryId) {
-        return;
-      }
-
-      deployModalStore.setLoadingData(true);
-
-      // Check for database
-      try {
-        const repositoryContents = await import('~/lib/replay/Deploy').then((m) => m.downloadRepository(repositoryId));
-        const byteCharacters = atob(repositoryContents);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/zip' });
-        const reader = new FileReader();
-
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            const zipContents = event.target.result as string;
-            deployModalStore.setDatabaseFound(zipContents.includes('supabase'));
-          }
-        };
-
-        reader.readAsText(blob);
-      } catch (error) {
-        console.error('Error downloading repository:', error);
-      }
-
-      // Load existing settings
-      const existingSettings = await database.getAppDeploySettings(appId);
-      if (existingSettings) {
-        deployModalStore.setDeploySettings(existingSettings);
-      }
-
-      deployModalStore.setLoadingData(false);
-      deployModalStore.setStatus(DeployStatus.NotStarted);
-    };
-
-    loadData();
+    if (appId && repositoryId) {
+      // This will use cached data if already loaded, or load it if not
+      deployModalStore.loadData(appId, repositoryId);
+    }
   }, [appId, repositoryId]);
 
   const handleDeploy = async () => {

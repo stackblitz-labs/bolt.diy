@@ -105,3 +105,68 @@ export function flattenThemeVariablesWithModes(cssVars: ThemeCSSVariables): Reco
 
   return flattened;
 }
+
+/**
+ * Normalize theme variables for comparison by:
+ * 1. Sorting keys
+ * 2. Normalizing whitespace
+ * 3. Removing variables that might differ (like app-title)
+ */
+function normalizeThemeVariables(vars: Record<string, string>): Record<string, string> {
+  const normalized: Record<string, string> = {};
+  const excludeKeys = ['--app-title']; // Exclude app-specific variables
+
+  Object.entries(vars)
+    .filter(([key]) => !excludeKeys.includes(key))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([key, value]) => {
+      normalized[key] = String(value).trim().replace(/\s+/g, ' ');
+    });
+
+  return normalized;
+}
+
+/**
+ * Compare two theme variable objects for exact match
+ */
+function compareThemeVariables(vars1: Record<string, string>, vars2: Record<string, string>): boolean {
+  const normalized1 = normalizeThemeVariables(vars1);
+  const normalized2 = normalizeThemeVariables(vars2);
+
+  const keys1 = Object.keys(normalized1);
+  const keys2 = Object.keys(normalized2);
+
+  if (keys1.length !== keys2.length) {
+    return false;
+  }
+
+  for (const key of keys1) {
+    if (normalized1[key] !== normalized2[key]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Find a matching theme name for the given theme variables
+ * Returns the theme name if found, or null if no match
+ */
+export function findMatchingTheme(currentVariables: Record<string, string>): string | null {
+  const availableThemes = getAvailableThemes();
+
+  for (const theme of availableThemes) {
+    const themeVars = getThemeCSSVariables(theme.name);
+    if (!themeVars) {
+      continue;
+    }
+
+    const flattenedThemeVars = flattenThemeVariablesWithModes(themeVars);
+    if (compareThemeVariables(currentVariables, flattenedThemeVars)) {
+      return theme.name;
+    }
+  }
+
+  return null;
+}

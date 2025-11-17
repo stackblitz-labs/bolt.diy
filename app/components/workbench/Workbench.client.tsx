@@ -9,6 +9,7 @@ import { Preview } from './Preview/Preview';
 import useViewport from '~/lib/hooks';
 import { useLayoutWidths } from '~/lib/hooks/useLayoutWidths';
 import { userStore } from '~/lib/stores/auth';
+import { ThemeChangesFAB } from './ThemeChangesFAB';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -50,6 +51,7 @@ export const Workbench = memo(({ chatStarted, isInResizablePanel = false }: Work
         <div className="h-full flex flex-col bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-lg rounded-xl overflow-hidden">
           <div className="relative flex-1 overflow-hidden">
             <Preview />
+            <ThemeChangesFAB />
           </div>
         </div>
       </div>
@@ -99,6 +101,7 @@ export const Workbench = memo(({ chatStarted, isInResizablePanel = false }: Work
             >
               <div className="relative flex-1 overflow-hidden">
                 <Preview />
+                <ThemeChangesFAB />
               </div>
             </div>
           </div>

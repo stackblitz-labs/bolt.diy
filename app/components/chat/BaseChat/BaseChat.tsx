@@ -41,6 +41,9 @@ import { DesignSystemPanel } from '~/components/panels/DesignSystemPanel';
 import { DeployPanel } from '~/components/panels/DeployPanel';
 import { VersionHistoryPanel } from '~/components/panels/VersionHistoryPanel';
 import { AppSettingsPanel } from '~/components/panels/AppSettingsPanel';
+import { getDefaultChatPanelSize, saveChatPanelSize } from '~/lib/utils/panelSizes';
+import { versionHistoryStore } from '~/lib/stores/versionHistory';
+import { deployModalStore } from '~/lib/stores/deployModal';
 
 export const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -98,6 +101,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [isLoadingList, setIsLoadingList] = useState(true);
     const isSidebarOpen = useStore(sidebarMenuStore.isOpen);
     const activeTab = useStore(activeSidebarTab);
+    const currentAppId = useStore(chatStore.currentAppId);
 
     const loadEntries = useCallback(() => {
       setIsLoadingList(true);
@@ -111,6 +115,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       loadEntries();
     }, [loadEntries, user]);
+
+    // Start polling for version history and deploy data when app is loaded
+    useEffect(() => {
+      if (currentAppId) {
+        // Start polling for version history
+        versionHistoryStore.startPolling(currentAppId, 30000); // Poll every 30 seconds
+
+        // Start polling for deploy data if repository is available
+        if (repositoryId) {
+          deployModalStore.startPolling(currentAppId, repositoryId, 30000); // Poll every 30 seconds
+        }
+      } else {
+        // Stop polling when no app is loaded
+        versionHistoryStore.stopPolling();
+        deployModalStore.stopPolling();
+      }
+
+      // Cleanup on unmount or when appId changes
+      return () => {
+        versionHistoryStore.stopPolling();
+        deployModalStore.stopPolling();
+      };
+    }, [currentAppId, repositoryId]);
 
     const onTranscriptChange = useCallback(
       (transcript: string) => {
@@ -354,8 +381,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         )}
         <div className={classNames('flex-1 h-full', { 'ml-16': user })}>
           {shouldUseResizable ? (
-            <ResizablePanelGroup direction="horizontal" className="h-full w-full">
-              <ResizablePanel defaultSize={40} minSize={30} maxSize={60} className="relative">
+            <ResizablePanelGroup
+              direction="horizontal"
+              className="h-full w-full"
+              onLayout={(sizes) => {
+                // Save the first panel's size (chat panel)
+                if (sizes && sizes.length > 0) {
+                  saveChatPanelSize(sizes[0]);
+                }
+              }}
+            >
+              <ResizablePanel defaultSize={getDefaultChatPanelSize()} minSize={30} maxSize={60} className="relative">
                 {showPanel ? (
                   <div className="w-full h-full pl-0 pr-1 py-2">{renderPanelContent()}</div>
                 ) : (
@@ -483,7 +519,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 )}
               </ResizablePanel>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={60} minSize={40} maxSize={70} className="relative">
+              <ResizablePanel
+                defaultSize={100 - getDefaultChatPanelSize()}
+                minSize={40}
+                maxSize={70}
+                className="relative"
+              >
                 <ClientOnly>{() => <Workbench chatStarted={chatStarted} isInResizablePanel={true} />}</ClientOnly>
               </ResizablePanel>
             </ResizablePanelGroup>
