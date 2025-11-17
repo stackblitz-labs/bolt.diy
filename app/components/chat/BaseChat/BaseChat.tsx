@@ -394,7 +394,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const baseChat = (
       <div
         ref={ref}
-        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
+        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-x-hidden')}
         data-chat-visible={showChat}
       >
         {user && (
@@ -407,7 +407,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </ClientOnly>
           </>
         )}
-        <div className={classNames('flex-1 h-full', { 'ml-16': user })}>
+        <div className={classNames('flex-1 h-full relative', { 'ml-16': user })}>
           {shouldUseResizable ? (
             <ResizablePanelGroup
               direction="horizontal"
@@ -427,13 +427,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     ref={combinedScrollRef}
                     className={classNames('w-full h-full overflow-y-auto', {
                       'pl-0 pr-1 py-2': chatStarted,
-                      'pt-12 px-6 pb-16': !chatStarted,
+                      'pt-12 pb-16': !chatStarted,
                     })}
                   >
                     <div
                       className={classNames(
                         styles.Chat,
-                        'flex flex-col h-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden',
+                        'flex flex-col h-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor shadow-lg overflow-hidden',
                         {
                           'landing-page-layout': !chatStarted,
                         },
@@ -454,7 +454,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         </div>
                       )}
                       <div
-                        className={classNames('h-full flex flex-col px-6 relative', {
+                        className={classNames('h-full flex flex-col relative', {
                           'flex-1 overflow-hidden': chatStarted,
                         })}
                       >
@@ -462,7 +462,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           {() => {
                             return chatStarted ? (
                               <div className="flex-1 min-h-0 flex flex-col relative">
-                                <div className="flex-1 overflow-y-auto">
+                                <div className="flex-1 overflow-y-auto pb-20">
                                   <Messages
                                     ref={messageRef}
                                     onLastMessageCheckboxChange={onLastMessageCheckboxChange}
@@ -480,8 +480,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                     </div>
                                   )}
                                 </div>
+                                {/* Gradient fade at bottom to blend with input - fixed position */}
+                                <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1/80 to-transparent pointer-events-none z-10" />
                                 {infoCards && infoCards.length > 0 && (
-                                  <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center px-6 pt-4 bg-gradient-to-t from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1/95 to-transparent pointer-events-none">
+                                  <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center pt-4 bg-gradient-to-t from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1/95 to-transparent pointer-events-none">
                                     <div
                                       className="pointer-events-auto"
                                       style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}
@@ -580,7 +582,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     'flex-shrink-0': !isSmallViewport,
                     'pb-2': isSmallViewport,
                     'landing-page-layout': !chatStarted,
-                    'bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden':
+                    'bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor shadow-lg overflow-hidden':
                       chatStarted && !isSmallViewport,
                   })}
                   style={!isSmallViewport && showWorkbench ? { width: `${chatWidth}px` } : { width: '100%' }}
@@ -604,14 +606,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       'pr-4': !isSmallViewport && showWorkbench,
                       'h-full flex flex-col flex-1 overflow-hidden': chatStarted,
                       'px-2': !isSmallViewport,
-                      'px-6 pb-4': chatStarted && !isSmallViewport,
+                      'pb-4': chatStarted && !isSmallViewport,
                     })}
                   >
                     <ClientOnly>
                       {() => {
                         return chatStarted ? (
                           <div className="flex-1 min-h-0 flex flex-col relative">
-                            <div className="flex-1 overflow-y-auto">
+                            <div className="flex-1 overflow-y-auto pb-20">
                               <Messages
                                 ref={messageRef}
                                 onLastMessageCheckboxChange={onLastMessageCheckboxChange}
@@ -629,6 +631,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                 </div>
                               )}
                             </div>
+                            {/* Gradient fade at bottom to blend with input - fixed position */}
+                            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1/80 to-transparent pointer-events-none z-10" />
                             {infoCards && infoCards.length > 0 && (
                               <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center px-6 pt-4 bg-gradient-to-t from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1/95 to-transparent pointer-events-none">
                                 <div

@@ -29,6 +29,10 @@ interface ColorPickerProps {
   onDarkChange: (value: string) => void;
   onHover?: (value: string) => void;
   onHoverEnd?: () => void;
+  onLightFocus?: () => void;
+  onDarkFocus?: () => void;
+  onLightBlur?: () => void;
+  onDarkBlur?: () => void;
 }
 
 const ColorPicker: React.FC<ColorPickerProps> = ({
@@ -39,6 +43,10 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   onDarkChange,
   onHover,
   onHoverEnd,
+  onLightFocus,
+  onDarkFocus,
+  onLightBlur,
+  onDarkBlur,
 }) => {
   const [lightHslValue, setLightHslValue] = useState(lightValue);
   const [darkHslValue, setDarkHslValue] = useState(darkValue || lightValue);
@@ -164,6 +172,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               type="color"
               value={hslToHex(lightHslValue)}
               onChange={handleLightColorPickerChange}
+              onFocus={onLightFocus}
+              onBlur={onLightBlur}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               title="Click to pick light mode color"
             />
@@ -176,8 +186,14 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               onChange={handleLightChange}
               onMouseEnter={() => onHover?.(lightHslValue)}
               onMouseLeave={onHoverEnd}
-              onFocus={() => onHover?.(lightHslValue)}
-              onBlur={onHoverEnd}
+              onFocus={() => {
+                onHover?.(lightHslValue);
+                onLightFocus?.();
+              }}
+              onBlur={() => {
+                onHoverEnd?.();
+                onLightBlur?.();
+              }}
               className="px-2 py-1.5 text-xs bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-md focus:outline-none focus:border-bolt-elements-borderColorActive focus:ring-1 focus:ring-bolt-elements-borderColorActive text-bolt-elements-textPrimary w-full"
               placeholder="0 0% 0%"
             />
@@ -194,6 +210,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               type="color"
               value={hslToHex(darkHslValue)}
               onChange={handleDarkColorPickerChange}
+              onFocus={onDarkFocus}
+              onBlur={onDarkBlur}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               title="Click to pick dark mode color"
             />
@@ -206,8 +224,14 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               onChange={handleDarkChange}
               onMouseEnter={() => onHover?.(darkHslValue)}
               onMouseLeave={onHoverEnd}
-              onFocus={() => onHover?.(darkHslValue)}
-              onBlur={onHoverEnd}
+              onFocus={() => {
+                onHover?.(darkHslValue);
+                onDarkFocus?.();
+              }}
+              onBlur={() => {
+                onHoverEnd?.();
+                onDarkBlur?.();
+              }}
               className="px-2 py-1.5 text-xs bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-md focus:outline-none focus:border-bolt-elements-borderColorActive focus:ring-1 focus:ring-bolt-elements-borderColorActive text-bolt-elements-textPrimary w-full"
               placeholder="0 0% 0%"
             />
@@ -222,12 +246,14 @@ interface TweakCNProps {
   selectedTheme?: string;
   hoveredTheme?: string | null;
   onThemeChange?: (theme: string) => void;
+  onThemeModeChange?: (mode: 'light' | 'dark') => void;
 }
 
 export const TweakCN: React.FC<TweakCNProps> = ({
   selectedTheme: externalSelectedTheme,
   hoveredTheme: externalHoveredTheme,
   onThemeChange: _onThemeChange,
+  onThemeModeChange,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('colors');
   const [internalSelectedTheme, setInternalSelectedTheme] = useState<string>('modern-minimal');
@@ -521,18 +547,21 @@ export const TweakCN: React.FC<TweakCNProps> = ({
   };
 
   // Helper to parse CSS variable values (handles .dark: separator)
-  const parseVariableValue = (value: string): { light?: string; dark?: string } => {
+  const parseVariableValue = (value: string | number | undefined | null): { light?: string; dark?: string } => {
     // Strip quotes from the value if present
     const stripQuotes = (val: string) => val.trim().replace(/^["']|["']$/g, '');
 
-    if (value.includes('.dark:')) {
-      const [lightPart, darkPart] = value.split('.dark:');
+    // Ensure value is a string
+    const stringValue = value != null ? String(value) : '';
+
+    if (stringValue.includes('.dark:')) {
+      const [lightPart, darkPart] = stringValue.split('.dark:');
       return {
         light: stripQuotes(lightPart),
         dark: darkPart ? stripQuotes(darkPart) : undefined,
       };
     }
-    return { light: stripQuotes(value) };
+    return { light: stripQuotes(stringValue) };
   };
 
   // Helper to load theme variables from iframe for custom theme
@@ -761,26 +790,34 @@ export const TweakCN: React.FC<TweakCNProps> = ({
     let changeCount = 0;
 
     // Helper to parse variable value (handles .dark: separator)
-    const parseVariableValue = (value: string): { light?: string; dark?: string } => {
+    const parseVariableValue = (value: string | number | undefined | null): { light?: string; dark?: string } => {
       const stripQuotes = (val: string) => val.trim().replace(/^["']|["']$/g, '');
-      if (value.includes('.dark:')) {
-        const [lightPart, darkPart] = value.split('.dark:');
+
+      // Ensure value is a string
+      const stringValue = value != null ? String(value) : '';
+
+      if (stringValue.includes('.dark:')) {
+        const [lightPart, darkPart] = stringValue.split('.dark:');
         return {
           light: stripQuotes(lightPart),
           dark: darkPart ? stripQuotes(darkPart) : undefined,
         };
       }
-      return { light: stripQuotes(value) };
+      return { light: stripQuotes(stringValue) };
     };
 
     // Compare each variable
     const allKeys = new Set([...Object.keys(currentVariables), ...Object.keys(newThemeFlattened)]);
 
     for (const key of allKeys) {
-      const currentValue = currentVariables[key] || '';
-      const newValue = newThemeFlattened[key] || '';
+      const currentValue = currentVariables[key];
+      const newValue = newThemeFlattened[key];
 
-      if (currentValue !== newValue) {
+      // Convert to strings for comparison
+      const currentValueStr = currentValue != null ? String(currentValue) : '';
+      const newValueStr = newValue != null ? String(newValue) : '';
+
+      if (currentValueStr !== newValueStr) {
         const currentParsed = parseVariableValue(currentValue);
         const newParsed = parseVariableValue(newValue);
 
@@ -840,14 +877,25 @@ export const TweakCN: React.FC<TweakCNProps> = ({
       };
 
       window.addEventListener('message', handleMessage);
-      iframe.contentWindow.postMessage(
-        {
-          id: requestId,
-          request: 'get-custom-variables',
-          source: '@@replay-nut',
-        },
-        '*',
-      );
+
+      // Try to request current variables, but handle gracefully if not supported
+      try {
+        iframe.contentWindow.postMessage(
+          {
+            id: requestId,
+            request: 'get-custom-variables',
+            source: '@@replay-nut',
+          },
+          '*',
+        );
+      } catch (error) {
+        console.warn('[TweakCN] Failed to request custom variables:', error);
+        // If request fails, just apply theme without diffing
+        resetThemeChanges();
+        sendThemeToIframe(selectedTheme);
+        loadThemeIntoState(selectedTheme);
+        return;
+      }
 
       setTimeout(() => {
         window.removeEventListener('message', handleMessage);
@@ -1034,8 +1082,15 @@ export const TweakCN: React.FC<TweakCNProps> = ({
   useEffect(() => {
     if (hoveredTheme) {
       sendThemeToIframe(hoveredTheme);
+    } else if (selectedTheme) {
+      // When hover ends (becomes null), revert to selected theme
+      sendThemeToIframe(selectedTheme);
+      // Re-apply customizations if any
+      if (Object.keys(customTheme).length > 0) {
+        sendCustomizationToIframe(customTheme);
+      }
     }
-  }, [hoveredTheme]);
+  }, [hoveredTheme, selectedTheme, customTheme]);
 
   // Handle theme selection
   const _handleThemeSelect = (themeName: string) => {
@@ -1299,6 +1354,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.primary.dark}
                     onLightChange={(value) => handleLightColorChange('primary', value)}
                     onDarkChange={(value) => handleDarkColorChange('primary', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Primary Foreground"
@@ -1306,6 +1363,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.primaryForeground.dark}
                     onLightChange={(value) => handleLightColorChange('primaryForeground', value)}
                     onDarkChange={(value) => handleDarkColorChange('primaryForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                 </CollapsibleContent>
               </div>
@@ -1325,6 +1384,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.secondary.dark}
                     onLightChange={(value) => handleLightColorChange('secondary', value)}
                     onDarkChange={(value) => handleDarkColorChange('secondary', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Secondary Foreground"
@@ -1332,6 +1393,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.secondaryForeground.dark}
                     onLightChange={(value) => handleLightColorChange('secondaryForeground', value)}
                     onDarkChange={(value) => handleDarkColorChange('secondaryForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                 </CollapsibleContent>
               </div>
@@ -1351,6 +1414,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.accent.dark}
                     onLightChange={(value) => handleLightColorChange('accent', value)}
                     onDarkChange={(value) => handleDarkColorChange('accent', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Accent Foreground"
@@ -1358,6 +1423,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.accentForeground.dark}
                     onLightChange={(value) => handleLightColorChange('accentForeground', value)}
                     onDarkChange={(value) => handleDarkColorChange('accentForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                 </CollapsibleContent>
               </div>
@@ -1377,6 +1444,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.background.dark}
                     onLightChange={(value) => handleLightColorChange('background', value)}
                     onDarkChange={(value) => handleDarkColorChange('background', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Foreground"
@@ -1384,6 +1453,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.foreground.dark}
                     onLightChange={(value) => handleLightColorChange('foreground', value)}
                     onDarkChange={(value) => handleDarkColorChange('foreground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Muted"
@@ -1391,6 +1462,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.muted.dark}
                     onLightChange={(value) => handleLightColorChange('muted', value)}
                     onDarkChange={(value) => handleDarkColorChange('muted', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Muted Foreground"
@@ -1398,6 +1471,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.mutedForeground.dark}
                     onLightChange={(value) => handleLightColorChange('mutedForeground', value)}
                     onDarkChange={(value) => handleDarkColorChange('mutedForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Border"
@@ -1405,6 +1480,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.border.dark}
                     onLightChange={(value) => handleLightColorChange('border', value)}
                     onDarkChange={(value) => handleDarkColorChange('border', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                 </CollapsibleContent>
               </div>
@@ -1424,6 +1501,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.card.dark}
                     onLightChange={(value) => handleLightColorChange('card', value)}
                     onDarkChange={(value) => handleDarkColorChange('card', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Card Foreground"
@@ -1431,6 +1510,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.cardForeground.dark}
                     onLightChange={(value) => handleLightColorChange('cardForeground', value)}
                     onDarkChange={(value) => handleDarkColorChange('cardForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                 </CollapsibleContent>
               </div>
@@ -1450,6 +1531,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.destructive.dark}
                     onLightChange={(value) => handleLightColorChange('destructive', value)}
                     onDarkChange={(value) => handleDarkColorChange('destructive', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Destructive Foreground"
@@ -1457,6 +1540,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={colors.destructiveForeground.dark}
                     onLightChange={(value) => handleLightColorChange('destructiveForeground', value)}
                     onDarkChange={(value) => handleDarkColorChange('destructiveForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                 </CollapsibleContent>
               </div>
@@ -1476,6 +1561,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.success.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('success', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('success', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Success Foreground"
@@ -1483,6 +1570,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.successForeground.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('successForeground', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('successForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Warning"
@@ -1490,6 +1579,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.warning.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('warning', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('warning', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Warning Foreground"
@@ -1497,6 +1588,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.warningForeground.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('warningForeground', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('warningForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Danger"
@@ -1504,6 +1597,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.danger.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('danger', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('danger', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Danger Foreground"
@@ -1511,6 +1606,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.dangerForeground.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('dangerForeground', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('dangerForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                 </CollapsibleContent>
               </div>
@@ -1530,6 +1627,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.sidebar.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('sidebar', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('sidebar', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Sidebar Foreground"
@@ -1537,6 +1636,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.sidebarForeground.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('sidebarForeground', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Sidebar Primary"
@@ -1544,6 +1645,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.sidebarPrimary.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('sidebarPrimary', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarPrimary', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Sidebar Primary Foreground"
@@ -1551,6 +1654,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.sidebarPrimaryForeground.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('sidebarPrimaryForeground', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarPrimaryForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Sidebar Accent"
@@ -1558,6 +1663,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.sidebarAccent.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('sidebarAccent', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarAccent', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Sidebar Accent Foreground"
@@ -1565,6 +1672,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.sidebarAccentForeground.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('sidebarAccentForeground', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarAccentForeground', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Sidebar Border"
@@ -1572,6 +1681,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.sidebarBorder.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('sidebarBorder', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarBorder', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                   <ColorPicker
                     label="Sidebar Ring"
@@ -1579,6 +1690,8 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                     darkValue={additionalColors.sidebarRing.dark}
                     onLightChange={(value) => handleAdditionalLightColorChange('sidebarRing', value)}
                     onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarRing', value)}
+                    onLightFocus={() => onThemeModeChange?.('light')}
+                    onDarkFocus={() => onThemeModeChange?.('dark')}
                   />
                 </CollapsibleContent>
               </div>

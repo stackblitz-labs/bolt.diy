@@ -85,6 +85,7 @@ export {
   PlusCircle,
   Puzzle,
   Rocket,
+  RotateCcw,
   RotateCw,
   Search,
   Send,

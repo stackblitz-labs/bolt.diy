@@ -2,9 +2,11 @@ import { TweakCN } from '~/components/chat/Messages/components';
 
 import { ChevronRight, ChevronLeft, ChevronDown } from '~/components/ui/Icon';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import { getAvailableThemes, findMatchingTheme } from '~/lib/replay/themeHelper';
+
+import { Skeleton } from '~/components/ui/Skeleton';
 
 import { Sun, Moon } from 'lucide-react';
 
@@ -32,6 +34,9 @@ export const DesignSystemPanel = () => {
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [isCustomTheme, setIsCustomTheme] = useState(false);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
+  const [isLoading, setIsLoading] = useState(false);
+  const [themeKey, setThemeKey] = useState(0); // Key to force TweakCN remount on reset
+  const originalThemeRef = useRef<string | null>(null); // Store original theme when dropdown opens
   const hasLoadedThemeRef = useRef(false);
   const availableThemes = getAvailableThemes();
 
@@ -82,69 +87,117 @@ export const DesignSystemPanel = () => {
     sendThemeModeToIframe(newMode);
   };
 
+  // Function to load theme from iframe
+  const loadThemeFromIframe = useCallback(() => {
+    setIsLoading(true);
+    const iframe = document.querySelector('iframe');
+    if (iframe?.contentWindow) {
+      const requestId = Date.now().toString();
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.id === requestId && event.data?.response && event.data?.source === '@@replay-nut') {
+          window.removeEventListener('message', handleMessage);
+          setIsLoading(false);
+
+          const currentVariables = event.data.response as Record<string, string>;
+          if (currentVariables && Object.keys(currentVariables).length > 0) {
+            // Try to find a matching theme
+            const matchingTheme = findMatchingTheme(currentVariables);
+            if (matchingTheme) {
+              setSelectedTheme(matchingTheme);
+              setIsCustomTheme(false);
+              setThemeKey((prev) => prev + 1); // Force TweakCN to reload
+            } else {
+              // Custom theme - set to custom and let TweakCN load the values
+              setSelectedTheme(CUSTOM_THEME_NAME);
+              setIsCustomTheme(true);
+              setThemeKey((prev) => prev + 1); // Force TweakCN to reload
+            }
+          } else {
+            // No variables found, default to first available theme
+            setSelectedTheme(availableThemes[0]?.name || 'modern-minimal');
+            setIsCustomTheme(false);
+            setThemeKey((prev) => prev + 1); // Force TweakCN to reload
+          }
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+      iframe.contentWindow.postMessage(
+        {
+          id: requestId,
+          request: 'get-custom-variables',
+          source: '@@replay-nut',
+        },
+        '*',
+      );
+
+      // Cleanup timeout
+      setTimeout(() => {
+        window.removeEventListener('message', handleMessage);
+        setIsLoading(false);
+      }, 5000);
+    } else {
+      // No iframe found, default to first available theme
+      setSelectedTheme(availableThemes[0]?.name || 'modern-minimal');
+      setIsCustomTheme(false);
+      setIsLoading(false);
+    }
+  }, [availableThemes]);
+
   // Load current theme from iframe when design tab is opened
   useEffect(() => {
-    if (activeTab === 'design-system' && !hasLoadedThemeRef.current) {
-      hasLoadedThemeRef.current = true;
-
-      // Request current theme variables from iframe
-      const iframe = document.querySelector('iframe');
-      if (iframe?.contentWindow) {
-        const requestId = Date.now().toString();
-        const handleMessage = (event: MessageEvent) => {
-          if (
-            event.data?.id === requestId &&
-            event.data?.response &&
-            event.data?.source === '@@replay-nut'
-          ) {
-            window.removeEventListener('message', handleMessage);
-
-            const currentVariables = event.data.response as Record<string, string>;
-            if (currentVariables && Object.keys(currentVariables).length > 0) {
-              // Try to find a matching theme
-              const matchingTheme = findMatchingTheme(currentVariables);
-              if (matchingTheme) {
-                setSelectedTheme(matchingTheme);
-                setIsCustomTheme(false);
-              } else {
-                // Custom theme - set to custom and let TweakCN load the values
-                setSelectedTheme(CUSTOM_THEME_NAME);
-                setIsCustomTheme(true);
-              }
-            } else {
-              // No variables found, default to first available theme
-              setSelectedTheme(availableThemes[0]?.name || 'modern-minimal');
-              setIsCustomTheme(false);
-            }
-          }
-        };
-
-        window.addEventListener('message', handleMessage);
-        iframe.contentWindow.postMessage(
-          {
-            id: requestId,
-            request: 'get-custom-variables',
-            source: '@@replay-nut',
-          },
-          '*',
-        );
-
-        // Cleanup timeout
-        setTimeout(() => {
-          window.removeEventListener('message', handleMessage);
-        }, 5000);
-      } else {
-        // No iframe found, default to first available theme
-        setSelectedTheme(availableThemes[0]?.name || 'modern-minimal');
-        setIsCustomTheme(false);
+    if (activeTab === 'design-system') {
+      if (!hasLoadedThemeRef.current || selectedTheme === null) {
+        hasLoadedThemeRef.current = true;
+        loadThemeFromIframe();
       }
     } else if (activeTab !== 'design-system') {
       // Reset when leaving design tab
       hasLoadedThemeRef.current = false;
       setSelectedTheme(null);
       setIsCustomTheme(false);
+      setIsLoading(false);
     }
-  }, [activeTab, availableThemes]);
+  }, [activeTab, availableThemes, loadThemeFromIframe, selectedTheme]);
+
+  // Listen for theme reset and APP_READY messages
+  useEffect(() => {
+    let waitingForReload = false;
+
+    const handleReset = () => {
+      // Clear the design system panel
+      setSelectedTheme(null);
+      setIsCustomTheme(false);
+      setIsLoading(true);
+      hasLoadedThemeRef.current = false;
+      setThemeKey((prev) => prev + 1); // Force TweakCN to remount
+      waitingForReload = true;
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      // Listen for APP_READY after a reset to reload the theme
+      if (event.data?.type === 'APP_READY' && event.data?.source === 'app-theme-provider') {
+        if (waitingForReload) {
+          waitingForReload = false;
+          // Small delay to ensure iframe is fully ready
+          setTimeout(() => {
+            if (activeTab === 'design-system') {
+              hasLoadedThemeRef.current = false; // Force reload
+              loadThemeFromIframe();
+            }
+          }, 500);
+        }
+      }
+    };
+
+    window.addEventListener('theme-reset-requested', handleReset);
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('theme-reset-requested', handleReset);
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [activeTab, loadThemeFromIframe]);
 
   const handleThemeChange = (themeName: string) => {
     if (themeName === CUSTOM_THEME_NAME) {
@@ -155,14 +208,38 @@ export const DesignSystemPanel = () => {
     setIsCustomTheme(false);
     setHoveredTheme(null);
     setIsThemeDropdownOpen(false);
+    originalThemeRef.current = null; // Clear stored original theme after selection
   };
 
   const handleThemeHover = (themeName: string) => {
+    // Always set hover to enable preview
     setHoveredTheme(themeName);
   };
 
   const handleThemeHoverEnd = () => {
+    // Clear hover when mouse leaves
     setHoveredTheme(null);
+  };
+
+  const handleDropdownOpenChange = (open: boolean) => {
+    setIsThemeDropdownOpen(open);
+
+    if (open) {
+      // Store the current theme when dropdown opens
+      originalThemeRef.current = selectedTheme;
+    } else {
+      // Dropdown is closing
+      // If no theme was selected and we have a stored original theme, restore it
+      if (originalThemeRef.current !== null && originalThemeRef.current === selectedTheme) {
+        // User didn't select a new theme, restore original preview
+        setHoveredTheme(null);
+      } else if (originalThemeRef.current !== null && hoveredTheme !== null) {
+        // User hovered but didn't select - restore original theme
+        setHoveredTheme(null);
+        // The selectedTheme should already be the original, but ensure hover is cleared
+      }
+      originalThemeRef.current = null;
+    }
   };
 
   const handlePreviousTheme = () => {
@@ -170,8 +247,18 @@ export const DesignSystemPanel = () => {
       return; // Don't navigate when on custom theme or theme not loaded
     }
     const currentIndex = availableThemes.findIndex((t) => t.name === selectedTheme);
+    if (currentIndex === -1) {
+      // If theme not found, default to first theme
+      if (availableThemes.length > 0) {
+        handleThemeChange(availableThemes[0].name);
+      }
+      return;
+    }
     const previousIndex = currentIndex > 0 ? currentIndex - 1 : availableThemes.length - 1;
-    handleThemeChange(availableThemes[previousIndex].name);
+    const previousTheme = availableThemes[previousIndex];
+    if (previousTheme) {
+      handleThemeChange(previousTheme.name);
+    }
   };
 
   const handleNextTheme = () => {
@@ -179,12 +266,22 @@ export const DesignSystemPanel = () => {
       return; // Don't navigate when on custom theme or theme not loaded
     }
     const currentIndex = availableThemes.findIndex((t) => t.name === selectedTheme);
+    if (currentIndex === -1) {
+      // If theme not found, default to first theme
+      if (availableThemes.length > 0) {
+        handleThemeChange(availableThemes[0].name);
+      }
+      return;
+    }
     const nextIndex = currentIndex < availableThemes.length - 1 ? currentIndex + 1 : 0;
-    handleThemeChange(availableThemes[nextIndex].name);
+    const nextTheme = availableThemes[nextIndex];
+    if (nextTheme) {
+      handleThemeChange(nextTheme.name);
+    }
   };
 
   return (
-    <div className="@container flex flex-col h-full w-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden">
+    <div className="@container flex flex-col h-full w-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor shadow-lg overflow-hidden">
       <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 shadow-sm rounded-t-xl">
         <div className="flex items-center gap-2 px-4 h-[38px]">
           {/* Theme Navigation - Left Side */}
@@ -200,7 +297,7 @@ export const DesignSystemPanel = () => {
             >
               {themeMode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </button>
-            <DropdownMenu open={isThemeDropdownOpen} onOpenChange={setIsThemeDropdownOpen}>
+            <DropdownMenu open={isThemeDropdownOpen} onOpenChange={handleDropdownOpenChange}>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 px-2 py-1 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 rounded-md transition-colors">
                   <span className="truncate font-medium">
@@ -270,8 +367,52 @@ export const DesignSystemPanel = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto flex flex-col">
-        {selectedTheme && (
-          <TweakCN selectedTheme={selectedTheme} hoveredTheme={hoveredTheme} onThemeChange={handleThemeChange} />
+        {isLoading || !selectedTheme ? (
+          <div className="flex-1 p-6 space-y-6">
+            {/* Header skeleton */}
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-10 w-32 rounded-lg" />
+                <Skeleton className="h-10 w-10 rounded-lg" />
+              </div>
+            </div>
+
+            {/* Tabs skeleton */}
+            <div className="flex gap-2 border-b border-bolt-elements-borderColor pb-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-8 w-24 rounded-lg" />
+              ))}
+            </div>
+
+            {/* Content skeleton */}
+            <div className="space-y-6">
+              {[1, 2, 3].map((section) => (
+                <div key={section} className="space-y-4">
+                  <Skeleton className="h-6 w-32" />
+                  <div className="grid grid-cols-1 @[500px]:grid-cols-2 gap-4">
+                    {[1, 2].map((item) => (
+                      <div key={item} className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-10 w-10 rounded border" />
+                          <Skeleton className="h-8 flex-1 rounded-md" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <TweakCN
+            key={themeKey}
+            selectedTheme={selectedTheme}
+            hoveredTheme={hoveredTheme}
+            onThemeChange={handleThemeChange}
+            onThemeModeChange={sendThemeModeToIframe}
+          />
         )}
       </div>
     </div>

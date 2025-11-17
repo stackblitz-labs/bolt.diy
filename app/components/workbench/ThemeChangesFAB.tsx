@@ -1,10 +1,10 @@
 import { useStore } from '@nanostores/react';
-import { themeChangesStore, markThemesSaved } from '~/lib/stores/themeChanges';
+import { themeChangesStore, markThemesSaved, resetThemeChanges } from '~/lib/stores/themeChanges';
 import { chatStore } from '~/lib/stores/chat';
 import { callNutAPI } from '~/lib/replay/NutAPI';
 import { memo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { Check } from '~/components/ui/Icon';
+import { Check, RotateCcw } from '~/components/ui/Icon';
 
 export const ThemeChangesFAB = memo(() => {
   const themeChanges = useStore(themeChangesStore);
@@ -71,22 +71,56 @@ export const ThemeChangesFAB = memo(() => {
     }
   };
 
+  const handleReset = () => {
+    // Reset theme changes store
+    resetThemeChanges();
+
+    // Dispatch event to clear design system panel
+    window.dispatchEvent(new CustomEvent('theme-reset-requested'));
+
+    // Refresh the iframe to restore original theme state
+    const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+    if (iframe && iframe.src) {
+      // Reload the iframe by updating its src with a timestamp to force refresh
+      const currentSrc = iframe.src.split('?')[0]; // Remove existing query params
+      iframe.src = `${currentSrc}?forceReload=${Date.now()}`;
+    } else if (iframe?.contentWindow) {
+      // Fallback: try to reload via contentWindow
+      iframe.contentWindow.location.reload();
+    }
+
+    toast.success('Theme changes reset');
+  };
+
   return (
     <div className="absolute bottom-4 right-4 z-50">
-      <div className="flex items-center gap-2">
-        <button
-          className="flex items-center gap-2 px-4 py-2 bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-          title={`${totalChanges} variable${totalChanges !== 1 ? 's' : ''} changed`}
-        >
+      <div className="flex items-center gap-2 bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-full shadow-lg px-2 py-1">
+        {/* Changes count badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5">
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-semibold">
             {totalChanges > 99 ? '99+' : totalChanges}
           </div>
           <span className="text-sm font-medium text-bolt-elements-textPrimary">Changes</span>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-bolt-elements-borderColor" />
+
+        {/* Reset button */}
+        <button
+          onClick={handleReset}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-bolt-elements-background-depth-2 transition-colors duration-200"
+          title="Reset theme changes"
+        >
+          <RotateCcw size={16} className="text-bolt-elements-textSecondary" />
+          <span className="text-sm font-medium text-bolt-elements-textSecondary">Reset</span>
         </button>
+
+        {/* Save button */}
         <button
           onClick={handleSave}
           disabled={isSaving || !appId}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 disabled:cursor-not-allowed text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 disabled:cursor-not-allowed text-white rounded-full transition-all duration-200 hover:scale-105"
           title="Save theme changes"
         >
           {isSaving ? (

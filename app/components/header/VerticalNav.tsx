@@ -91,8 +91,85 @@ export const VerticalNav = () => {
   };
 
   const handleConfirmLeave = () => {
-    // Reset theme changes and switch to the pending tab
+    // Reset theme changes
     resetThemeChanges();
+    
+    // Reset theme in iframe by re-applying the current theme
+    // This will clear any customizations and restore the base theme
+    const iframe = document.querySelector('iframe');
+    if (iframe?.contentWindow) {
+      // Request current theme name from iframe or use a default
+      // We'll send a message to reset to the base theme
+      const requestId = Date.now().toString();
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.id === requestId && event.data?.response && event.data?.source === '@@replay-nut') {
+          window.removeEventListener('message', handleMessage);
+          
+          // Get the current variables to determine the theme
+          const currentVariables = event.data.response as Record<string, string>;
+          
+          // Import theme helper functions
+          import('~/lib/replay/themeHelper').then(({ findMatchingTheme, getThemeCSSVariables, flattenThemeVariablesWithModes }) => {
+            let themeToApply = 'modern-minimal'; // Default theme
+            
+            if (currentVariables && Object.keys(currentVariables).length > 0) {
+              // Try to find matching theme
+              const matchingTheme = findMatchingTheme(currentVariables);
+              if (matchingTheme) {
+                themeToApply = matchingTheme;
+              }
+            }
+            
+            // Get theme variables and send to iframe
+            const themeVars = getThemeCSSVariables(themeToApply);
+            if (themeVars) {
+              const flattened = flattenThemeVariablesWithModes(themeVars);
+              iframe.contentWindow?.postMessage(
+                {
+                  type: 'UPDATE_CSS_VARIABLES',
+                  variables: flattened,
+                  source: 'nut-preview',
+                },
+                '*',
+              );
+            }
+          });
+        }
+      };
+      
+      window.addEventListener('message', handleMessage);
+      
+      // Request current variables
+      iframe.contentWindow.postMessage(
+        {
+          id: requestId,
+          request: 'get-custom-variables',
+          source: '@@replay-nut',
+        },
+        '*',
+      );
+      
+      // Fallback: if no response, just reset to default theme
+      setTimeout(() => {
+        window.removeEventListener('message', handleMessage);
+        import('~/lib/replay/themeHelper').then(({ getThemeCSSVariables, flattenThemeVariablesWithModes }) => {
+          const themeVars = getThemeCSSVariables('modern-minimal');
+          if (themeVars && iframe?.contentWindow) {
+            const flattened = flattenThemeVariablesWithModes(themeVars);
+            iframe.contentWindow.postMessage(
+              {
+                type: 'UPDATE_CSS_VARIABLES',
+                variables: flattened,
+                source: 'nut-preview',
+              },
+              '*',
+            );
+          }
+        });
+      }, 1000);
+    }
+    
+    // Switch to the pending tab
     if (pendingTab) {
       sidebarNavStore.setActiveTab(pendingTab);
     }
@@ -109,7 +186,7 @@ export const VerticalNav = () => {
   const versionCount = versionHistory.length;
 
   return (
-    <div className="flex flex-col w-16 bg-bolt-elements-background-depth-1 py-2.5 h-full">
+    <div className="flex flex-col w-16 bg-transparent py-2.5 h-full">
       {/* Nut Logo - Link to Homepage */}
       <a
         href="/"

@@ -18,7 +18,7 @@ export const VersionHistoryPanel = () => {
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor shadow-lg overflow-hidden">
       <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 shadow-sm rounded-t-xl">
         <div className="flex items-center gap-2 px-4 h-[38px]">
           <div className="flex-1 text-bolt-elements-textSecondary text-sm font-medium truncate">Version History</div>

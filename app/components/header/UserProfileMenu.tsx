@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { userStore, signOut } from '~/lib/stores/auth';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
@@ -97,13 +97,12 @@ export function UserProfileMenu() {
 
           {domLoaded && (
             <div className="px-4 py-3 border-b border-bolt-elements-borderColor">
-              <div className="text-xs text-bolt-elements-textSecondary mb-2">Theme</div>
               <div className="flex items-center justify-between gap-2">
                 {[
                   { value: 'system' as const, icon: Monitor, label: 'System' },
                   { value: 'light' as const, icon: Sun, label: 'Light' },
                   { value: 'dark' as const, icon: Moon, label: 'Dark' },
-                ].map(({ value, icon: Icon, label }) => {
+                ].map(({ value, icon: iconComponent, label }) => {
                   const isSelected = theme === value;
                   return (
                     <button
@@ -119,13 +118,13 @@ export function UserProfileMenu() {
                       title={label}
                       aria-label={`Set theme to ${label}`}
                     >
-                      <Icon
-                        size={20}
-                        className={classNames(
+                      {React.createElement(iconComponent, {
+                        size: 20,
+                        className: classNames(
                           'stroke-[1.5]',
                           isSelected ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
-                        )}
-                      />
+                        ),
+                      })}
                     </button>
                   );
                 })}
