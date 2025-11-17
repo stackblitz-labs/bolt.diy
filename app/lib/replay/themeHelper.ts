@@ -9,7 +9,6 @@ export interface ThemeOption {
 export interface ThemeCSSVariables {
   light?: Record<string, string>;
   dark?: Record<string, string>;
-  theme?: Record<string, string>;
 }
 
 /**
@@ -47,14 +46,8 @@ export function flattenThemeVariables(
 ): Record<string, string> {
   const flattened: Record<string, string> = {};
 
-  // Add theme-level variables (font-sans, radius, etc.)
-  if (cssVars.theme) {
-    Object.entries(cssVars.theme).forEach(([key, value]) => {
-      flattened[`--${key}`] = value;
-    });
-  }
-
   // Add mode-specific variables (light or dark)
+  // Shared variables like fonts and radius are now in light
   const modeVars = cssVars[mode];
   if (modeVars) {
     Object.entries(modeVars).forEach(([key, value]) => {
@@ -72,13 +65,6 @@ export function flattenThemeVariables(
 export function flattenThemeVariablesWithModes(cssVars: ThemeCSSVariables): Record<string, string> {
   const flattened: Record<string, string> = {};
 
-  // Add theme-level variables (font-sans, radius, etc.) - these apply to both modes
-  if (cssVars.theme) {
-    Object.entries(cssVars.theme).forEach(([key, value]) => {
-      flattened[`--${key}`] = value;
-    });
-  }
-
   // Get all variable names from both light and dark modes
   const lightVars = cssVars.light || {};
   const darkVars = cssVars.dark || {};
@@ -95,7 +81,7 @@ export function flattenThemeVariablesWithModes(cssVars: ThemeCSSVariables): Reco
       // Both light and dark values exist - use .dark: separator
       flattened[`--${key}`] = `${lightValue} .dark: ${darkValue}`;
     } else if (lightValue) {
-      // Only light value exists
+      // Only light value exists (includes shared variables like fonts, radius)
       flattened[`--${key}`] = lightValue;
     } else if (darkValue) {
       // Only dark value exists - use -dark suffix

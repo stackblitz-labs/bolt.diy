@@ -550,17 +550,15 @@ export const TweakCN: React.FC<TweakCNProps> = ({
         const currentVariables = event.data.response as Record<string, string>;
         if (currentVariables && Object.keys(currentVariables).length > 0) {
           // Parse variables and load into state
+          // Shared variables (fonts, radius) are now treated as light variables
           const lightColors: Record<string, string> = {};
           const darkColors: Record<string, string> = {};
-          const themeVars: Record<string, string> = {};
 
           // Helper to strip quotes from values
           const stripQuotes = (val: string) => val.trim().replace(/^["']|["']$/g, '');
 
           Object.entries(currentVariables).forEach(([key, value]) => {
-            if (key.startsWith('--font-') || key === '--radius') {
-              themeVars[key.replace('--', '')] = stripQuotes(value);
-            } else if (key.endsWith('-dark')) {
+            if (key.endsWith('-dark')) {
               const baseKey = key.slice(0, -5);
               darkColors[baseKey.replace('--', '')] = stripQuotes(value);
             } else {
@@ -641,18 +639,18 @@ export const TweakCN: React.FC<TweakCNProps> = ({
 
           setColors(newColors);
 
-          // Update fonts and radius
-          if (themeVars['font-sans']) {
-            setSansSerifFont(themeVars['font-sans']);
+          // Update fonts and radius from light variables (shared variables are now in light)
+          if (lightColors['font-sans']) {
+            setSansSerifFont(lightColors['font-sans']);
           }
-          if (themeVars['font-serif']) {
-            setSerifFont(themeVars['font-serif']);
+          if (lightColors['font-serif']) {
+            setSerifFont(lightColors['font-serif']);
           }
-          if (themeVars['font-mono']) {
-            setMonoFont(themeVars['font-mono']);
+          if (lightColors['font-mono']) {
+            setMonoFont(lightColors['font-mono']);
           }
-          if (themeVars.radius) {
-            const radiusValue = parseFloat(themeVars.radius);
+          if (lightColors.radius) {
+            const radiusValue = parseFloat(lightColors.radius);
             if (!isNaN(radiusValue)) {
               setRadius(radiusValue);
             }
@@ -724,11 +722,11 @@ export const TweakCN: React.FC<TweakCNProps> = ({
           originalValuesRef.current = {
             colors: { ...newColors },
             fonts: {
-              sans: themeVars['font-sans'] || 'Inter, sans-serif',
-              serif: themeVars['font-serif'] || 'Source Serif 4, serif',
-              mono: themeVars['font-mono'] || 'JetBrains Mono, monospace',
+              sans: lightColors['font-sans'] || 'Inter, sans-serif',
+              serif: lightColors['font-serif'] || 'Source Serif 4, serif',
+              mono: lightColors['font-mono'] || 'JetBrains Mono, monospace',
             },
-            radius: themeVars.radius ? parseFloat(themeVars.radius) : 0.625,
+            radius: lightColors.radius ? parseFloat(lightColors.radius) : 0.625,
             spacingUnit: 4,
             borderWidth: 1,
             additionalColors: { ...newAdditionalColors },
@@ -874,9 +872,9 @@ export const TweakCN: React.FC<TweakCNProps> = ({
     }
 
     // Extract both light and dark mode colors
+    // Shared variables (fonts, radius) are now in light
     const lightColors = cssVars.light || {};
     const darkColors = cssVars.dark || {};
-    const themeVars = cssVars.theme || {};
 
     const newColors: Record<string, { light: string; dark?: string }> = {
       primary: {
@@ -943,11 +941,11 @@ export const TweakCN: React.FC<TweakCNProps> = ({
 
     setColors(newColors);
 
-    // Load font settings
-    const newSansFont = themeVars['font-sans'] || 'Inter, sans-serif';
-    const newSerifFont = themeVars['font-serif'] || 'Source Serif 4, serif';
-    const newMonoFont = themeVars['font-mono'] || 'JetBrains Mono, monospace';
-    const newRadius = themeVars.radius ? parseFloat(themeVars.radius) : 0.625;
+    // Load font settings from light variables (shared variables are now in light)
+    const newSansFont = lightColors['font-sans'] || 'Inter, sans-serif';
+    const newSerifFont = lightColors['font-serif'] || 'Source Serif 4, serif';
+    const newMonoFont = lightColors['font-mono'] || 'JetBrains Mono, monospace';
+    const newRadius = lightColors.radius ? parseFloat(lightColors.radius) : 0.625;
 
     setSansSerifFont(newSansFont);
     setSerifFont(newSerifFont);

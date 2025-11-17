@@ -23,12 +23,14 @@ import { themeChangesStore, resetThemeChanges } from '~/lib/stores/themeChanges'
 import { UnsavedChangesDialog } from '~/components/panels/UnsavedChangesDialog';
 
 import { versionHistoryStore } from '~/lib/stores/versionHistory';
+import { deployModalStore } from '~/lib/stores/deployModal';
 
 interface NavItem {
   id: SidebarNavTab;
   label: string;
   icon: LucideIcon;
   requiresApp?: boolean;
+  requiresData?: boolean; // Whether the tab requires data to be loaded before enabling
 }
 
 const navItems: NavItem[] = [
@@ -48,6 +50,7 @@ const navItems: NavItem[] = [
     label: 'History',
     icon: History,
     requiresApp: true,
+    requiresData: true,
   },
   {
     id: 'app-settings',
@@ -60,6 +63,7 @@ const navItems: NavItem[] = [
     label: 'Deploy',
     icon: Rocket,
     requiresApp: true,
+    requiresData: true,
   },
 ];
 
@@ -72,6 +76,8 @@ export const VerticalNav = () => {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingTab, setPendingTab] = useState<SidebarNavTab | null>(null);
   const versionHistory = useStore(versionHistoryStore.history);
+  const versionHistoryLoaded = useStore(versionHistoryStore.lastFetched) !== null;
+  const deployDataLoaded = useStore(deployModalStore.hasLoadedData);
 
   const handleTabClick = (tabId: SidebarNavTab) => {
     // Check if we're leaving the design-system tab and there are unsaved changes
@@ -126,7 +132,28 @@ export const VerticalNav = () => {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
-          const isDisabled = item.requiresApp && (!appId || !repositoryId);
+
+          // Determine if tab should be disabled
+          let isDisabled = false;
+          if (item.requiresApp) {
+            if (!appId) {
+              isDisabled = true;
+            } else if (item.requiresData) {
+              // For tabs that require data, check if data has been loaded
+              if (item.id === 'version-history') {
+                isDisabled = !versionHistoryLoaded;
+              } else if (item.id === 'deploy') {
+                isDisabled = !deployDataLoaded;
+              }
+            } else if (item.id === 'app-settings') {
+              // Settings only needs appId, not repositoryId
+              isDisabled = false;
+            } else {
+              // Other tabs need both appId and repositoryId
+              isDisabled = !repositoryId;
+            }
+          }
+
           const showBadge = item.id === 'version-history' && versionCount > 0;
 
           return (
