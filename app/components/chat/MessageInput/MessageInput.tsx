@@ -307,6 +307,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     <div
       className={classNames(
         'relative bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor backdrop-blur rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:border-bolt-elements-focus/30',
+        'dark:border-bolt-elements-borderColor/20',
       )}
     >
       {selectedElement && (

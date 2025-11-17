@@ -71,6 +71,8 @@ export const VerticalNav = () => {
   const activeTab = useStore(activeSidebarTab);
   const appId = useStore(chatStore.currentAppId);
   const repositoryId = useStore(workbenchStore.repositoryId);
+  const previewURL = useStore(workbenchStore.previewURL);
+  const showWorkbench = useStore(workbenchStore.showWorkbench);
   const user = useStore(userStore);
   const themeChanges = useStore(themeChangesStore);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -78,6 +80,9 @@ export const VerticalNav = () => {
   const versionHistory = useStore(versionHistoryStore.history);
   const versionHistoryLoaded = useStore(versionHistoryStore.lastFetched) !== null;
   const deployDataLoaded = useStore(deployModalStore.hasLoadedData);
+
+  // Check if preview is available (has URL and workbench is shown)
+  const isPreviewAvailable = !!previewURL && showWorkbench;
 
   const handleTabClick = (tabId: SidebarNavTab) => {
     // Check if we're leaving the design-system tab and there are unsaved changes
@@ -93,7 +98,7 @@ export const VerticalNav = () => {
   const handleConfirmLeave = () => {
     // Reset theme changes
     resetThemeChanges();
-    
+
     // Reset theme in iframe by re-applying the current theme
     // This will clear any customizations and restore the base theme
     const iframe = document.querySelector('iframe');
@@ -104,41 +109,43 @@ export const VerticalNav = () => {
       const handleMessage = (event: MessageEvent) => {
         if (event.data?.id === requestId && event.data?.response && event.data?.source === '@@replay-nut') {
           window.removeEventListener('message', handleMessage);
-          
+
           // Get the current variables to determine the theme
           const currentVariables = event.data.response as Record<string, string>;
-          
+
           // Import theme helper functions
-          import('~/lib/replay/themeHelper').then(({ findMatchingTheme, getThemeCSSVariables, flattenThemeVariablesWithModes }) => {
-            let themeToApply = 'modern-minimal'; // Default theme
-            
-            if (currentVariables && Object.keys(currentVariables).length > 0) {
-              // Try to find matching theme
-              const matchingTheme = findMatchingTheme(currentVariables);
-              if (matchingTheme) {
-                themeToApply = matchingTheme;
+          import('~/lib/replay/themeHelper').then(
+            ({ findMatchingTheme, getThemeCSSVariables, flattenThemeVariablesWithModes }) => {
+              let themeToApply = 'modern-minimal'; // Default theme
+
+              if (currentVariables && Object.keys(currentVariables).length > 0) {
+                // Try to find matching theme
+                const matchingTheme = findMatchingTheme(currentVariables);
+                if (matchingTheme) {
+                  themeToApply = matchingTheme;
+                }
               }
-            }
-            
-            // Get theme variables and send to iframe
-            const themeVars = getThemeCSSVariables(themeToApply);
-            if (themeVars) {
-              const flattened = flattenThemeVariablesWithModes(themeVars);
-              iframe.contentWindow?.postMessage(
-                {
-                  type: 'UPDATE_CSS_VARIABLES',
-                  variables: flattened,
-                  source: 'nut-preview',
-                },
-                '*',
-              );
-            }
-          });
+
+              // Get theme variables and send to iframe
+              const themeVars = getThemeCSSVariables(themeToApply);
+              if (themeVars) {
+                const flattened = flattenThemeVariablesWithModes(themeVars);
+                iframe.contentWindow?.postMessage(
+                  {
+                    type: 'UPDATE_CSS_VARIABLES',
+                    variables: flattened,
+                    source: 'nut-preview',
+                  },
+                  '*',
+                );
+              }
+            },
+          );
         }
       };
-      
+
       window.addEventListener('message', handleMessage);
-      
+
       // Request current variables
       iframe.contentWindow.postMessage(
         {
@@ -148,7 +155,7 @@ export const VerticalNav = () => {
         },
         '*',
       );
-      
+
       // Fallback: if no response, just reset to default theme
       setTimeout(() => {
         window.removeEventListener('message', handleMessage);
@@ -168,7 +175,7 @@ export const VerticalNav = () => {
         });
       }, 1000);
     }
-    
+
     // Switch to the pending tab
     if (pendingTab) {
       sidebarNavStore.setActiveTab(pendingTab);
@@ -218,13 +225,13 @@ export const VerticalNav = () => {
             } else if (item.requiresData) {
               // For tabs that require data, check if data has been loaded
               if (item.id === 'version-history') {
-                isDisabled = !versionHistoryLoaded;
+                isDisabled = !versionHistoryLoaded || !isPreviewAvailable;
               } else if (item.id === 'deploy') {
-                isDisabled = !deployDataLoaded;
+                isDisabled = !deployDataLoaded || !isPreviewAvailable;
               }
             } else if (item.id === 'app-settings') {
-              // Settings only needs appId, not repositoryId
-              isDisabled = false;
+              // Settings needs appId and preview to be available
+              isDisabled = !isPreviewAvailable;
             } else {
               // Other tabs need both appId and repositoryId
               isDisabled = !repositoryId;

@@ -216,9 +216,11 @@ export const DesignSystemPanel = () => {
     setHoveredTheme(themeName);
   };
 
-  const handleThemeHoverEnd = () => {
-    // Clear hover when mouse leaves
-    setHoveredTheme(null);
+  const handleDropdownMouseLeave = () => {
+    // When mouse leaves the dropdown, revert to original theme
+    if (originalThemeRef.current !== null) {
+      setHoveredTheme(null);
+    }
   };
 
   const handleDropdownOpenChange = (open: boolean) => {
@@ -228,16 +230,8 @@ export const DesignSystemPanel = () => {
       // Store the current theme when dropdown opens
       originalThemeRef.current = selectedTheme;
     } else {
-      // Dropdown is closing
-      // If no theme was selected and we have a stored original theme, restore it
-      if (originalThemeRef.current !== null && originalThemeRef.current === selectedTheme) {
-        // User didn't select a new theme, restore original preview
-        setHoveredTheme(null);
-      } else if (originalThemeRef.current !== null && hoveredTheme !== null) {
-        // User hovered but didn't select - restore original theme
-        setHoveredTheme(null);
-        // The selectedTheme should already be the original, but ensure hover is cleared
-      }
+      // Dropdown is closing - always revert to original theme
+      setHoveredTheme(null);
       originalThemeRef.current = null;
     }
   };
@@ -308,13 +302,17 @@ export const DesignSystemPanel = () => {
                   <ChevronDown size={14} className="flex-shrink-0" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-64 max-h-80 overflow-y-auto" onCloseAutoFocus={handleThemeHoverEnd}>
+              <DropdownMenuContent
+                className="w-64 max-h-80 overflow-y-auto"
+                onCloseAutoFocus={handleDropdownMouseLeave}
+                onMouseLeave={handleDropdownMouseLeave}
+              >
                 <DropdownMenuLabel>Available Themes</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {isCustomTheme && (
                   <DropdownMenuItem
                     className="bg-bolt-elements-background-depth-2 cursor-default"
-                    onMouseEnter={handleThemeHoverEnd}
+                    onMouseEnter={() => setHoveredTheme(null)}
                   >
                     <div className="flex flex-col gap-1 w-full">
                       <div className="flex items-center justify-between">
@@ -332,7 +330,6 @@ export const DesignSystemPanel = () => {
                     key={theme.name}
                     onClick={() => handleThemeChange(theme.name)}
                     onMouseEnter={() => handleThemeHover(theme.name)}
-                    onMouseLeave={handleThemeHoverEnd}
                     className={classNames({
                       'bg-bolt-elements-background-depth-2': selectedTheme === theme.name && !isCustomTheme,
                     })}

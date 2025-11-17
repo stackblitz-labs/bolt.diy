@@ -33,7 +33,7 @@ export const ChatPromptContainer: React.FC<ChatPromptContainerProps> = ({
     <div
       className={classNames(
         'bg-bolt-elements-background-depth-1/90 backdrop-blur-md p-3 rounded-t-2xl rounded-b-2xl border border-bolt-elements-borderColor/50 relative w-full max-w-chat mx-auto z-prompt mt-0',
-        'dark:bg-bolt-elements-background-depth-1/90 dark:border-bolt-elements-borderColor/50 dark:shadow-lg dark:shadow-black/10',
+        'dark:bg-bolt-elements-background-depth-1/90 dark:border-border/20 dark:shadow-lg dark:shadow-black/10',
       )}
     >
       <FilePreview
