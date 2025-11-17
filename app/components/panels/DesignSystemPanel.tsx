@@ -6,6 +6,8 @@ import { useState, useEffect, useRef } from 'react';
 
 import { getAvailableThemes, findMatchingTheme } from '~/lib/replay/themeHelper';
 
+import { Sun, Moon } from 'lucide-react';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,12 +27,60 @@ const CUSTOM_THEME_NAME = 'custom';
 
 export const DesignSystemPanel = () => {
   const activeTab = useStore(activeSidebarTab);
-  const [selectedTheme, setSelectedTheme] = useState<string>('modern-minimal');
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
   const [hoveredTheme, setHoveredTheme] = useState<string | null>(null);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [isCustomTheme, setIsCustomTheme] = useState(false);
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const hasLoadedThemeRef = useRef(false);
   const availableThemes = getAvailableThemes();
+
+  // Send theme mode change to iframe
+  const sendThemeModeToIframe = (mode: 'light' | 'dark') => {
+    const iframe = document.querySelector('iframe');
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage(
+        {
+          type: 'SET_THEME',
+          theme: mode,
+          source: 'nut-preview',
+        },
+        '*',
+      );
+    }
+  };
+
+  // Listen for theme changes from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Listen for theme changes from the iframe
+      if (event.data?.type === 'THEME_CHANGED' && event.data?.source === 'app-theme-provider') {
+        const newTheme = event.data.theme;
+        if (newTheme === 'light' || newTheme === 'dark') {
+          setThemeMode(newTheme);
+        }
+      }
+      // Listen for initial app ready message
+      if (event.data?.type === 'APP_READY' && event.data?.source === 'app-theme-provider') {
+        const initialTheme = event.data.theme;
+        if (initialTheme === 'light' || initialTheme === 'dark') {
+          setThemeMode(initialTheme);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  // Toggle theme mode
+  const handleThemeModeToggle = () => {
+    const newMode = themeMode === 'light' ? 'dark' : 'light';
+    setThemeMode(newMode);
+    sendThemeModeToIframe(newMode);
+  };
 
   // Load current theme from iframe when design tab is opened
   useEffect(() => {
@@ -57,9 +107,14 @@ export const DesignSystemPanel = () => {
                 setSelectedTheme(matchingTheme);
                 setIsCustomTheme(false);
               } else {
+                // Custom theme - set to custom and let TweakCN load the values
                 setSelectedTheme(CUSTOM_THEME_NAME);
                 setIsCustomTheme(true);
               }
+            } else {
+              // No variables found, default to first available theme
+              setSelectedTheme(availableThemes[0]?.name || 'modern-minimal');
+              setIsCustomTheme(false);
             }
           }
         };
@@ -78,12 +133,18 @@ export const DesignSystemPanel = () => {
         setTimeout(() => {
           window.removeEventListener('message', handleMessage);
         }, 5000);
+      } else {
+        // No iframe found, default to first available theme
+        setSelectedTheme(availableThemes[0]?.name || 'modern-minimal');
+        setIsCustomTheme(false);
       }
     } else if (activeTab !== 'design-system') {
       // Reset when leaving design tab
       hasLoadedThemeRef.current = false;
+      setSelectedTheme(null);
+      setIsCustomTheme(false);
     }
-  }, [activeTab]);
+  }, [activeTab, availableThemes]);
 
   const handleThemeChange = (themeName: string) => {
     if (themeName === CUSTOM_THEME_NAME) {
@@ -105,8 +166,8 @@ export const DesignSystemPanel = () => {
   };
 
   const handlePreviousTheme = () => {
-    if (isCustomTheme) {
-      return; // Don't navigate when on custom theme
+    if (isCustomTheme || !selectedTheme) {
+      return; // Don't navigate when on custom theme or theme not loaded
     }
     const currentIndex = availableThemes.findIndex((t) => t.name === selectedTheme);
     const previousIndex = currentIndex > 0 ? currentIndex - 1 : availableThemes.length - 1;
@@ -114,8 +175,8 @@ export const DesignSystemPanel = () => {
   };
 
   const handleNextTheme = () => {
-    if (isCustomTheme) {
-      return; // Don't navigate when on custom theme
+    if (isCustomTheme || !selectedTheme) {
+      return; // Don't navigate when on custom theme or theme not loaded
     }
     const currentIndex = availableThemes.findIndex((t) => t.name === selectedTheme);
     const nextIndex = currentIndex < availableThemes.length - 1 ? currentIndex + 1 : 0;
@@ -123,7 +184,7 @@ export const DesignSystemPanel = () => {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden">
+    <div className="@container flex flex-col h-full w-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor overflow-hidden">
       <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 shadow-sm rounded-t-xl">
         <div className="flex items-center gap-2 px-4 h-[38px]">
           {/* Theme Navigation - Left Side */}
@@ -131,6 +192,14 @@ export const DesignSystemPanel = () => {
 
           {/* Theme Navigation - Right Side */}
           <div className="flex items-center gap-1">
+            {/* Theme Mode Toggle */}
+            <button
+              onClick={handleThemeModeToggle}
+              className="p-1.5 rounded-lg text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 transition-all duration-200 flex-shrink-0"
+              title={themeMode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            >
+              {themeMode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            </button>
             <DropdownMenu open={isThemeDropdownOpen} onOpenChange={setIsThemeDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 px-2 py-1 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 rounded-md transition-colors">
@@ -201,7 +270,9 @@ export const DesignSystemPanel = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto flex flex-col">
-        <TweakCN selectedTheme={selectedTheme} hoveredTheme={hoveredTheme} onThemeChange={handleThemeChange} />
+        {selectedTheme && (
+          <TweakCN selectedTheme={selectedTheme} hoveredTheme={hoveredTheme} onThemeChange={handleThemeChange} />
+        )}
       </div>
     </div>
   );

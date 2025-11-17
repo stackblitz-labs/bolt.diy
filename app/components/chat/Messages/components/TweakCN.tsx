@@ -19,29 +19,48 @@ import { ChevronDown } from 'lucide-react';
 
 import { markThemeChanged, resetThemeChanges } from '~/lib/stores/themeChanges';
 
-import { themeIsDark } from '~/lib/stores/theme';
-
 type TabType = 'colors' | 'typography' | 'other';
 
 interface ColorPickerProps {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
+  lightValue: string;
+  darkValue?: string;
+  onLightChange: (value: string) => void;
+  onDarkChange: (value: string) => void;
   onHover?: (value: string) => void;
   onHoverEnd?: () => void;
 }
 
-const ColorPicker: React.FC<ColorPickerProps> = ({ label, value, onChange, onHover, onHoverEnd }) => {
-  const [hslValue, setHslValue] = useState(value);
+const ColorPicker: React.FC<ColorPickerProps> = ({
+  label,
+  lightValue,
+  darkValue,
+  onLightChange,
+  onDarkChange,
+  onHover,
+  onHoverEnd,
+}) => {
+  const [lightHslValue, setLightHslValue] = useState(lightValue);
+  const [darkHslValue, setDarkHslValue] = useState(darkValue || lightValue);
 
   useEffect(() => {
-    setHslValue(value);
-  }, [value]);
+    setLightHslValue(lightValue);
+  }, [lightValue]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    setDarkHslValue(darkValue || lightValue);
+  }, [darkValue, lightValue]);
+
+  const handleLightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    setHslValue(newValue);
-    onChange(newValue);
+    setLightHslValue(newValue);
+    onLightChange(newValue);
+  };
+
+  const handleDarkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setDarkHslValue(newValue);
+    onDarkChange(newValue);
   };
 
   // Convert HSL to hex for color picker
@@ -116,41 +135,84 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ label, value, onChange, onHov
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
   };
 
-  const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLightColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const hex = e.target.value;
     const newHsl = hexToHsl(hex);
-    setHslValue(newHsl);
-    onChange(newHsl);
+    setLightHslValue(newHsl);
+    onLightChange(newHsl);
+  };
+
+  const handleDarkColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const hex = e.target.value;
+    const newHsl = hexToHsl(hex);
+    setDarkHslValue(newHsl);
+    onDarkChange(newHsl);
   };
 
   return (
     <div className="space-y-2">
       <label className="text-xs text-bolt-elements-textSecondary">{label}</label>
-      <div className="flex items-center gap-2">
-        <div className="relative w-12 h-10 flex-shrink-0">
-          <div
-            className="w-full h-full rounded border border-bolt-elements-borderColor cursor-pointer"
-            style={{ backgroundColor: `hsl(${hslValue})` }}
-          />
-          <input
-            type="color"
-            value={hslToHex(hslValue)}
-            onChange={handleColorPickerChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            title="Click to pick a color"
-          />
+      <div className="grid grid-cols-1 @[500px]:grid-cols-2 gap-2">
+        {/* Light Mode */}
+        <div className="flex items-center gap-2">
+          <div className="relative w-10 h-10 flex-shrink-0">
+            <div
+              className="w-full h-full rounded border border-bolt-elements-borderColor cursor-pointer"
+              style={{ backgroundColor: `hsl(${lightHslValue})` }}
+            />
+            <input
+              type="color"
+              value={hslToHex(lightHslValue)}
+              onChange={handleLightColorPickerChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              title="Click to pick light mode color"
+            />
+          </div>
+          <div className="flex-1 flex flex-col min-w-0">
+            <span className="text-xs text-bolt-elements-textSecondary mb-1">Light</span>
+            <input
+              type="text"
+              value={lightHslValue}
+              onChange={handleLightChange}
+              onMouseEnter={() => onHover?.(lightHslValue)}
+              onMouseLeave={onHoverEnd}
+              onFocus={() => onHover?.(lightHslValue)}
+              onBlur={onHoverEnd}
+              className="px-2 py-1.5 text-xs bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-md focus:outline-none focus:border-bolt-elements-borderColorActive focus:ring-1 focus:ring-bolt-elements-borderColorActive text-bolt-elements-textPrimary w-full"
+              placeholder="0 0% 0%"
+            />
+          </div>
         </div>
-        <input
-          type="text"
-          value={hslValue}
-          onChange={handleChange}
-          onMouseEnter={() => onHover?.(hslValue)}
-          onMouseLeave={onHoverEnd}
-          onFocus={() => onHover?.(hslValue)}
-          onBlur={onHoverEnd}
-          className="flex-1 px-3 py-2 text-sm bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-md focus:outline-none focus:border-bolt-elements-borderColorActive focus:ring-1 focus:ring-bolt-elements-borderColorActive text-bolt-elements-textPrimary"
-          placeholder="0 0% 0%"
-        />
+        {/* Dark Mode */}
+        <div className="flex items-center gap-2">
+          <div className="relative w-10 h-10 flex-shrink-0">
+            <div
+              className="w-full h-full rounded border border-bolt-elements-borderColor cursor-pointer"
+              style={{ backgroundColor: `hsl(${darkHslValue})` }}
+            />
+            <input
+              type="color"
+              value={hslToHex(darkHslValue)}
+              onChange={handleDarkColorPickerChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              title="Click to pick dark mode color"
+            />
+          </div>
+          <div className="flex-1 flex flex-col min-w-0">
+            <span className="text-xs text-bolt-elements-textSecondary mb-1">Dark</span>
+            <input
+              type="text"
+              value={darkHslValue}
+              onChange={handleDarkChange}
+              onMouseEnter={() => onHover?.(darkHslValue)}
+              onMouseLeave={onHoverEnd}
+              onFocus={() => onHover?.(darkHslValue)}
+              onBlur={onHoverEnd}
+              className="px-2 py-1.5 text-xs bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-md focus:outline-none focus:border-bolt-elements-borderColorActive focus:ring-1 focus:ring-bolt-elements-borderColorActive text-bolt-elements-textPrimary w-full"
+              placeholder="0 0% 0%"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -181,12 +243,12 @@ export const TweakCN: React.FC<TweakCNProps> = ({
 
   // Store original values for tracking changes
   const originalValuesRef = useRef<{
-    colors: Record<string, string>;
+    colors: Record<string, { light: string; dark?: string }>;
     fonts: { sans: string; serif: string; mono: string };
     radius: number;
     spacingUnit: number;
     borderWidth: number;
-    additionalColors: Record<string, string>;
+    additionalColors: Record<string, { light: string; dark?: string }>;
   } | null>(null);
 
   // Font selections
@@ -210,41 +272,41 @@ export const TweakCN: React.FC<TweakCNProps> = ({
   // Font size presets
   const [fontSizeBase, setFontSizeBase] = useState(16);
 
-  // Additional colors
-  const [additionalColors, setAdditionalColors] = useState({
-    success: '142 71% 45%',
-    successForeground: '0 0% 100%',
-    warning: '38 92% 50%',
-    warningForeground: '0 0% 0%',
-    danger: '0 84% 60%',
-    dangerForeground: '0 0% 100%',
-    sidebar: '240 5% 6%',
-    sidebarForeground: '240 5% 90%',
-    sidebarPrimary: '240 6% 10%',
-    sidebarPrimaryForeground: '0 0% 98%',
-    sidebarAccent: '240 4% 16%',
-    sidebarAccentForeground: '240 6% 90%',
-    sidebarBorder: '240 4% 16%',
-    sidebarRing: '217 91% 60%',
+  // Additional colors - store both light and dark
+  const [additionalColors, setAdditionalColors] = useState<Record<string, { light: string; dark?: string }>>({
+    success: { light: '142 71% 45%' },
+    successForeground: { light: '0 0% 100%' },
+    warning: { light: '38 92% 50%' },
+    warningForeground: { light: '0 0% 0%' },
+    danger: { light: '0 84% 60%' },
+    dangerForeground: { light: '0 0% 100%' },
+    sidebar: { light: '240 5% 6%' },
+    sidebarForeground: { light: '240 5% 90%' },
+    sidebarPrimary: { light: '240 6% 10%' },
+    sidebarPrimaryForeground: { light: '0 0% 98%' },
+    sidebarAccent: { light: '240 4% 16%' },
+    sidebarAccentForeground: { light: '240 6% 90%' },
+    sidebarBorder: { light: '240 4% 16%' },
+    sidebarRing: { light: '217 91% 60%' },
   });
 
-  // Color values from the current theme
-  const [colors, setColors] = useState({
-    primary: '38 92% 50%',
-    primaryForeground: '0 0% 0%',
-    secondary: '220 14% 96%',
-    secondaryForeground: '215 14% 34%',
-    accent: '48 100% 96%',
-    accentForeground: '23 83% 31%',
-    background: '0 0% 100%',
-    foreground: '0 0% 15%',
-    card: '0 0% 100%',
-    cardForeground: '0 0% 15%',
-    muted: '210 20% 98%',
-    mutedForeground: '220 9% 46%',
-    border: '220 13% 91%',
-    destructive: '0 84% 60%',
-    destructiveForeground: '0 0% 100%',
+  // Color values from the current theme - store both light and dark
+  const [colors, setColors] = useState<Record<string, { light: string; dark?: string }>>({
+    primary: { light: '38 92% 50%' },
+    primaryForeground: { light: '0 0% 0%' },
+    secondary: { light: '220 14% 96%' },
+    secondaryForeground: { light: '215 14% 34%' },
+    accent: { light: '48 100% 96%' },
+    accentForeground: { light: '23 83% 31%' },
+    background: { light: '0 0% 100%' },
+    foreground: { light: '0 0% 15%' },
+    card: { light: '0 0% 100%' },
+    cardForeground: { light: '0 0% 15%' },
+    muted: { light: '210 20% 98%' },
+    mutedForeground: { light: '220 9% 46%' },
+    border: { light: '220 13% 91%' },
+    destructive: { light: '0 84% 60%' },
+    destructiveForeground: { light: '0 0% 100%' },
   });
 
   // Font search state
@@ -460,14 +522,17 @@ export const TweakCN: React.FC<TweakCNProps> = ({
 
   // Helper to parse CSS variable values (handles .dark: separator)
   const parseVariableValue = (value: string): { light?: string; dark?: string } => {
+    // Strip quotes from the value if present
+    const stripQuotes = (val: string) => val.trim().replace(/^["']|["']$/g, '');
+
     if (value.includes('.dark:')) {
       const [lightPart, darkPart] = value.split('.dark:');
       return {
-        light: lightPart.trim(),
-        dark: darkPart?.trim(),
+        light: stripQuotes(lightPart),
+        dark: darkPart ? stripQuotes(darkPart) : undefined,
       };
     }
-    return { light: value };
+    return { light: stripQuotes(value) };
   };
 
   // Helper to load theme variables from iframe for custom theme
@@ -489,12 +554,15 @@ export const TweakCN: React.FC<TweakCNProps> = ({
           const darkColors: Record<string, string> = {};
           const themeVars: Record<string, string> = {};
 
+          // Helper to strip quotes from values
+          const stripQuotes = (val: string) => val.trim().replace(/^["']|["']$/g, '');
+
           Object.entries(currentVariables).forEach(([key, value]) => {
             if (key.startsWith('--font-') || key === '--radius') {
-              themeVars[key.replace('--', '')] = value;
+              themeVars[key.replace('--', '')] = stripQuotes(value);
             } else if (key.endsWith('-dark')) {
               const baseKey = key.slice(0, -5);
-              darkColors[baseKey.replace('--', '')] = value;
+              darkColors[baseKey.replace('--', '')] = stripQuotes(value);
             } else {
               const parsed = parseVariableValue(value);
               const baseKey = key.replace('--', '');
@@ -507,23 +575,68 @@ export const TweakCN: React.FC<TweakCNProps> = ({
             }
           });
 
-          // Update colors state
-          const newColors = {
-            primary: lightColors.primary || '38 92% 50%',
-            primaryForeground: lightColors['primary-foreground'] || '0 0% 0%',
-            secondary: lightColors.secondary || '220 14% 96%',
-            secondaryForeground: lightColors['secondary-foreground'] || '215 14% 34%',
-            accent: lightColors.accent || '48 100% 96%',
-            accentForeground: lightColors['accent-foreground'] || '23 83% 31%',
-            background: lightColors.background || '0 0% 100%',
-            foreground: lightColors.foreground || '0 0% 15%',
-            card: lightColors.card || '0 0% 100%',
-            cardForeground: lightColors['card-foreground'] || '0 0% 15%',
-            muted: lightColors.muted || '210 20% 98%',
-            mutedForeground: lightColors['muted-foreground'] || '220 9% 46%',
-            border: lightColors.border || '220 13% 91%',
-            destructive: lightColors.destructive || '0 84% 60%',
-            destructiveForeground: lightColors['destructive-foreground'] || '0 0% 100%',
+          // Update colors state with both light and dark values
+          const newColors: Record<string, { light: string; dark?: string }> = {
+            primary: {
+              light: lightColors.primary || '38 92% 50%',
+              dark: darkColors.primary,
+            },
+            primaryForeground: {
+              light: lightColors['primary-foreground'] || '0 0% 0%',
+              dark: darkColors['primary-foreground'],
+            },
+            secondary: {
+              light: lightColors.secondary || '220 14% 96%',
+              dark: darkColors.secondary,
+            },
+            secondaryForeground: {
+              light: lightColors['secondary-foreground'] || '215 14% 34%',
+              dark: darkColors['secondary-foreground'],
+            },
+            accent: {
+              light: lightColors.accent || '48 100% 96%',
+              dark: darkColors.accent,
+            },
+            accentForeground: {
+              light: lightColors['accent-foreground'] || '23 83% 31%',
+              dark: darkColors['accent-foreground'],
+            },
+            background: {
+              light: lightColors.background || '0 0% 100%',
+              dark: darkColors.background,
+            },
+            foreground: {
+              light: lightColors.foreground || '0 0% 15%',
+              dark: darkColors.foreground,
+            },
+            card: {
+              light: lightColors.card || '0 0% 100%',
+              dark: darkColors.card,
+            },
+            cardForeground: {
+              light: lightColors['card-foreground'] || '0 0% 15%',
+              dark: darkColors['card-foreground'],
+            },
+            muted: {
+              light: lightColors.muted || '210 20% 98%',
+              dark: darkColors.muted,
+            },
+            mutedForeground: {
+              light: lightColors['muted-foreground'] || '220 9% 46%',
+              dark: darkColors['muted-foreground'],
+            },
+            border: {
+              light: lightColors.border || '220 13% 91%',
+              dark: darkColors.border,
+            },
+            destructive: {
+              light: lightColors.destructive || '0 84% 60%',
+              dark: darkColors.destructive,
+            },
+            destructiveForeground: {
+              light: lightColors['destructive-foreground'] || '0 0% 100%',
+              dark: darkColors['destructive-foreground'],
+            },
           };
 
           setColors(newColors);
@@ -545,7 +658,69 @@ export const TweakCN: React.FC<TweakCNProps> = ({
             }
           }
 
-          // Store original values
+          // Update additional colors state with both light and dark values
+          const newAdditionalColors: Record<string, { light: string; dark?: string }> = {
+            success: {
+              light: lightColors.success || '142 71% 45%',
+              dark: darkColors.success,
+            },
+            successForeground: {
+              light: lightColors['success-foreground'] || '0 0% 100%',
+              dark: darkColors['success-foreground'],
+            },
+            warning: {
+              light: lightColors.warning || '38 92% 50%',
+              dark: darkColors.warning,
+            },
+            warningForeground: {
+              light: lightColors['warning-foreground'] || '0 0% 0%',
+              dark: darkColors['warning-foreground'],
+            },
+            danger: {
+              light: lightColors.danger || '0 84% 60%',
+              dark: darkColors.danger,
+            },
+            dangerForeground: {
+              light: lightColors['danger-foreground'] || '0 0% 100%',
+              dark: darkColors['danger-foreground'],
+            },
+            sidebar: {
+              light: lightColors.sidebar || '240 5% 6%',
+              dark: darkColors.sidebar,
+            },
+            sidebarForeground: {
+              light: lightColors['sidebar-foreground'] || '240 5% 90%',
+              dark: darkColors['sidebar-foreground'],
+            },
+            sidebarPrimary: {
+              light: lightColors['sidebar-primary'] || '240 6% 10%',
+              dark: darkColors['sidebar-primary'],
+            },
+            sidebarPrimaryForeground: {
+              light: lightColors['sidebar-primary-foreground'] || '0 0% 98%',
+              dark: darkColors['sidebar-primary-foreground'],
+            },
+            sidebarAccent: {
+              light: lightColors['sidebar-accent'] || '240 4% 16%',
+              dark: darkColors['sidebar-accent'],
+            },
+            sidebarAccentForeground: {
+              light: lightColors['sidebar-accent-foreground'] || '240 6% 90%',
+              dark: darkColors['sidebar-accent-foreground'],
+            },
+            sidebarBorder: {
+              light: lightColors['sidebar-border'] || '240 4% 16%',
+              dark: darkColors['sidebar-border'],
+            },
+            sidebarRing: {
+              light: lightColors['sidebar-ring'] || '217 91% 60%',
+              dark: darkColors['sidebar-ring'],
+            },
+          };
+
+          setAdditionalColors(newAdditionalColors);
+
+          // Store original values with both light and dark
           originalValuesRef.current = {
             colors: { ...newColors },
             fonts: {
@@ -556,22 +731,7 @@ export const TweakCN: React.FC<TweakCNProps> = ({
             radius: themeVars.radius ? parseFloat(themeVars.radius) : 0.625,
             spacingUnit: 4,
             borderWidth: 1,
-            additionalColors: {
-              success: lightColors.success || '142 71% 45%',
-              successForeground: lightColors['success-foreground'] || '0 0% 100%',
-              warning: lightColors.warning || '38 92% 50%',
-              warningForeground: lightColors['warning-foreground'] || '0 0% 0%',
-              danger: lightColors.danger || '0 84% 60%',
-              dangerForeground: lightColors['danger-foreground'] || '0 0% 100%',
-              sidebar: lightColors.sidebar || '240 5% 6%',
-              sidebarForeground: lightColors['sidebar-foreground'] || '240 5% 90%',
-              sidebarPrimary: lightColors['sidebar-primary'] || '240 6% 10%',
-              sidebarPrimaryForeground: lightColors['sidebar-primary-foreground'] || '0 0% 98%',
-              sidebarAccent: lightColors['sidebar-accent'] || '240 4% 16%',
-              sidebarAccentForeground: lightColors['sidebar-accent-foreground'] || '240 6% 90%',
-              sidebarBorder: lightColors['sidebar-border'] || '240 4% 16%',
-              sidebarRing: lightColors['sidebar-ring'] || '217 91% 60%',
-            },
+            additionalColors: { ...newAdditionalColors },
           };
         }
       }
@@ -592,6 +752,60 @@ export const TweakCN: React.FC<TweakCNProps> = ({
     }, 5000);
   };
 
+  // Helper to diff current theme variables with new theme and mark changes
+  const diffAndMarkThemeChanges = (currentVariables: Record<string, string>, newThemeName: string): number => {
+    const newThemeVars = getThemeCSSVariables(newThemeName);
+    if (!newThemeVars) {
+      return 0;
+    }
+
+    const newThemeFlattened = flattenThemeVariablesWithModes(newThemeVars);
+    let changeCount = 0;
+
+    // Helper to parse variable value (handles .dark: separator)
+    const parseVariableValue = (value: string): { light?: string; dark?: string } => {
+      const stripQuotes = (val: string) => val.trim().replace(/^["']|["']$/g, '');
+      if (value.includes('.dark:')) {
+        const [lightPart, darkPart] = value.split('.dark:');
+        return {
+          light: stripQuotes(lightPart),
+          dark: darkPart ? stripQuotes(darkPart) : undefined,
+        };
+      }
+      return { light: stripQuotes(value) };
+    };
+
+    // Compare each variable
+    const allKeys = new Set([...Object.keys(currentVariables), ...Object.keys(newThemeFlattened)]);
+
+    for (const key of allKeys) {
+      const currentValue = currentVariables[key] || '';
+      const newValue = newThemeFlattened[key] || '';
+
+      if (currentValue !== newValue) {
+        const currentParsed = parseVariableValue(currentValue);
+        const newParsed = parseVariableValue(newValue);
+
+        // Mark light mode change if different
+        if (currentParsed.light !== newParsed.light) {
+          markThemeChanged(key, currentParsed.light || '', newParsed.light || '', false);
+          changeCount++;
+        }
+
+        // Mark dark mode change if different
+        if (currentParsed.dark !== newParsed.dark) {
+          markThemeChanged(key, currentParsed.dark || currentParsed.light || '', newParsed.dark || '', true);
+          if (currentParsed.light === newParsed.light) {
+            // Only count if light wasn't already counted
+            changeCount++;
+          }
+        }
+      }
+    }
+
+    return changeCount;
+  };
+
   // Apply theme when selected and load its values into the panel
   useEffect(() => {
     console.log('[TweakCN] Selected theme changed to:', selectedTheme);
@@ -602,81 +816,221 @@ export const TweakCN: React.FC<TweakCNProps> = ({
       return;
     }
 
-    // Reset theme changes when switching themes
-    resetThemeChanges();
+    // Get current variables from iframe before resetting and applying new theme
+    const iframe = getIframe();
+    if (iframe?.contentWindow) {
+      const requestId = Date.now().toString();
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.id === requestId && event.data?.response && event.data?.source === '@@replay-nut') {
+          window.removeEventListener('message', handleMessage);
 
-    sendThemeToIframe(selectedTheme);
+          const currentVariables = event.data.response as Record<string, string>;
 
-    // Load the theme's CSS variables into our state
-    const cssVars = getThemeCSSVariables(selectedTheme);
-    if (cssVars) {
-      // Extract light mode colors (we'll use light mode for editing)
-      const lightColors = cssVars.light || {};
-      const themeVars = cssVars.theme || {};
+          // Reset theme changes first
+          resetThemeChanges();
 
-      const newColors = {
-        primary: lightColors.primary || '38 92% 50%',
-        primaryForeground: lightColors['primary-foreground'] || '0 0% 0%',
-        secondary: lightColors.secondary || '220 14% 96%',
-        secondaryForeground: lightColors['secondary-foreground'] || '215 14% 34%',
-        accent: lightColors.accent || '48 100% 96%',
-        accentForeground: lightColors['accent-foreground'] || '23 83% 31%',
-        background: lightColors.background || '0 0% 100%',
-        foreground: lightColors.foreground || '0 0% 15%',
-        card: lightColors.card || '0 0% 100%',
-        cardForeground: lightColors['card-foreground'] || '0 0% 15%',
-        muted: lightColors.muted || '210 20% 98%',
-        mutedForeground: lightColors['muted-foreground'] || '220 9% 46%',
-        border: lightColors.border || '220 13% 91%',
-        destructive: lightColors.destructive || '0 84% 60%',
-        destructiveForeground: lightColors['destructive-foreground'] || '0 0% 100%',
+          // Diff and mark all changes before applying new theme
+          if (currentVariables && Object.keys(currentVariables).length > 0) {
+            const changeCount = diffAndMarkThemeChanges(currentVariables, selectedTheme);
+            console.log(`[TweakCN] Theme change will modify ${changeCount} variables`);
+          }
+
+          // Now apply the new theme
+          sendThemeToIframe(selectedTheme);
+          loadThemeIntoState(selectedTheme);
+        }
       };
 
-      setColors(newColors);
-
-      // Load font settings
-      const newSansFont = themeVars['font-sans'] || 'Inter, sans-serif';
-      const newSerifFont = themeVars['font-serif'] || 'Source Serif 4, serif';
-      const newMonoFont = themeVars['font-mono'] || 'JetBrains Mono, monospace';
-      const newRadius = themeVars.radius ? parseFloat(themeVars.radius) : 0.625;
-
-      setSansSerifFont(newSansFont);
-      setSerifFont(newSerifFont);
-      setMonoFont(newMonoFont);
-      if (!isNaN(newRadius)) {
-        setRadius(newRadius);
-      }
-
-      // Store original values for change tracking
-      originalValuesRef.current = {
-        colors: { ...newColors },
-        fonts: {
-          sans: newSansFont,
-          serif: newSerifFont,
-          mono: newMonoFont,
+      window.addEventListener('message', handleMessage);
+      iframe.contentWindow.postMessage(
+        {
+          id: requestId,
+          request: 'get-custom-variables',
+          source: '@@replay-nut',
         },
-        radius: newRadius,
-        spacingUnit: 4, // Default spacing unit
-        borderWidth: 1, // Default border width
-        additionalColors: {
-          success: lightColors.success || '142 71% 45%',
-          successForeground: lightColors['success-foreground'] || '0 0% 100%',
-          warning: lightColors.warning || '38 92% 50%',
-          warningForeground: lightColors['warning-foreground'] || '0 0% 0%',
-          danger: lightColors.danger || '0 84% 60%',
-          dangerForeground: lightColors['danger-foreground'] || '0 0% 100%',
-          sidebar: lightColors.sidebar || '240 5% 6%',
-          sidebarForeground: lightColors['sidebar-foreground'] || '240 5% 90%',
-          sidebarPrimary: lightColors['sidebar-primary'] || '240 6% 10%',
-          sidebarPrimaryForeground: lightColors['sidebar-primary-foreground'] || '0 0% 98%',
-          sidebarAccent: lightColors['sidebar-accent'] || '240 4% 16%',
-          sidebarAccentForeground: lightColors['sidebar-accent-foreground'] || '240 6% 90%',
-          sidebarBorder: lightColors['sidebar-border'] || '240 4% 16%',
-          sidebarRing: lightColors['sidebar-ring'] || '217 91% 60%',
-        },
-      };
+        '*',
+      );
+
+      setTimeout(() => {
+        window.removeEventListener('message', handleMessage);
+        // Fallback: if no response, just apply theme without diffing
+        resetThemeChanges();
+        sendThemeToIframe(selectedTheme);
+        loadThemeIntoState(selectedTheme);
+      }, 5000);
+    } else {
+      // No iframe, just reset and apply theme
+      resetThemeChanges();
+      sendThemeToIframe(selectedTheme);
+      loadThemeIntoState(selectedTheme);
     }
   }, [selectedTheme]);
+
+  // Helper to load theme into state (extracted for reuse)
+  const loadThemeIntoState = (themeName: string) => {
+    const cssVars = getThemeCSSVariables(themeName);
+    if (!cssVars) {
+      return;
+    }
+
+    // Extract both light and dark mode colors
+    const lightColors = cssVars.light || {};
+    const darkColors = cssVars.dark || {};
+    const themeVars = cssVars.theme || {};
+
+    const newColors: Record<string, { light: string; dark?: string }> = {
+      primary: {
+        light: lightColors.primary || '38 92% 50%',
+        dark: darkColors.primary,
+      },
+      primaryForeground: {
+        light: lightColors['primary-foreground'] || '0 0% 0%',
+        dark: darkColors['primary-foreground'],
+      },
+      secondary: {
+        light: lightColors.secondary || '220 14% 96%',
+        dark: darkColors.secondary,
+      },
+      secondaryForeground: {
+        light: lightColors['secondary-foreground'] || '215 14% 34%',
+        dark: darkColors['secondary-foreground'],
+      },
+      accent: {
+        light: lightColors.accent || '48 100% 96%',
+        dark: darkColors.accent,
+      },
+      accentForeground: {
+        light: lightColors['accent-foreground'] || '23 83% 31%',
+        dark: darkColors['accent-foreground'],
+      },
+      background: {
+        light: lightColors.background || '0 0% 100%',
+        dark: darkColors.background,
+      },
+      foreground: {
+        light: lightColors.foreground || '0 0% 15%',
+        dark: darkColors.foreground,
+      },
+      card: {
+        light: lightColors.card || '0 0% 100%',
+        dark: darkColors.card,
+      },
+      cardForeground: {
+        light: lightColors['card-foreground'] || '0 0% 15%',
+        dark: darkColors['card-foreground'],
+      },
+      muted: {
+        light: lightColors.muted || '210 20% 98%',
+        dark: darkColors.muted,
+      },
+      mutedForeground: {
+        light: lightColors['muted-foreground'] || '220 9% 46%',
+        dark: darkColors['muted-foreground'],
+      },
+      border: {
+        light: lightColors.border || '220 13% 91%',
+        dark: darkColors.border,
+      },
+      destructive: {
+        light: lightColors.destructive || '0 84% 60%',
+        dark: darkColors.destructive,
+      },
+      destructiveForeground: {
+        light: lightColors['destructive-foreground'] || '0 0% 100%',
+        dark: darkColors['destructive-foreground'],
+      },
+    };
+
+    setColors(newColors);
+
+    // Load font settings
+    const newSansFont = themeVars['font-sans'] || 'Inter, sans-serif';
+    const newSerifFont = themeVars['font-serif'] || 'Source Serif 4, serif';
+    const newMonoFont = themeVars['font-mono'] || 'JetBrains Mono, monospace';
+    const newRadius = themeVars.radius ? parseFloat(themeVars.radius) : 0.625;
+
+    setSansSerifFont(newSansFont);
+    setSerifFont(newSerifFont);
+    setMonoFont(newMonoFont);
+    if (!isNaN(newRadius)) {
+      setRadius(newRadius);
+    }
+
+    // Store original values for change tracking with both light and dark
+    const newAdditionalColors: Record<string, { light: string; dark?: string }> = {
+      success: {
+        light: lightColors.success || '142 71% 45%',
+        dark: darkColors.success,
+      },
+      successForeground: {
+        light: lightColors['success-foreground'] || '0 0% 100%',
+        dark: darkColors['success-foreground'],
+      },
+      warning: {
+        light: lightColors.warning || '38 92% 50%',
+        dark: darkColors.warning,
+      },
+      warningForeground: {
+        light: lightColors['warning-foreground'] || '0 0% 0%',
+        dark: darkColors['warning-foreground'],
+      },
+      danger: {
+        light: lightColors.danger || '0 84% 60%',
+        dark: darkColors.danger,
+      },
+      dangerForeground: {
+        light: lightColors['danger-foreground'] || '0 0% 100%',
+        dark: darkColors['danger-foreground'],
+      },
+      sidebar: {
+        light: lightColors.sidebar || '240 5% 6%',
+        dark: darkColors.sidebar,
+      },
+      sidebarForeground: {
+        light: lightColors['sidebar-foreground'] || '240 5% 90%',
+        dark: darkColors['sidebar-foreground'],
+      },
+      sidebarPrimary: {
+        light: lightColors['sidebar-primary'] || '240 6% 10%',
+        dark: darkColors['sidebar-primary'],
+      },
+      sidebarPrimaryForeground: {
+        light: lightColors['sidebar-primary-foreground'] || '0 0% 98%',
+        dark: darkColors['sidebar-primary-foreground'],
+      },
+      sidebarAccent: {
+        light: lightColors['sidebar-accent'] || '240 4% 16%',
+        dark: darkColors['sidebar-accent'],
+      },
+      sidebarAccentForeground: {
+        light: lightColors['sidebar-accent-foreground'] || '240 6% 90%',
+        dark: darkColors['sidebar-accent-foreground'],
+      },
+      sidebarBorder: {
+        light: lightColors['sidebar-border'] || '240 4% 16%',
+        dark: darkColors['sidebar-border'],
+      },
+      sidebarRing: {
+        light: lightColors['sidebar-ring'] || '217 91% 60%',
+        dark: darkColors['sidebar-ring'],
+      },
+    };
+
+    setAdditionalColors(newAdditionalColors);
+
+    originalValuesRef.current = {
+      colors: { ...newColors },
+      fonts: {
+        sans: newSansFont,
+        serif: newSerifFont,
+        mono: newMonoFont,
+      },
+      radius: newRadius,
+      spacingUnit: 4, // Default spacing unit
+      borderWidth: 1, // Default border width
+      additionalColors: { ...newAdditionalColors },
+    };
+  };
 
   // Apply hovered theme preview
   useEffect(() => {
@@ -787,54 +1141,116 @@ export const TweakCN: React.FC<TweakCNProps> = ({
     }
   };
 
-  // Handle color changes
-  const handleColorChange = (colorKey: string, value: string) => {
-    console.log('[TweakCN] Color changed:', colorKey, '=', value);
+  // Handle color changes for light mode
+  const handleLightColorChange = (colorKey: string, value: string) => {
+    console.log('[TweakCN] Light color changed:', colorKey, '=', value);
+
+    const cssVarName = colorKey.replace(/([A-Z])/g, '-$1').toLowerCase();
+    const currentColor = colors[colorKey] || { light: value };
+    const darkValue = currentColor.dark;
 
     // Get original value for tracking
-    const originalValue = originalValuesRef.current?.colors[colorKey] || '';
-    const isDarkMode = themeIsDark();
+    const originalColor = originalValuesRef.current?.colors[colorKey];
+    const originalLightValue = originalColor?.light || '';
 
-    // Track change in store
-    const cssVarName = colorKey.replace(/([A-Z])/g, '-$1').toLowerCase();
-    markThemeChanged(`--${cssVarName}`, originalValue, value, isDarkMode);
+    // Track change in store (light mode)
+    markThemeChanged(`--${cssVarName}`, originalLightValue, value, false);
 
     // Update local state
     setColors((prev) => ({
       ...prev,
-      [colorKey]: value,
+      [colorKey]: { ...prev[colorKey], light: value },
     }));
 
-    console.log('[TweakCN] Sending to iframe:', `--${cssVarName}`, '=', value);
-
-    // Send to iframe immediately
-    sendCustomizationToIframe({ [`--${cssVarName}`]: value });
+    // Send to iframe - use .dark: separator if dark value exists
+    const cssVarValue = darkValue ? `${value} .dark: ${darkValue}` : value;
+    sendCustomizationToIframe({ [`--${cssVarName}`]: cssVarValue });
 
     // Update custom theme state
     setCustomTheme((prev) => ({
       ...prev,
-      [`--${cssVarName}`]: value,
+      [`--${cssVarName}`]: cssVarValue,
     }));
   };
 
-  // Handle additional color changes (success, warning, danger, sidebar)
-  const handleAdditionalColorChange = (colorKey: string, value: string) => {
-    // Get original value for tracking
-    const originalValue = originalValuesRef.current?.additionalColors[colorKey] || '';
-    const isDarkMode = themeIsDark();
+  // Handle color changes for dark mode
+  const handleDarkColorChange = (colorKey: string, value: string) => {
+    console.log('[TweakCN] Dark color changed:', colorKey, '=', value);
 
-    // Track change in store
     const cssVarName = colorKey.replace(/([A-Z])/g, '-$1').toLowerCase();
-    markThemeChanged(`--${cssVarName}`, originalValue, value, isDarkMode);
+    const currentColor = colors[colorKey] || { light: '0 0% 0%' };
+    const lightValue = currentColor.light;
+
+    // Get original value for tracking
+    const originalColor = originalValuesRef.current?.colors[colorKey];
+    const originalDarkValue = originalColor?.dark || originalColor?.light || '';
+
+    // Track change in store (dark mode)
+    markThemeChanged(`--${cssVarName}`, originalDarkValue, value, true);
+
+    // Update local state
+    setColors((prev) => ({
+      ...prev,
+      [colorKey]: { ...prev[colorKey], dark: value },
+    }));
+
+    // Send to iframe - use .dark: separator format
+    const cssVarValue = `${lightValue} .dark: ${value}`;
+    sendCustomizationToIframe({ [`--${cssVarName}`]: cssVarValue });
+
+    // Update custom theme state
+    setCustomTheme((prev) => ({
+      ...prev,
+      [`--${cssVarName}`]: cssVarValue,
+    }));
+  };
+
+  // Handle additional color changes for light mode
+  const handleAdditionalLightColorChange = (colorKey: string, value: string) => {
+    const cssVarName = colorKey.replace(/([A-Z])/g, '-$1').toLowerCase();
+    const currentColor = additionalColors[colorKey] || { light: value };
+    const darkValue = currentColor.dark;
+
+    // Get original value for tracking
+    const originalColor = originalValuesRef.current?.additionalColors[colorKey];
+    const originalLightValue = originalColor?.light || '';
+
+    // Track change in store (light mode)
+    markThemeChanged(`--${cssVarName}`, originalLightValue, value, false);
 
     // Update local state
     setAdditionalColors((prev) => ({
       ...prev,
-      [colorKey]: value,
+      [colorKey]: { ...prev[colorKey], light: value },
     }));
 
-    // Send to iframe immediately
-    sendCustomizationToIframe({ [`--${cssVarName}`]: value });
+    // Send to iframe - use .dark: separator if dark value exists
+    const cssVarValue = darkValue ? `${value} .dark: ${darkValue}` : value;
+    sendCustomizationToIframe({ [`--${cssVarName}`]: cssVarValue });
+  };
+
+  // Handle additional color changes for dark mode
+  const handleAdditionalDarkColorChange = (colorKey: string, value: string) => {
+    const cssVarName = colorKey.replace(/([A-Z])/g, '-$1').toLowerCase();
+    const currentColor = additionalColors[colorKey] || { light: '0 0% 0%' };
+    const lightValue = currentColor.light;
+
+    // Get original value for tracking
+    const originalColor = originalValuesRef.current?.additionalColors[colorKey];
+    const originalDarkValue = originalColor?.dark || originalColor?.light || '';
+
+    // Track change in store (dark mode)
+    markThemeChanged(`--${cssVarName}`, originalDarkValue, value, true);
+
+    // Update local state
+    setAdditionalColors((prev) => ({
+      ...prev,
+      [colorKey]: { ...prev[colorKey], dark: value },
+    }));
+
+    // Send to iframe - use .dark: separator format
+    const cssVarValue = `${lightValue} .dark: ${value}`;
+    sendCustomizationToIframe({ [`--${cssVarName}`]: cssVarValue });
   };
 
   const tabs = [
@@ -881,13 +1297,17 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                 <CollapsibleContent className="space-y-3">
                   <ColorPicker
                     label="Primary"
-                    value={colors.primary}
-                    onChange={(value) => handleColorChange('primary', value)}
+                    lightValue={colors.primary.light}
+                    darkValue={colors.primary.dark}
+                    onLightChange={(value) => handleLightColorChange('primary', value)}
+                    onDarkChange={(value) => handleDarkColorChange('primary', value)}
                   />
                   <ColorPicker
                     label="Primary Foreground"
-                    value={colors.primaryForeground}
-                    onChange={(value) => handleColorChange('primaryForeground', value)}
+                    lightValue={colors.primaryForeground.light}
+                    darkValue={colors.primaryForeground.dark}
+                    onLightChange={(value) => handleLightColorChange('primaryForeground', value)}
+                    onDarkChange={(value) => handleDarkColorChange('primaryForeground', value)}
                   />
                 </CollapsibleContent>
               </div>
@@ -903,13 +1323,17 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                 <CollapsibleContent className="space-y-3">
                   <ColorPicker
                     label="Secondary"
-                    value={colors.secondary}
-                    onChange={(value) => handleColorChange('secondary', value)}
+                    lightValue={colors.secondary.light}
+                    darkValue={colors.secondary.dark}
+                    onLightChange={(value) => handleLightColorChange('secondary', value)}
+                    onDarkChange={(value) => handleDarkColorChange('secondary', value)}
                   />
                   <ColorPicker
                     label="Secondary Foreground"
-                    value={colors.secondaryForeground}
-                    onChange={(value) => handleColorChange('secondaryForeground', value)}
+                    lightValue={colors.secondaryForeground.light}
+                    darkValue={colors.secondaryForeground.dark}
+                    onLightChange={(value) => handleLightColorChange('secondaryForeground', value)}
+                    onDarkChange={(value) => handleDarkColorChange('secondaryForeground', value)}
                   />
                 </CollapsibleContent>
               </div>
@@ -925,13 +1349,17 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                 <CollapsibleContent className="space-y-3">
                   <ColorPicker
                     label="Accent"
-                    value={colors.accent}
-                    onChange={(value) => handleColorChange('accent', value)}
+                    lightValue={colors.accent.light}
+                    darkValue={colors.accent.dark}
+                    onLightChange={(value) => handleLightColorChange('accent', value)}
+                    onDarkChange={(value) => handleDarkColorChange('accent', value)}
                   />
                   <ColorPicker
                     label="Accent Foreground"
-                    value={colors.accentForeground}
-                    onChange={(value) => handleColorChange('accentForeground', value)}
+                    lightValue={colors.accentForeground.light}
+                    darkValue={colors.accentForeground.dark}
+                    onLightChange={(value) => handleLightColorChange('accentForeground', value)}
+                    onDarkChange={(value) => handleDarkColorChange('accentForeground', value)}
                   />
                 </CollapsibleContent>
               </div>
@@ -947,28 +1375,38 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                 <CollapsibleContent className="space-y-3">
                   <ColorPicker
                     label="Background"
-                    value={colors.background}
-                    onChange={(value) => handleColorChange('background', value)}
+                    lightValue={colors.background.light}
+                    darkValue={colors.background.dark}
+                    onLightChange={(value) => handleLightColorChange('background', value)}
+                    onDarkChange={(value) => handleDarkColorChange('background', value)}
                   />
                   <ColorPicker
                     label="Foreground"
-                    value={colors.foreground}
-                    onChange={(value) => handleColorChange('foreground', value)}
+                    lightValue={colors.foreground.light}
+                    darkValue={colors.foreground.dark}
+                    onLightChange={(value) => handleLightColorChange('foreground', value)}
+                    onDarkChange={(value) => handleDarkColorChange('foreground', value)}
                   />
                   <ColorPicker
                     label="Muted"
-                    value={colors.muted}
-                    onChange={(value) => handleColorChange('muted', value)}
+                    lightValue={colors.muted.light}
+                    darkValue={colors.muted.dark}
+                    onLightChange={(value) => handleLightColorChange('muted', value)}
+                    onDarkChange={(value) => handleDarkColorChange('muted', value)}
                   />
                   <ColorPicker
                     label="Muted Foreground"
-                    value={colors.mutedForeground}
-                    onChange={(value) => handleColorChange('mutedForeground', value)}
+                    lightValue={colors.mutedForeground.light}
+                    darkValue={colors.mutedForeground.dark}
+                    onLightChange={(value) => handleLightColorChange('mutedForeground', value)}
+                    onDarkChange={(value) => handleDarkColorChange('mutedForeground', value)}
                   />
                   <ColorPicker
                     label="Border"
-                    value={colors.border}
-                    onChange={(value) => handleColorChange('border', value)}
+                    lightValue={colors.border.light}
+                    darkValue={colors.border.dark}
+                    onLightChange={(value) => handleLightColorChange('border', value)}
+                    onDarkChange={(value) => handleDarkColorChange('border', value)}
                   />
                 </CollapsibleContent>
               </div>
@@ -984,13 +1422,17 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                 <CollapsibleContent className="space-y-3">
                   <ColorPicker
                     label="Card"
-                    value={colors.card}
-                    onChange={(value) => handleColorChange('card', value)}
+                    lightValue={colors.card.light}
+                    darkValue={colors.card.dark}
+                    onLightChange={(value) => handleLightColorChange('card', value)}
+                    onDarkChange={(value) => handleDarkColorChange('card', value)}
                   />
                   <ColorPicker
                     label="Card Foreground"
-                    value={colors.cardForeground}
-                    onChange={(value) => handleColorChange('cardForeground', value)}
+                    lightValue={colors.cardForeground.light}
+                    darkValue={colors.cardForeground.dark}
+                    onLightChange={(value) => handleLightColorChange('cardForeground', value)}
+                    onDarkChange={(value) => handleDarkColorChange('cardForeground', value)}
                   />
                 </CollapsibleContent>
               </div>
@@ -1006,13 +1448,17 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                 <CollapsibleContent className="space-y-3">
                   <ColorPicker
                     label="Destructive"
-                    value={colors.destructive}
-                    onChange={(value) => handleColorChange('destructive', value)}
+                    lightValue={colors.destructive.light}
+                    darkValue={colors.destructive.dark}
+                    onLightChange={(value) => handleLightColorChange('destructive', value)}
+                    onDarkChange={(value) => handleDarkColorChange('destructive', value)}
                   />
                   <ColorPicker
                     label="Destructive Foreground"
-                    value={colors.destructiveForeground}
-                    onChange={(value) => handleColorChange('destructiveForeground', value)}
+                    lightValue={colors.destructiveForeground.light}
+                    darkValue={colors.destructiveForeground.dark}
+                    onLightChange={(value) => handleLightColorChange('destructiveForeground', value)}
+                    onDarkChange={(value) => handleDarkColorChange('destructiveForeground', value)}
                   />
                 </CollapsibleContent>
               </div>
@@ -1028,33 +1474,45 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                 <CollapsibleContent className="space-y-3">
                   <ColorPicker
                     label="Success"
-                    value={additionalColors.success}
-                    onChange={(value) => handleAdditionalColorChange('success', value)}
+                    lightValue={additionalColors.success.light}
+                    darkValue={additionalColors.success.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('success', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('success', value)}
                   />
                   <ColorPicker
                     label="Success Foreground"
-                    value={additionalColors.successForeground}
-                    onChange={(value) => handleAdditionalColorChange('successForeground', value)}
+                    lightValue={additionalColors.successForeground.light}
+                    darkValue={additionalColors.successForeground.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('successForeground', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('successForeground', value)}
                   />
                   <ColorPicker
                     label="Warning"
-                    value={additionalColors.warning}
-                    onChange={(value) => handleAdditionalColorChange('warning', value)}
+                    lightValue={additionalColors.warning.light}
+                    darkValue={additionalColors.warning.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('warning', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('warning', value)}
                   />
                   <ColorPicker
                     label="Warning Foreground"
-                    value={additionalColors.warningForeground}
-                    onChange={(value) => handleAdditionalColorChange('warningForeground', value)}
+                    lightValue={additionalColors.warningForeground.light}
+                    darkValue={additionalColors.warningForeground.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('warningForeground', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('warningForeground', value)}
                   />
                   <ColorPicker
                     label="Danger"
-                    value={additionalColors.danger}
-                    onChange={(value) => handleAdditionalColorChange('danger', value)}
+                    lightValue={additionalColors.danger.light}
+                    darkValue={additionalColors.danger.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('danger', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('danger', value)}
                   />
                   <ColorPicker
                     label="Danger Foreground"
-                    value={additionalColors.dangerForeground}
-                    onChange={(value) => handleAdditionalColorChange('dangerForeground', value)}
+                    lightValue={additionalColors.dangerForeground.light}
+                    darkValue={additionalColors.dangerForeground.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('dangerForeground', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('dangerForeground', value)}
                   />
                 </CollapsibleContent>
               </div>
@@ -1070,43 +1528,59 @@ export const TweakCN: React.FC<TweakCNProps> = ({
                 <CollapsibleContent className="space-y-3">
                   <ColorPicker
                     label="Sidebar"
-                    value={additionalColors.sidebar}
-                    onChange={(value) => handleAdditionalColorChange('sidebar', value)}
+                    lightValue={additionalColors.sidebar.light}
+                    darkValue={additionalColors.sidebar.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('sidebar', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('sidebar', value)}
                   />
                   <ColorPicker
                     label="Sidebar Foreground"
-                    value={additionalColors.sidebarForeground}
-                    onChange={(value) => handleAdditionalColorChange('sidebarForeground', value)}
+                    lightValue={additionalColors.sidebarForeground.light}
+                    darkValue={additionalColors.sidebarForeground.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('sidebarForeground', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarForeground', value)}
                   />
                   <ColorPicker
                     label="Sidebar Primary"
-                    value={additionalColors.sidebarPrimary}
-                    onChange={(value) => handleAdditionalColorChange('sidebarPrimary', value)}
+                    lightValue={additionalColors.sidebarPrimary.light}
+                    darkValue={additionalColors.sidebarPrimary.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('sidebarPrimary', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarPrimary', value)}
                   />
                   <ColorPicker
                     label="Sidebar Primary Foreground"
-                    value={additionalColors.sidebarPrimaryForeground}
-                    onChange={(value) => handleAdditionalColorChange('sidebarPrimaryForeground', value)}
+                    lightValue={additionalColors.sidebarPrimaryForeground.light}
+                    darkValue={additionalColors.sidebarPrimaryForeground.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('sidebarPrimaryForeground', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarPrimaryForeground', value)}
                   />
                   <ColorPicker
                     label="Sidebar Accent"
-                    value={additionalColors.sidebarAccent}
-                    onChange={(value) => handleAdditionalColorChange('sidebarAccent', value)}
+                    lightValue={additionalColors.sidebarAccent.light}
+                    darkValue={additionalColors.sidebarAccent.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('sidebarAccent', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarAccent', value)}
                   />
                   <ColorPicker
                     label="Sidebar Accent Foreground"
-                    value={additionalColors.sidebarAccentForeground}
-                    onChange={(value) => handleAdditionalColorChange('sidebarAccentForeground', value)}
+                    lightValue={additionalColors.sidebarAccentForeground.light}
+                    darkValue={additionalColors.sidebarAccentForeground.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('sidebarAccentForeground', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarAccentForeground', value)}
                   />
                   <ColorPicker
                     label="Sidebar Border"
-                    value={additionalColors.sidebarBorder}
-                    onChange={(value) => handleAdditionalColorChange('sidebarBorder', value)}
+                    lightValue={additionalColors.sidebarBorder.light}
+                    darkValue={additionalColors.sidebarBorder.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('sidebarBorder', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarBorder', value)}
                   />
                   <ColorPicker
                     label="Sidebar Ring"
-                    value={additionalColors.sidebarRing}
-                    onChange={(value) => handleAdditionalColorChange('sidebarRing', value)}
+                    lightValue={additionalColors.sidebarRing.light}
+                    darkValue={additionalColors.sidebarRing.dark}
+                    onLightChange={(value) => handleAdditionalLightColorChange('sidebarRing', value)}
+                    onDarkChange={(value) => handleAdditionalDarkColorChange('sidebarRing', value)}
                   />
                 </CollapsibleContent>
               </div>

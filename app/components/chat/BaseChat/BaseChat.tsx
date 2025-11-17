@@ -102,6 +102,34 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const isSidebarOpen = useStore(sidebarMenuStore.isOpen);
     const activeTab = useStore(activeSidebarTab);
     const currentAppId = useStore(chatStore.currentAppId);
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+    // Combined scrollRef that stores the element and calls the original scrollRef
+    const combinedScrollRef = useCallback(
+      (node: HTMLDivElement | null) => {
+        scrollContainerRef.current = node;
+        if (scrollRef) {
+          scrollRef(node);
+        }
+      },
+      [scrollRef],
+    );
+
+    // Scroll to bottom when switching to chat tab
+    useEffect(() => {
+      if (activeTab === 'chat' && scrollContainerRef.current && chatStarted) {
+        // Small delay to ensure the container is rendered
+        const timeoutId = setTimeout(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+              top: scrollContainerRef.current.scrollHeight,
+              behavior: 'smooth',
+            });
+          }
+        }, 100);
+        return () => clearTimeout(timeoutId);
+      }
+    }, [activeTab, chatStarted]);
 
     const loadEntries = useCallback(() => {
       setIsLoadingList(true);
@@ -396,7 +424,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div className="w-full h-full pl-0 pr-1 py-2">{renderPanelContent()}</div>
                 ) : (
                   <div
-                    ref={scrollRef}
+                    ref={combinedScrollRef}
                     className={classNames('w-full h-full overflow-y-auto', {
                       'pl-0 pr-1 py-2': chatStarted,
                       'pt-12 px-6 pb-16': !chatStarted,
@@ -440,6 +468,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                     onLastMessageCheckboxChange={onLastMessageCheckboxChange}
                                     sendMessage={handleSendMessage}
                                     list={list}
+                                    activeTab={activeTab}
                                   />
                                   {infoCards && infoCards.length > 0 && (
                                     <div className="pb-4">
@@ -530,7 +559,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </ResizablePanelGroup>
           ) : (
             <div
-              ref={scrollRef}
+              ref={combinedScrollRef}
               className={classNames('w-full h-full flex flex-col lg:flex-row overflow-x-hidden', {
                 'overflow-y-auto': !chatStarted,
                 'overflow-y-hidden': chatStarted,
@@ -588,6 +617,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                 onLastMessageCheckboxChange={onLastMessageCheckboxChange}
                                 sendMessage={handleSendMessage}
                                 list={list}
+                                activeTab={activeTab}
                               />
                               {infoCards && infoCards.length > 0 && (
                                 <div className="pb-4">

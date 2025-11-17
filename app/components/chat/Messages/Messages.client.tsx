@@ -41,10 +41,11 @@ interface MessagesProps {
   onLastMessageCheckboxChange?: (contents: string, checked: boolean) => void;
   sendMessage: (params: ChatMessageParams) => void;
   list?: AppLibraryEntry[] | undefined;
+  activeTab?: string;
 }
 
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
-  ({ onLastMessageCheckboxChange, sendMessage, list }, ref) => {
+  ({ onLastMessageCheckboxChange, sendMessage, list, activeTab }, ref) => {
     const [showJumpToBottom, setShowJumpToBottom] = useState(false);
     const [showContinueBuildCard, setShowContinueBuildCard] = useState(false);
     const user = useStore(userStore);
@@ -129,11 +130,43 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       return undefined;
     }, []);
 
+    // Track if we've done the initial scroll
+    const hasScrolledOnMount = useRef(false);
+
+    // Scroll to bottom on initial mount with messages
+    useEffect(() => {
+      if (containerRef.current && messages.length > 0 && !hasScrolledOnMount.current) {
+        hasScrolledOnMount.current = true;
+        const timeoutId = setTimeout(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+          }
+        }, 100);
+        return () => clearTimeout(timeoutId);
+      }
+    }, [messages.length]); // Run when messages are loaded
+
     useEffect(() => {
       if (!showJumpToBottom) {
         scrollToBottom();
       }
     }, [messages, showJumpToBottom]);
+
+    // Scroll to bottom when switching to chat tab
+    useEffect(() => {
+      if (activeTab === 'chat' && containerRef.current) {
+        // Small delay to ensure the container is rendered
+        const timeoutId = setTimeout(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollTo({
+              top: containerRef.current.scrollHeight,
+              behavior: 'smooth',
+            });
+          }
+        }, 150);
+        return () => clearTimeout(timeoutId);
+      }
+    }, [activeTab]);
 
     useEffect(() => {
       if (hasPendingMessage && !showJumpToBottom) {
