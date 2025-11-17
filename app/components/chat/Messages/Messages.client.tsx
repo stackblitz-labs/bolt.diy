@@ -59,7 +59,6 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     const completedFeatures = appSummary?.features?.slice(1).filter((f) => isFeatureStatusImplemented(f.status)).length;
     const totalFeatures = appSummary?.features?.slice(1).length;
     const isFullyComplete = completedFeatures === totalFeatures && totalFeatures && totalFeatures > 0;
-    const hasSubscription = useStore(subscriptionStore.hasSubscription);
     const subscription = useStore(subscriptionStore.subscription);
     const hasBuildAccess = useStore(buildAccessStore.hasAccess);
 
@@ -363,7 +362,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
 
           {user &&
             (isFeatureStatusImplemented(appSummary?.features?.[0]?.status) || startPlanningRating === 10) &&
-            (!hasBuildAccess || !hasSubscription) && <SubscriptionCard onMount={scrollToBottom} />}
+            !hasBuildAccess && <SubscriptionCard onMount={scrollToBottom} />}
 
           {!showContinueBuildCard &&
             listenResponses &&

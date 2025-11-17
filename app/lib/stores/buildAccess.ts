@@ -10,7 +10,7 @@ export const buildAccessStore = {
 
   // Helper methods
   setAccess(subscription: Subscription, listLength: number) {
-    this.hasAccess.set(subscription?.tier === 'builder' || listLength < 1);
+    this.hasAccess.set(subscription?.tier === 'builder' || listLength <= 1);
     this.isLoaded.set(true);
   },
 
