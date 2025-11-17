@@ -806,10 +806,9 @@ export const TweakCN: React.FC<TweakCNProps> = ({
       return { light: stripQuotes(stringValue) };
     };
 
-    // Compare each variable
-    const allKeys = new Set([...Object.keys(currentVariables), ...Object.keys(newThemeFlattened)]);
-
-    for (const key of allKeys) {
+    // Only compare variables that exist in the new theme
+    // This prevents marking variables as changed to empty when they don't exist in the new theme
+    for (const key of Object.keys(newThemeFlattened)) {
       const currentValue = currentVariables[key];
       const newValue = newThemeFlattened[key];
 
@@ -821,16 +820,22 @@ export const TweakCN: React.FC<TweakCNProps> = ({
         const currentParsed = parseVariableValue(currentValue);
         const newParsed = parseVariableValue(newValue);
 
-        // Mark light mode change if different
-        if (currentParsed.light !== newParsed.light) {
-          markThemeChanged(key, currentParsed.light || '', newParsed.light || '', false);
+        // Mark light mode change if different (only if new value is not empty)
+        const currentLight = (currentParsed.light || '').trim();
+        const newLight = (newParsed.light || '').trim();
+        if (currentLight !== newLight && newLight !== '') {
+          console.log(`[TweakCN] Marking light change for ${key}: "${currentLight}" -> "${newLight}"`);
+          markThemeChanged(key, currentLight, newLight, false);
           changeCount++;
         }
 
-        // Mark dark mode change if different
-        if (currentParsed.dark !== newParsed.dark) {
-          markThemeChanged(key, currentParsed.dark || currentParsed.light || '', newParsed.dark || '', true);
-          if (currentParsed.light === newParsed.light) {
+        // Mark dark mode change if different (only if new value is not empty)
+        const currentDark = (currentParsed.dark || currentParsed.light || '').trim();
+        const newDark = (newParsed.dark || '').trim();
+        if (currentDark !== newDark && newDark !== '') {
+          console.log(`[TweakCN] Marking dark change for ${key}: "${currentDark}" -> "${newDark}"`);
+          markThemeChanged(key, currentDark, newDark, true);
+          if (currentLight === newLight) {
             // Only count if light wasn't already counted
             changeCount++;
           }
@@ -866,8 +871,12 @@ export const TweakCN: React.FC<TweakCNProps> = ({
 
           // Diff and mark all changes before applying new theme
           if (currentVariables && Object.keys(currentVariables).length > 0) {
+            console.log('[TweakCN] Current variables from iframe:', currentVariables);
+            console.log('[TweakCN] Selected theme:', selectedTheme);
             const changeCount = diffAndMarkThemeChanges(currentVariables, selectedTheme);
             console.log(`[TweakCN] Theme change will modify ${changeCount} variables`);
+          } else {
+            console.warn('[TweakCN] No current variables received from iframe or empty object');
           }
 
           // Now apply the new theme

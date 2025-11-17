@@ -425,7 +425,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 ) : (
                   <div
                     ref={combinedScrollRef}
-                    className={classNames('w-full h-full overflow-y-auto', {
+                    className={classNames('w-full h-full overflow-y-auto overflow-x-visible', {
                       'pl-0 pr-1 py-2': chatStarted,
                       'pt-12 pb-16': !chatStarted,
                     })}

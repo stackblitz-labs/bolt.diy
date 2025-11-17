@@ -32,29 +32,46 @@ export const ThemeChangesFAB = memo(() => {
       // Serialize all theme changes into a single object
       const themeVariables: Record<string, string> = {};
 
-      // Add light theme changes
+      // Add light theme changes (only if value is not empty)
       Object.entries(themeChanges.lightThemeChanges).forEach(([key, change]) => {
-        themeVariables[key] = change.newValue;
+        const trimmedValue = change.newValue?.trim() || '';
+        if (trimmedValue !== '') {
+          themeVariables[key] = trimmedValue;
+        }
       });
 
       // Add dark theme changes (with .dark: separator if both light and dark exist)
       Object.entries(themeChanges.darkThemeChanges).forEach(([key, change]) => {
+        const trimmedDarkValue = change.newValue?.trim() || '';
+        if (trimmedDarkValue === '') {
+          return; // Skip empty dark values
+        }
+
         const lightChange = themeChanges.lightThemeChanges[key];
-        if (lightChange) {
+        const trimmedLightValue = lightChange?.newValue?.trim() || '';
+        if (trimmedLightValue !== '') {
           // Both light and dark exist - combine with .dark: separator
-          themeVariables[key] = `${lightChange.newValue} .dark: ${change.newValue}`;
+          themeVariables[key] = `${trimmedLightValue} .dark: ${trimmedDarkValue}`;
         } else {
           // Only dark exists - use -dark suffix
-          themeVariables[`${key}-dark`] = change.newValue;
+          themeVariables[`${key}-dark`] = trimmedDarkValue;
         }
       });
 
-      // Add app settings changes
+      // Add app settings changes (only if value is not empty)
       Object.entries(themeChanges.appSettingsChanges).forEach(([key, change]) => {
-        themeVariables[key] = change.newValue;
+        const trimmedValue = change.newValue?.trim() || '';
+        if (trimmedValue !== '') {
+          themeVariables[key] = trimmedValue;
+        }
       });
 
-      // Send to server
+      console.log('[ThemeChangesFAB] Saving theme variables:', themeVariables);
+      console.log('[ThemeChangesFAB] Light changes:', themeChanges.lightThemeChanges);
+      console.log('[ThemeChangesFAB] Dark changes:', themeChanges.darkThemeChanges);
+      console.log('[ThemeChangesFAB] App settings changes:', themeChanges.appSettingsChanges);
+
+      // Send to server - backend expects theme to be a JSON string
       await callNutAPI('set-app-theme', {
         appId,
         theme: JSON.stringify(themeVariables),
