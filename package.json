@@ -55,6 +55,10 @@
     "@ai-sdk/openai": "1.1.2",
     "@ai-sdk/react": "^1.2.12",
     "@ai-sdk/ui-utils": "^1.2.11",
+    "@babel/generator": "^7.28.5",
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
+    "@babel/types": "^7.28.5",
     "@codemirror/autocomplete": "^6.18.3",
     "@codemirror/commands": "^6.7.1",
     "@codemirror/lang-cpp": "^6.0.2",
@@ -99,7 +103,6 @@
     "@remix-run/node": "^2.15.2",
     "@remix-run/react": "^2.15.2",
     "@tanstack/react-virtual": "^3.13.0",
-    "@types/react-beautiful-dnd": "^13.1.8",
     "@uiw/codemirror-theme-vscode": "^4.23.6",
     "@unocss/reset": "^0.61.9",
     "@webcontainer/api": "1.6.1-internal.1",
@@ -133,7 +136,6 @@
     "ollama-ai-provider": "^0.15.2",
     "path-browserify": "^1.0.1",
     "react": "^18.3.1",
-    "react-beautiful-dnd": "^13.1.1",
     "react-chartjs-2": "^5.3.0",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
@@ -169,9 +171,10 @@
     "@remix-run/serve": "^2.15.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
     "@types/diff": "^5.2.3",
     "@types/dom-speech-recognition": "^0.0.4",
-    "@types/electron": "^1.6.12",
     "@types/file-saver": "^2.0.7",
     "@types/js-cookie": "^3.0.6",
     "@types/path-browserify": "^1.0.3",
@@ -204,7 +207,7 @@
     "vite-plugin-optimize-css-modules": "^1.1.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^2.1.7",
-    "wrangler": "^4.44.0"
+    "wrangler": "^3.28.2"
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"

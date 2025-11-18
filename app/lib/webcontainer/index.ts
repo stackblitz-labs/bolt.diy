@@ -4,14 +4,49 @@ import { cleanStackTrace } from '~/utils/stacktrace';
 
 interface WebContainerContext {
   loaded: boolean;
+  scriptsInjected: boolean;
 }
 
 export const webcontainerContext: WebContainerContext = import.meta.hot?.data.webcontainerContext ?? {
   loaded: false,
+  scriptsInjected: false,
 };
 
 if (import.meta.hot) {
   import.meta.hot.data.webcontainerContext = webcontainerContext;
+}
+
+// Function to inject preview scripts into WebContainer
+async function injectPreviewScripts(container: WebContainer) {
+  if (webcontainerContext.scriptsInjected) {
+    console.log('[WebContainer] Scripts already injected, skipping');
+    return;
+  }
+
+  console.log('[WebContainer] Injecting preview scripts');
+
+  const [inspectorResponse, visualEditorResponse] = await Promise.all([
+    fetch('/inspector-script.js'),
+    fetch('/visual-editor-script.js'),
+  ]);
+
+  const inspectorScript = await inspectorResponse.text();
+  const visualEditorScript = await visualEditorResponse.text();
+  const combinedScript = `${inspectorScript}\n\n${visualEditorScript}`;
+
+  await container.setPreviewScript(combinedScript);
+  webcontainerContext.scriptsInjected = true;
+
+  console.log('[WebContainer] Preview scripts injected successfully');
+}
+
+// Function to re-inject preview scripts (can be called manually)
+export async function reinjectPreviewScripts() {
+  console.log('[WebContainer] Re-injecting preview scripts');
+  webcontainerContext.scriptsInjected = false;
+
+  const container = await webcontainer;
+  await injectPreviewScripts(container);
 }
 
 export let webcontainer: Promise<WebContainer> = new Promise(() => {
@@ -34,9 +69,8 @@ if (!import.meta.env.SSR) {
 
         const { workbenchStore } = await import('~/lib/stores/workbench');
 
-        const response = await fetch('/inspector-script.js');
-        const inspectorScript = await response.text();
-        await webcontainer.setPreviewScript(inspectorScript);
+        // Inject preview scripts
+        await injectPreviewScripts(webcontainer);
 
         // Listen for preview errors
         webcontainer.on('preview-message', (message) => {

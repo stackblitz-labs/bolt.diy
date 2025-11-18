@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(pnpm run typecheck:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(node --check:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(cat:*)",
+      "Bash(python3:*)",
+      "mcp__sequentialthinking__sequentialthinking",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dev)",
+      "Bash(ls:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(pnpm lint:fix:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
