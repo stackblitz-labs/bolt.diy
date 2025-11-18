@@ -13,7 +13,6 @@ import { IntroSection } from '~/components/chat/BaseChat/components/IntroSection
 import { ChatPromptContainer } from '~/components/chat/BaseChat/components/ChatPromptContainer/ChatPromptContainer';
 import { useSpeechRecognition } from '~/hooks/useSpeechRecognition';
 import styles from './BaseChat.module.scss';
-import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 import { type MessageInputProps } from '~/components/chat/MessageInput/MessageInput';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import { DISCOVERY_RESPONSE_CATEGORY } from '~/lib/persistence/message';
@@ -33,6 +32,7 @@ import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { toast } from 'react-toastify';
 import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
 import { PlanUpgradeBlock } from './components/PlanUpgradeBlock';
+import AppTemplates from './components/AppTemplates/AppTemplates';
 
 export const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -71,7 +71,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     },
     ref,
   ) => {
-    const hasPendingMessage = useStore(chatStore.hasPendingMessage);
     const appSummary = useStore(chatStore.appSummary);
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 300 : 200;
     const isSmallViewport = useViewport(800);
@@ -401,20 +400,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       setImageDataList={setImageDataList!}
                       messageInputProps={messageInputProps}
                     />
-                    {!chatStarted && (
-                      <>
-                        {ExamplePrompts((event: React.UIEvent, messageInput: string) => {
-                          if (hasPendingMessage) {
-                            handleStop?.();
-                            return;
-                          }
-                          handleSendMessage({ messageInput, chatMode: ChatMode.UserMessage });
-                        })}
-                      </>
-                    )}
                   </>
                 );
               })()}
+              {!chatStarted && <AppTemplates sendMessage={handleSendMessage} />}
             </div>
           </div>
           <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>

@@ -26,7 +26,6 @@ export const ContinueBuildCard: React.FC<ContinueBuildCardProps> = ({
       sendMessage({
         messageInput: 'Continue building the app based on these requirements.',
         chatMode: ChatMode.DevelopApp,
-        payFeatures: true,
       });
 
       if (setShowContinueBuildCard) {

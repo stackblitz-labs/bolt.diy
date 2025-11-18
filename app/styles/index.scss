@@ -65,15 +65,8 @@ body {
 
 /* Responsive landing page layout */
 .landing-page-layout {
-  /* On tall screens (>700px height), center the content */
-  @media (min-height: 700px) {
-    justify-content: center;
-  }
-
-  /* On shorter screens (<=700px height), start from top */
-  @media (max-height: 700px) {
-    justify-content: flex-start;
-  }
+  /* Always start from top to prevent overlap when content expands */
+  justify-content: flex-start;
 }
 
 /* Hide scrollbars on all devices */

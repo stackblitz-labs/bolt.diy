@@ -96,8 +96,8 @@ async function deleteApp(appId: string): Promise<void> {
   await callNutAPI('delete-app', { appId });
 }
 
-async function createApp(): Promise<string> {
-  const { appId } = await callNutAPI('create-app', {});
+async function createApp(referenceAppPath: string | undefined): Promise<string> {
+  const { appId } = await callNutAPI('create-app', { referenceAppPath });
 
   const userId = getCurrentUserId();
   if (!userId) {
