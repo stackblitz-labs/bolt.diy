@@ -15,6 +15,7 @@ import {
   Code,
   CheckCircle,
 } from '~/components/ui/Icon';
+import { Markdown } from '~/components/chat/Markdown';
 
 interface FileDiff {
   path: string;
@@ -167,11 +168,11 @@ function RepositoryDiff() {
   const getDiffTypeColor = (type: string) => {
     switch (type) {
       case 'added':
-        return 'text-green-700 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200';
+        return 'text-green-700 dark:text-green-400 bg-gradient-to-r from-green-50 dark:from-green-950/30 to-emerald-50 dark:to-emerald-950/30 border-green-200 dark:border-green-800';
       case 'deleted':
-        return 'text-red-700 bg-gradient-to-r from-red-50 to-rose-50 border-red-200';
+        return 'text-red-700 dark:text-red-400 bg-gradient-to-r from-red-50 dark:from-red-950/30 to-rose-50 dark:to-rose-950/30 border-red-200 dark:border-red-800';
       case 'modified':
-        return 'text-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200';
+        return 'text-blue-700 dark:text-blue-400 bg-gradient-to-r from-blue-50 dark:from-blue-950/30 to-indigo-50 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800';
       default:
         return 'text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor';
     }
@@ -191,36 +192,40 @@ function RepositoryDiff() {
   };
 
   return (
-    <div className="h-full bg-bolt-elements-background-depth-1 p-6 flex flex-col">
-      <div className="max-w-7xl mx-auto h-full overflow-y-auto">
+    <div className="h-full bg-gradient-to-br from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1 to-bolt-elements-background-depth-2 p-6">
+      <div className="max-w-7xl mx-auto w-full h-full overflow-y-auto">
         <div className="flex items-center gap-4 mb-8">
-          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <GitCompareArrows className="text-white" size={24} />
+          <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg ring-2 ring-purple-500/20">
+            <GitCompareArrows className="text-white" size={28} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-bolt-elements-textHeading">Repository Diff</h1>
-            <p className="text-bolt-elements-textSecondary">Compare changes between repository versions</p>
+            <h1 className="text-3xl font-bold text-bolt-elements-textHeading mb-1">Repository Diff</h1>
+            <p className="text-bolt-elements-textSecondary text-sm">Compare changes between repository versions</p>
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-bolt-elements-background-depth-2 rounded-2xl border border-bolt-elements-borderColor border-opacity-30 shadow-sm p-6 backdrop-blur-sm">
+          <div className="bg-bolt-elements-background-depth-2/80 backdrop-blur-sm rounded-2xl border border-bolt-elements-borderColor/50 shadow-lg p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+              <div className="flex-shrink-0 w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md ring-1 ring-blue-500/20">
                 <GitBranch className="text-white" size={18} />
               </div>
               <h2 className="text-xl font-semibold text-bolt-elements-textHeading">Repository Versions</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-bolt-elements-textSecondary">Old Repository ID:</label>
-                <div className="p-4 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor border-opacity-50 font-mono text-sm break-all text-bolt-elements-textPrimary shadow-sm">
+                <label className="block text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wide">
+                  Old Repository ID
+                </label>
+                <div className="p-4 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor/50 font-mono text-sm break-all text-bolt-elements-textPrimary shadow-inner">
                   {oldRepositoryId || <span className="text-bolt-elements-textSecondary italic">Not provided</span>}
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-bolt-elements-textSecondary">New Repository ID:</label>
-                <div className="p-4 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor border-opacity-50 font-mono text-sm break-all text-bolt-elements-textPrimary shadow-sm">
+                <label className="block text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wide">
+                  New Repository ID
+                </label>
+                <div className="p-4 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor/50 font-mono text-sm break-all text-bolt-elements-textPrimary shadow-inner">
                   {newRepositoryId || <span className="text-bolt-elements-textSecondary italic">Not provided</span>}
                 </div>
               </div>
@@ -251,40 +256,89 @@ function RepositoryDiff() {
           )}
 
           {!loading && !error && diffs.length > 0 && (
-            <div className="bg-bolt-elements-background-depth-2 rounded-2xl border border-bolt-elements-borderColor border-opacity-30 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center gap-3 p-6 border-b border-bolt-elements-borderColor border-opacity-30">
-                <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-sm">
+            <div className="bg-bolt-elements-background-depth-2/80 backdrop-blur-sm rounded-2xl border border-bolt-elements-borderColor/50 shadow-lg overflow-hidden">
+              <div className="flex items-center gap-3 p-6 border-b border-bolt-elements-borderColor/30 bg-gradient-to-r from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-1">
+                <div className="flex-shrink-0 w-9 h-9 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-md ring-1 ring-green-500/20">
                   <Files className="text-white" size={18} />
                 </div>
-                <h2 className="text-xl font-semibold text-bolt-elements-textHeading">File Changes ({diffs.length})</h2>
+                <h2 className="text-xl font-semibold text-bolt-elements-textHeading">
+                  File Changes <span className="text-bolt-elements-textSecondary font-normal">({diffs.length})</span>
+                </h2>
               </div>
               <div className="divide-y divide-bolt-elements-borderColor/20">
                 {diffs.map((diff, index) => (
                   <div
                     key={index}
-                    className="p-6 hover:bg-bolt-elements-background-depth-1 bg-opacity-30 transition-colors duration-200"
+                    className="p-6 hover:bg-bolt-elements-background-depth-1/30 transition-all duration-200 border-l-4 border-transparent hover:border-bolt-elements-borderColor/30"
                   >
-                    <div className="flex items-center mb-4 gap-3">
-                      <div className={`${getDiffTypeIcon(diff.type)} text-xl`}></div>
-                      <span
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border shadow-sm ${getDiffTypeColor(diff.type)}`}
-                      >
-                        {diff.type.toUpperCase()}
-                      </span>
-                      <span className="font-mono text-sm text-bolt-elements-textPrimary bg-bolt-elements-background-depth-1 px-3 py-1 rounded-lg border border-bolt-elements-borderColor border-opacity-50">
+                    <div className="flex items-center mb-4 gap-3 flex-wrap">
+                      <div className="flex items-center gap-2.5">
+                        {getDiffTypeIcon(diff.type)}
+                        <span
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border shadow-sm ${getDiffTypeColor(diff.type)}`}
+                        >
+                          {diff.type.toUpperCase()}
+                        </span>
+                      </div>
+                      <span className="font-mono text-sm text-bolt-elements-textPrimary bg-bolt-elements-background-depth-1 px-3 py-1.5 rounded-lg border border-bolt-elements-borderColor/50 flex-1 min-w-0 break-all shadow-inner">
                         {diff.path}
                       </span>
                     </div>
 
                     {diff.diff && (
-                      <div className="bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor border-opacity-50 overflow-hidden shadow-sm">
-                        <div className="flex items-center gap-2 bg-bolt-elements-background-depth-2 px-4 py-3 border-b border-bolt-elements-borderColor border-opacity-30">
+                      <div className="bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor/50 overflow-hidden shadow-sm">
+                        <div className="flex items-center gap-2 bg-bolt-elements-background-depth-2 px-4 py-3 border-b border-bolt-elements-borderColor/30">
                           <Code className="text-bolt-elements-textSecondary" size={16} />
-                          <span className="text-sm font-semibold text-bolt-elements-textSecondary">Diff</span>
+                          <span className="text-sm font-semibold text-bolt-elements-textSecondary">
+                            {diff.path.endsWith('.md') ? 'Content' : 'Diff'}
+                          </span>
                         </div>
-                        <pre className="p-4 text-sm overflow-x-auto whitespace-pre-wrap max-h-96 overflow-y-auto">
-                          <code className="font-mono text-bolt-elements-textPrimary leading-relaxed">{diff.diff}</code>
-                        </pre>
+                        {diff.path.endsWith('.md') && diff.newContent ? (
+                          <div className="p-6 max-h-96 overflow-y-auto">
+                            <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-bolt-elements-textHeading prose-p:text-bolt-elements-textPrimary prose-strong:text-bolt-elements-textHeading prose-code:text-bolt-elements-textPrimary prose-pre:bg-bolt-elements-background-depth-2 prose-pre:border prose-pre:border-bolt-elements-borderColor/50">
+                              <Markdown>{diff.newContent}</Markdown>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                            <pre className="p-0 m-0 text-sm font-mono leading-relaxed">
+                              <code className="block">
+                                {diff.diff.split('\n').map((line, lineIndex) => {
+                                  if (line.startsWith('+')) {
+                                    return (
+                                      <div
+                                        key={lineIndex}
+                                        className="px-4 py-1 bg-green-500/10 dark:bg-green-500/5 border-l-4 border-green-500 dark:border-green-400 text-green-700 dark:text-green-300 whitespace-pre font-medium"
+                                      >
+                                        {line}
+                                      </div>
+                                    );
+                                  } else if (line.startsWith('-')) {
+                                    return (
+                                      <div
+                                        key={lineIndex}
+                                        className="px-4 py-1 bg-red-500/10 dark:bg-red-500/5 border-l-4 border-red-500 dark:border-red-400 text-red-700 dark:text-red-300 whitespace-pre font-medium"
+                                      >
+                                        {line}
+                                      </div>
+                                    );
+                                  } else if (line.trim() === '') {
+                                    return <div key={lineIndex} className="h-1" />;
+                                  } else {
+                                    return (
+                                      <div
+                                        key={lineIndex}
+                                        className="px-4 py-1 text-bolt-elements-textSecondary/70 bg-bolt-elements-background-depth-1 whitespace-pre"
+                                      >
+                                        {line}
+                                      </div>
+                                    );
+                                  }
+                                })}
+                              </code>
+                            </pre>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
