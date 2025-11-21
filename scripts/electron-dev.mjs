@@ -18,7 +18,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Constants
-const REMIX_PORT = 5173;
+const REMIX_PORT = 5171;
 const CHECK_INTERVAL = 1000;
 const MAX_RETRIES = 30;
 

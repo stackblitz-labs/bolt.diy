@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
       target: bolt-ai-production
     ports:
-      - '5173:5173'
+      - '5171:5171'
     env_file: 
       - '.env'
       - '.env.local'
@@ -14,7 +14,7 @@ services:
       - NODE_ENV=production
       - COMPOSE_PROFILES=production
       # No strictly needed but serving as hints for Coolify
-      - PORT=5173
+      - PORT=5171
       - GROQ_API_KEY=${GROQ_API_KEY}
       - HuggingFace_API_KEY=${HuggingFace_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -48,10 +48,10 @@ services:
       - NODE_ENV=development
       - VITE_HMR_PROTOCOL=ws
       - VITE_HMR_HOST=localhost
-      - VITE_HMR_PORT=5173
+      - VITE_HMR_PORT=5171
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
-      - PORT=5173
+      - PORT=5171
       - GROQ_API_KEY=${GROQ_API_KEY}
       - HuggingFace_API_KEY=${HuggingFace_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -75,19 +75,19 @@ services:
         consistency: cached
       - /app/node_modules
     ports:
-      - '5173:5173'
+      - '5171:5171'
     command: pnpm run dev --host 0.0.0.0
     profiles: ['development', 'default']
 
   app-prebuild:
     image: ghcr.io/stackblitz-labs/bolt.diy:latest
     ports:
-      - '5173:5173'
+      - '5171:5171'
     environment:
       - NODE_ENV=production
       - COMPOSE_PROFILES=production
       # No strictly needed but serving as hints for Coolify
-      - PORT=5173
+      - PORT=5171
       - OLLAMA_API_BASE_URL=http://127.0.0.1:11434
       - DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX:-32768}
       - RUNNING_IN_DOCKER=true

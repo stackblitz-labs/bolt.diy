@@ -16,6 +16,10 @@ export default defineConfig((config) => {
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
+    server: {
+      port: 5171,
+      strictPort: false, // Allow fallback to next available port if 5171 is busy
+    },
     build: {
       target: 'esnext',
     },
