@@ -7,9 +7,9 @@
 
 **Purpose**: Ensure every contributor can run the Phase 1 stack locally with correct env configuration and template tooling.
 
-- [ ] T001 Update `.env.example` with `DATABASE_URL`, `R2_*`, `GOOGLE_PLACES_API_KEY`, and `OPENAI_API_KEY` placeholders plus inline instructions.
-- [ ] T002 [P] Add `pnpm templates:seed` and `pnpm templates:clone` scripts to `package.json` referencing `scripts/templates/*`.
-- [ ] T003 [P] Scaffold `scripts/templates/seed-registry.ts` and `scripts/templates/clone-starters.ts` with CLI args + TODO hooks for injecting starter templates.
+- [X] T001 Update `.env.example` with `DATABASE_URL`, `R2_*`, `GOOGLE_PLACES_API_KEY`, and `OPENAI_API_KEY` placeholders plus inline instructions.
+- [X] T002 [P] Add `pnpm templates:seed` and `pnpm templates:clone` scripts to `package.json` referencing `scripts/templates/*`.
+- [X] T003 [P] Scaffold `scripts/templates/seed-registry.ts` and `scripts/templates/clone-starters.ts` with CLI args + TODO hooks for injecting starter templates.
 
 ---
 
@@ -18,9 +18,9 @@
 **Purpose**: Core schema, contracts, and services that every user story depends on. Complete before story work.  
 **Dependencies**: `T005` → `T006` → template population; `T007` needs `.env` from `T001`; `T008` precedes all streaming routes; `T009` precedes edit + snapshot flows.
 
-- [ ] T004 Create Supabase migration `supabase/migrations/<timestamp>_phase1_core.sql` for `business_profiles`, `crawled_data`, `site_snapshots` tables per `data-model.md`.
-- [ ] T005 [P] Implement shared template + MasterContent Zod schemas in `app/lib/modules/templates/schema.ts` with strict typings and docs.
-- [ ] T006 [P] Build template registry loader with caching + schema validation in `app/lib/modules/templates/registry.server.ts`.
+- [X] T004 Create Supabase migration `supabase/migrations/<timestamp>_phase1_core.sql` for `business_profiles`, `crawled_data`, `site_snapshots` tables per `data-model.md`.
+- [X] T005 [P] Implement shared template + MasterContent Zod schemas in `app/lib/modules/templates/schema.ts` with strict typings and docs.
+- [X] T006 [P] Build template registry loader with caching + schema validation in `app/lib/modules/templates/registry.server.ts`.
 - [ ] T007 Implement Google Places crawler service with quota + caching guards in `app/lib/services/crawlerAgent.server.ts`.
 - [ ] T008 [P] Extend SSE `SwitchableStream` helper + telemetry hooks in `app/lib/.server/llm/switchable-stream.ts`.
 - [ ] T009 Implement WebContainer workspace orchestrator utilities in `app/lib/webcontainer/workspaceOrchestrator.ts` (create/start/stop, mount templates, snapshot/restore).
