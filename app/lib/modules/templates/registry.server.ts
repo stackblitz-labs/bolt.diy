@@ -14,9 +14,11 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('TemplateRegistry');
 
-// ============================================================================
-// CACHE CONFIGURATION
-// ============================================================================
+/*
+ * ============================================================================
+ * CACHE CONFIGURATION
+ * ============================================================================
+ */
 
 interface RegistryCache {
   registry: TemplateRegistry | null;
@@ -30,16 +32,20 @@ const cache: RegistryCache = {
   ttl: 1000 * 60 * 5, // 5 minutes default TTL
 };
 
-// ============================================================================
-// REGISTRY PATHS
-// ============================================================================
+/*
+ * ============================================================================
+ * REGISTRY PATHS
+ * ============================================================================
+ */
 
 const REGISTRY_PATH = path.join(process.cwd(), 'templates', 'registry.json');
 const TEMPLATES_DIR = path.join(process.cwd(), 'templates');
 
-// ============================================================================
-// REGISTRY LOADER
-// ============================================================================
+/*
+ * ============================================================================
+ * REGISTRY LOADER
+ * ============================================================================
+ */
 
 /**
  * Loads the template registry from disk with caching and validation
@@ -75,22 +81,18 @@ export async function loadTemplateRegistry(options?: {
     cache.loadedAt = Date.now();
     cache.ttl = ttl;
 
-    logger.info(
-      `Loaded ${validatedRegistry.templates.length} templates (version ${validatedRegistry.version})`
-    );
+    logger.info(`Loaded ${validatedRegistry.templates.length} templates (version ${validatedRegistry.version})`);
 
     return validatedRegistry;
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       logger.error(`Registry file not found at ${REGISTRY_PATH}`);
-      throw new RegistryNotFoundError(
-        `Template registry not found. Run 'pnpm templates:seed' to create it.`
-      );
+      throw new RegistryNotFoundError(`Template registry not found. Run 'pnpm templates:seed' to create it.`);
     }
 
     logger.error('Failed to load template registry:', error);
     throw new RegistryLoadError(
-      `Failed to load template registry: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to load template registry: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
   }
 }
@@ -138,9 +140,7 @@ export async function findTemplates(criteria: {
 
     // Filter by required sections if specified
     if (criteria.requiredSections && criteria.requiredSections.length > 0) {
-      const hasAllSections = criteria.requiredSections.every((section) =>
-        template.requiredSections.includes(section)
-      );
+      const hasAllSections = criteria.requiredSections.every((section) => template.requiredSections.includes(section));
 
       if (!hasAllSections) {
         return false;
@@ -162,6 +162,7 @@ export async function templateExists(templateId: string): Promise<boolean> {
     if (error instanceof TemplateNotFoundError) {
       return false;
     }
+
     throw error;
   }
 }
@@ -202,7 +203,7 @@ export async function validateTemplateStructure(templateId: string): Promise<{
       valid: errors.length === 0,
       errors,
     };
-  } catch (error) {
+  } catch {
     errors.push(`Template directory not found: ${templateDir}`);
     return { valid: false, errors };
   }
@@ -234,9 +235,11 @@ export function getCacheStatus(): {
   };
 }
 
-// ============================================================================
-// ERROR CLASSES
-// ============================================================================
+/*
+ * ============================================================================
+ * ERROR CLASSES
+ * ============================================================================
+ */
 
 export class RegistryNotFoundError extends Error {
   constructor(message: string) {
@@ -259,8 +262,10 @@ export class TemplateNotFoundError extends Error {
   }
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
+/*
+ * ============================================================================
+ * EXPORTS
+ * ============================================================================
+ */
 
 export type { TemplateRegistry, TemplateMetadata };

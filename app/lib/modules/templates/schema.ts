@@ -7,30 +7,31 @@
  * Based on specs/001-phase1-plan/data-model.md
  */
 
+/* eslint-disable @typescript-eslint/naming-convention */
+// PascalCase is the standard convention for Zod schema exports
+
 import { z } from 'zod';
 
-// ============================================================================
-// DESIGN SYSTEM SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * DESIGN SYSTEM SCHEMA
+ * ============================================================================
+ */
 
 export const DesignSystemSchema = z.object({
-  primary_color: z
-    .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, 'Primary color must be a valid hex color'),
-  secondary_color: z
-    .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, 'Secondary color must be a valid hex color'),
-  accent_color: z
-    .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, 'Accent color must be a valid hex color'),
+  primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Primary color must be a valid hex color'),
+  secondary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Secondary color must be a valid hex color'),
+  accent_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Accent color must be a valid hex color'),
   font_family: z.string().min(1, 'Font family is required'),
 });
 
 export type DesignSystem = z.infer<typeof DesignSystemSchema>;
 
-// ============================================================================
-// CONTACT INFO SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * CONTACT INFO SCHEMA
+ * ============================================================================
+ */
 
 export const ContactInfoSchema = z.object({
   phone: z.string().optional(),
@@ -39,9 +40,11 @@ export const ContactInfoSchema = z.object({
 
 export type ContactInfo = z.infer<typeof ContactInfoSchema>;
 
-// ============================================================================
-// ADDRESS SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * ADDRESS SCHEMA
+ * ============================================================================
+ */
 
 export const AddressSchema = z.object({
   street: z.string(),
@@ -52,9 +55,11 @@ export const AddressSchema = z.object({
 
 export type Address = z.infer<typeof AddressSchema>;
 
-// ============================================================================
-// HOURS OF OPERATION SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * HOURS OF OPERATION SCHEMA
+ * ============================================================================
+ */
 
 export const HoursEntrySchema = z.object({
   day: z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']),
@@ -67,9 +72,11 @@ export const HoursOfOperationSchema = z.array(HoursEntrySchema);
 export type HoursEntry = z.infer<typeof HoursEntrySchema>;
 export type HoursOfOperation = z.infer<typeof HoursOfOperationSchema>;
 
-// ============================================================================
-// MENU SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * MENU SCHEMA
+ * ============================================================================
+ */
 
 export const MenuItemSchema = z.object({
   name: z.string().min(1, 'Menu item name is required'),
@@ -90,9 +97,11 @@ export type MenuItem = z.infer<typeof MenuItemSchema>;
 export type MenuCategory = z.infer<typeof MenuCategorySchema>;
 export type Menu = z.infer<typeof MenuSchema>;
 
-// ============================================================================
-// GALLERY SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * GALLERY SCHEMA
+ * ============================================================================
+ */
 
 export const GalleryImageSchema = z.object({
   url: z.string().url('Image URL must be valid'),
@@ -104,9 +113,11 @@ export const GallerySchema = z.array(GalleryImageSchema).max(20, 'Maximum 20 gal
 export type GalleryImage = z.infer<typeof GalleryImageSchema>;
 export type Gallery = z.infer<typeof GallerySchema>;
 
-// ============================================================================
-// TESTIMONIAL SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * TESTIMONIAL SCHEMA
+ * ============================================================================
+ */
 
 export const TestimonialSchema = z.object({
   quote: z.string().min(1, 'Quote is required'),
@@ -120,9 +131,11 @@ export const TestimonialsSchema = z.array(TestimonialSchema).max(50, 'Maximum 50
 export type Testimonial = z.infer<typeof TestimonialSchema>;
 export type Testimonials = z.infer<typeof TestimonialsSchema>;
 
-// ============================================================================
-// AI GENERATED COPY SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * AI GENERATED COPY SCHEMA
+ * ============================================================================
+ */
 
 export const AIGeneratedCopySchema = z.object({
   hero: z.string().min(10, 'Hero copy must be at least 10 characters'),
@@ -133,9 +146,11 @@ export const AIGeneratedCopySchema = z.object({
 
 export type AIGeneratedCopy = z.infer<typeof AIGeneratedCopySchema>;
 
-// ============================================================================
-// AI EXTRACTED THEMES SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * AI EXTRACTED THEMES SCHEMA
+ * ============================================================================
+ */
 
 export const AIExtractedThemesSchema = z.object({
   themes: z.array(z.string()),
@@ -144,9 +159,11 @@ export const AIExtractedThemesSchema = z.object({
 
 export type AIExtractedThemes = z.infer<typeof AIExtractedThemesSchema>;
 
-// ============================================================================
-// BUSINESS PROFILE SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * BUSINESS PROFILE SCHEMA
+ * ============================================================================
+ */
 
 export const BusinessProfileSchema = z.object({
   id: z.string().uuid(),
@@ -169,9 +186,11 @@ export const BusinessProfileSchema = z.object({
 
 export type BusinessProfile = z.infer<typeof BusinessProfileSchema>;
 
-// ============================================================================
-// TEMPLATE METADATA SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * TEMPLATE METADATA SCHEMA
+ * ============================================================================
+ */
 
 export const TemplateMetadataSchema = z.object({
   id: z.string().min(1, 'Template ID is required'),
@@ -185,9 +204,11 @@ export const TemplateMetadataSchema = z.object({
 
 export type TemplateMetadata = z.infer<typeof TemplateMetadataSchema>;
 
-// ============================================================================
-// TEMPLATE REGISTRY SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * TEMPLATE REGISTRY SCHEMA
+ * ============================================================================
+ */
 
 export const TemplateRegistrySchema = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/, 'Version must follow semver format'),
@@ -196,9 +217,11 @@ export const TemplateRegistrySchema = z.object({
 
 export type TemplateRegistry = z.infer<typeof TemplateRegistrySchema>;
 
-// ============================================================================
-// MASTER CONTENT SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * MASTER CONTENT SCHEMA
+ * ============================================================================
+ */
 
 export const HeroCopySchema = z.object({
   headline: z.string().min(1, 'Headline is required'),
@@ -246,9 +269,11 @@ export type HeroImage = z.infer<typeof HeroImageSchema>;
 export type MasterContentMetadata = z.infer<typeof MasterContentMetadataSchema>;
 export type MasterContent = z.infer<typeof MasterContentSchema>;
 
-// ============================================================================
-// COMMAND INTENT SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * COMMAND INTENT SCHEMA
+ * ============================================================================
+ */
 
 export const CommandIntentSchema = z.object({
   id: z.string().uuid(),
@@ -264,9 +289,11 @@ export const CommandIntentSchema = z.object({
 
 export type CommandIntent = z.infer<typeof CommandIntentSchema>;
 
-// ============================================================================
-// SITE SNAPSHOT SCHEMA
-// ============================================================================
+/*
+ * ============================================================================
+ * SITE SNAPSHOT SCHEMA
+ * ============================================================================
+ */
 
 export const SiteSnapshotSchema = z.object({
   id: z.string().uuid(),
@@ -280,9 +307,11 @@ export const SiteSnapshotSchema = z.object({
 
 export type SiteSnapshot = z.infer<typeof SiteSnapshotSchema>;
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
+/*
+ * ============================================================================
+ * HELPER FUNCTIONS
+ * ============================================================================
+ */
 
 /**
  * Validates and parses template metadata from JSON
@@ -326,9 +355,11 @@ export function validateSiteSnapshot(data: unknown): SiteSnapshot {
   return SiteSnapshotSchema.parse(data);
 }
 
-// ============================================================================
-// SCHEMA EXPORT FOR EXTERNAL VALIDATION
-// ============================================================================
+/*
+ * ============================================================================
+ * SCHEMA EXPORT FOR EXTERNAL VALIDATION
+ * ============================================================================
+ */
 
 export const Schemas = {
   DesignSystem: DesignSystemSchema,
