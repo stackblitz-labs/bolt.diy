@@ -1,0 +1,247 @@
+openapi: 3.1.0
+info:
+  title: HuskIT Phase 1 Orchestrator API
+  version: 0.1.0
+  description: |
+    Remix API routes that coordinate crawler, content, and website agents plus snapshot flows.
+servers:
+  - url: https://localhost:5173
+    description: Dev server (pnpm run dev)
+paths:
+  /api.site.generate:
+    post:
+      summary: Run crawler → content → website pipeline with SSE updates
+      operationId: generateSite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateRequest'
+      responses:
+        '200':
+          description: SSE stream containing progress events
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/SseEvent'
+        '400':
+          description: Invalid request or template lookup failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Crawler quota exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected orchestrator error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api.site.modify:
+    post:
+      summary: Classify and execute a natural-language edit command
+      operationId: modifySite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModifyRequest'
+      responses:
+        '200':
+          description: SSE stream covering classification + mutation progress
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/SseEvent'
+        '400':
+          description: Invalid command or schema validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Workspace locked or conflicting change detected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Mutation runner failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api.snapshot.save:
+    post:
+      summary: Persist current workspace as a labeled snapshot
+      operationId: saveSnapshot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotSaveRequest'
+      responses:
+        '202':
+          description: Snapshot accepted and upload initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotResponse'
+        '400':
+          description: Missing required metadata or template mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Archive creation/upload failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api.snapshot.restore:
+    post:
+      summary: Rehydrate a workspace from a saved snapshot
+      operationId: restoreSnapshot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotRestoreRequest'
+      responses:
+        '200':
+          description: Workspace restored and ready for preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotResponse'
+        '404':
+          description: Snapshot not found or inaccessible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Restore failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    TenantId:
+      type: string
+      format: uuid
+    GenerateRequest:
+      type: object
+      required:
+        - tenantId
+        - gmapsUrl
+      properties:
+        tenantId:
+          $ref: '#/components/schemas/TenantId'
+        gmapsUrl:
+          type: string
+          format: uri
+        preferredTemplateId:
+          type: string
+          description: Optional override; must exist in template registry
+        retryCrawlId:
+          type: string
+          format: uuid
+          description: Reference to cached `crawled_data` entry if bypassing live fetch
+    ModifyRequest:
+      type: object
+      required:
+        - tenantId
+        - prompt
+      properties:
+        tenantId:
+          $ref: '#/components/schemas/TenantId'
+        prompt:
+          type: string
+        sessionId:
+          type: string
+          format: uuid
+          description: Tracks PCC tab issuing the command
+    SnapshotSaveRequest:
+      type: object
+      required:
+        - tenantId
+        - businessProfileId
+        - versionLabel
+      properties:
+        tenantId:
+          $ref: '#/components/schemas/TenantId'
+        businessProfileId:
+          type: string
+          format: uuid
+        versionLabel:
+          type: string
+          maxLength: 255
+        notes:
+          type: string
+          maxLength: 1024
+    SnapshotRestoreRequest:
+      type: object
+      required:
+        - tenantId
+        - snapshotId
+      properties:
+        tenantId:
+          $ref: '#/components/schemas/TenantId'
+        snapshotId:
+          type: string
+          format: uuid
+    SnapshotResponse:
+      type: object
+      properties:
+        snapshotId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [accepted, completed, failed]
+        message:
+          type: string
+    SseEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          description: Event name (e.g., `crawler.progress`, `content.done`, `website.error`)
+        data:
+          type: object
+          description: Stage-specific payload (progress %, telemetry, errors)
+        progress:
+          type: number
+          format: float
+          description: Percentage completion when applicable
+        elapsedMs:
+          type: integer
+      description: |
+        When delivered over SSE, events are serialized per EventSource protocol (`event:`, `data:`).
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        remediation:
+          type: string
+          description: Actionable guidance (retry, provide manual data, contact support)
+

@@ -85,15 +85,4 @@ specs/001-verify-phase1-specs/checklists/requirements.md
 .cursor/commands/speckit.tasks.md
 .cursor/commands/speckit.taskstoissues.md
 .cursor/rules/specify-rules.mdc
-specs/001-phase1-plan/data-model.md
-specs/001-phase1-plan/plan.md
-specs/001-phase1-plan/quickstart.md
-specs/001-phase1-plan/research.md
-specs/001-phase1-plan/spec.md
-specs/001-phase1-plan/tasks.md
-specs/001-phase1-plan/checklists/requirements.md
-specs/001-phase1-plan/contracts/orchestrator.openapi.yaml
-specs/001-verify-phase1-specs/data-model.md
-specs/001-verify-phase1-specs/plan.md
-specs/001-verify-phase1-specs/research.md
-specs/001-verify-phase1-specs/tasks.md
+
