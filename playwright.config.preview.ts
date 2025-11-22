@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: 'html',
   
   use: {
-    baseURL: process.env.PREVIEW_URL || 'http://localhost:5173',
+    baseURL: process.env.PREVIEW_URL || 'http://localhost:5171',
     trace: 'on-first-retry',
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
@@ -29,7 +29,7 @@ export default defineConfig({
 
   webServer: process.env.CI ? undefined : {
     command: 'pnpm run start',
-    port: 5173,
+    port: 5171,
     reuseExistingServer: !process.env.CI,
   },
 });

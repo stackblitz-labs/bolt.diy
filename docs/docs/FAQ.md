@@ -380,7 +380,7 @@ If the live preview isn't working:
     - **Verify Node.js compatibility** with your project
     - **Restart the development environment**
     - **Clear browser cache** and reload
-    - **Check for conflicting ports** (default is 5173)
+    - **Check for conflicting ports** (default is 5171)
 
 ??? error "Received structured exception #0xc0000005: access violation"
 **Windows-specific issue**: Update the [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)

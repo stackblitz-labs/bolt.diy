@@ -194,8 +194,8 @@ This option requires Docker and is great when you want an isolated environment o
    # Production-style container using composed services
    docker compose --profile production up
 
-   # One-off production container (exposes the app on port 5173)
-   docker run --rm -p 5173:5173 --env-file .env.local bolt-ai:latest
+   # One-off production container (exposes the app on port 5171)
+   docker run --rm -p 5171:5171 --env-file .env.local bolt-ai:latest
    ```
 
    When the container starts it runs `pnpm run dockerstart`, which in turn executes `bindings.sh` to pass Cloudflare bindings through Wrangler. You can override this command in `docker-compose.yaml` if you need a different startup routine.
@@ -400,7 +400,7 @@ This method is recommended for developers who want to:
    ```
   Hint: Be aware that this can have beta-features and more likely got bugs than the stable release
 
->**Open the WebUI to test (Default: http://localhost:5173)**
+>**Open the WebUI to test (Default: http://localhost:5171)**
 >   - Beginners: 
 >     - Try to use a sophisticated Provider/Model like Anthropic with Claude Sonnet 3.x Models to get best results
 >     - Explanation: The System Prompt currently implemented in bolt.diy cant cover the best performance for all providers and models out there. So it works better with some models, then other, even if the models itself are perfect for >programming

@@ -1,7 +1,7 @@
 {
   "ci": {
     "collect": {
-      "url": ["http://localhost:5173/"],
+      "url": ["http://localhost:5171/"],
       "startServerCommand": "pnpm run start",
       "numberOfRuns": 3
     },
