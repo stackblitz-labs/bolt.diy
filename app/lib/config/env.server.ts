@@ -213,7 +213,8 @@ export function isTest(): boolean {
 /**
  * Validate environment on module load (fail fast in development)
  */
-if (isDevelopment() || isTest()) {
+// Check NODE_ENV directly to avoid circular dependency
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
   try {
     getEnvConfig();
   } catch (error) {

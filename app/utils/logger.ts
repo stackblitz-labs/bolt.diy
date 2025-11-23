@@ -292,9 +292,9 @@ export function logSourceMix(correlationId: string, mix: SourceMixMetrics): void
     social: mix.social,
     total: mix.total,
     distribution: {
-      mapsPercent: mix.total > 0 ? ((mix.maps / mix.total) * 100).toFixed(1) : 0,
-      websitePercent: mix.total > 0 ? ((mix.website / mix.total) * 100).toFixed(1) : 0,
-      socialPercent: mix.total > 0 ? ((mix.social / mix.total) * 100).toFixed(1) : 0,
+      mapsPercent: mix.total > 0 ? ((mix.maps / mix.total) * 100).toFixed(1) : '0',
+      websitePercent: mix.total > 0 ? ((mix.website / mix.total) * 100).toFixed(1) : '0',
+      socialPercent: mix.total > 0 ? ((mix.social / mix.total) * 100).toFixed(1) : '0',
     },
   });
 }
