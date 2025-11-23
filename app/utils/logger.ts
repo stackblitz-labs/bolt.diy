@@ -124,6 +124,214 @@ function getColorForLevel(level: DebugLevel): string {
 
 export const renderLogger = createScopedLogger('Render');
 
+/*
+ * ============================================================================
+ * Crawler Telemetry Helpers
+ * ============================================================================
+ */
+
+/**
+ * Source mix metrics for multi-source crawl telemetry
+ */
+export interface SourceMixMetrics {
+  maps: number;
+  website: number;
+  social: number;
+  total: number;
+}
+
+/**
+ * Quota state telemetry
+ */
+export interface QuotaStateTelemetry {
+  tenantId?: string;
+  percentage: number;
+  state: 'healthy' | 'warning' | 'exhausted';
+  dailyConsumed: number;
+  dailyLimit: number;
+  timeToReset?: string; // Human-readable format like "2h 30m"
+}
+
+/**
+ * Toast notification metrics for PCC UI
+ */
+export interface ToastMetrics {
+  type: 'info' | 'warning' | 'error' | 'success';
+  duration: number; // milliseconds displayed
+  ctaClicked: boolean;
+  dismissed: boolean;
+  dismissMethod?: 'click' | 'escape' | 'timeout';
+}
+
+/**
+ * Performance mark helpers for crawler operations
+ */
+export const CRAWLER_PERFORMANCE_MARKS = {
+  /**
+   * Mark the start of a crawler request
+   */
+  startRequest(correlationId: string): void {
+    if (typeof performance !== 'undefined') {
+      performance.mark(`crawler.request:start:${correlationId}`);
+    }
+  },
+
+  /**
+   * Mark the end of a crawler request and measure duration
+   */
+  endRequest(correlationId: string): number | null {
+    if (typeof performance === 'undefined') {
+      return null;
+    }
+
+    const endMark = `crawler.request:end:${correlationId}`;
+    const startMark = `crawler.request:start:${correlationId}`;
+
+    performance.mark(endMark);
+
+    try {
+      const measure = performance.measure(`crawler.request:${correlationId}`, startMark, endMark);
+
+      // Clean up marks
+      performance.clearMarks(startMark);
+      performance.clearMarks(endMark);
+
+      return measure.duration;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Mark cache lookup operation
+   */
+  markCacheLookup(correlationId: string, hit: boolean): void {
+    if (typeof performance !== 'undefined') {
+      performance.mark(`crawler.cache:${hit ? 'hit' : 'miss'}:${correlationId}`);
+    }
+  },
+
+  /**
+   * Mark quota check operation
+   */
+  markQuotaCheck(correlationId: string, state: 'healthy' | 'warning' | 'exhausted'): void {
+    if (typeof performance !== 'undefined') {
+      performance.mark(`crawler.quota:${state}:${correlationId}`);
+    }
+  },
+};
+
+/**
+ * Calculate source mix from sources array
+ */
+export function calculateSourceMix(sources: Array<{ type: 'maps' | 'website' | 'social' }>): SourceMixMetrics {
+  const mix: SourceMixMetrics = {
+    maps: 0,
+    website: 0,
+    social: 0,
+    total: sources.length,
+  };
+
+  sources.forEach((source) => {
+    mix[source.type]++;
+  });
+
+  return mix;
+}
+
+/**
+ * Log crawler telemetry event
+ */
+export function logCrawlerTelemetry(
+  event: string,
+  data: Record<string, any>,
+  level: Exclude<DebugLevel, 'none'> = 'info',
+): void {
+  const crawlerLogger = createScopedLogger('Crawler');
+  const message = `[Telemetry] ${event}`;
+
+  // Structured logging for telemetry
+  const telemetryData = {
+    timestamp: new Date().toISOString(),
+    event,
+    ...data,
+  };
+
+  crawlerLogger[level](message, JSON.stringify(telemetryData, null, 2));
+}
+
+/**
+ * Log quota state change
+ */
+export function logQuotaStateChange(telemetry: QuotaStateTelemetry): void {
+  const level: Exclude<DebugLevel, 'none'> =
+    telemetry.state === 'exhausted' ? 'error' : telemetry.state === 'warning' ? 'warn' : 'info';
+
+  logCrawlerTelemetry(
+    'quota.state_change',
+    {
+      tenantId: telemetry.tenantId,
+      state: telemetry.state,
+      percentage: telemetry.percentage.toFixed(2),
+      consumed: telemetry.dailyConsumed,
+      limit: telemetry.dailyLimit,
+      timeToReset: telemetry.timeToReset,
+    },
+    level,
+  );
+}
+
+/**
+ * Log source mix for a crawl operation
+ */
+export function logSourceMix(correlationId: string, mix: SourceMixMetrics): void {
+  logCrawlerTelemetry('crawl.source_mix', {
+    correlationId,
+    maps: mix.maps,
+    website: mix.website,
+    social: mix.social,
+    total: mix.total,
+    distribution: {
+      mapsPercent: mix.total > 0 ? ((mix.maps / mix.total) * 100).toFixed(1) : '0',
+      websitePercent: mix.total > 0 ? ((mix.website / mix.total) * 100).toFixed(1) : '0',
+      socialPercent: mix.total > 0 ? ((mix.social / mix.total) * 100).toFixed(1) : '0',
+    },
+  });
+}
+
+/**
+ * Log toast interaction metrics
+ */
+export function logToastMetrics(toastId: string, metrics: ToastMetrics): void {
+  logCrawlerTelemetry('pcc.toast_interaction', {
+    toastId,
+    type: metrics.type,
+    durationMs: metrics.duration,
+    ctaClicked: metrics.ctaClicked,
+    dismissed: metrics.dismissed,
+    dismissMethod: metrics.dismissMethod,
+  });
+}
+
+/**
+ * Log crawler performance metrics
+ */
+export function logCrawlerPerformance(
+  correlationId: string,
+  durationMs: number,
+  cacheHit: boolean,
+  sourcesCount: number,
+): void {
+  logCrawlerTelemetry('crawl.performance', {
+    correlationId,
+    durationMs: Math.round(durationMs),
+    durationSec: (durationMs / 1000).toFixed(2),
+    cacheHit,
+    sourcesCount,
+    avgSourceMs: sourcesCount > 0 ? Math.round(durationMs / sourcesCount) : 0,
+  });
+}
+
 // Debug logging integration
 let debugLogger: any = null;
 

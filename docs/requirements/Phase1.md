@@ -220,3 +220,331 @@ Orchestrates the customization and build process within an isolated workspace us
         *   Conduct intensive testing of the `LLM Intent Classifier` to ensure high accuracy.
         *   Implement the "Save Version" snapshotting service.
         *   Begin onboarding the first 50 users, gathering critical feedback on the quality of the AI-generated copy and the ease of use.
+
+---
+
+## Appendix: Google Places Crawler Service (Feature 001-places-crawler)
+
+**Added**: 2025-11-23
+**Feature Spec**: [`specs/001-places-crawler/spec.md`](../../specs/001-places-crawler/spec.md)
+
+### Overview
+
+This appendix documents the internal Places Data Service integration for the Google Places Crawler Service feature. This service extends the original Crawler Agent to support multi-source data aggregation (Google Maps, legacy websites, social profiles) through an internal REST API.
+
+### Internal Places Data Service Setup
+
+#### Service Overview
+
+The Internal Places Data Service is a REST API that aggregates business profile data from multiple sources:
+- **Google Maps** (primary source)
+- **Legacy restaurant websites** (optional)
+- **Social media profiles** (Facebook, Instagram, optional)
+
+The crawler agent in this Remix application acts as a client to this internal service, mediating between the orchestration layer and the data aggregation layer.
+
+#### Environment Configuration
+
+Add these variables to your `.env.local`:
+
+```bash
+# Internal Places Data Service (required for crawler agent)
+INTERNAL_PLACES_SERVICE_URL=http://localhost:3001/api
+INTERNAL_PLACES_SERVICE_TOKEN=dev_token_12345
+```
+
+**Production Configuration:**
+```bash
+INTERNAL_PLACES_SERVICE_URL=https://places-data.prod/api
+INTERNAL_PLACES_SERVICE_TOKEN=[contact_security_team]
+```
+
+#### Sample API Requests
+
+##### 1. Fetch Place Profile
+
+**Endpoint**: `POST /crawler/fetch`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3001/api/crawler/fetch \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_token_12345" \
+  -d '{
+    "tenantId": "550e8400-e29b-41d4-a716-446655440000",
+    "sourceUrl": "https://maps.google.com/maps?cid=12345678901234567890",
+    "placeId": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+    "forceRefresh": false,
+    "requestedSections": ["identity", "contact", "hours", "menu"],
+    "correlationId": "req_abc123"
+  }'
+```
+
+**Success Response (200 OK)**:
+```json
+{
+  "tenantId": "550e8400-e29b-41d4-a716-446655440000",
+  "placeId": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+  "sourcesUsed": [
+    {"type": "maps", "timestamp": "2025-11-23T10:30:00Z"},
+    {"type": "website", "timestamp": "2025-11-23T10:30:05Z"}
+  ],
+  "freshness": "2025-11-23T10:30:05Z",
+  "cacheHit": false,
+  "sections": {
+    "identity": {
+      "data": {"name": "The Golden Spoon", "cuisine": "Italian"},
+      "completeness": "complete"
+    },
+    "contact": {
+      "data": {"phone": "+1-555-0123", "email": "info@goldenspoon.example"},
+      "completeness": "complete"
+    }
+  },
+  "missingSections": [],
+  "quotaState": {"percentage": 0.45, "state": "healthy"}
+}
+```
+
+**Error Responses**:
+
+| Code | HTTP | Example |
+|------|------|---------|
+| `INVALID_INPUT` | 400 | `{"code": "INVALID_INPUT", "message": "Missing tenantId", "remediation": "Provide valid UUID"}` |
+| `PLACE_NOT_FOUND` | 404 | `{"code": "PLACE_NOT_FOUND", "message": "No data found", "remediation": "Verify URL"}` |
+| `QUOTA_EXCEEDED` | 429 | `{"code": "QUOTA_EXCEEDED", "message": "Daily quota exhausted", "remediation": "Retry after midnight UTC"}` |
+| `UPSTREAM_ERROR` | 502 | `{"code": "UPSTREAM_ERROR", "message": "Google Maps API unavailable", "remediation": "Retry in 5 minutes"}` |
+
+##### 2. Get Quota Status
+
+**Endpoint**: `GET /crawler/quota?apiKeyAlias=default`
+
+**Response**:
+```json
+{
+  "apiKeyAlias": "default",
+  "dailyLimit": 1000,
+  "dailyConsumed": 450,
+  "minuteLimit": 100,
+  "minuteConsumed": 12,
+  "warningThreshold": 0.8,
+  "resetAt": "2025-11-24T00:00:00Z"
+}
+```
+
+##### 3. Invalidate Cache
+
+**Endpoint**: `POST /crawler/cache/invalidate`
+
+**Request**:
+```bash
+curl -X POST http://localhost:3001/api/crawler/cache/invalidate \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev_token_12345" \
+  -d '{
+    "tenantId": "550e8400-e29b-41d4-a716-446655440000",
+    "placeId": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+    "reason": "stale_data",
+    "requestedBy": "operator@example.com"
+  }'
+```
+
+**Response**: 204 No Content (success) or 404 Not Found (no cache entry)
+
+### Template Tooling Verification
+
+**Date**: 2025-11-23
+**Status**: Baseline verification completed
+**Updated**: 2025-11-23 (actual execution)
+
+#### Prerequisites
+
+The template scripts require `tsx` for TypeScript execution:
+```bash
+pnpm add -D tsx  # Already installed in this project
+```
+
+**package.json script configuration:**
+```json
+{
+  "scripts": {
+    "templates:clone": "pnpm exec tsx scripts/templates/clone-starters.ts",
+    "templates:seed": "pnpm exec tsx scripts/templates/seed-registry.ts"
+  }
+}
+```
+
+#### Commands Executed
+
+```bash
+pnpm templates:clone   # Clone premium templates (creates placeholders)
+pnpm templates:seed    # Update registry.json (generates empty registry)
+```
+
+#### Execution Results
+
+**1. Template Clone (`pnpm templates:clone`)**
+
+```
+📦 Cloning starter templates...
+Target: all templates
+Force: false
+
+📥 Cloning restaurant-classic from TODO: Add template source URL or path...
+   ⚠️  TODO: Implement clone logic for restaurant-classic
+   ✓ Created placeholder at templates/restaurant-classic
+📥 Cloning bistro-elegant from TODO: Add template source URL or path...
+   ⚠️  TODO: Implement clone logic for bistro-elegant
+   ✓ Created placeholder at templates/bistro-elegant
+📥 Cloning taqueria-modern from TODO: Add template source URL or path...
+   ⚠️  TODO: Implement clone logic for taqueria-modern
+   ✓ Created placeholder at templates/taqueria-modern
+
+✓ Template cloning complete
+```
+
+**2. Template Seed (`pnpm templates:seed`)**
+
+```
+🌱 Seeding template registry...
+Target: all templates
+Validate: false
+Force: false
+
+⚠️  TODO: Implement template seeding logic
+    - Scan templates directory
+    - Extract template metadata
+    - Validate template structure
+    - Generate/update registry.json
+
+✓ Created empty registry at templates/registry.json
+```
+
+#### Post-Execution State
+
+**Directory Structure:**
+```
+templates/
+├── bistro-elegant/
+│   └── README.md (68 bytes)
+├── registry.json (43 bytes)
+├── restaurant-classic/
+│   └── README.md (68 bytes)
+└── taqueria-modern/
+    └── README.md (68 bytes)
+```
+
+**Registry Contents** (`templates/registry.json`):
+```json
+{
+  "version": "1.0.0",
+  "templates": []
+}
+```
+
+**Total Disk Usage**: ~250 bytes (placeholder READMEs only)
+
+#### Analysis & Notes
+
+**Current Status**: ⚠️ **Placeholder Implementation**
+
+The template tooling scripts are currently in placeholder/TODO state:
+
+1. **Clone Script**: Creates empty directory structure with README placeholders
+   - No actual template content cloned
+   - No git operations or file copying implemented
+   - Source URLs marked as "TODO"
+
+2. **Seed Script**: Generates empty registry
+   - No template metadata extraction
+   - No validation logic
+   - Templates array is empty
+
+**Required Implementation Work**:
+
+1. **For `clone-starters.ts`**:
+   - Add actual template source URLs (GitHub repos, local paths, etc.)
+   - Implement git clone or file copy logic
+   - Populate templates with real React/Vite content
+   - Add template assets (CSS, images, components)
+
+2. **For `seed-registry.ts`**:
+   - Implement template directory scanning
+   - Extract metadata from template manifests
+   - Validate template structure against schema
+   - Populate `registry.json` with template data
+
+3. **Template Content Requirements** (per spec):
+   - Each template should include:
+     - Full React/Vite application structure
+     - `src/data/content.json` for content separation
+     - `src/theme.js` for design tokens
+     - Testimonials component for reviews
+     - Fully responsive layout
+     - SEO best practices
+
+**Impact on Crawler Feature**:
+- ✓ **No blocker**: The crawler agent doesn't directly depend on templates
+- ✓ **Downstream dependency**: Templates are used by Website Agent (later phase)
+- ℹ️ **Note**: Template implementation can proceed in parallel with crawler development
+
+#### Integration Notes
+
+The crawler agent does not directly interact with templates, but the template system is required for downstream orchestration:
+
+1. **Crawler** → Fetches business data
+2. **Content Agent** → Generates copy using business data
+3. **Website Agent** → Selects template from registry
+4. **Orchestrator** → Merges content + template → generates site
+
+### Error Handling Matrix
+
+| Error Code | Handler Behavior |
+|------------|------------------|
+| `INVALID_INPUT` | Validate before API call, show PCC validation errors |
+| `PLACE_NOT_FOUND` | Prompt user to verify URL, offer manual data entry |
+| `QUOTA_EXCEEDED` | Show quota alert with retry-after time, log telemetry |
+| `UPSTREAM_ERROR` | Retry with exponential backoff (max 3x), then show error |
+| `NO_SOURCE_DATA` | Partial success, show missing sections in PCC |
+
+### Security Checklist
+
+- [ ] Store `INTERNAL_PLACES_SERVICE_TOKEN` in environment variables only
+- [ ] Rotate tokens quarterly or on compromise
+- [ ] Use HTTPS in production (TLS 1.2+)
+- [ ] Validate tenant scope to prevent cross-tenant data leaks
+- [ ] Respect quota limits to avoid service disruption
+
+### Testing Recommendations
+
+1. **Connectivity Test**:
+   ```bash
+   curl -I http://localhost:3001/api/health
+   ```
+
+2. **Authentication Test**:
+   ```bash
+   curl -X POST http://localhost:3001/api/crawler/fetch \
+     -H "Authorization: Bearer invalid_token" \
+     # Should return 401 Unauthorized
+   ```
+
+3. **Quota Warning Test**:
+   - Consume 80% of daily quota
+   - Verify next request includes quota warning
+
+### Next Steps
+
+1. Implement Phase 2 foundational tasks (T004-T007):
+   - Supabase migration for `crawled_data` table
+   - Environment variable validation
+   - Internal Places Client wrapper
+   - Telemetry helpers
+2. Create integration tests for internal service client
+3. Implement crawler agent schema validation using Zod
+
+### References
+
+- API Contract: [`specs/001-places-crawler/contracts/crawler-service.openapi.yaml`](../../specs/001-places-crawler/contracts/crawler-service.openapi.yaml)
+- Feature Quickstart: [`specs/001-places-crawler/quickstart.md`](../../specs/001-places-crawler/quickstart.md)
+- Implementation Plan: [`specs/001-places-crawler/plan.md`](../../specs/001-places-crawler/plan.md)
