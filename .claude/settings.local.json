@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(python3:*)",
+      "Bash(pnpm run typecheck:*)",
+      "Bash(pnpm run lint:*)",
+      "Bash(pnpm run lint:fix:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,234 @@
+openapi: 3.1.0
+info:
+  title: Crawler Agent Internal API
+  version: 0.1.0
+  description: >-
+    Contract between Remix crawlerAgent and the internal Places Data Service
+    (optional sources: Google Maps, legacy website, social profiles).
+servers:
+  - url: https://internal-services.local
+    description: Local/dev tunnel
+  - url: https://places-data.prod
+    description: Production internal service
+paths:
+  /crawler/fetch:
+    post:
+      summary: Fetch normalized business profile for a tenant
+      operationId: fetchPlaceProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrawlRequest'
+      responses:
+        '200':
+          description: Normalized payload (cache hit or live fetch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlResult'
+        '400':
+          description: Invalid input (missing URL/tenant)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlError'
+        '409':
+          description: Conflict (duplicate request in-flight or cache locked)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlError'
+        '429':
+          description: Quota exceeded for this API key bucket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlError'
+        '502':
+          description: Upstream failure (Google Maps/site/social)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlError'
+  /crawler/cache/invalidate:
+    post:
+      summary: Force invalidate cached payload for a tenant/place pair
+      operationId: invalidateCache
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId, placeId, reason]
+              properties:
+                tenantId:
+                  type: string
+                  format: uuid
+                placeId:
+                  type: string
+                reason:
+                  type: string
+                  enum: [operator_request, stale_data, compliance, other]
+                requestedBy:
+                  type: string
+                  description: Operator ID or automation handle
+      responses:
+        '204':
+          description: Cache entry removed/invalidated
+        '404':
+          description: No matching cache entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlError'
+  /crawler/quota:
+    get:
+      summary: Retrieve current quota ledger state
+      operationId: getQuotaLedger
+      parameters:
+        - in: query
+          name: apiKeyAlias
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Current quota counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaLedger'
+        '404':
+          description: Unknown alias
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlError'
+components:
+  schemas:
+    CrawlRequest:
+      type: object
+      required: [tenantId]
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+        sourceUrl:
+          type: string
+          format: uri
+        placeId:
+          type: string
+        forceRefresh:
+          type: boolean
+          default: false
+        requestedSections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Section'
+        correlationId:
+          type: string
+          format: uuid
+    CrawlResult:
+      type: object
+      required: [tenantId, placeId, freshness, sections]
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+        placeId:
+          type: string
+        sourcesUsed:
+          type: array
+          items:
+            type: object
+            required: [type, timestamp]
+            properties:
+              type:
+                type: string
+                enum: [maps, website, social]
+              timestamp:
+                type: string
+                format: date-time
+        freshness:
+          type: string
+          format: date-time
+        cacheHit:
+          type: boolean
+        sections:
+          type: object
+          properties:
+            identity:
+              $ref: '#/components/schemas/SectionData'
+            contact:
+              $ref: '#/components/schemas/SectionData'
+            hours:
+              $ref: '#/components/schemas/SectionData'
+            menu:
+              $ref: '#/components/schemas/SectionData'
+            reviews:
+              $ref: '#/components/schemas/SectionData'
+            media:
+              $ref: '#/components/schemas/SectionData'
+        missingSections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Section'
+        quotaState:
+          $ref: '#/components/schemas/QuotaState'
+        error:
+          $ref: '#/components/schemas/CrawlError'
+    CrawlError:
+      type: object
+      properties:
+        code:
+          type: string
+          enum: [INVALID_INPUT, PLACE_NOT_FOUND, QUOTA_EXCEEDED, UPSTREAM_ERROR, NO_SOURCE_DATA]
+        message:
+          type: string
+        remediation:
+          type: string
+    QuotaLedger:
+      type: object
+      required: [apiKeyAlias, dailyLimit, dailyConsumed, warningThreshold, resetAt]
+      properties:
+        apiKeyAlias:
+          type: string
+        dailyLimit:
+          type: integer
+        dailyConsumed:
+          type: integer
+        minuteLimit:
+          type: integer
+        minuteConsumed:
+          type: integer
+        warningThreshold:
+          type: number
+          default: 0.8
+        resetAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Section:
+      type: string
+      enum: [identity, contact, hours, menu, reviews, media]
+    SectionData:
+      type: object
+      properties:
+        data:
+          type: object
+        completeness:
+          type: string
+          enum: [complete, partial, missing]
+    QuotaState:
+      type: object
+      properties:
+        percentage:
+          type: number
+        state:
+          type: string
+          enum: [healthy, warning, exhausted]
