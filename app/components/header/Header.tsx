@@ -21,6 +21,7 @@ import { includeHistorySummary } from '~/components/workbench/VesionHistory/AppH
 import { PanelLeft } from '~/components/ui/Icon';
 import { useEffect } from 'react';
 import { useLocation } from '@remix-run/react';
+import { NavigationMenuComponent } from '~/components/landingPage/components/NavigationMenu';
 
 export function Header() {
   const chatStarted = useStore(chatStore.started);
@@ -67,9 +68,18 @@ export function Header() {
             title="Toggle Sidebar"
           />
         )}
-        {!user && location.pathname !== '/rebuild-broken-dreams' && <ThemeSwitch />}
+        {!user && (
+          <a href="/">
+            <div className="flex items-center gap-3">
+              <h1 className="text-bolt-elements-textHeading font-bold text-xl">
+                REPLAY<span className="text-green-500">.BUILDER</span>
+              </h1>
+            </div>
+          </a>
+        )}
         {appSummary && !isSmallViewport && <ChatDescription />}
       </div>
+      {!user && !chatStarted && <NavigationMenuComponent />}
 
       {appSummary && !isSmallViewport && (
         <div className="flex-1 flex justify-center">

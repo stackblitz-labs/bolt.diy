@@ -4,7 +4,7 @@ export const VideoSection = () => (
       <iframe
         src="https://www.youtube.com/embed/2dDWt7Sq8M8?rel=0&modestbranding=1"
         sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-        title="Nut.new - Rebuild your vibe-broken apps"
+        title="Replay.Builder - Rebuild your vibe-broken apps"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
         className="w-full h-full"

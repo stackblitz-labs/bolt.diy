@@ -23,7 +23,9 @@ const BrokenDreamsBanner = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-center">
         <div>
           <p className="text-white font-medium text-sm sm:text-base">
-            {!isSmallViewport ? 'Rebuild your vibe-broken apps with Nut.new.' : 'Rebuild your apps with Nut.new.'}
+            {!isSmallViewport
+              ? 'Rebuild your vibe-broken apps with Replay.Builder.'
+              : 'Rebuild your apps with Replay.Builder.'}
           </p>
         </div>
         <div className="ml-4">

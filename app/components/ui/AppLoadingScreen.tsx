@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 
 interface AppLoadingScreenProps {
   appId?: string;
@@ -20,7 +21,7 @@ export const AppLoadingScreen = ({ appId }: AppLoadingScreenProps) => {
             ease: 'easeInOut',
           }}
         >
-          <img src="/logo-styled.svg" alt="Nut.new" className="w-6 h-6" />
+          <Loader2 className="w-6 h-6 animate-spin" />
         </motion.div>
 
         <div className="text-center space-y-2">

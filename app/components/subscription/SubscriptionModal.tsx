@@ -11,7 +11,7 @@ import {
 import { classNames } from '~/utils/classNames';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
-import { Info, Gift, Rocket, Check, Sparkles, ArrowUpRight } from '~/components/ui/Icon';
+import { Info, Gift, Rocket, Check, Sparkles } from '~/components/ui/Icon';
 
 export function SubscriptionModal() {
   const { isMobile } = useIsMobile();
@@ -222,18 +222,6 @@ export function SubscriptionModal() {
                     </div>
                     <span className="text-sm text-bolt-elements-textSecondary leading-relaxed">Priority Support</span>
                   </div>
-                </div>
-
-                <div className="mt-auto">
-                  <a
-                    href="https://form.typeform.com/to/bFKqmqdX"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 shadow-lg bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white border border-indigo-500/50 hover:border-indigo-400 hover:scale-105 cursor-pointer"
-                  >
-                    <ArrowUpRight className="text-white" size={18} />
-                    <span>Join Waitlist</span>
-                  </a>
                 </div>
               </div>
             </div>

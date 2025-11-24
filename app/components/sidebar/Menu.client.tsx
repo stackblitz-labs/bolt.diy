@@ -202,10 +202,10 @@ export const Menu = () => {
       <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
         <div className="px-6 py-4 border-b border-bolt-elements-borderColor border-opacity-50">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-bolt-elements-borderColor border-opacity-50 p-1.5 bg-gradient-to-br from-blue-500/10 to-green-500/10 shadow-sm">
-              <img src="/logo-styled.svg" alt="Nut.new" className="w-full h-full" />
-            </div>
-            <h1 className="text-bolt-elements-textHeading font-bold text-xl">Nut.new</h1>
+            {/* <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-bolt-elements-borderColor border-opacity-50 p-1.5 bg-gradient-to-br from-blue-500/10 to-green-500/10 shadow-sm">
+              <img src="/logo-styled.svg" alt="Replay.Builder" className="w-full h-full" />
+            </div> */}
+            <h1 className="text-bolt-elements-textHeading font-bold text-xl">Replay.Builder</h1>
           </div>
 
           <div className="space-y-2">

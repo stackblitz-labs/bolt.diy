@@ -6,7 +6,9 @@ export const HeroSection = () => {
           Rebuild your vibe-broken apps
         </span>
         <br />
-        <span className="bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">with Nut.new</span>
+        <span className="bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
+          with Replay.Builder
+        </span>
       </h1>
 
       <p className="text-xl text-bolt-elements-textSecondary mb-8 max-w-3xl mx-auto leading-relaxed">
@@ -23,8 +25,8 @@ export const HeroSection = () => {
       </a>
 
       <p className="text-sm text-bolt-elements-textSecondary mt-6 max-w-2xl mx-auto">
-        Nut.new is focused on building web apps. So if you are looking to build native iOS/Android apps, desktop apps or
-        Chrome extensions, we're not ready for you...yet.
+        Replay.Builder is focused on building web apps. So if you are looking to build native iOS/Android apps, desktop
+        apps or Chrome extensions, we're not ready for you...yet.
       </p>
     </div>
   );

@@ -33,6 +33,9 @@ import { toast } from 'react-toastify';
 import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
 import { PlanUpgradeBlock } from './components/PlanUpgradeBlock';
 import AppTemplates from './components/AppTemplates/AppTemplates';
+import Pricing from '~/components/landingPage/components/Pricing';
+import FAQs from '~/components/landingPage/components/FAQs';
+import Explanation from '~/components/landingPage/components/Explanation';
 
 export const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -403,7 +406,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </>
                 );
               })()}
+              {!user && !chatStarted && <Pricing />}
+              {!user && !chatStarted && <Explanation />}
               {!chatStarted && <AppTemplates sendMessage={handleSendMessage} />}
+              {!user && !chatStarted && <FAQs />}
             </div>
           </div>
           <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>

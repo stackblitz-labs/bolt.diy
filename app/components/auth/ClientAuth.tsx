@@ -5,13 +5,11 @@ import { authModalStore } from '~/lib/stores/authModal';
 import { signOut, userStore } from '~/lib/stores/auth';
 import { useStore } from '@nanostores/react';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
-import { User, Crown, Sparkles, Settings, LogOut } from '~/components/ui/Icon';
+import { User, Crown, Settings, LogOut } from '~/components/ui/Icon';
 
 export function ClientAuth() {
   const user = useStore(userStore);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showProTooltip, setShowProTooltip] = useState(false);
-  const [proTooltipTimeout, setProTooltipTimeout] = useState<NodeJS.Timeout | null>(null);
   const stripeSubscription = useStore(subscriptionStore.subscription);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -149,60 +147,6 @@ export function ClientAuth() {
               )}
 
               <div className="p-3 space-y-2">
-                <div className="relative">
-                  <a
-                    href="https://form.typeform.com/to/bFKqmqdX"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg transition-all duration-200 flex items-center gap-3 font-medium shadow-sm hover:shadow-md"
-                    onClick={() => {
-                      if (window.analytics) {
-                        window.analytics.track('Clicked Pro Plan Waitlist button', {
-                          timestamp: new Date().toISOString(),
-                          userId: user?.id,
-                          email: user?.email,
-                        });
-                      }
-                    }}
-                    onMouseEnter={() => {
-                      const timeout = setTimeout(() => setShowProTooltip(true), 500);
-                      setProTooltipTimeout(timeout);
-                    }}
-                    onMouseLeave={() => {
-                      if (proTooltipTimeout) {
-                        clearTimeout(proTooltipTimeout);
-                        setProTooltipTimeout(null);
-                      }
-                      setShowProTooltip(false);
-                    }}
-                  >
-                    <Sparkles size={18} />
-                    <span>Pro Plan: Join the Waitlist</span>
-                  </a>
-
-                  {showProTooltip && (
-                    <div className="absolute top-full right-0 mt-2 w-64 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-lg p-3 shadow-lg z-20 backdrop-blur-sm">
-                      <div className="text-sm text-bolt-elements-textPrimary space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-black flex-shrink-0"></div>
-                          <span className="font-medium">Guaranteed Reliability</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-black flex-shrink-0"></div>
-                          <span className="font-medium">Up Front App Prices</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-black flex-shrink-0"></div>
-                          <span className="font-medium">Priority Support</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Arrow */}
-                  <div className="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-bolt-elements-background-depth-1"></div>
-                </div>
-
                 <button
                   onClick={handleShowAccountModal}
                   className="w-full px-4 py-3 bg-gradient-to-br from-blue-500 to-indigo-500 text-white hover:bg-gradient-to-br hover:from-blue-600 hover:to-indigo-600 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium shadow-sm hover:shadow-md"

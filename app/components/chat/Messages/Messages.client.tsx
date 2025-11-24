@@ -397,16 +397,16 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
                   </div>
                 )}
 
-                {!isUserMessage && (
+                {/* {!isUserMessage && (
                   <div className="flex items-center justify-center w-8 h-8 bg-bolt-elements-background-depth-2 border-2 border-bolt-elements-borderColor text-bolt-elements-textPrimary rounded-full shadow-sm">
                     <div className="w-6 h-6">
-                      <img src="/logo-styled.svg" alt="Nut" className="w-full h-full" />
+                      <img src="/logo-styled.svg" alt="Replay" className="w-full h-full" />
                     </div>
                   </div>
-                )}
+                )} */}
 
                 <span className={classNames('text-sm font-medium text-bolt-elements-textHeading')}>
-                  {isUserMessage ? 'Me' : 'Nut'}
+                  {isUserMessage ? 'Me' : 'Replay'}
                 </span>
               </div>
 
