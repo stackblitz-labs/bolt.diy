@@ -130,8 +130,10 @@ export function AccessibleToast({
     return undefined;
   }, [toast.duration, toast.dismissible, onDismiss]);
 
-  // Note: Escape key handling is managed by ToastContainer to ensure
-  // the topmost toast always responds, regardless of stacking order
+  /*
+   * Note: Escape key handling is managed by ToastContainer to ensure
+   * the topmost toast always responds, regardless of stacking order
+   */
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
@@ -244,7 +246,9 @@ export function ToastContainer({
   // Global Escape key handler - dismisses topmost dismissible toast
   useEffect(() => {
     if (typeof window === 'undefined') {
-      return;
+      return () => {
+        // No-op cleanup for SSR
+      };
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {

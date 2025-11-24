@@ -90,14 +90,14 @@ function initializeSupabaseClient(): SupabaseClient | null {
 
   // Try to dynamically import @supabase/supabase-js if available
   try {
-    // Dynamic import would work at runtime, but TypeScript needs static analysis
-    // For now, return null and let the no-op client handle it
-    // When @supabase/supabase-js is installed, this can be updated to:
-    // const { createClient } = await import('@supabase/supabase-js');
-    // return createClient(supabaseUrl, supabaseKey);
-    logger.warn(
-      'Supabase client package not available. Install @supabase/supabase-js to enable Supabase operations.',
-    );
+    /*
+     * Dynamic import would work at runtime, but TypeScript needs static analysis
+     * For now, return null and let the no-op client handle it
+     * When @supabase/supabase-js is installed, this can be updated to:
+     * const { createClient } = await import('@supabase/supabase-js');
+     * return createClient(supabaseUrl, supabaseKey);
+     */
+    logger.warn('Supabase client package not available. Install @supabase/supabase-js to enable Supabase operations.');
     return null;
   } catch {
     return null;
