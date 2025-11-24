@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/nextjs';
 import { createRequestHandler } from '~/lib/remix-types';
 
 /*
@@ -6,7 +5,6 @@ import { createRequestHandler } from '~/lib/remix-types';
  * Build path will be available after the build is complete
  */
 
-// Add Sentry's request handler to wrap the Remix request handler
 const handleRequest = async (request: Request) => {
   try {
     /*
@@ -30,8 +28,8 @@ const handleRequest = async (request: Request) => {
     // Handle the request
     return handler(request);
   } catch (error) {
-    // Log the error with Sentry
-    Sentry.captureException(error);
+    // Log the error to console
+    console.error('API route error:', error);
 
     // Return a basic error response
     return new Response('Server Error', { status: 500 });

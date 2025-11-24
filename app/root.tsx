@@ -1,4 +1,3 @@
-import { sentryHandleError } from '~/lib/sentry';
 import { useStore } from '@nanostores/react';
 import type { LinksFunction, LoaderFunction } from '~/lib/remix-types';
 import { json } from '~/lib/remix-types';
@@ -151,7 +150,7 @@ function AuthProvider({ data }: { data: LoaderData }) {
       // Initialize auth and user stores
       initializeAuth().catch((err: Error) => {
         logStore.logError('Failed to initialize auth', err);
-        sentryHandleError(err);
+        console.error('Failed to initialize auth:', err);
         toast.error('Could not log in to the server. Please reload the page, or close other open tabs and try again', {
           autoClose: false,
           position: 'top-center',
@@ -170,8 +169,8 @@ function AuthProvider({ data }: { data: LoaderData }) {
 export const ErrorBoundary = () => {
   const error = useRouteError();
 
-  // Using our conditional error handling instead of direct Sentry import
-  sentryHandleError(error instanceof Error ? error : new Error(String(error)));
+  // Log error to console
+  console.error('Application error:', error instanceof Error ? error : new Error(String(error)));
 
   return <div>Something went wrong</div>;
 };

@@ -1,9 +1,3 @@
-import { sentryHandleError } from '~/lib/sentry';
-
-/**
- * Using our conditional Sentry implementation instead of direct import
- * This avoids loading Sentry in development environments
- */
 import type { AppLoadContext } from '~/lib/remix-types';
 import { RemixServer } from '@remix-run/react';
 import { isbot } from 'isbot';
@@ -12,7 +6,11 @@ import { renderHeadToString } from 'remix-island';
 import { Head } from './root';
 import { themeStore } from '~/lib/stores/theme';
 
-export const handleError = sentryHandleError;
+export const handleError = (error: Error): Error => {
+  // Log error to console
+  console.error('Server error:', error);
+  return error;
+};
 
 export default async function handleRequest(
   request: Request,
@@ -66,7 +64,7 @@ export default async function handleRequest(
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://*.replay.io https://auth.nut.new https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://widget.intercom.io https://api.intercom.io https://api-iam.intercom.io wss://*.intercom.io https://telemetry.replay.io https://*.github.com https://*.githubusercontent.com https://*.sentry.io https://cdn.segment.com https://api.segment.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.lgrckt-in.com http://*.ts.net",
+    "connect-src 'self' https://*.replay.io https://auth.nut.new https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://widget.intercom.io https://api.intercom.io https://api-iam.intercom.io wss://*.intercom.io https://telemetry.replay.io https://*.github.com https://*.githubusercontent.com https://cdn.segment.com https://api.segment.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.lgrckt-in.com http://*.ts.net",
     "frame-src 'self' https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://intercom-sheets.com https://*.replay.io",
     "worker-src 'self' blob:",
     "object-src 'none'",

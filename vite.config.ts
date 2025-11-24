@@ -2,7 +2,6 @@ import { vitePlugin as remixVitePlugin } from '@remix-run/dev';
 import { vercelPreset } from '@vercel/remix/vite';
 import { defineConfig } from 'vite';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import * as dotenv from 'dotenv';
 import { execSync } from 'child_process';
@@ -42,13 +41,6 @@ export default defineConfig((config) => {
       }),
       tsconfigPaths(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
-      config.mode === 'production' &&
-        process.env.SENTRY_AUTH_TOKEN &&
-        sentryVitePlugin({
-          authToken: process.env.SENTRY_AUTH_TOKEN,
-          org: 'replay',
-          project: 'nut',
-        }),
     ],
     envPrefix: [
       'VITE_',
