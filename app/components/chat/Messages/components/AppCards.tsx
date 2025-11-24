@@ -35,8 +35,8 @@ const getVisibleCardTypes = (appSummary: AppSummary): string[] => {
     visibleCards.push('features');
   }
 
-  // 3. Authentication Card - show when features card is visible AND templateVersion exists
-  if (appSummary.templateVersion && visibleCards.includes('features')) {
+  // 3. Authentication Card - show when features card is visible
+  if (visibleCards.includes('features')) {
     visibleCards.push('auth');
   }
 

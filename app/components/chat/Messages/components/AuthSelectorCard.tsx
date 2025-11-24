@@ -17,11 +17,6 @@ interface AuthSelectorCardProps {
 const AuthRequiredSecret = 'VITE_AUTH_REQUIRED';
 
 export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }) => {
-  // Only show for apps with template versions
-  if (!appSummary.templateVersion) {
-    return null;
-  }
-
   const appId = chatStore.currentAppId.get();
   assert(appId, 'App ID is required');
 

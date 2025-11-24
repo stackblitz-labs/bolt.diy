@@ -46,11 +46,6 @@ const AuthSelector = () => {
     }
   };
 
-  // 8/17/2025: Older apps without app template versions can't update auth settings.
-  if (!appSummary?.templateVersion) {
-    return null;
-  }
-
   return (
     <div
       className={classNames(

@@ -33,11 +33,6 @@ function isValidDomain(domain: string): boolean {
 }
 
 export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ appSummary }) => {
-  // Only show for apps with template versions
-  if (!appSummary.templateVersion) {
-    return null;
-  }
-
   const appId = chatStore.currentAppId.get();
   assert(appId, 'App ID is required');
 

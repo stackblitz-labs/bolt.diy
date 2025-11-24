@@ -221,9 +221,6 @@ export interface AppSummary {
   // The repository being described, if available.
   repositoryId?: string;
 
-  // Version of the main app template the repository uses.
-  templateVersion?: string;
-
   // Version string of the repository: Major.Minor.Patch
   // The version advances every time the app changes.
   version?: string;
