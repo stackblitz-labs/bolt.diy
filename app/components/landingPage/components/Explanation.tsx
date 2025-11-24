@@ -52,7 +52,7 @@ export default function Explanation() {
         </div>
 
         {/* Feature Grid */}
-        <div className="w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {features.map((feature, index) => {
             const IconComponent = feature.icon;
             return (

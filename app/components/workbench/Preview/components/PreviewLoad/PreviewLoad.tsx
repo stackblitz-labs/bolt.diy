@@ -94,7 +94,7 @@ const PreviewLoad = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes rainbow {
           0% {
             background-position: 0% 50%;

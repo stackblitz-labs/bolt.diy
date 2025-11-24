@@ -4,7 +4,7 @@ import { chatStore } from '~/lib/stores/chat';
 import { database } from '~/lib/persistence/apps';
 import { lastDeployResult, deployApp } from '~/lib/replay/Deploy';
 import { generateRandomId } from '~/utils/nut';
-import { DeployStatus } from '~/components/header/DeployChat/DeployChatButton';
+import { DeployStatus } from '~/components/header/components/DeployChat/DeployChatButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeploymentSuccessful from './DeploymentSuccessful';
 import { userStore } from '~/lib/stores/auth';
