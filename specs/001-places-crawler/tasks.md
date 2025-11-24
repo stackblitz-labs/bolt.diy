@@ -35,16 +35,16 @@
 **Independent Test**: Operator issues “Generate a website…”, PCC requests missing data inline, crawler runs, `crawled_data` gains normalized entry, PCC shows provenance badges, “Needs data” chips, and accessible high-visibility toast with CTA when errors occur.
 
 ### Tests for User Story 1
-- [ ] T008 [P] [US1] Expand `tests/unit/services/crawlerAgent.test.ts` for URL normalization, schema validation, tenant guard, raw payload refs, and PCC toast DTOs.
-- [ ] T009 [P] [US1] Extend `tests/integration/api.site.generate.test.ts` to simulate the conversational collection flow + crawler execution, ensuring SSE + PCC logs stay in sync.
+- [X] T008 [P] [US1] Expand `tests/unit/services/crawlerAgent.test.ts` for URL normalization, schema validation, tenant guard, raw payload refs, and PCC toast DTOs.
+- [X] T009 [P] [US1] Extend `tests/integration/api.site.generate.test.ts` to simulate the conversational collection flow + crawler execution, ensuring SSE + PCC logs stay in sync.
 
 ### Implementation for User Story 1
-- [ ] T010 [US1] Define `CrawlRequest`/`CrawlResult` Zod schemas (sections, `missingSections`, `quotaState`, `error.ctaId`, `rawPayloadRef`) in `app/lib/services/crawlerAgent.schema.ts`.
-- [ ] T011 [US1] Implement request normalization + input verification logic (Maps URL parsing, tenant scope) in `app/lib/services/crawlerAgent.server.ts`.
-- [ ] T012 [US1] Persist raw payload + normalized summary with TTL/provenance auditing to `crawled_data` via Supabase inside `app/lib/services/crawlerAgent.server.ts`.
-- [ ] T013 [US1] Update `app/routes/api.site.generate.ts` to orchestrate PCC chat prompts (collect URLs/handles, confirm when complete, emit "Running crawler…" message) and pass crawler payloads downstream.
-- [ ] T014 [US1] Implement PCC provenance badges, tooltips, and “Needs data” chips in `app/components/workbench/PromptCommandCenter.tsx`, including keyboard focus + ARIA labels per FR-011.
-- [ ] T015 [US1] Map crawler error codes to deterministic toast/log copy + CTA metadata, showing destructive toasts pinned at top (≥6 s, role="alert", Escape dismiss) in `PromptCommandCenter.tsx` and storing copy in shared config.
+- [X] T010 [US1] Define `CrawlRequest`/`CrawlResult` Zod schemas (sections, `missingSections`, `quotaState`, `error.ctaId`, `rawPayloadRef`) in `app/lib/services/crawlerAgent.schema.ts`.
+- [X] T011 [US1] Implement request normalization + input verification logic (Maps URL parsing, tenant scope) in `app/lib/services/crawlerAgent.server.ts`.
+- [X] T012 [US1] Persist raw payload + normalized summary with TTL/provenance auditing to `crawled_data` via Supabase inside `app/lib/services/crawlerAgent.server.ts`.
+- [X] T013 [US1] Update `app/routes/api.site.generate.ts` to orchestrate PCC chat prompts (collect URLs/handles, confirm when complete, emit "Running crawler…" message) and pass crawler payloads downstream.
+- [X] T014 [US1] Implement PCC provenance badges, tooltips, and "Needs data" chips in `app/components/workbench/PromptCommandCenter.tsx`, including keyboard focus + ARIA labels per FR-011.
+- [X] T015 [US1] Map crawler error codes to deterministic toast/log copy + CTA metadata, showing destructive toasts pinned at top (≥6 s, role="alert", Escape dismiss) in `PromptCommandCenter.tsx` and storing copy in shared config.
 
 **Checkpoint**: Conversational flow, crawler execution, provenance/missing data UI, and accessible toasts working end-to-end.
 

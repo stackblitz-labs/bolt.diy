@@ -6,7 +6,12 @@
       "Bash(python3:*)",
       "Bash(pnpm run typecheck:*)",
       "Bash(pnpm run lint:*)",
-      "Bash(pnpm run lint:fix:*)"
+      "Bash(pnpm run lint:fix:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm run test:*)"
     ],
     "deny": [],
     "ask": []
