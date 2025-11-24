@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60" fill="none">
+  <defs>
+    <linearGradient id="dreameraGradientLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#15803D;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#22C55E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F59E0B;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Icon -->
+  <circle cx="30" cy="30" r="25" fill="url(#dreameraGradientLight)" />
+  <path d="M30 15L22 30h5v15l8-15h-5V15Z" fill="white" />
+  
+  <!-- Text -->
+  <text x="65" y="40" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#15803D">
+    Dreamera
+  </text>
+</svg>

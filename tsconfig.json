@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
     "types": [
       "@remix-run/cloudflare",
       "vite/client",
@@ -22,7 +26,9 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./app/*"]
+      "~/*": [
+        "./app/*"
+      ]
     },
     // vite takes care of building everything, not tsc
     "noEmit": true
@@ -34,5 +40,10 @@
     "**/.server/**/*.tsx",
     "**/.client/**/*.ts",
     "**/.client/**/*.tsx"
+  ],
+  "exclude": [
+    "functions",
+    "build",
+    "public/build"
   ]
 }
