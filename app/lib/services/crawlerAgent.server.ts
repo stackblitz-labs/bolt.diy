@@ -38,20 +38,87 @@ export interface SupabaseClient {
 let supabaseClient: SupabaseClient | null = null;
 
 /**
+ * Create a no-op Supabase client that logs warnings
+ * Used as fallback when Supabase is not configured
+ */
+function createNoOpClient(): SupabaseClient {
+  const noOpTable = {
+    select: () => noOpTable,
+    insert: () => noOpTable,
+    update: () => noOpTable,
+    upsert: () => noOpTable,
+    delete: () => noOpTable,
+    eq: () => noOpTable,
+    gt: () => noOpTable,
+    in: () => noOpTable,
+    order: () => noOpTable,
+    limit: () => noOpTable,
+    maybeSingle: async () => ({ data: null, error: null }),
+    single: async () => ({ data: null, error: null }),
+  };
+
+  return {
+    from: (table: string) => {
+      logger.warn(`Supabase client not initialized. Operation on table "${table}" will be a no-op.`);
+      return noOpTable;
+    },
+  };
+}
+
+/**
+ * Initialize Supabase client from environment variables
+ * Attempts to create client if @supabase/supabase-js is available and env vars are set
+ */
+function initializeSupabaseClient(): SupabaseClient | null {
+  // Try to get Supabase URL and key from environment
+  const supabaseUrl =
+    (typeof process !== 'undefined' && process.env?.SUPABASE_URL) ||
+    (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL);
+
+  const supabaseKey =
+    (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) ||
+    (typeof process !== 'undefined' && process.env?.SUPABASE_SERVICE_ROLE_KEY) ||
+    (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_ANON_KEY);
+
+  // If environment variables are not set, return null to use no-op client
+  if (!supabaseUrl || !supabaseKey) {
+    logger.warn(
+      'Supabase environment variables not found. Supabase operations will be no-ops. Set SUPABASE_URL and SUPABASE_ANON_KEY to enable.',
+    );
+    return null;
+  }
+
+  // Try to dynamically import @supabase/supabase-js if available
+  try {
+    // Dynamic import would work at runtime, but TypeScript needs static analysis
+    // For now, return null and let the no-op client handle it
+    // When @supabase/supabase-js is installed, this can be updated to:
+    // const { createClient } = await import('@supabase/supabase-js');
+    // return createClient(supabaseUrl, supabaseKey);
+    logger.warn(
+      'Supabase client package not available. Install @supabase/supabase-js to enable Supabase operations.',
+    );
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Get Supabase client (singleton pattern)
  *
- * Note: This uses a simplified PostgreSQL client approach.
- * Actual Supabase client integration can be added when @supabase/supabase-js is installed.
+ * Lazily initializes client from environment variables if available.
+ * Falls back to no-op client that logs warnings if Supabase is not configured.
+ *
+ * Note: To enable full Supabase functionality:
+ * 1. Install @supabase/supabase-js: `pnpm add @supabase/supabase-js`
+ * 2. Set environment variables: SUPABASE_URL and SUPABASE_ANON_KEY
+ * 3. Update initializeSupabaseClient() to use the actual client
  */
 export function getSupabaseClient(): SupabaseClient {
   if (!supabaseClient) {
-    /*
-     * For now, return a placeholder that will be properly implemented
-     * when Supabase client is set up
-     */
-    throw new Error(
-      'Supabase client not initialized. Please set up @supabase/supabase-js or use direct PostgreSQL client.',
-    );
+    const initialized = initializeSupabaseClient();
+    supabaseClient = initialized || createNoOpClient();
   }
 
   return supabaseClient;

@@ -130,24 +130,8 @@ export function AccessibleToast({
     return undefined;
   }, [toast.duration, toast.dismissible, onDismiss]);
 
-  // Keyboard handler for Escape key
-  useEffect(() => {
-    let cleanup: (() => void) | undefined;
-
-    if (typeof window !== 'undefined' && toast.dismissible && isTopToast) {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          onDismiss();
-        }
-      };
-
-      window.addEventListener('keydown', handleKeyDown);
-      cleanup = () => window.removeEventListener('keydown', handleKeyDown);
-    }
-
-    return cleanup;
-  }, [toast.dismissible, onDismiss, isTopToast]);
+  // Note: Escape key handling is managed by ToastContainer to ensure
+  // the topmost toast always responds, regardless of stacking order
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
@@ -256,6 +240,31 @@ export function ToastContainer({
     'bottom-left': 'bottom-4 left-4',
     'top-center': 'top-4 left-1/2 -translate-x-1/2',
   };
+
+  // Global Escape key handler - dismisses topmost dismissible toast
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Find the topmost dismissible toast (last in array is visually on top)
+        const topmostDismissibleToast = [...toasts].reverse().find((toast) => toast.dismissible);
+
+        if (topmostDismissibleToast) {
+          e.preventDefault();
+          onDismiss(topmostDismissibleToast.id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [toasts, onDismiss]);
 
   return (
     <div

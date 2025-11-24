@@ -160,8 +160,7 @@ export function ProvenanceBadge({ section, sources, className = '' }: Provenance
                 setHoveredIndex(null);
                 setTouchedIndex(null);
               }}
-              onTouchStart={(event) => {
-                event.preventDefault();
+              onTouchStart={() => {
                 setTouchedIndex((current) => (current === idx ? null : idx));
               }}
               aria-label={`${section} data sourced from ${getSourceLabel(source.type)} on ${timestamp}`}
