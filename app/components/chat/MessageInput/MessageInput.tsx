@@ -33,8 +33,9 @@ import { toast } from 'react-toastify';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { getCurrentIFrame } from '~/components/workbench/Preview/Preview';
-import { Crosshair, Paperclip, X } from 'lucide-react';
+import { Crosshair, Paperclip, X, Palette } from 'lucide-react';
 import { buildAccessStore } from '~/lib/stores/buildAccess';
+import { designPanelStore } from '~/lib/stores/designSystemStore';
 
 interface ReactComponent {
   displayName?: string;
@@ -97,6 +98,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const selectedElement = useStore(workbenchStore.selectedElement) as SelectedElementData | null;
   const { isMobile, isTablet } = useIsMobile();
   const hasBuildAccess = useStore(buildAccessStore.hasAccess);
+  const isDesignPanelVisible = useStore(designPanelStore.isVisible);
 
   // Helper functions for element highlighting
   const highlightElement = (component: ReactComponent) => {
@@ -568,6 +570,21 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
       <div className="flex justify-between items-center rounded-b-2xl px-4 py-3">
         <div className="flex gap-2 items-center">
+          {!isMobile && !isTablet && (
+            <TooltipProvider>
+              <WithTooltip tooltip={isListening ? 'Stop listening' : 'Start speech recognition'}>
+                <div>
+                  <SpeechRecognitionButton
+                    isListening={isListening}
+                    onStart={onStartListening}
+                    onStop={onStopListening}
+                    disabled={hasPendingMessage}
+                  />
+                </div>
+              </WithTooltip>
+            </TooltipProvider>
+          )}
+
           <TooltipProvider>
             <WithTooltip
               tooltip={
@@ -588,21 +605,40 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             </WithTooltip>
           </TooltipProvider>
 
-          {!isMobile && !isTablet && <div className="w-px h-5 bg-bolt-elements-borderColor" />}
-
-          {!isMobile && !isTablet && (
-            <TooltipProvider>
-              <WithTooltip tooltip={isListening ? 'Stop listening' : 'Start speech recognition'}>
-                <div>
-                  <SpeechRecognitionButton
-                    isListening={isListening}
-                    onStart={onStartListening}
-                    onStop={onStopListening}
+          {chatStarted && (
+            <>
+              {!isMobile && !isTablet && <div className="w-px h-5 bg-bolt-elements-borderColor" />}
+              <TooltipProvider>
+                <WithTooltip
+                  tooltip={
+                    hasPendingMessage
+                      ? 'Design panel is disabled while generating code'
+                      : isDesignPanelVisible
+                        ? 'Hide Design Panel'
+                        : 'Show Design Panel'
+                  }
+                >
+                  <button
+                    className={classNames(
+                      'w-8 h-8 rounded-lg border transition-all duration-200 flex items-center justify-center',
+                      hasPendingMessage
+                        ? 'bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor text-bolt-elements-textSecondary opacity-50 cursor-not-allowed'
+                        : isDesignPanelVisible
+                          ? 'bg-bolt-elements-background-depth-4 border-bolt-elements-focus/50 text-bolt-elements-textPrimary'
+                          : 'bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 hover:border-bolt-elements-focus/50 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                    )}
+                    onClick={() => {
+                      if (!hasPendingMessage) {
+                        designPanelStore.isVisible.set(!isDesignPanelVisible);
+                      }
+                    }}
                     disabled={hasPendingMessage}
-                  />
-                </div>
-              </WithTooltip>
-            </TooltipProvider>
+                  >
+                    <Palette size={18} />
+                  </button>
+                </WithTooltip>
+              </TooltipProvider>
+            </>
           )}
         </div>
 

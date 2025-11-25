@@ -243,7 +243,7 @@ export const Preview = memo(() => {
           <input
             title="URL"
             ref={inputRef}
-            className="w-full bg-transparent border-none outline-none focus:ring-0 focus:ring-offset-0"
+            className="w-full bg-transparent border-none outline-none focus:ring-0 focus:ring-offset-0 p-0"
             type="text"
             value={url}
             onChange={(event) => {

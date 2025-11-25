@@ -36,6 +36,9 @@ import AppTemplates from './components/AppTemplates/AppTemplates';
 import Pricing from '~/components/landingPage/components/Pricing';
 import FAQs from '~/components/landingPage/components/FAQs';
 import Explanation from '~/components/landingPage/components/Explanation';
+import { designPanelStore } from '~/lib/stores/designSystemStore';
+import { DesignSystemPanel } from '~/components/panels/DesignSystemPanel';
+import { DesignToolbar } from '~/components/panels/DesignToolbar';
 
 export const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -84,6 +87,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const selectedElement = useStore(workbenchStore.selectedElement);
     const repositoryId = useStore(workbenchStore.repositoryId);
     const showMobileNav = useStore(mobileNavStore.showMobileNav);
+    const isDesignPanelVisible = useStore(designPanelStore.isVisible);
     const [infoCards, setInfoCards] = useState<InfoCardData[]>([]);
     const stripeSubscription = useStore(subscriptionStore.subscription);
     const isSubscriptionStoreLoaded = useStore(subscriptionStore.isLoaded);
@@ -353,7 +357,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             >
               <ClientOnly>
                 {() => {
-                  return chatStarted ? (
+                  if (!chatStarted) {
+                    return null;
+                  }
+
+                  if (isDesignPanelVisible) {
+                    return (
+                      <>
+                        <DesignSystemPanel />
+                        <DesignToolbar />
+                      </>
+                    );
+                  }
+
+                  return (
                     <>
                       <Messages
                         ref={messageRef}
@@ -373,7 +390,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         </div>
                       )}
                     </>
-                  ) : null;
+                  );
                 }}
               </ClientOnly>
               {(() => {
@@ -396,7 +413,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                 return shouldShowUpgradeBlock ? (
                   <PlanUpgradeBlock />
-                ) : (
+                ) : !isDesignPanelVisible ? (
                   <>
                     <ChatPromptContainer
                       uploadedFiles={uploadedFiles}
@@ -406,7 +423,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       messageInputProps={messageInputProps}
                     />
                   </>
-                );
+                ) : null;
               })()}
               {!user && !chatStarted && <Pricing />}
               {!user && !chatStarted && <Explanation />}
