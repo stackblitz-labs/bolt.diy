@@ -29,6 +29,9 @@ export default defineConfig((config) => {
       target: 'esnext',
       sourcemap: true,
     },
+    ssr: {
+      noExternal: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+    },
     plugins: [
       remixVitePlugin({
         future: {
