@@ -20,25 +20,13 @@ export default defineConfig((config) => {
       target: 'esnext',
     },
 
-    // 🔥 AJOUT POUR EASY PANEL — AUTORISATION DU HOST
+    // 🔥 CONFIGURÉ POUR EASYPANEL
     server: {
-      host: true,
-      allowedHosts: [
-        'localhost',
-        '127.0.0.1',
-        'boltdiy-boltdiy.7pxrdv.easypanel.host',
-      ],
+      port: 5173,
+      host: true,       // Écoute sur 0.0.0.0 (toutes les interfaces)
+      allowedHosts: true, // Autorise tous les domaines (fix l'erreur Blocked host)
     },
-
-    preview: {
-      host: true,
-      allowedHosts: [
-        'localhost',
-        '127.0.0.1',
-        'boltdiy-boltdiy.7pxrdv.easypanel.host',
-      ],
-    },
-    // 🔥 FIN AJOUT
+    // 🔥 FIN CONFIG
 
     plugins: [
       nodePolyfills({
