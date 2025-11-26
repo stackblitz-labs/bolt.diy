@@ -19,7 +19,7 @@ export const FaqSection = () => {
     {
       question: 'What makes Replay.Builder different than other vibecoding tools out there?',
       answer:
-        "This is our favorite question to answer. Other vibecoding tools are simply wrappers on an LLM. This is why it's so common that people get into debugging death spirals. The LLMs are just not great at iterating and evolving code. They hallucinate, they lose context, and one small change can lead you down a path of frustration.\n\nNut was built from the ground up with a different philosophy that, hey, AI (LLMs) writes buggy code. Accepting that fact, we built Replay.Builder around our already existing code debugging tools. Replay.Builder thoroughly tests your app from top to bottom, front-end to back-end, and instructs the LLM what went wrong and how to fix it.",
+        "This is our favorite question to answer. Other vibecoding tools are simply wrappers on an LLM. This is why it's so common that people get into debugging death spirals. The LLMs are just not great at iterating and evolving code. They hallucinate, they lose context, and one small change can lead you down a path of frustration.\n\nReplay.Builder was built from the ground up with a different philosophy that, hey, AI (LLMs) writes buggy code. Accepting that fact, we built Replay.Builder around our already existing code debugging tools. Replay.Builder thoroughly tests your app from top to bottom, front-end to back-end, and instructs the LLM what went wrong and how to fix it.",
     },
     {
       question: 'Am I required to become a paying customer?',

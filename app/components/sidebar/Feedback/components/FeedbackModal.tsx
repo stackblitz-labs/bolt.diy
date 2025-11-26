@@ -98,7 +98,7 @@ const GlobalFeedbackModal = () => {
               </div>
               <h2 className="text-3xl font-bold mb-4 text-bolt-elements-textHeading">Share Your Feedback</h2>
               <p className="text-bolt-elements-textSecondary text-lg">
-                Let us know how Nut is doing or report any issues you've encountered.
+                Let us know how Replay.Builder is doing or report any issues you've encountered.
               </p>
             </div>
 
@@ -133,7 +133,7 @@ const GlobalFeedbackModal = () => {
                 }}
               />
               <label htmlFor="share-project" className="text-sm text-bolt-elements-textSecondary font-medium">
-                Share project with the Nut team (helps us diagnose issues)
+                Share project with the Replay team (helps us diagnose issues)
               </label>
             </div>
 
@@ -167,7 +167,7 @@ const GlobalFeedbackModal = () => {
               >
                 <Calendar className="transition-transform duration-200 group-hover:scale-110" size={18} />
                 <span className="transition-transform duration-200 group-hover:scale-105">
-                  Schedule a call with the Nut Team
+                  Schedule a call with the Replay Team
                 </span>
               </a>
             </div>

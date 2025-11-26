@@ -224,7 +224,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
               </svg>
             </div>
             <label className="text-bolt-elements-textSecondary cursor-pointer text-sm leading-relaxed" htmlFor="terms">
-              I agree to receive update emails from Nut and understand the terms of service.
+              I agree to receive update emails from Replay and understand the terms of service.
             </label>
           </div>
         </div>

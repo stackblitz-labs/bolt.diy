@@ -229,66 +229,9 @@ export const AccountModal = ({ user }: AccountModalProps) => {
                 <span className="transition-transform duration-200 group-hover:scale-105">Manage Billing</span>
               </button>
             )}
-
-            {/* {stripeSubscription && !loading && (
-              <button
-                onClick={handleAddPeanuts}
-                disabled={loading}
-                className={classNames(
-                  'px-6 py-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group flex items-center justify-center gap-3 min-h-[48px]',
-                  'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600',
-                  {
-                    'opacity-60 cursor-not-allowed hover:scale-100': loading,
-                  },
-                )}
-              >
-                {loading ? (
-                  <>
-                    <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                    <span className="transition-transform duration-200 group-hover:scale-105">Loading...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-2xl transition-transform duration-200 group-hover:scale-110">🥜</span>
-                    <span className="transition-transform duration-200 group-hover:scale-105">Add 2000 Peanuts</span>
-                  </>
-                )}
-              </button>
-            )} */}
           </div>
         )}
       </div>
-
-      {/* <div className="border-t border-bolt-elements-borderColor border-opacity-50 pt-8">
-        <div className="flex items-center gap-4 mb-6">
-          <div
-            onClick={reloadAccountData}
-            className="w-10 h-10 bg-bolt-elements-background-depth-2 rounded-xl flex items-center justify-center cursor-pointer border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 group"
-          >
-            <RotateCw
-              className="text-bolt-elements-textPrimary transition-transform duration-200 group-hover:scale-110"
-              size={18}
-            />
-          </div>
-          <h2 className="text-2xl font-bold text-bolt-elements-textHeading">Usage History</h2>
-        </div>
-
-        {history.length === 0 ? (
-          <div className="text-center py-16 bg-gradient-to-br from-bolt-elements-background-depth-2/50 to-bolt-elements-background-depth-3/30 rounded-2xl border border-bolt-elements-borderColor border-opacity-30 shadow-sm backdrop-blur-sm">
-            <div className="w-20 h-20 bg-gradient-to-br from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-3 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-bolt-elements-borderColor border-opacity-50 shadow-lg">
-              <List className="text-bolt-elements-textSecondary" size={30} />
-            </div>
-            <h3 className="text-lg font-semibold text-bolt-elements-textHeading mb-2">No usage history available</h3>
-            <p className="text-sm text-bolt-elements-textSecondary">
-              Your peanut transactions will appear here once you start using the platform
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4 max-h-80 overflow-y-auto">
-            {history.filter((item) => item.reason !== 'AddPeanuts').map(renderHistoryItem)}
-          </div>
-        )}
-      </div> */}
 
       <ConfirmCancelModal
         isOpen={showCancelConfirm}

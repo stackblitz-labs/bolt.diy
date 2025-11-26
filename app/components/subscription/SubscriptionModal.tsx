@@ -247,7 +247,7 @@ export function SubscriptionModal() {
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary/40 mt-2 flex-shrink-0"></div>
-                    <span>All plans include access to all Nut features</span>
+                    <span>All plans include access to all Replay.Builder features</span>
                   </div>
                 </div>
               </div>

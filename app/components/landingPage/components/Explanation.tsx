@@ -13,12 +13,13 @@ export default function Explanation() {
     {
       icon: Brain,
       title: 'Your thought partner',
-      description: 'Come with your rough idea and Nut will help you sharpen it into a bullet-proof prompt',
+      description: 'Come with your rough idea and Replay.Builder will help you sharpen it into a bullet-proof prompt',
     },
     {
       icon: ShieldCheck,
       title: 'Code that tests itself',
-      description: 'All AIs write code with bugs, but Nut is the only one that fixes it before you even know it broke',
+      description:
+        'All AIs write code with bugs, but Replay.Builder is the only one that fixes it before you even know it broke',
     },
     {
       icon: Rocket,

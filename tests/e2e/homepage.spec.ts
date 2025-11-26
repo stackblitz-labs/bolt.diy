@@ -5,7 +5,7 @@ test('should load the homepage', async ({ page }) => {
   await page.goto('/');
 
   const title = await page.title();
-  expect(title).toContain('Nut');
+  expect(title).toContain('Replay.Builder');
   await expect(page.locator('header')).toBeVisible();
 });
 

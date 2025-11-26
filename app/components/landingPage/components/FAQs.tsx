@@ -10,7 +10,7 @@ interface FAQ {
 export default function Faqs() {
   const faqs: FAQ[] = [
     {
-      question: 'What makes Nut so good at debugging code?',
+      question: 'What makes Replay.Builder so good at debugging code?',
       answer: (
         <div className="flex flex-col gap-4 text-balance">
           <p>
@@ -36,12 +36,8 @@ export default function Faqs() {
       answer: (
         <div className="flex flex-col gap-4 text-balance">
           <p>
-            Yes, you can. If you cancel your plan, you can continue using Nut to build your apps until you run out of
-            peanuts OR when you reach the end of the current billing cycle.
-          </p>
-          <p>
-            During this time, you will not be able to make one-off purchases of Peanuts until you subscribe to a Nut
-            plan again.
+            Yes, you can. If you cancel your plan, you can continue using Replay.Builder to build your apps until you
+            reach the end of the current billing cycle.
           </p>
         </div>
       ),
@@ -78,7 +74,7 @@ export default function Faqs() {
             <span className="text-green-500 dark:text-green-400">questions</span>
           </h1>
           <p className="text-lg md:text-xl text-bolt-elements-textSecondary max-w-3xl">
-            Everything you need to know about Nut
+            Everything you need to know about Replay.Builder
           </p>
         </div>
 

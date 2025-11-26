@@ -6,7 +6,7 @@ import { useUser } from '~/hooks/useUser';
 import LandingPage from '~/components/broken-dreams/LandingPage';
 
 export const meta: MetaFunction = () => {
-  return [{ title: 'Nut' }];
+  return [{ title: 'Replay.Builder' }];
 };
 
 export const loader = () => json({});

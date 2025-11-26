@@ -94,9 +94,9 @@ export function Chat() {
 
   useEffect(() => {
     if (appTitle) {
-      document.title = `Nut: ${appTitle}`;
+      document.title = `Replay.Builder: ${appTitle}`;
     } else {
-      document.title = 'Nut';
+      document.title = 'Replay.Builder';
     }
   }, [appTitle]);
 
