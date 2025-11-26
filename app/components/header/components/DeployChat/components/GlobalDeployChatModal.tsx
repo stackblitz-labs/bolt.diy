@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DeploymentSuccessful from './DeploymentSuccessful';
 import { userStore } from '~/lib/stores/auth';
 import { X, Rocket, CheckCircle, AlertTriangle } from '~/components/ui/Icon';
+import { isAppOwnerStore, permissionsStore } from '~/lib/stores/permissions';
+import { isAppAccessAllowed, AppAccessKind } from '~/lib/api/permissions';
 
 const MAX_SITE_NAME_LENGTH = 63;
 
@@ -20,6 +22,8 @@ export function GlobalDeployChatModal() {
   const databaseFound = useStore(deployModalStore.databaseFound);
   const loadingData = useStore(deployModalStore.loadingData);
   const user = useStore(userStore);
+  const permissions = useStore(permissionsStore);
+  const isAppOwner = useStore(isAppOwnerStore);
 
   const appId = useStore(chatStore.currentAppId);
 
@@ -202,7 +206,8 @@ export function GlobalDeployChatModal() {
                           href={lastDeployResult(deploySettings)?.siteURL}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-green-600 hover:text-green-700 transition-colors underline truncate font-medium"
+                          title={lastDeployResult(deploySettings)?.siteURL}
+                          className="w-full text-sm text-green-600 hover:text-green-700 transition-colors underline truncate font-medium padding-x-2 ellipsis"
                         >
                           {lastDeployResult(deploySettings)?.siteURL}
                         </a>
@@ -210,26 +215,30 @@ export function GlobalDeployChatModal() {
                     </div>
                   )}
 
-                  <div className="flex justify-center">
-                    {status === DeployStatus.Started ? (
-                      <div className="w-full text-bolt-elements-textSecondary flex items-center justify-center py-4 bg-bolt-elements-background-depth-1 bg-opacity-50 rounded-xl border border-bolt-elements-borderColor border-opacity-30">
-                        <div className="w-6 h-6 border-2 border-bolt-elements-borderColor border-opacity-30 border-t-blue-500 rounded-full animate-spin mr-3" />
-                        <span className="text-lg font-medium">
-                          {lastDeployResult(deploySettings)?.siteURL ? 'Redeploying' : 'Deploying'} your app...
-                        </span>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={handleDeploy}
-                        className="flex items-center gap-3 px-8 py-4 !bg-gradient-to-r !from-blue-500 !to-indigo-500 hover:!from-blue-600 hover:!to-indigo-600 text-white text-lg font-semibold rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group"
-                      >
-                        <Rocket className="transition-transform duration-200 group-hover:scale-110" size={20} />
-                        <span className="transition-transform duration-200 group-hover:scale-105">
-                          {lastDeployResult(deploySettings)?.siteURL ? 'Redeploy' : 'Deploy Now'}
-                        </span>
-                      </button>
-                    )}
-                  </div>
+                  {(permissions.length === 0 ||
+                    (permissions.length > 0 &&
+                      isAppAccessAllowed(permissions, AppAccessKind.SendMessage, user?.email ?? '', isAppOwner))) && (
+                    <div className="flex justify-center">
+                      {status === DeployStatus.Started ? (
+                        <div className="w-full text-bolt-elements-textSecondary flex items-center justify-center py-4 bg-bolt-elements-background-depth-1 bg-opacity-50 rounded-xl border border-bolt-elements-borderColor border-opacity-30">
+                          <div className="w-6 h-6 border-2 border-bolt-elements-borderColor border-opacity-30 border-t-blue-500 rounded-full animate-spin mr-3" />
+                          <span className="text-lg font-medium">
+                            {lastDeployResult(deploySettings)?.siteURL ? 'Redeploying' : 'Deploying'} your app...
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleDeploy}
+                          className="flex items-center gap-3 px-8 py-4 !bg-gradient-to-r !from-blue-500 !to-indigo-500 hover:!from-blue-600 hover:!to-indigo-600 text-white text-lg font-semibold rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group"
+                        >
+                          <Rocket className="transition-transform duration-200 group-hover:scale-110" size={20} />
+                          <span className="transition-transform duration-200 group-hover:scale-105">
+                            {lastDeployResult(deploySettings)?.siteURL ? 'Redeploy' : 'Deploy Now'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4 bg-bolt-elements-background-depth-2 bg-opacity-30 rounded-xl border border-bolt-elements-borderColor border-opacity-30 space-y-4">
@@ -251,6 +260,13 @@ export function GlobalDeployChatModal() {
                         className="w-full p-4 pr-32 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
                         value={deploySettings.siteName || ''}
                         placeholder="my-chat-app..."
+                        disabled={
+                          !(
+                            permissions.length === 0 ||
+                            (permissions.length > 0 &&
+                              isAppAccessAllowed(permissions, AppAccessKind.SendMessage, user?.email ?? '', isAppOwner))
+                          )
+                        }
                         onChange={(e) => {
                           handleSetDeploySettings({
                             ...deploySettings,

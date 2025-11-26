@@ -29,6 +29,13 @@ export const ChatPromptContainer: React.FC<ChatPromptContainerProps> = ({
   const isAppOwner = useStore(isAppOwnerStore);
   const user = useStore(userStore);
 
+  if (
+    permissions.length > 0 &&
+    !isAppAccessAllowed(permissions, AppAccessKind.SendMessage, user?.email ?? '', isAppOwner)
+  ) {
+    return null;
+  }
+
   return (
     <div
       className={classNames(
@@ -55,11 +62,7 @@ export const ChatPromptContainer: React.FC<ChatPromptContainerProps> = ({
           />
         )}
       </ClientOnly>
-      {(permissions.length === 0 ||
-        (permissions.length > 0 &&
-          isAppAccessAllowed(permissions, AppAccessKind.SendMessage, user?.email ?? '', isAppOwner))) && (
-        <MessageInput {...messageInputProps} />
-      )}
+      <MessageInput {...messageInputProps} />
     </div>
   );
 };
