@@ -433,10 +433,16 @@ export const DesignSystemPanel = () => {
       if (originalSpacingUnitRef.current !== null) {
         setSpacingUnit(originalSpacingUnitRef.current);
         sendVariablesToIframe({ '--spacing-unit': `${originalSpacingUnitRef.current}px` });
+      } else {
+        setSpacingUnit(4);
+        sendVariablesToIframe({ '--spacing-unit': '4px' });
       }
       if (originalBorderWidthRef.current !== null) {
         setBorderWidth(originalBorderWidthRef.current);
         sendVariablesToIframe({ '--border-width': `${originalBorderWidthRef.current}px` });
+      } else {
+        setBorderWidth(1);
+        sendVariablesToIframe({ '--border-width': '1px' });
       }
       setCurrentColors(extractColorsFromVariables(originalVariablesRef.current));
     }
