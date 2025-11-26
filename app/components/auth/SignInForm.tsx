@@ -52,12 +52,19 @@ export function SignInForm({ onToggleForm, onError, onForgotPassword }: SignInFo
           signInMethod: 'email',
         });
       }
+      authModalStore.close();
     } catch (error) {
       const authError = error as AuthError;
-      onError(authError.message || 'Failed to sign in');
-    } finally {
+      if (
+        authError.message?.toLowerCase().includes('invalid') ||
+        authError.message?.toLowerCase().includes('credentials') ||
+        authError.message?.toLowerCase().includes('password')
+      ) {
+        onError('Your email or password is invalid. Please try again.');
+      } else {
+        onError(authError.message || 'Failed to sign in');
+      }
       setIsProcessing(false);
-      authModalStore.close();
     }
   };
 
