@@ -199,7 +199,22 @@ export const Markdown = memo((props: MarkdownProps) => {
         return <input type={type} checked={checked} {...props} />;
       },
       li: ({ children, ...props }) => {
+        const liRef = React.useRef<HTMLLIElement>(null);
+        const [hasCheckbox, setHasCheckbox] = React.useState(false);
+
+        React.useEffect(() => {
+          if (liRef.current) {
+            const checkbox = liRef.current.querySelector('input[type="checkbox"]');
+            setHasCheckbox(!!checkbox);
+          }
+        }, [children]);
+
         const handleLiClick = (event: React.MouseEvent<HTMLLIElement>) => {
+          // Only handle clicks if this list item contains a checkbox
+          if (!hasCheckbox) {
+            return;
+          }
+
           // Find checkbox in this list item
           const checkbox = event.currentTarget.querySelector('input[type="checkbox"]') as HTMLInputElement;
           if (checkbox && !checkbox.disabled) {
@@ -212,7 +227,7 @@ export const Markdown = memo((props: MarkdownProps) => {
         };
 
         return (
-          <li {...props} onClick={handleLiClick}>
+          <li ref={liRef} {...props} onClick={hasCheckbox ? handleLiClick : undefined}>
             {children}
           </li>
         );

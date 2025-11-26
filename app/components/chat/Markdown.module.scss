@@ -118,15 +118,29 @@ $code-font-size: 13px;
 
   :is(ul, ol) {
     @include not-inside-actions {
-      padding-left: 0.5em;
       margin-block-start: 0;
       margin-block-end: 16px;
+    }
+
+    &:has(li input[type='checkbox']),
+    &:has(li .checkbox-container),
+    &:has(li div:has(input[type='checkbox'])) {
+      list-style-type: none !important;
+      padding-left: 0 !important;
+      margin-left: 0 !important;
+    }
+  }
+
+  ul {
+    @include not-inside-actions {
+      padding-left: 1.5em;
     }
   }
 
   ol {
     @include not-inside-actions {
       list-style-type: decimal;
+      padding-left: 2em;
     }
   }
 
