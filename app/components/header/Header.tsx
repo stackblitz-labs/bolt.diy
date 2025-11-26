@@ -22,6 +22,7 @@ import { useEffect } from 'react';
 import { useLocation } from '@remix-run/react';
 import { NavigationMenuComponent } from '~/components/header/components/NavigationMenu';
 import { MobileMenu } from '~/components/header/components/MobileMenu';
+import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 
 export function Header() {
   const chatStarted = useStore(chatStore.started);
@@ -109,6 +110,7 @@ export function Header() {
               }
             >
               <div className="flex items-center gap-3">
+                <ThemeSwitch />
                 <ClientAuth />
               </div>
             </Suspense>

@@ -205,7 +205,7 @@ function RepositoryDiff() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-bolt-elements-background-depth-2/80 backdrop-blur-sm rounded-2xl border border-bolt-elements-borderColor/50 shadow-lg p-6">
+          <div className="bg-bolt-elements-background-depth-2 bg-opacity-80 backdrop-blur-sm rounded-2xl border border-bolt-elements-borderColor border-opacity-50 shadow-lg p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="flex-shrink-0 w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md ring-1 ring-blue-500/20">
                 <GitBranch className="text-white" size={18} />
@@ -217,7 +217,7 @@ function RepositoryDiff() {
                 <label className="block text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wide">
                   Old Repository ID
                 </label>
-                <div className="p-4 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor/50 font-mono text-sm break-all text-bolt-elements-textPrimary shadow-inner">
+                <div className="p-4 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor border-opacity-50 font-mono text-sm break-all text-bolt-elements-textPrimary shadow-inner">
                   {oldRepositoryId || <span className="text-bolt-elements-textSecondary italic">Not provided</span>}
                 </div>
               </div>
@@ -225,7 +225,7 @@ function RepositoryDiff() {
                 <label className="block text-xs font-semibold text-bolt-elements-textSecondary uppercase tracking-wide">
                   New Repository ID
                 </label>
-                <div className="p-4 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor/50 font-mono text-sm break-all text-bolt-elements-textPrimary shadow-inner">
+                <div className="p-4 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor border-opacity-50 font-mono text-sm break-all text-bolt-elements-textPrimary shadow-inner">
                   {newRepositoryId || <span className="text-bolt-elements-textSecondary italic">Not provided</span>}
                 </div>
               </div>
@@ -256,8 +256,8 @@ function RepositoryDiff() {
           )}
 
           {!loading && !error && diffs.length > 0 && (
-            <div className="bg-bolt-elements-background-depth-2/80 backdrop-blur-sm rounded-2xl border border-bolt-elements-borderColor/50 shadow-lg overflow-hidden">
-              <div className="flex items-center gap-3 p-6 border-b border-bolt-elements-borderColor/30 bg-gradient-to-r from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-1">
+            <div className="bg-bolt-elements-background-depth-2 bg-opacity-80 backdrop-blur-sm rounded-2xl border border-bolt-elements-borderColor border-opacity-50 shadow-lg overflow-hidden">
+              <div className="flex items-center gap-3 p-6 border-b border-bolt-elements-borderColor border-opacity-30 bg-gradient-to-r from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-1">
                 <div className="flex-shrink-0 w-9 h-9 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-md ring-1 ring-green-500/20">
                   <Files className="text-white" size={18} />
                 </div>
@@ -265,11 +265,11 @@ function RepositoryDiff() {
                   File Changes <span className="text-bolt-elements-textSecondary font-normal">({diffs.length})</span>
                 </h2>
               </div>
-              <div className="divide-y divide-bolt-elements-borderColor/20">
+              <div className="divide-y divide-bolt-elements-borderColor border-opacity-20">
                 {diffs.map((diff, index) => (
                   <div
                     key={index}
-                    className="p-6 hover:bg-bolt-elements-background-depth-1/30 transition-all duration-200 border-l-4 border-transparent hover:border-bolt-elements-borderColor/30"
+                    className="p-6 hover:bg-bolt-elements-background-depth-1 bg-opacity-30 transition-all duration-200 border-l-4 border-transparent hover:border-bolt-elements-borderColor border-opacity-30"
                   >
                     <div className="flex items-center mb-4 gap-3 flex-wrap">
                       <div className="flex items-center gap-2.5">
@@ -280,14 +280,14 @@ function RepositoryDiff() {
                           {diff.type.toUpperCase()}
                         </span>
                       </div>
-                      <span className="font-mono text-sm text-bolt-elements-textPrimary bg-bolt-elements-background-depth-1 px-3 py-1.5 rounded-lg border border-bolt-elements-borderColor/50 flex-1 min-w-0 break-all shadow-inner">
+                      <span className="font-mono text-sm text-bolt-elements-textPrimary bg-bolt-elements-background-depth-1 px-3 py-1.5 rounded-lg border border-bolt-elements-borderColor border-opacity-50 flex-1 min-w-0 break-all shadow-inner">
                         {diff.path}
                       </span>
                     </div>
 
                     {diff.diff && (
-                      <div className="bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor/50 overflow-hidden shadow-sm">
-                        <div className="flex items-center gap-2 bg-bolt-elements-background-depth-2 px-4 py-3 border-b border-bolt-elements-borderColor/30">
+                      <div className="bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor border-opacity-50 overflow-hidden shadow-sm">
+                        <div className="flex items-center gap-2 bg-bolt-elements-background-depth-2 px-4 py-3 border-b border-bolt-elements-borderColor border-opacity-30">
                           <Code className="text-bolt-elements-textSecondary" size={16} />
                           <span className="text-sm font-semibold text-bolt-elements-textSecondary">
                             {diff.path.endsWith('.md') ? 'Content' : 'Diff'}
@@ -295,7 +295,7 @@ function RepositoryDiff() {
                         </div>
                         {diff.path.endsWith('.md') && diff.newContent ? (
                           <div className="p-6 max-h-96 overflow-y-auto">
-                            <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-bolt-elements-textHeading prose-p:text-bolt-elements-textPrimary prose-strong:text-bolt-elements-textHeading prose-code:text-bolt-elements-textPrimary prose-pre:bg-bolt-elements-background-depth-2 prose-pre:border prose-pre:border-bolt-elements-borderColor/50">
+                            <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-bolt-elements-textHeading prose-p:text-bolt-elements-textPrimary prose-strong:text-bolt-elements-textHeading prose-code:text-bolt-elements-textPrimary prose-pre:bg-bolt-elements-background-depth-2 prose-pre:border prose-pre:border-bolt-elements-borderColor border-opacity-50">
                               <Markdown>{diff.newContent}</Markdown>
                             </div>
                           </div>
@@ -328,7 +328,7 @@ function RepositoryDiff() {
                                     return (
                                       <div
                                         key={lineIndex}
-                                        className="px-4 py-1 text-bolt-elements-textSecondary/70 bg-bolt-elements-background-depth-1 whitespace-pre"
+                                        className="px-4 py-1 text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 whitespace-pre"
                                       >
                                         {line}
                                       </div>
