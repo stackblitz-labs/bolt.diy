@@ -26,6 +26,7 @@ import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { useLayoutWidths } from '~/lib/hooks/useLayoutWidths';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { StackedInfoCard, type InfoCardData } from '~/components/ui/InfoCard';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '~/components/ui/resizable';
 import { AppFeatureKind, AppFeatureStatus, BugReportStatus } from '~/lib/persistence/messageAppSummary';
 import { openFeatureModal } from '~/lib/stores/featureModal';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
@@ -82,7 +83,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const isSmallViewport = useViewport(800);
     const user = useStore(userStore);
     const isAuthLoading = useStore(isLoadingStore);
-    const { chatWidth } = useLayoutWidths(!!user);
+    const { chatWidth, chatPanelSize, setChatPanelSize, panelSizeKey } = useLayoutWidths(!!user);
     const showWorkbench = useStore(workbenchStore.showWorkbench);
     const selectedElement = useStore(workbenchStore.selectedElement);
     const repositoryId = useStore(workbenchStore.repositoryId);
@@ -321,118 +322,190 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         data-chat-visible={showChat}
       >
         {user && <ClientOnly>{() => <Menu />}</ClientOnly>}
-        <div
-          ref={scrollRef}
-          className={classNames('w-full h-full flex flex-col lg:flex-row overflow-x-hidden', {
-            'overflow-y-auto': !chatStarted,
-            'overflow-y-hidden': chatStarted,
-            'pt-2 pb-2 px-4': isSmallViewport && !appSummary && !showMobileNav,
-            'pt-2 pb-16 px-4': isSmallViewport && (!!appSummary || showMobileNav),
-            'p-6': !isSmallViewport && chatStarted,
-            'pt-12 px-6 pb-16': !isSmallViewport && !chatStarted,
-          })}
-        >
-          <div
-            className={classNames(styles.Chat, 'flex flex-col', {
-              'h-full': chatStarted,
-              'min-h-full': !chatStarted,
-              'flex-grow': isSmallViewport,
-              'flex-shrink-0': !isSmallViewport,
-              'pb-2': isSmallViewport,
-              'landing-page-layout': !chatStarted,
-            })}
-            style={!isSmallViewport && showWorkbench ? { width: `${chatWidth}px` } : { width: '100%' }}
+        {chatStarted && !isSmallViewport && showWorkbench ? (
+          <ResizablePanelGroup
+            key={panelSizeKey}
+            direction="horizontal"
+            className="w-full h-full"
+            onLayout={(sizes) => {
+              if (sizes[0] !== undefined) {
+                setChatPanelSize(sizes[0]);
+              }
+            }}
           >
-            {!chatStarted && (
-              <>
-                <IntroSection />
-              </>
-            )}
-            <div
-              className={classNames({
-                'pr-4': !isSmallViewport && showWorkbench,
-                'h-full flex flex-col': chatStarted,
-                'px-2': !isSmallViewport,
-              })}
-            >
-              <ClientOnly>
-                {() => {
-                  if (!chatStarted) {
-                    return null;
-                  }
+            <ResizablePanel defaultSize={chatPanelSize} minSize={20} maxSize={60} className="h-full">
+              <div
+                ref={scrollRef}
+                className="w-full h-full flex flex-col overflow-x-hidden overflow-y-hidden pl-6 pt-6 pb-6 pr-2"
+              >
+                <div className={classNames(styles.Chat, 'flex flex-col h-full w-full')}>
+                  <div className="h-full flex flex-col">
+                    <ClientOnly>
+                      {() => {
+                        if (isDesignPanelVisible) {
+                          return (
+                            <>
+                              <DesignSystemPanel />
+                              <DesignToolbar />
+                            </>
+                          );
+                        }
 
-                  if (isDesignPanelVisible) {
+                        return (
+                          <>
+                            <Messages
+                              ref={messageRef}
+                              onLastMessageCheckboxChange={onLastMessageCheckboxChange}
+                              sendMessage={handleSendMessage}
+                              list={list}
+                            />
+                            {infoCards && infoCards.length > 0 && (
+                              <div className="flex justify-center">
+                                <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
+                                  <StackedInfoCard
+                                    cards={infoCards}
+                                    className="w-full mb-2"
+                                    handleSendMessage={handleSendMessage}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      }}
+                    </ClientOnly>
+                    {!isDesignPanelVisible && (
+                      <ChatPromptContainer
+                        uploadedFiles={uploadedFiles}
+                        setUploadedFiles={setUploadedFiles!}
+                        imageDataList={imageDataList}
+                        setImageDataList={setImageDataList!}
+                        messageInputProps={messageInputProps}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={100 - chatPanelSize} minSize={30} className="h-full">
+              <ClientOnly>{() => <Workbench chatStarted={chatStarted} isResizable />}</ClientOnly>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div
+            ref={scrollRef}
+            className={classNames('w-full h-full flex flex-col lg:flex-row overflow-x-hidden', {
+              'overflow-y-auto': !chatStarted,
+              'overflow-y-hidden': chatStarted,
+              'pt-2 pb-2 px-4': isSmallViewport && !appSummary && !showMobileNav,
+              'pt-2 pb-16 px-4': isSmallViewport && (!!appSummary || showMobileNav),
+              'p-6': !isSmallViewport && chatStarted,
+              'pt-12 px-6 pb-16': !isSmallViewport && !chatStarted,
+            })}
+          >
+            <div
+              className={classNames(styles.Chat, 'flex flex-col', {
+                'h-full': chatStarted,
+                'min-h-full': !chatStarted,
+                'flex-grow': isSmallViewport,
+                'flex-shrink-0': !isSmallViewport,
+                'pb-2': isSmallViewport,
+                'landing-page-layout': !chatStarted,
+              })}
+              style={!isSmallViewport && showWorkbench ? { width: `${chatWidth}px` } : { width: '100%' }}
+            >
+              {!chatStarted && (
+                <>
+                  <IntroSection />
+                </>
+              )}
+              <div
+                className={classNames({
+                  'pr-4': !isSmallViewport && showWorkbench,
+                  'h-full flex flex-col': chatStarted,
+                  'px-2': !isSmallViewport,
+                })}
+              >
+                <ClientOnly>
+                  {() => {
+                    if (!chatStarted) {
+                      return null;
+                    }
+
+                    if (isDesignPanelVisible) {
+                      return (
+                        <>
+                          <DesignSystemPanel />
+                          <DesignToolbar />
+                        </>
+                      );
+                    }
+
                     return (
                       <>
-                        <DesignSystemPanel />
-                        <DesignToolbar />
+                        <Messages
+                          ref={messageRef}
+                          onLastMessageCheckboxChange={onLastMessageCheckboxChange}
+                          sendMessage={handleSendMessage}
+                          list={list}
+                        />
+                        {infoCards && infoCards.length > 0 && (
+                          <div className="flex justify-center">
+                            <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
+                              <StackedInfoCard
+                                cards={infoCards}
+                                className="w-full mb-2"
+                                handleSendMessage={handleSendMessage}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </>
+                    );
+                  }}
+                </ClientOnly>
+                {(() => {
+                  const isLoadingData = isAuthLoading || (user && !isSubscriptionStoreLoaded) || isLoadingList;
+
+                  if (isLoadingData && !chatStarted) {
+                    return (
+                      <div className="flex items-center justify-center min-h-[176.5px]">
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary rounded-full animate-spin"></div>
+                          <p className="text-sm text-bolt-elements-textSecondary">Loading...</p>
+                        </div>
+                      </div>
                     );
                   }
 
-                  return (
+                  const hasNoPaidPlan = !stripeSubscription || stripeSubscription.tier === 'free';
+
+                  const shouldShowUpgradeBlock = user && hasNoPaidPlan && list && list.length > 0 && !chatStarted;
+
+                  return shouldShowUpgradeBlock ? (
+                    <PlanUpgradeBlock />
+                  ) : !isDesignPanelVisible ? (
                     <>
-                      <Messages
-                        ref={messageRef}
-                        onLastMessageCheckboxChange={onLastMessageCheckboxChange}
-                        sendMessage={handleSendMessage}
-                        list={list}
+                      <ChatPromptContainer
+                        uploadedFiles={uploadedFiles}
+                        setUploadedFiles={setUploadedFiles!}
+                        imageDataList={imageDataList}
+                        setImageDataList={setImageDataList!}
+                        messageInputProps={messageInputProps}
                       />
-                      {infoCards && infoCards.length > 0 && (
-                        <div className="flex justify-center">
-                          <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
-                            <StackedInfoCard
-                              cards={infoCards}
-                              className="w-full mb-2"
-                              handleSendMessage={handleSendMessage}
-                            />
-                          </div>
-                        </div>
-                      )}
                     </>
-                  );
-                }}
-              </ClientOnly>
-              {(() => {
-                const isLoadingData = isAuthLoading || (user && !isSubscriptionStoreLoaded) || isLoadingList;
-
-                if (isLoadingData && !chatStarted) {
-                  return (
-                    <div className="flex items-center justify-center min-h-[176.5px]">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary rounded-full animate-spin"></div>
-                        <p className="text-sm text-bolt-elements-textSecondary">Loading...</p>
-                      </div>
-                    </div>
-                  );
-                }
-
-                const hasNoPaidPlan = !stripeSubscription || stripeSubscription.tier === 'free';
-
-                const shouldShowUpgradeBlock = user && hasNoPaidPlan && list && list.length > 0 && !chatStarted;
-
-                return shouldShowUpgradeBlock ? (
-                  <PlanUpgradeBlock />
-                ) : !isDesignPanelVisible ? (
-                  <>
-                    <ChatPromptContainer
-                      uploadedFiles={uploadedFiles}
-                      setUploadedFiles={setUploadedFiles!}
-                      imageDataList={imageDataList}
-                      setImageDataList={setImageDataList!}
-                      messageInputProps={messageInputProps}
-                    />
-                  </>
-                ) : null;
-              })()}
-              {!user && !chatStarted && <Pricing />}
-              {!user && !chatStarted && <Explanation />}
-              {!chatStarted && <AppTemplates sendMessage={handleSendMessage} />}
-              {!user && !chatStarted && <FAQs />}
+                  ) : null;
+                })()}
+                {!user && !chatStarted && <Pricing />}
+                {!user && !chatStarted && <Explanation />}
+                {!chatStarted && <AppTemplates sendMessage={handleSendMessage} />}
+                {!user && !chatStarted && <FAQs />}
+              </div>
             </div>
+            <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>
           </div>
-          <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>
-        </div>
+        )}
         {isSmallViewport && (appSummary || showMobileNav) && <ClientOnly>{() => <MobileNav />}</ClientOnly>}
       </div>
     );

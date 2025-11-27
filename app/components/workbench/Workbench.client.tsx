@@ -12,6 +12,7 @@ import { userStore } from '~/lib/stores/auth';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
+  isResizable?: boolean;
 }
 
 const createWorkbenchVariants = (workbenchWidth: number) =>
@@ -32,7 +33,7 @@ const createWorkbenchVariants = (workbenchWidth: number) =>
     },
   }) satisfies Variants;
 
-export const Workbench = memo(({ chatStarted }: WorkspaceProps) => {
+export const Workbench = memo(({ chatStarted, isResizable }: WorkspaceProps) => {
   renderLogger.trace('Workbench');
 
   const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -41,6 +42,19 @@ export const Workbench = memo(({ chatStarted }: WorkspaceProps) => {
   const workbenchVariants = createWorkbenchVariants(workbenchWidth);
 
   const isSmallViewport = useViewport(800);
+
+  // When using resizable panels, render inline without fixed positioning
+  if (isResizable && chatStarted) {
+    return (
+      <div className="h-full w-full pl-2 pt-6 pb-6 pr-6">
+        <div className="h-full flex flex-col bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-lg overflow-hidden rounded-xl">
+          <div className="relative flex-1 overflow-hidden">
+            <Preview />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     chatStarted && (
