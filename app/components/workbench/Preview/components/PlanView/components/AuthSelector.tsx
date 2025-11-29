@@ -6,9 +6,6 @@ import { assert } from '~/utils/nut';
 import { callNutAPI } from '~/lib/replay/NutAPI';
 import { toast } from 'react-toastify';
 
-// Environment variable which the app checks to see if users must be logged in.
-const AuthRequiredSecret = 'VITE_AUTH_REQUIRED';
-
 const AuthSelector = () => {
   const appSummary = useStore(chatStore.appSummary);
 

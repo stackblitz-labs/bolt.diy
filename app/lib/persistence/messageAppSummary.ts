@@ -247,3 +247,12 @@ export function parseAppSummaryMessage(message: Message): AppSummary | undefined
 export function isFeatureStatusImplemented(status?: AppFeatureStatus) {
   return status && (status === AppFeatureStatus.Implemented || status === AppFeatureStatus.Failed);
 }
+
+// Secret which controls whether users must be logged in.
+export const AuthRequiredSecret = 'VITE_AUTH_REQUIRED';
+
+// Secret which controls whether the app has a button to send bug report messages.
+export const AppMessagesSecret = 'VITE_ENABLE_APP_MESSAGES';
+
+// Secret which controls generation and upstreaming of changes to prebuilt blocks as the app is developed.
+export const DisableAppBlockChangesSecret = 'DISABLE_APP_BLOCK_CHANGES';

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppCard } from '~/components/chat/Messages/components/AppCard';
 import { Switch } from '~/components/ui/Switch';
-import { type AppSummary } from '~/lib/persistence/messageAppSummary';
+import { DisableAppBlockChangesSecret, type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { chatStore, onChatResponse } from '~/lib/stores/chat';
 import { callNutAPI } from '~/lib/replay/NutAPI';
 import { toast } from 'react-toastify';
@@ -10,13 +10,11 @@ import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { Skeleton } from '~/components/ui/Skeleton';
 import { Globe, Lock, Trash2, Plus, ShieldCheck, MessageSquare } from '~/components/ui/Icon';
+import { AuthRequiredSecret, AppMessagesSecret } from '~/lib/persistence/messageAppSummary';
 
 interface AuthSelectorComponentProps {
   appSummary: AppSummary;
 }
-
-const AuthRequiredSecret = 'VITE_AUTH_REQUIRED';
-const AppMessagesSecret = 'VITE_ENABLE_APP_MESSAGES';
 
 function isValidDomain(domain: string): boolean {
   const value = domain.trim();
@@ -39,6 +37,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
   const [saving, setSaving] = useState(false);
   const authRequired = appSummary?.setSecrets?.includes(AuthRequiredSecret);
   const appMessagesEnabled = appSummary?.setSecrets?.includes(AppMessagesSecret);
+  const disableAppBlockChanges = appSummary?.setSecrets?.includes(DisableAppBlockChangesSecret);
 
   const handleAuthToggle = async () => {
     setSaving(true);
@@ -89,6 +88,33 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
     } catch (error) {
       toast.error('Failed to update in-app feedback settings');
       console.error('Failed to update in-app feedback settings:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAppBlockChangesToggle = async () => {
+    setSaving(true);
+
+    try {
+      const { response } = await callNutAPI('set-app-secrets', {
+        appId,
+        secrets: [
+          {
+            key: DisableAppBlockChangesSecret,
+            value: disableAppBlockChanges ? undefined : 'true',
+          },
+        ],
+      });
+
+      if (response) {
+        onChatResponse(response, 'ToggleAppMessages');
+      }
+
+      toast.success('App block changes settings updated successfully');
+    } catch (error) {
+      toast.error('Failed to update app block changes settings');
+      console.error('Failed to update app block changes settings:', error);
     } finally {
       setSaving(false);
     }
@@ -269,7 +295,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
                       ? 'Updating...'
                       : appMessagesEnabled
                         ? 'Users can report issues or request updates directly in the app'
-                        : 'Allow users to send feedback without leaving the app'}
+                        : 'In app issue reporting disabled'}
                   </span>
                 </div>
               </div>
@@ -290,9 +316,65 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
     );
   };
 
+  const getAppBlockChangesToggleControl = () => {
+    const tooltipText = disableAppBlockChanges
+      ? 'Enable Builder improvements based on developed changes'
+      : 'Disable Builder improvements based on developed changes';
+
+    return (
+      <TooltipProvider>
+        <WithTooltip tooltip={tooltipText}>
+          <button
+            className={`group p-4 bg-bolt-elements-background-depth-2 rounded-xl border transition-all duration-200 w-full shadow-sm ${
+              saving
+                ? 'border-bolt-elements-borderColor border-opacity-30 cursor-not-allowed opacity-60'
+                : 'border-bolt-elements-borderColor hover:border-bolt-elements-focus/60 hover:bg-bolt-elements-background-depth-3 hover:shadow-md hover:scale-[1.02] cursor-pointer'
+            }`}
+            onClick={!saving ? handleAppBlockChangesToggle : undefined}
+            disabled={saving}
+            type="button"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MessageSquare
+                  className={
+                    disableAppBlockChanges ? 'text-bolt-elements-icon-success' : 'text-bolt-elements-textPrimary'
+                  }
+                  size={18}
+                />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-bolt-elements-textPrimary transition-transform duration-200 group-hover:scale-105">
+                    {disableAppBlockChanges ? 'Builder Improvement Disabled' : 'Builder Improvement Enabled'}
+                  </span>
+                  <span className="text-xs text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary transition-all duration-200">
+                    {saving
+                      ? 'Updating...'
+                      : disableAppBlockChanges
+                        ? 'Developed changes will not be used to improve future apps'
+                        : 'Use developed changes to improve future apps for everyone'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {saving && (
+                  <div className="w-4 h-4 rounded-full border-2 border-bolt-elements-borderColor border-t-blue-500 animate-spin" />
+                )}
+                <Switch
+                  checked={disableAppBlockChanges}
+                  onCheckedChange={!saving ? handleAppBlockChangesToggle : undefined}
+                  className={`${saving ? 'opacity-50' : 'group-hover:scale-110'} transition-all duration-200 pointer-events-none`}
+                />
+              </div>
+            </div>
+          </button>
+        </WithTooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
     <AppCard
-      title="Authentication Settings"
+      title="App Settings"
       description={getDescription()}
       icon={<ShieldCheck className="text-white" size={18} />}
       iconColor="indigo"
@@ -405,6 +487,7 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
           </div>
         )}
         {getAppMessagesToggleControl()}
+        {getAppBlockChangesToggleControl()}
       </div>
     </AppCard>
   );

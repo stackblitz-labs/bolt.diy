@@ -9,12 +9,11 @@ import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import AllowedDomainsDialog from '~/components/ui/AllowedDomainsDialog';
 import { Lock, Globe, ShieldCheck, Check } from '~/components/ui/Icon';
+import { AuthRequiredSecret } from '~/lib/persistence/messageAppSummary';
 
 interface AuthSelectorCardProps {
   appSummary: AppSummary;
 }
-
-const AuthRequiredSecret = 'VITE_AUTH_REQUIRED';
 
 export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }) => {
   const appId = chatStore.currentAppId.get();
