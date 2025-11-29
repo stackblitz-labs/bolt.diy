@@ -89,7 +89,7 @@ const FeatureSection = memo(
       transition={{ duration: 0.3 }}
     >
       <div className="flex items-center gap-3">
-        <div className={classNames(icon, 'text-xl text-purple-500')} />
+        <div className={classNames(icon, 'text-xl text-accent-500')} />
         <div>
           <h3 className="text-lg font-medium text-bolt-elements-textPrimary">{title}</h3>
           <p className="text-sm text-bolt-elements-textSecondary">{description}</p>
@@ -254,13 +254,13 @@ export default function FeaturesTab() {
               'p-2 rounded-lg text-xl',
               'bg-bolt-elements-background-depth-3 group-hover:bg-bolt-elements-background-depth-4',
               'transition-colors duration-200',
-              'text-purple-500',
+              'text-accent-500',
             )}
           >
             <div className="i-ph:book" />
           </div>
           <div className="flex-1">
-            <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
+            <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-accent-500 transition-colors">
               Prompt Library
             </h4>
             <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
@@ -277,8 +277,8 @@ export default function FeaturesTab() {
               'p-2 rounded-lg text-sm min-w-[200px]',
               'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
               'text-bolt-elements-textPrimary',
-              'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
-              'group-hover:border-purple-500/30',
+              'focus:outline-none focus:ring-2 focus:ring-accent-500/30',
+              'group-hover:border-accent-500/30',
               'transition-all duration-200',
             )}
           >

@@ -40,7 +40,7 @@ function ProviderCard({
   const Icon = getIcon(provider.name);
 
   return (
-    <Card className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-all duration-300 shadow-sm hover:shadow-md border border-bolt-elements-borderColor hover:border-purple-500/30">
+    <Card className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-all duration-300 shadow-sm hover:shadow-md border border-bolt-elements-borderColor hover:border-accent-500/30">
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 flex-1">
@@ -48,14 +48,14 @@ function ProviderCard({
               className={classNames(
                 'w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300',
                 provider.settings.enabled
-                  ? 'bg-gradient-to-br from-purple-500/20 to-purple-600/20 ring-1 ring-purple-500/30'
+                  ? 'bg-gradient-to-br from-accent-500/20 to-accent-600/20 ring-1 ring-accent-500/30'
                   : 'bg-bolt-elements-background-depth-3',
               )}
             >
               <Icon
                 className={classNames(
                   'w-6 h-6 transition-all duration-300',
-                  provider.settings.enabled ? 'text-purple-500' : 'text-bolt-elements-textTertiary',
+                  provider.settings.enabled ? 'text-accent-500' : 'text-bolt-elements-textTertiary',
                 )}
               />
             </div>
@@ -76,7 +76,7 @@ function ProviderCard({
                       type="text"
                       defaultValue={provider.settings.baseUrl}
                       placeholder={`Enter ${provider.name} base URL`}
-                      className="w-full px-4 py-3 rounded-lg text-sm bg-bolt-elements-background-depth-4 border border-purple-500/30 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all duration-200 shadow-sm"
+                      className="w-full px-4 py-3 rounded-lg text-sm bg-bolt-elements-background-depth-4 border border-accent-500/30 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-accent-500/50 focus:border-accent-500 transition-all duration-200 shadow-sm"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           onUpdateBaseUrl(e.currentTarget.value);
@@ -94,10 +94,10 @@ function ProviderCard({
                   ) : (
                     <button
                       onClick={onStartEditing}
-                      className="w-full px-4 py-3 rounded-lg text-sm bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor hover:border-purple-500/30 hover:bg-bolt-elements-background-depth-4 hover:shadow-sm transition-all duration-200 text-left group"
+                      className="w-full px-4 py-3 rounded-lg text-sm bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor hover:border-accent-500/30 hover:bg-bolt-elements-background-depth-4 hover:shadow-sm transition-all duration-200 text-left group"
                     >
                       <div className="flex items-center gap-3 text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary">
-                        <Link className="w-4 h-4 group-hover:text-purple-500 transition-colors" />
+                        <Link className="w-4 h-4 group-hover:text-accent-500 transition-colors" />
                         <span className="font-mono">{provider.settings.baseUrl || 'Click to set base URL'}</span>
                       </div>
                     </button>

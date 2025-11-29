@@ -92,8 +92,8 @@ const NotificationsTab = () => {
     if (type === 'update') {
       return {
         icon: 'i-ph:arrow-circle-up',
-        color: 'text-purple-500 dark:text-purple-400',
-        bg: 'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
+        color: 'text-accent-500 dark:text-accent-400',
+        bg: 'hover:bg-accent-500/10 dark:hover:bg-accent-500/20',
       };
     }
 
@@ -144,7 +144,7 @@ const NotificationsTab = () => {
               'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
               'border border-[#E5E5E5] dark:border-[#1A1A1A]',
               'text-gray-900 dark:text-white',
-              'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
+              'hover:bg-accent-500/10 dark:hover:bg-accent-500/20',
               'transition-all duration-200',
             )}
           >
@@ -181,7 +181,7 @@ const NotificationsTab = () => {
                 'text-sm text-gray-900 dark:text-white',
                 'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
                 'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-                'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
+                'hover:bg-accent-500/10 dark:hover:bg-accent-500/20',
                 'transition-all duration-200',
               )}
             >
@@ -204,16 +204,16 @@ const NotificationsTab = () => {
               {filterOptions.map((option) => (
                 <DropdownMenu.Item
                   key={option.id}
-                  className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
+                  className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-accent-500/10 dark:hover:bg-accent-500/20 cursor-pointer transition-colors"
                   onClick={() => handleFilterChange(option.id)}
                 >
                   <div className="mr-3 flex h-5 w-5 items-center justify-center">
                     <div
-                      className={classNames(option.icon, 'text-lg group-hover:text-purple-500 transition-colors')}
+                      className={classNames(option.icon, 'text-lg group-hover:text-accent-500 transition-colors')}
                       style={{ color: option.color }}
                     />
                   </div>
-                  <span className="group-hover:text-purple-500 transition-colors">{option.label}</span>
+                  <span className="group-hover:text-accent-500 transition-colors">{option.label}</span>
                 </DropdownMenu.Item>
               ))}
             </DropdownMenu.Content>
@@ -228,11 +228,11 @@ const NotificationsTab = () => {
             'text-sm text-gray-900 dark:text-white',
             'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
             'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-            'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
+            'hover:bg-accent-500/10 dark:hover:bg-accent-500/20',
             'transition-all duration-200',
           )}
         >
-          <span className="i-ph:trash text-lg text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+          <span className="i-ph:trash text-lg text-gray-500 dark:text-gray-400 group-hover:text-accent-500 transition-colors" />
           Clear All
         </button>
       </div>

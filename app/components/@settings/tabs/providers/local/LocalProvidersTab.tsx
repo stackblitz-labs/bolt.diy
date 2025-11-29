@@ -305,8 +305,8 @@ export default function LocalProvidersTab() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center ring-1 ring-purple-500/30">
-              <Cpu className="w-6 h-6 text-purple-500" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-500/20 to-blue-500/20 flex items-center justify-center ring-1 ring-accent-500/30">
+              <Cpu className="w-6 h-6 text-accent-500" />
             </div>
             <div>
               <h2 className="text-2xl font-semibold text-bolt-elements-textPrimary">Local AI Providers</h2>
@@ -327,7 +327,7 @@ export default function LocalProvidersTab() {
                 variant="outline"
                 size="sm"
                 onClick={() => setViewMode('guide')}
-                className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor hover:border-purple-500/30 transition-all duration-200 gap-2"
+                className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor hover:border-accent-500/30 transition-all duration-200 gap-2"
               >
                 <BookOpen className="w-4 h-4" />
                 Setup Guide
@@ -336,7 +336,7 @@ export default function LocalProvidersTab() {
                 variant="outline"
                 size="sm"
                 onClick={() => setViewMode('status')}
-                className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor hover:border-purple-500/30 transition-all duration-200 gap-2"
+                className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor hover:border-accent-500/30 transition-all duration-200 gap-2"
               >
                 <Activity className="w-4 h-4" />
                 Status
@@ -364,7 +364,7 @@ export default function LocalProvidersTab() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <PackageOpen className="w-5 h-5 text-purple-500" />
+                        <PackageOpen className="w-5 h-5 text-accent-500" />
                         <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">Installed Models</h3>
                       </div>
                       <Button
@@ -400,7 +400,7 @@ export default function LocalProvidersTab() {
                             href="https://ollama.com/library"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-purple-500 hover:underline inline-flex items-center gap-1"
+                            className="text-accent-500 hover:underline inline-flex items-center gap-1"
                           >
                             ollama.com/library
                             <ExternalLink className="w-3 h-3" />
@@ -410,7 +410,7 @@ export default function LocalProvidersTab() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="bg-gradient-to-r from-purple-500/8 to-purple-600/8 hover:from-purple-500/15 hover:to-purple-600/15 border-purple-500/25 hover:border-purple-500/40 transition-all duration-300 gap-2 group shadow-sm hover:shadow-md font-medium"
+                          className="bg-gradient-to-r from-accent-500/8 to-accent-600/8 hover:from-accent-500/15 hover:to-accent-600/15 border-accent-500/25 hover:border-accent-500/40 transition-all duration-300 gap-2 group shadow-sm hover:shadow-md font-medium"
                           _asChild
                         >
                           <a
