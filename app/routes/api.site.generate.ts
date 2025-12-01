@@ -19,9 +19,11 @@ const logger = createScopedLogger('api.site.generate');
 
 type ConversationStateStore = Map<string, ConversationState>;
 
-// TODO: Replace in-memory store with Cloudflare KV or Durable Objects
-// Current limitation: State won't persist across worker restarts or scale across instances
-// See: https://developers.cloudflare.com/kv/ or https://developers.cloudflare.com/durable-objects/
+/*
+ * TODO: Replace in-memory store with Cloudflare KV or Durable Objects
+ * Current limitation: State won't persist across worker restarts or scale across instances
+ * See: https://developers.cloudflare.com/kv/ or https://developers.cloudflare.com/durable-objects/
+ */
 
 const globalWithConversationStore = globalThis as typeof globalThis & {
   __conversationStateStore?: ConversationStateStore;

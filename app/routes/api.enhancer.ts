@@ -4,8 +4,11 @@ import { stripIndents } from '~/utils/stripIndent';
 import type { ProviderInfo } from '~/types/model';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { createScopedLogger } from '~/utils/logger';
+import { requireSessionOrError } from '~/lib/auth/guards.server';
 
 export async function action(args: ActionFunctionArgs) {
+  // Require authentication for enhancer API
+  await requireSessionOrError(args.request);
   return enhancerAction(args);
 }
 

@@ -1,7 +1,43 @@
 export type DebugLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'none';
-import { Chalk } from 'chalk';
 
-const chalk = new Chalk({ level: 3 });
+/*
+ * Chalk is a Node.js-only library - only load it on server side
+ * This prevents it from being bundled in client code where node:tty doesn't exist
+ */
+let chalkInstance: any = null;
+let chalkLoadAttempted = false;
+
+function getChalk() {
+  // Only use chalk on server-side (Node.js environment)
+  if (typeof window !== 'undefined' || typeof process === 'undefined' || !process.versions?.node) {
+    return null; // Client-side: no chalk
+  }
+
+  if (chalkLoadAttempted) {
+    return chalkInstance; // Return cached result (could be null if failed)
+  }
+
+  chalkLoadAttempted = true;
+
+  // Lazy load chalk only on server
+  try {
+    /*
+     * Use a function that can be tree-shaken for client bundles
+     * The require will only execute on server
+     */
+    const requireChalk = () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const chalkModule = require('chalk');
+      return chalkModule.Chalk ? new chalkModule.Chalk({ level: 3 }) : null;
+    };
+    chalkInstance = requireChalk();
+  } catch {
+    // Chalk not available or failed to load - safe to ignore
+    chalkInstance = null;
+  }
+
+  return chalkInstance;
+}
 
 type LoggerFunction = (...messages: any[]) => void;
 
@@ -94,7 +130,20 @@ function log(level: DebugLevel, scope: string | undefined, messages: any[]) {
 }
 
 function formatText(text: string, color: string, bg: string) {
-  return chalk.bgHex(bg)(chalk.hex(color)(text));
+  // Use chalk on server-side, plain text on client-side
+  const chalk = getChalk();
+
+  if (chalk) {
+    try {
+      return chalk.bgHex(bg)(chalk.hex(color)(text));
+    } catch {
+      // Fallback if chalk methods fail
+      return text;
+    }
+  }
+
+  // Client-side or chalk unavailable: return plain text
+  return text;
 }
 
 function getLabelStyles(color: string, textColor: string) {

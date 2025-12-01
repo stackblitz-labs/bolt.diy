@@ -129,6 +129,10 @@ interface FetchOptions {
 function buildHeaders(customHeaders?: Record<string, string>): Record<string, string> {
   const config = getInternalPlacesServiceConfig();
 
+  if (!config) {
+    throw new Error('Internal Places Service is not configured');
+  }
+
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${config.token}`,
@@ -141,6 +145,11 @@ function buildHeaders(customHeaders?: Record<string, string>): Record<string, st
  */
 async function fetchWithTimeout<T>(endpoint: string, options: FetchOptions, timeout: number = 30000): Promise<T> {
   const config = getInternalPlacesServiceConfig();
+
+  if (!config) {
+    throw new Error('Internal Places Service is not configured');
+  }
+
   const url = `${config.url}${endpoint}`;
 
   const controller = new AbortController();
@@ -382,7 +391,7 @@ export function formatTimeUntilReset(resetAt: string): string {
 export function isServiceEnabled(): boolean {
   try {
     const config = getInternalPlacesServiceConfig();
-    return config.enabled && !!config.url && !!config.token;
+    return config !== null && config.enabled && !!config.url && !!config.token;
   } catch {
     return false;
   }

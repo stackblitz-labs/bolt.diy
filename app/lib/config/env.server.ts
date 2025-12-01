@@ -25,10 +25,10 @@ const envSchema = z.object({
    * Cloudflare R2 Configuration
    * ============================================================================
    */
-  R2_ENDPOINT: z.string().url('R2_ENDPOINT must be a valid HTTPS URL'),
-  R2_ACCESS_KEY: z.string().min(1, 'R2_ACCESS_KEY is required'),
-  R2_SECRET_KEY: z.string().min(1, 'R2_SECRET_KEY is required'),
-  R2_BUCKET: z.string().min(1, 'R2_BUCKET name is required'),
+  R2_ENDPOINT: z.string().url('R2_ENDPOINT must be a valid HTTPS URL').optional(),
+  R2_ACCESS_KEY: z.string().min(1, 'R2_ACCESS_KEY is required').optional(),
+  R2_SECRET_KEY: z.string().min(1, 'R2_SECRET_KEY is required').optional(),
+  R2_BUCKET: z.string().min(1, 'R2_BUCKET name is required').optional(),
 
   /*
    * ============================================================================
@@ -41,7 +41,8 @@ const envSchema = z.object({
     .refine(
       (url) => url.startsWith('http://') || url.startsWith('https://'),
       'INTERNAL_PLACES_SERVICE_URL must use HTTP or HTTPS protocol',
-    ),
+    )
+    .optional(),
 
   INTERNAL_PLACES_SERVICE_TOKEN: z
     .string()
@@ -49,7 +50,8 @@ const envSchema = z.object({
     .refine(
       (token) => token !== 'your_internal_places_service_token_here',
       'INTERNAL_PLACES_SERVICE_TOKEN must be set to a valid token (not placeholder)',
-    ),
+    )
+    .optional(),
 
   /*
    * ============================================================================
@@ -64,6 +66,34 @@ const envSchema = z.object({
    * ============================================================================
    */
   OPENAI_API_KEY: z.string().optional(),
+
+  /*
+   * ============================================================================
+   * Better Auth Configuration
+   * ============================================================================
+   */
+  BETTER_AUTH_SECRET: z
+    .string()
+    .min(32, 'BETTER_AUTH_SECRET must be at least 32 characters')
+    .describe('Secret key for signing auth tokens (generate with: openssl rand -base64 32)'),
+  BETTER_AUTH_URL: z
+    .string()
+    .url('BETTER_AUTH_URL must be a valid URL')
+    .describe('Public URL of the application (e.g., https://huskit.app or http://localhost:5173)'),
+
+  /*
+   * ============================================================================
+   * Google OAuth Configuration
+   * ============================================================================
+   */
+  GOOGLE_CLIENT_ID: z
+    .string()
+    .min(1, 'GOOGLE_CLIENT_ID is required')
+    .describe('Google OAuth 2.0 Client ID from Google Cloud Console'),
+  GOOGLE_CLIENT_SECRET: z
+    .string()
+    .min(1, 'GOOGLE_CLIENT_SECRET is required')
+    .describe('Google OAuth 2.0 Client Secret from Google Cloud Console'),
 
   /*
    * ============================================================================
@@ -162,8 +192,12 @@ export function getEnvConfig(): EnvConfig {
  *
  * @returns Configuration for internal crawler service
  */
-export function getInternalPlacesServiceConfig(): InternalPlacesServiceConfig {
+export function getInternalPlacesServiceConfig(): InternalPlacesServiceConfig | null {
   const env = getEnvConfig();
+
+  if (!env.INTERNAL_PLACES_SERVICE_URL || !env.INTERNAL_PLACES_SERVICE_TOKEN) {
+    return null;
+  }
 
   return {
     url: env.INTERNAL_PLACES_SERVICE_URL,
