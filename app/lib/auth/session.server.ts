@@ -10,10 +10,8 @@
 import { auth } from './auth.server';
 
 /**
- * Database connection error state
- * Used for fallback mode when database is unavailable
+ * Tracks database connection health for fallback mode
  */
-let dbConnectionError: Error | null = null;
 let dbConnectionHealthy = true;
 
 /**
@@ -27,7 +25,6 @@ export function isDbConnectionHealthy(): boolean {
  * Set database connection error state (for fallback mode)
  */
 export function setDbConnectionError(error: Error | null) {
-  dbConnectionError = error;
   dbConnectionHealthy = error === null;
 }
 
@@ -39,8 +36,10 @@ export function setDbConnectionError(error: Error | null) {
  * @throws Error if database connection is unavailable and session is required
  */
 export async function getSession(request: Request) {
-  // If database is unavailable, return null (fallback mode)
-  // This allows the app to continue in read-only mode
+  /*
+   * If database is unavailable, return null (fallback mode)
+   * This allows the app to continue in read-only mode
+   */
   if (!dbConnectionHealthy) {
     console.warn('[AUTH] Database connection unavailable - session check failed');
     return null;
@@ -55,8 +54,10 @@ export async function getSession(request: Request) {
     if (error instanceof Error && (error.message.includes('connection') || error.message.includes('database'))) {
       setDbConnectionError(error);
       console.error('[AUTH] Database connection error detected - entering fallback mode', error);
+
       return null;
     }
+
     throw error;
   }
 }
@@ -75,4 +76,3 @@ export async function getOptionalSession(request: Request) {
  * Export Session type for use in route loaders
  */
 export type Session = Awaited<ReturnType<typeof getSession>>;
-

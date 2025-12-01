@@ -12,25 +12,30 @@
 
 import { createRequire } from 'node:module';
 
-// CRITICAL: Prevent postgres-js from detecting Cloudflare Workers environment
-// This must happen BEFORE any imports to prevent cloudflare: protocol errors
+/*
+ * CRITICAL: Prevent postgres-js from detecting Cloudflare Workers environment
+ * This must happen BEFORE any imports to prevent cloudflare: protocol errors
+ */
 if (typeof globalThis !== 'undefined' && typeof process !== 'undefined' && process.versions?.node) {
   const g = globalThis as any;
-  
-  // Remove all Cloudflare Workers detection indicators
-  // postgres-js and drizzle-orm check for these to decide whether to use cloudflare: imports
+
+  /*
+   * Remove all Cloudflare Workers detection indicators
+   * postgres-js and drizzle-orm check for these to decide whether to use cloudflare: imports
+   */
   delete g.CloudflareEnvironment;
   delete g.caches;
   delete g.ServiceWorkerGlobalScope;
-  
+
   // Explicitly mark as Node.js environment
   g.__NODE_ENV_DETECTED__ = true;
   g.__RUNTIME__ = 'node';
-  
+
   // Set environment variables to force Node.js mode
   if (process.env) {
     process.env.POSTGRES_JS_RUNTIME = 'node';
     process.env.RUNTIME = 'node';
+
     // Remove Cloudflare-specific environment variables
     delete process.env.CF_PAGES;
     delete process.env.CF_PAGES_BRANCH;
@@ -38,9 +43,11 @@ if (typeof globalThis !== 'undefined' && typeof process !== 'undefined' && proce
     delete process.env.CF_PAGES_URL;
     delete process.env.WORKERS_ENV;
   }
-  
-  // Override any Cloudflare Workers type detection
-  // Check if @cloudflare/workers-types is causing detection
+
+  /*
+   * Override any Cloudflare Workers type detection
+   * Check if @cloudflare/workers-types is causing detection
+   */
   if (typeof g.navigator !== 'undefined' && g.navigator.serviceWorker) {
     // In Node.js, serviceWorker should be undefined
     Object.defineProperty(g.navigator, 'serviceWorker', {
@@ -54,27 +61,8 @@ if (typeof globalThis !== 'undefined' && typeof process !== 'undefined' && proce
 // Ensure we're in a Node.js environment before importing postgres-js
 if (typeof process === 'undefined' || !process.versions?.node) {
   throw new Error(
-    'Database connection requires Node.js environment. ' +
-    'postgres-js does not support Cloudflare Workers runtime.'
+    'Database connection requires Node.js environment. ' + 'postgres-js does not support Cloudflare Workers runtime.',
   );
-}
-
-// Intercept dynamic imports to prevent cloudflare: protocol errors
-// This must be done before importing postgres-js
-if (typeof globalThis !== 'undefined') {
-  const originalImport = globalThis.constructor.prototype;
-  
-  // Patch import.meta.resolve if it exists to intercept cloudflare: imports
-  // This is a last-resort attempt to catch dynamic imports
-  try {
-    // Store original if exists
-    const originalResolve = (globalThis as any).import?.meta?.resolve;
-    
-    // Note: We can't easily patch dynamic imports, but we've set environment
-    // variables above to prevent Cloudflare detection
-  } catch {
-    // Ignore if patching fails
-  }
 }
 
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -98,13 +86,16 @@ export function getDb() {
     const env = getEnvConfig();
 
     try {
-      // Configure postgres client with explicit Node.js settings
-      // This helps prevent Cloudflare Workers detection
+      /*
+       * Configure postgres client with explicit Node.js settings
+       * This helps prevent Cloudflare Workers detection
+       */
       const client = postgres(env.DATABASE_URL, {
         max: 10,
         idle_timeout: 20,
         connect_timeout: 10,
         prepare: true,
+
         // Explicit connection options for Node.js
         connection: {
           // Force TCP connection (Node.js mode) instead of Cloudflare Workers mode
@@ -118,10 +109,11 @@ export function getDb() {
       if (error instanceof Error && error.message.includes('cloudflare')) {
         throw new Error(
           'Database connection failed: postgres-js detected Cloudflare Workers environment. ' +
-          'This is a development server issue. Please ensure you are running in Node.js mode. ' +
-          `Original error: ${error.message}`
+            'This is a development server issue. Please ensure you are running in Node.js mode. ' +
+            `Original error: ${error.message}`,
         );
       }
+
       throw error;
     }
   }
@@ -129,7 +121,8 @@ export function getDb() {
   return dbInstance;
 }
 
-// Export as default for convenience
-// Note: Better Auth adapter requires this to be synchronous
+/*
+ * Export as default for convenience
+ * Note: Better Auth adapter requires this to be synchronous
+ */
 export const db = getDb();
-

@@ -128,6 +128,7 @@ interface FetchOptions {
  */
 function buildHeaders(customHeaders?: Record<string, string>): Record<string, string> {
   const config = getInternalPlacesServiceConfig();
+
   if (!config) {
     throw new Error('Internal Places Service is not configured');
   }
@@ -144,9 +145,11 @@ function buildHeaders(customHeaders?: Record<string, string>): Record<string, st
  */
 async function fetchWithTimeout<T>(endpoint: string, options: FetchOptions, timeout: number = 30000): Promise<T> {
   const config = getInternalPlacesServiceConfig();
+
   if (!config) {
     throw new Error('Internal Places Service is not configured');
   }
+
   const url = `${config.url}${endpoint}`;
 
   const controller = new AbortController();

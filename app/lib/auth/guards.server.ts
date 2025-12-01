@@ -56,4 +56,3 @@ export async function requireSessionOrError(request: Request) {
 
   return session;
 }
-

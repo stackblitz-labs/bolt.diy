@@ -23,4 +23,3 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export async function action({ request }: ActionFunctionArgs) {
   return auth.handler(request);
 }
-

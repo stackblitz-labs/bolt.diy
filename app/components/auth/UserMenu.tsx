@@ -33,10 +33,7 @@ export function UserMenu() {
   // Not authenticated
   if (!session) {
     return (
-      <a
-        href="/auth/login"
-        className="text-sm font-medium text-gray-700 hover:text-gray-900"
-      >
+      <a href="/auth/login" className="text-sm font-medium text-gray-700 hover:text-gray-900">
         Sign in
       </a>
     );
@@ -63,18 +60,11 @@ export function UserMenu() {
             className="h-8 w-8 rounded-full"
           />
         )}
-        <span className="text-sm font-medium text-gray-700">
-          {session.user.name || session.user.email}
-        </span>
+        <span className="text-sm font-medium text-gray-700">{session.user.name || session.user.email}</span>
       </div>
-      <button
-        onClick={handleSignOut}
-        className="text-sm text-gray-500 hover:text-gray-700"
-        type="button"
-      >
+      <button onClick={handleSignOut} className="text-sm text-gray-500 hover:text-gray-700" type="button">
         Sign out
       </button>
     </div>
   );
 }
-

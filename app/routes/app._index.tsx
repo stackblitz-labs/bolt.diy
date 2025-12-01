@@ -12,10 +12,7 @@ import { useLoaderData } from '@remix-run/react';
 import { requireSession } from '~/lib/auth/guards.server';
 
 export const meta: MetaFunction = () => {
-  return [
-    { title: 'Workspace - Huskit' },
-    { name: 'description', content: 'Protected workspace dashboard' },
-  ];
+  return [{ title: 'Workspace - Huskit' }, { name: 'description', content: 'Protected workspace dashboard' }];
 };
 
 /**
@@ -51,9 +48,7 @@ export default function WorkspaceDashboard() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-lg bg-white p-8 shadow-sm">
           <h1 className="text-3xl font-bold text-gray-900">Welcome to Your Workspace</h1>
-          <p className="mt-2 text-gray-600">
-            This is a protected route. You must be authenticated to see this page.
-          </p>
+          <p className="mt-2 text-gray-600">This is a protected route. You must be authenticated to see this page.</p>
 
           <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-6">
             <h2 className="text-lg font-semibold text-gray-900">Your Profile</h2>
@@ -72,9 +67,9 @@ export default function WorkspaceDashboard() {
 
           <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
             <p className="text-sm text-blue-800">
-              <strong>Note:</strong> This is an example protected route. In a real application, you
-              would add your workspace content here. All routes under <code>/app/**</code> should
-              use the <code>requireSession</code> guard in their loaders.
+              <strong>Note:</strong> This is an example protected route. In a real application, you would add your
+              workspace content here. All routes under <code>/app/**</code> should use the <code>requireSession</code>{' '}
+              guard in their loaders.
             </p>
           </div>
         </div>
@@ -82,4 +77,3 @@ export default function WorkspaceDashboard() {
     </div>
   );
 }
-

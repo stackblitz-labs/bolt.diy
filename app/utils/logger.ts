@@ -1,7 +1,9 @@
 export type DebugLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'none';
 
-// Chalk is a Node.js-only library - only load it on server side
-// This prevents it from being bundled in client code where node:tty doesn't exist
+/*
+ * Chalk is a Node.js-only library - only load it on server side
+ * This prevents it from being bundled in client code where node:tty doesn't exist
+ */
 let chalkInstance: any = null;
 let chalkLoadAttempted = false;
 
@@ -19,8 +21,10 @@ function getChalk() {
 
   // Lazy load chalk only on server
   try {
-    // Use a function that can be tree-shaken for client bundles
-    // The require will only execute on server
+    /*
+     * Use a function that can be tree-shaken for client bundles
+     * The require will only execute on server
+     */
     const requireChalk = () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const chalkModule = require('chalk');
@@ -128,6 +132,7 @@ function log(level: DebugLevel, scope: string | undefined, messages: any[]) {
 function formatText(text: string, color: string, bg: string) {
   // Use chalk on server-side, plain text on client-side
   const chalk = getChalk();
+
   if (chalk) {
     try {
       return chalk.bgHex(bg)(chalk.hex(color)(text));
@@ -136,6 +141,7 @@ function formatText(text: string, color: string, bg: string) {
       return text;
     }
   }
+
   // Client-side or chalk unavailable: return plain text
   return text;
 }

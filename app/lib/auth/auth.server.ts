@@ -13,13 +13,14 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from '~/lib/db/drizzle.server';
 import * as schema from './schema';
 import { getEnvConfig } from '~/lib/config/env.server';
-import { setDbConnectionError } from './session.server';
 
 const env = getEnvConfig();
 
-// Test database connection on startup and set fallback mode if unavailable
-// Note: Connection test is done lazily on first auth operation to avoid blocking startup
-// The session.server.ts module handles connection errors during runtime
+/*
+ * Test database connection on startup and set fallback mode if unavailable
+ * Note: Connection test is done lazily on first auth operation to avoid blocking startup
+ * The session.server.ts module handles connection errors during runtime
+ */
 
 /**
  * Better Auth instance with Drizzle adapter and Google OAuth
@@ -68,8 +69,10 @@ export const auth = betterAuth({
           timestamp: new Date().toISOString(),
         });
 
-        // Log account linking events (FR-002)
-        // Better Auth automatically links accounts with the same email
+        /*
+         * Log account linking events (FR-002)
+         * Better Auth automatically links accounts with the same email
+         */
         if (!hasError && ctx.context.session?.user) {
           const user = ctx.context.session.user;
           console.log('[AUTH] Account linking check', {
@@ -96,4 +99,3 @@ export const auth = betterAuth({
  * Session type exported for use in route guards
  */
 export type Session = typeof auth.$Infer.Session;
-

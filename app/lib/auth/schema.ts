@@ -7,16 +7,7 @@
  * Based on specs/002-better-auth/data-model.md
  */
 
-import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  boolean,
-  timestamp,
-  index,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, boolean, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core';
 
 /**
  * Better Auth user table
@@ -77,6 +68,7 @@ export const account = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     providerId: varchar('provider_id', { length: 255 }).notNull(),
+
     /**
      * Account identifier returned by the OAuth provider.
      * Better Auth expects this field to be named accountId.
@@ -108,4 +100,3 @@ export const verification = pgTable('verification', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
-

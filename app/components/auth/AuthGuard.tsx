@@ -13,10 +13,12 @@ import { useNavigate } from '@remix-run/react';
 
 interface AuthGuardProps {
   children: React.ReactNode;
+
   /**
    * Redirect to login if not authenticated
    */
   requireAuth?: boolean;
+
   /**
    * Fallback component to show while checking session
    */
@@ -29,11 +31,7 @@ interface AuthGuardProps {
  * Wraps children and handles client-side session validation.
  * Redirects to login if session expires and requireAuth is true.
  */
-export function AuthGuard({
-  children,
-  requireAuth = true,
-  fallback,
-}: AuthGuardProps) {
+export function AuthGuard({ children, requireAuth = true, fallback }: AuthGuardProps) {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
 
@@ -49,12 +47,13 @@ export function AuthGuard({
     return <>{fallback || <div className="p-4">Loading...</div>}</>;
   }
 
-  // If auth required but no session, don't render children
-  // (redirect will happen in useEffect)
+  /*
+   * If auth required but no session, don't render children
+   * (redirect will happen in useEffect)
+   */
   if (requireAuth && !session) {
     return <>{fallback || null}</>;
   }
 
   return <>{children}</>;
 }
-

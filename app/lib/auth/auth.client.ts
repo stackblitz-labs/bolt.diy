@@ -46,4 +46,3 @@ export const { signIn, signOut, useSession } = authClient;
  * });
  * ```
  */
-

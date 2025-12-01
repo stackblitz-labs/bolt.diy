@@ -14,10 +14,12 @@ interface GoogleSignInButtonProps {
    * URL to redirect to after successful authentication
    */
   callbackURL?: string;
+
   /**
    * Additional CSS classes
    */
   className?: string;
+
   /**
    * Button text override
    */
@@ -29,11 +31,7 @@ interface GoogleSignInButtonProps {
  *
  * Initiates Google OAuth flow when clicked
  */
-export function GoogleSignInButton({
-  callbackURL = '/app',
-  className = '',
-  children,
-}: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ callbackURL = '/app', className = '', children }: GoogleSignInButtonProps) {
   const handleClick = () => {
     signIn.social({
       provider: 'google',
@@ -78,4 +76,3 @@ function GoogleIcon() {
     </svg>
   );
 }
-

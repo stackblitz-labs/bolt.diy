@@ -88,13 +88,16 @@ function initializeSupabaseClient(): SupabaseClient | null {
     return null;
   }
 
-  // Try to dynamically import @supabase/supabase-js if available
-  // @supabase/supabase-js is not installed yet
-  // When ready to enable Supabase, install the package and uncomment:
-  // const { createClient } = require('@supabase/supabase-js');
-  // return createClient(supabaseUrl, supabaseKey);
-  
+  /*
+   * Try to dynamically import @supabase/supabase-js if available
+   * @supabase/supabase-js is not installed yet
+   * When ready to enable Supabase, install the package and uncomment:
+   * const { createClient } = require('@supabase/supabase-js');
+   * return createClient(supabaseUrl, supabaseKey);
+   */
+
   logger.warn('Supabase client package not available. Install @supabase/supabase-js to enable Supabase operations.');
+
   return null;
 }
 

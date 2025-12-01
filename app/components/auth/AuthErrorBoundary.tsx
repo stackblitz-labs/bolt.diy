@@ -25,10 +25,7 @@ interface AuthErrorBoundaryProps {
  *
  * Catches authentication errors and displays a user-friendly message
  */
-export class AuthErrorBoundary extends React.Component<
-  AuthErrorBoundaryProps,
-  AuthErrorBoundaryState
-> {
+export class AuthErrorBoundary extends React.Component<AuthErrorBoundaryProps, AuthErrorBoundaryState> {
   constructor(props: AuthErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -82,13 +79,7 @@ export class AuthErrorBoundary extends React.Component<
 /**
  * Default Auth Error Fallback Component
  */
-function DefaultAuthErrorFallback({
-  error,
-  resetError,
-}: {
-  error: Error;
-  resetError: () => void;
-}) {
+function DefaultAuthErrorFallback({ error, resetError }: { error: Error; resetError: () => void }) {
   const navigate = useNavigate();
 
   const handleRetry = () => {
@@ -105,12 +96,7 @@ function DefaultAuthErrorFallback({
       <div className="w-full max-w-md space-y-4 rounded-lg border border-red-200 bg-white p-8 shadow-sm">
         <div className="text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <svg
-              className="h-6 w-6 text-red-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
+            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -121,8 +107,8 @@ function DefaultAuthErrorFallback({
           </div>
           <h2 className="mt-4 text-xl font-semibold text-gray-900">Authentication Error</h2>
           <p className="mt-2 text-sm text-gray-600">
-            We encountered an issue with your authentication session. This may happen if your
-            session expired or there was a problem connecting to the authentication service.
+            We encountered an issue with your authentication session. This may happen if your session expired or there
+            was a problem connecting to the authentication service.
           </p>
         </div>
 
@@ -150,4 +136,3 @@ function DefaultAuthErrorFallback({
     </div>
   );
 }
-
