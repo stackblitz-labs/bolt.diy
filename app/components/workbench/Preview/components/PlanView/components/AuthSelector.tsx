@@ -5,6 +5,7 @@ import { useStore } from '@nanostores/react';
 import { assert } from '~/utils/nut';
 import { callNutAPI } from '~/lib/replay/NutAPI';
 import { toast } from 'react-toastify';
+import { AuthRequiredSecret } from '~/lib/persistence/messageAppSummary';
 
 const AuthSelector = () => {
   const appSummary = useStore(chatStore.appSummary);

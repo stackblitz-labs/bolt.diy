@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import type { BugReport } from '~/lib/persistence/messageAppSummary';
@@ -16,22 +17,37 @@ interface BugReportComponentProps {
 }
 
 export const BugReportComponent = ({ report, handleSendMessage }: BugReportComponentProps) => {
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    setProcessing(false);
+  }, [report.status]);
+
   const handleResolve = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
+    setProcessing(true);
     const appId = chatStore.currentAppId.get();
     if (!appId) {
       toast.error('No app selected');
       return;
     }
 
-    const { response } = await callNutAPI('resolve-bug-report', { appId, bugReportName: report.name });
-    if (response) {
-      onChatResponse(response, 'ResolveBugReport');
+    try {
+      const { response } = await callNutAPI('resolve-bug-report', { appId, bugReportName: report.name });
+      if (response) {
+        onChatResponse(response, 'ResolveBugReport');
+      }
+    } catch (error) {
+      toast.error('Failed to resolve bug report');
+      console.error('Error resolving bug report:', error);
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleRetry = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
+    setProcessing(true);
     const appId = chatStore.currentAppId.get();
     if (!appId) {
       toast.error('No app selected');
@@ -47,15 +63,23 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
 
   const handleCancel = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
+    setProcessing(true);
     const appId = chatStore.currentAppId.get();
     if (!appId) {
       toast.error('No app selected');
       return;
     }
 
-    const { response } = await callNutAPI('cancel-bug-report', { appId, bugReportName: report.name });
-    if (response) {
-      onChatResponse(response, 'CancelBugReport');
+    try {
+      const { response } = await callNutAPI('cancel-bug-report', { appId, bugReportName: report.name });
+      if (response) {
+        onChatResponse(response, 'CancelBugReport');
+      }
+    } catch (error) {
+      toast.error('Failed to cancel bug report');
+      console.error('Error canceling bug report:', error);
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -75,67 +99,40 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
           <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">{report.description}</p>
         </div>
 
-        <div className="flex flex-col items-center justify-center h-full gap-2 flex-shrink-0">
-          {status === BugReportStatus.WaitingForFeedback && (
-            <>
-              <WithTooltip tooltip="Mark this bug as fixed">
-                <button
-                  onClick={(e) => handleResolve(e)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 transition-colors border border-green-500/20 hover:border-green-500/40 active:scale-95"
-                >
-                  <CheckCircle size={18} />
-                </button>
-              </WithTooltip>
+        {processing ? (
+          <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor">
+            <Loader2 className="text-bolt-elements-textSecondary animate-spin" size={18} />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-2 flex-shrink-0">
+            {status === BugReportStatus.WaitingForFeedback && (
+              <>
+                <WithTooltip tooltip="Mark this bug as fixed">
+                  <button
+                    onClick={(e) => handleResolve(e)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 transition-colors border border-green-500/20 hover:border-green-500/40 active:scale-95"
+                  >
+                    <CheckCircle size={18} />
+                  </button>
+                </WithTooltip>
 
-              <WithTooltip tooltip="Retry fixing this bug">
-                <button
-                  onClick={(e) => handleRetry(e)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/20 hover:border-blue-500/40 active:scale-95"
-                >
-                  <RotateCw size={18} />
-                </button>
-              </WithTooltip>
-            </>
-          )}
+                <WithTooltip tooltip="Retry fixing this bug">
+                  <button
+                    onClick={(e) => handleRetry(e)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/20 hover:border-blue-500/40 active:scale-95"
+                  >
+                    <RotateCw size={18} />
+                  </button>
+                </WithTooltip>
+              </>
+            )}
 
-          {status !== BugReportStatus.Failed && (
-            <WithTooltip
-              tooltip={
-                status === BugReportStatus.WaitingForFeedback ? 'Dismiss this bug report' : 'Cancel this bug report'
-              }
-            >
-              <button
-                onClick={(e) => handleCancel(e)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors border border-red-500/20 hover:border-red-500/40 active:scale-95"
+            {status !== BugReportStatus.Failed && (
+              <WithTooltip
+                tooltip={
+                  status === BugReportStatus.WaitingForFeedback ? 'Dismiss this bug report' : 'Cancel this bug report'
+                }
               >
-                <X size={18} />
-              </button>
-            </WithTooltip>
-          )}
-
-          {status === BugReportStatus.Open && (
-            <WithTooltip tooltip={escalateTime ? 'Escalated to developer support' : 'Fixing in progress'}>
-              <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor">
-                {escalateTime ? (
-                  <Hourglass className="text-bolt-elements-textSecondary" size={18} />
-                ) : (
-                  <Loader2 className="text-bolt-elements-textSecondary animate-spin" size={18} />
-                )}
-              </div>
-            </WithTooltip>
-          )}
-
-          {status === BugReportStatus.Resolved && (
-            <WithTooltip tooltip="Bug resolved">
-              <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
-                <Check size={18} />
-              </div>
-            </WithTooltip>
-          )}
-
-          {status === BugReportStatus.Failed && (
-            <>
-              <WithTooltip tooltip="Fix failed, cancel?">
                 <button
                   onClick={(e) => handleCancel(e)}
                   className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors border border-red-500/20 hover:border-red-500/40 active:scale-95"
@@ -143,18 +140,51 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
                   <X size={18} />
                 </button>
               </WithTooltip>
+            )}
 
-              <WithTooltip tooltip="Retry fixing this bug">
-                <button
-                  onClick={(e) => handleRetry(e)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/20 hover:border-blue-500/40 active:scale-95"
-                >
-                  <RotateCw size={18} />
-                </button>
+            {status === BugReportStatus.Open && (
+              <WithTooltip tooltip={escalateTime ? 'Escalated to developer support' : 'Fixing in progress'}>
+                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor">
+                  {escalateTime ? (
+                    <Hourglass className="text-bolt-elements-textSecondary" size={18} />
+                  ) : (
+                    <Loader2 className="text-bolt-elements-textSecondary animate-spin" size={18} />
+                  )}
+                </div>
               </WithTooltip>
-            </>
-          )}
-        </div>
+            )}
+
+            {status === BugReportStatus.Resolved && (
+              <WithTooltip tooltip="Bug resolved">
+                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                  <Check size={18} />
+                </div>
+              </WithTooltip>
+            )}
+
+            {status === BugReportStatus.Failed && (
+              <>
+                <WithTooltip tooltip="Fix failed, cancel?">
+                  <button
+                    onClick={(e) => handleCancel(e)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors border border-red-500/20 hover:border-red-500/40 active:scale-95"
+                  >
+                    <X size={18} />
+                  </button>
+                </WithTooltip>
+
+                <WithTooltip tooltip="Retry fixing this bug">
+                  <button
+                    onClick={(e) => handleRetry(e)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors border border-blue-500/20 hover:border-blue-500/40 active:scale-95"
+                  >
+                    <RotateCw size={18} />
+                  </button>
+                </WithTooltip>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );
