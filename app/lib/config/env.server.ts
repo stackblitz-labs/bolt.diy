@@ -22,6 +22,31 @@ const envSchema = z.object({
 
   /*
    * ============================================================================
+   * Supabase Configuration
+   * ============================================================================
+   */
+  SUPABASE_ANON_KEY: z
+    .string()
+    .min(1, 'SUPABASE_ANON_KEY is required')
+    .describe('Supabase anonymous/public key for client-side access'),
+
+  SUPABASE_SERVICE_ROLE_KEY: z
+    .string()
+    .min(1, 'SUPABASE_SERVICE_ROLE_KEY is required')
+    .describe('Supabase service role key for server-side admin access (bypasses RLS)'),
+
+  VITE_SUPABASE_URL: z
+    .string()
+    .url('VITE_SUPABASE_URL must be a valid URL')
+    .describe('Supabase project URL (e.g., https://xxxxx.supabase.co)'),
+
+  VITE_SUPABASE_ANON_KEY: z
+    .string()
+    .min(1, 'VITE_SUPABASE_ANON_KEY is required')
+    .describe('Supabase anonymous/public key for client-side access'),
+
+  /*
+   * ============================================================================
    * Cloudflare R2 Configuration
    * ============================================================================
    */
