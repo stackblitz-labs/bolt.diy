@@ -13,6 +13,18 @@ export default async function handleRequest(
   remixContext: any,
   _loadContext: AppLoadContext,
 ) {
+  // Handle .well-known requests (e.g., Chrome DevTools)
+  // Return 404 early to prevent route matching errors
+  const url = new URL(request.url);
+  if (url.pathname.startsWith('/.well-known/')) {
+    return new Response(null, {
+      status: 404,
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+    });
+  }
+
   // await initializeModelList({});
 
   const readable = await renderToReadableStream(<RemixServer context={remixContext} url={request.url} />, {

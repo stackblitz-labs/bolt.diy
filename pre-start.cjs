@@ -1,5 +1,16 @@
 const { execSync } = require('child_process');
 
+// CRITICAL: Force Node.js mode for postgres-js to prevent Cloudflare Workers detection
+// This prevents postgres-js from trying to use cloudflare: protocol imports
+process.env.POSTGRES_JS_RUNTIME = 'node';
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Remove Cloudflare-specific environment variables that might confuse postgres-js
+delete process.env.CF_PAGES;
+delete process.env.CF_PAGES_BRANCH;
+delete process.env.CF_PAGES_COMMIT_SHA;
+delete process.env.CF_PAGES_URL;
+
 // Get git hash with fallback
 const getGitHash = () => {
   try {

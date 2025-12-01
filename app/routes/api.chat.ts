@@ -14,8 +14,11 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import type { DesignScheme } from '~/types/design-scheme';
 import { MCPService } from '~/lib/services/mcpService';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
+import { requireSessionOrError } from '~/lib/auth/guards.server';
 
 export async function action(args: ActionFunctionArgs) {
+  // Require authentication for chat API
+  await requireSessionOrError(args.request);
   return chatAction(args);
 }
 

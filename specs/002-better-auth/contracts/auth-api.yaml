@@ -1,0 +1,368 @@
+openapi: 3.1.0
+info:
+  title: Huskit Better Auth API
+  version: 1.0.0
+  description: |
+    Authentication API powered by Better Auth.
+    All routes are handled by the catch-all `/api/auth/*` handler.
+
+servers:
+  - url: /api/auth
+    description: Auth API base path
+
+paths:
+  /sign-in/social:
+    post:
+      operationId: signInSocial
+      summary: Initiate OAuth sign-in flow
+      description: Redirects user to OAuth provider (Google) for authentication
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - provider
+              properties:
+                provider:
+                  type: string
+                  enum: [google]
+                  description: OAuth provider to use
+                callbackURL:
+                  type: string
+                  format: uri
+                  description: URL to redirect after successful auth
+                  example: /app/dashboard
+      responses:
+        "302":
+          description: Redirect to OAuth provider
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        "400":
+          description: Invalid provider or configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /callback/google:
+    get:
+      operationId: googleCallback
+      summary: Handle Google OAuth callback
+      description: |
+        Called by Google after user authorization.
+        Creates/updates user, creates session, redirects to callbackURL.
+      tags:
+        - Authentication
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from Google
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          description: CSRF state token
+      responses:
+        "302":
+          description: Redirect to app with session cookie set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: Session cookie (HTTP-only, Secure)
+            Location:
+              schema:
+                type: string
+        "400":
+          description: Invalid callback parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /get-session:
+    get:
+      operationId: getSession
+      summary: Get current session
+      description: Returns authenticated user and session info
+      tags:
+        - Session
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Session data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "401":
+          description: No valid session
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    type: "null"
+                  user:
+                    type: "null"
+
+  /sign-out:
+    post:
+      operationId: signOut
+      summary: Sign out current session
+      description: Invalidates session and clears cookies
+      tags:
+        - Authentication
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Successfully signed out
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: Cleared session cookie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /list-sessions:
+    get:
+      operationId: listSessions
+      summary: List all active sessions for user
+      description: Returns all sessions for the authenticated user (FR-010)
+      tags:
+        - Session
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /revoke-session:
+    post:
+      operationId: revokeSession
+      summary: Revoke a specific session
+      description: Admin action to invalidate a user's session (FR-010)
+      tags:
+        - Session
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  description: ID of session to revoke
+      responses:
+        "200":
+          description: Session revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /link-social:
+    post:
+      operationId: linkSocial
+      summary: Link additional OAuth provider or request more scopes
+      description: |
+        Triggers OAuth flow to link another provider or request additional
+        Google scopes (e.g., Drive, Gmail APIs).
+      tags:
+        - Account Management
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - provider
+              properties:
+                provider:
+                  type: string
+                  enum: [google]
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                  description: Additional OAuth scopes to request
+                  example:
+                    - https://www.googleapis.com/auth/drive.file
+                callbackURL:
+                  type: string
+                  format: uri
+      responses:
+        "302":
+          description: Redirect to OAuth provider
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: huskit-auth.session_token
+      description: HTTP-only session cookie
+
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+        emailVerified:
+          type: boolean
+        image:
+          type: string
+          format: uri
+          nullable: true
+        tenantId:
+          type: string
+          format: uuid
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Session:
+      type: object
+      required:
+        - id
+        - userId
+        - expiresAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        expiresAt:
+          type: string
+          format: date-time
+        ipAddress:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        isCurrent:
+          type: boolean
+          description: True if this is the session making the request
+
+    SessionResponse:
+      type: object
+      required:
+        - session
+        - user
+      properties:
+        session:
+          $ref: "#/components/schemas/Session"
+        user:
+          $ref: "#/components/schemas/User"
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error context
+
+tags:
+  - name: Authentication
+    description: Sign in/out operations
+  - name: Session
+    description: Session management and status
+  - name: Account Management
+    description: OAuth account linking and scope management
+
