@@ -34,10 +34,20 @@ export const referenceApps: ReferenceApp[] = [
     categories: [ReferenceAppCategory.Business],
   },
   {
+    appPath: 'observe/TelemetryBoard',
     appName: 'Telemetry Board',
-    description: 'Listens to telemetry events and helps you monitor your systems',
-    bulletPoints: ['Custom Metrics and Boards', 'Email Alerts'],
+    description: 'Listens to OpenTelemetry events and helps you monitor your systems',
+    bulletPoints: ['Custom Boards', 'Saved Views', 'Editable Log Rendering'],
+    photo: 'https://utfs.io/f/g4w5SXU7E8KdjK4IdOUektSnylW57BEZobPcKpDY4LHifIMz',
     categories: [ReferenceAppCategory.Technical],
+  },
+  {
+    appPath: 'social/ScoreKeeper',
+    appName: 'ScoreKeeper',
+    description: "Keep track of everyone's scores when playing card and board games",
+    bulletPoints: ['Round History', 'Game History'],
+    photo: 'https://utfs.io/f/g4w5SXU7E8KdLdVubLoPsxJKqg3tOm8U6XBkfWzF1NvylbMC',
+    categories: [ReferenceAppCategory.Personal],
   },
   {
     appName: 'Support CRM',
