@@ -32,20 +32,24 @@ function isWorkTimedOut(events: ChatResponse[]) {
   return Date.now() - new Date(lastEvent.time).getTime() >= WORK_TIMEOUT_MS;
 }
 
-// Return separate streams of events for each worker which has operated on the feature.
-function groupWorkerEvents(eventResponses: ChatResponse[], featureName: string | undefined): ChatResponse[][] {
+export function getChatIdsForFeature(eventResponses: ChatResponse[], featureName: string | undefined): string[] {
   const chatIds: Set<string> = new Set();
   for (const response of eventResponses) {
     if (response.chatId && responseStartsFeature(response, featureName)) {
       chatIds.add(response.chatId);
     }
   }
-  return Array.from(chatIds).map((chatId) => eventResponses.filter((response) => response.chatId === chatId));
+  return Array.from(chatIds);
+}
+
+function getFeatureResponses(eventResponses: ChatResponse[], featureName: string | undefined): ChatResponse[][] {
+  const chatIds = getChatIdsForFeature(eventResponses, featureName);
+  return chatIds.map((chatId) => eventResponses.filter((response) => response.chatId === chatId));
 }
 
 const Events = ({ featureName }: EventsProps) => {
   const eventResponses = useStore(chatStore.events);
-  const workerEvents = groupWorkerEvents(eventResponses, featureName);
+  const workerEvents = getFeatureResponses(eventResponses, featureName);
   const [expandedWorkers, setExpandedWorkers] = useState<Set<number>>(new Set());
 
   const toggleWorkerExpansion = (workerIndex: number) => {
