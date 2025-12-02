@@ -1,15 +1,21 @@
 import { atom } from 'nanostores';
 
+export type IntegrationTestsFilter = 'in-progress' | 'completed';
+
 export interface FeatureModalState {
   isOpen: boolean;
   currentFeatureIndex: number;
   totalFeatures: number;
+  isIntegrationTestsGroup?: boolean;
+  integrationTestsFilter?: IntegrationTestsFilter;
 }
 
 export const featureModalStore = atom<FeatureModalState>({
   isOpen: false,
   currentFeatureIndex: 0,
   totalFeatures: 0,
+  isIntegrationTestsGroup: false,
+  integrationTestsFilter: undefined,
 });
 
 export const openFeatureModal = (featureIndex: number, totalFeatures: number) => {
@@ -17,6 +23,17 @@ export const openFeatureModal = (featureIndex: number, totalFeatures: number) =>
     isOpen: true,
     currentFeatureIndex: featureIndex,
     totalFeatures,
+    isIntegrationTestsGroup: false,
+  });
+};
+
+export const openIntegrationTestsModal = (filter: IntegrationTestsFilter = 'completed') => {
+  featureModalStore.set({
+    isOpen: true,
+    currentFeatureIndex: 0,
+    totalFeatures: 0,
+    isIntegrationTestsGroup: true,
+    integrationTestsFilter: filter,
   });
 };
 

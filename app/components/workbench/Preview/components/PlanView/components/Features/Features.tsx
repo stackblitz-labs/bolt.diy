@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { classNames } from '~/utils/classNames';
 import { Check, X, ChevronDown, ChevronUp } from '~/components/ui/Icon';
-import { AppFeatureStatus, type AppFeature } from '~/lib/persistence/messageAppSummary';
+import { AppFeatureKind, AppFeatureStatus, type AppFeature } from '~/lib/persistence/messageAppSummary';
 import Tests from './components/Tests';
 import DefinedApis from './components/DefinedApis';
 import DatabaseChanges from './components/DatabaseChanges';
@@ -129,7 +129,16 @@ const Features = () => {
                 <Components summary={appSummary!} feature={feature} />
               )}
               {feature?.definedAPIs && feature.definedAPIs.length > 0 && <DefinedApis feature={feature} />}
-              {feature?.tests && feature.tests.length > 0 && <Tests featureTests={feature.tests} />}
+              {feature?.tests && feature.tests.length > 0 && (
+                <Tests
+                  status={status}
+                  featureTests={
+                    feature.kind === AppFeatureKind.IntegrationTests && feature.status === AppFeatureStatus.Implemented
+                      ? feature.tests.filter((t) => t.status)
+                      : feature.tests
+                  }
+                />
+              )}
               <Events featureName={feature?.name} />
             </motion.div>
           )}

@@ -28,7 +28,7 @@ import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { StackedInfoCard, type InfoCardData } from '~/components/ui/InfoCard';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '~/components/ui/resizable';
 import { AppFeatureKind, AppFeatureStatus, BugReportStatus } from '~/lib/persistence/messageAppSummary';
-import { openFeatureModal } from '~/lib/stores/featureModal';
+import { openFeatureModal, openIntegrationTestsModal } from '~/lib/stores/featureModal';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { toast } from 'react-toastify';
 import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
@@ -142,39 +142,67 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         // Create filtered features array for modal
         const filteredFeatures = appSummary.features.filter((f) => f.kind !== AppFeatureKind.DesignAPIs);
 
-        const featureCards = appSummary.features
-          .filter((f) => f.status === AppFeatureStatus.ImplementationInProgress && f.kind !== AppFeatureKind.FixBug)
-          .map((feature) => {
-            const iconType: 'loading' | 'error' | 'success' =
-              feature.status === AppFeatureStatus.ImplementationInProgress
-                ? 'loading'
-                : feature.status === AppFeatureStatus.Failed
-                  ? 'error'
-                  : 'success';
+        // Separate IntegrationTests from other features
+        const integrationTestsFeatures = appSummary.features.filter(
+          (f) => f.status === AppFeatureStatus.ImplementationInProgress && f.kind === AppFeatureKind.IntegrationTests,
+        );
 
-            const variant: 'active' | 'default' =
-              feature.status === AppFeatureStatus.ImplementationInProgress ? 'active' : 'default';
+        const otherFeatures = appSummary.features.filter(
+          (f) =>
+            f.status === AppFeatureStatus.ImplementationInProgress &&
+            f.kind !== AppFeatureKind.FixBug &&
+            f.kind !== AppFeatureKind.IntegrationTests,
+        );
 
-            // Find the index of this feature in the filtered array
-            const modalIndex = filteredFeatures.findIndex((f) => f === feature);
+        // Add non-IntegrationTests feature cards
+        const featureCards = otherFeatures.map((feature) => {
+          const iconType: 'loading' | 'error' | 'success' =
+            feature.status === AppFeatureStatus.ImplementationInProgress
+              ? 'loading'
+              : feature.status === AppFeatureStatus.Failed
+                ? 'error'
+                : 'success';
 
-            return {
-              id: feature.name,
-              title: feature.name,
-              description: feature.description,
-              iconType,
-              variant,
-              handleSendMessage,
-              onCardClick:
-                modalIndex !== -1
-                  ? () => {
-                      openFeatureModal(modalIndex, filteredFeatures.length);
-                    }
-                  : undefined,
-            };
-          });
+          const variant: 'active' | 'default' =
+            feature.status === AppFeatureStatus.ImplementationInProgress ? 'active' : 'default';
+
+          // Find the index of this feature in the filtered array
+          const modalIndex = filteredFeatures.findIndex((f) => f === feature);
+
+          return {
+            id: feature.name,
+            title: feature.name,
+            description: feature.description,
+            iconType,
+            variant,
+            handleSendMessage,
+            onCardClick:
+              modalIndex !== -1
+                ? () => {
+                    openFeatureModal(modalIndex, filteredFeatures.length);
+                  }
+                : undefined,
+          };
+        });
 
         newCards.push(...featureCards);
+
+        // Add grouped IntegrationTests card if there are any
+        if (integrationTestsFeatures.length > 0) {
+          const description = `${integrationTestsFeatures.length} integration test${integrationTestsFeatures.length !== 1 ? 's' : ''} in progress`;
+
+          newCards.push({
+            id: 'integration-tests-group',
+            title: 'Integration Tests',
+            description,
+            iconType: 'loading',
+            variant: 'active',
+            handleSendMessage,
+            onCardClick: () => {
+              openIntegrationTestsModal('in-progress');
+            },
+          });
+        }
       }
 
       // Add bug report cards
