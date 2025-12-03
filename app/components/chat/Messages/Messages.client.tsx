@@ -19,16 +19,17 @@ import {
 import {
   APP_SUMMARY_CATEGORY,
   AppFeatureKind,
+  AppFeatureStatus,
   isFeatureStatusImplemented,
   type AppFeature,
 } from '~/lib/persistence/messageAppSummary';
+import { USER_RESPONSE_CATEGORY } from '~/lib/persistence/message';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import { pendingMessageStatusStore } from '~/lib/stores/status';
 import { userStore } from '~/lib/stores/auth';
 import { shouldDisplayMessage } from '~/lib/replay/SendChatMessage';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
-import { AppFeatureStatus } from '~/lib/persistence/messageAppSummary';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { openFeatureModal, openIntegrationTestsModal } from '~/lib/stores/featureModal';
 import { InfoCard } from '~/components/ui/InfoCard';
@@ -327,11 +328,39 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
           });
 
         // Add grouped IntegrationTests as a single timeline item
+        // Position it after the BuildInitialApp completion message
         if (integrationTests.length > 0 && earliestIntegrationTestTime) {
+          let integrationTestsTimestamp: Date = earliestIntegrationTestTime;
+
+          // Find the BuildInitialApp feature to position IntegrationTestsGroup after its completion message
+          const buildInitialAppFeature = appSummary.features?.find(
+            (f) =>
+              f.kind === AppFeatureKind.BuildInitialApp &&
+              (f.status === AppFeatureStatus.Implemented || f.status === AppFeatureStatus.Failed),
+          );
+
+          if (buildInitialAppFeature?.time) {
+            const buildInitialAppTime = new Date(buildInitialAppFeature.time);
+
+            // Find the first assistant UserResponse message at or after BuildInitialApp completion
+            const completionMessage = displayableMessages.find(
+              (m) =>
+                m.role === 'assistant' &&
+                m.category === USER_RESPONSE_CATEGORY &&
+                m.createTime &&
+                new Date(m.createTime) >= buildInitialAppTime,
+            );
+
+            if (completionMessage?.createTime) {
+              // Place IntegrationTestsGroup right after the completion message
+              integrationTestsTimestamp = new Date(new Date(completionMessage.createTime).getTime() + 1);
+            }
+          }
+
           timelineItems.push({
             type: 'integrationTestsGroup',
             data: integrationTests,
-            timestamp: earliestIntegrationTestTime,
+            timestamp: integrationTestsTimestamp,
             id: 'integration-tests-group',
           });
         }
