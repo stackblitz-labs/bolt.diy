@@ -50,6 +50,14 @@ export const referenceApps: ReferenceApp[] = [
     categories: [ReferenceAppCategory.Personal],
   },
   {
+    appPath: 'personal/Paperlane',
+    appName: 'Paperlane',
+    description: 'Clean and simple note taking app',
+    bulletPoints: ['Rich Text'],
+    photo: 'https://utfs.io/f/g4w5SXU7E8KdYlDrUI5pOy8T4MGez0Njgs2FS9nmWfxvoXib',
+    categories: [ReferenceAppCategory.Personal],
+  },
+  {
     appName: 'Support CRM',
     description: 'Manage your support team and helping your customers',
     bulletPoints: ['Email Integration'],
