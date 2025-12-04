@@ -58,6 +58,14 @@ export const referenceApps: ReferenceApp[] = [
     categories: [ReferenceAppCategory.Personal],
   },
   {
+    appPath: 'social/FamilyCarts',
+    appName: 'Family Carts',
+    description: 'Shared grocery lists for you and your family',
+    bulletPoints: ['Per Store Lists'],
+    photo: 'https://utfs.io/f/g4w5SXU7E8KdeWtx5KE1nQ39PNmwcYLluUfE5oeBy6F2pkSM',
+    categories: [ReferenceAppCategory.Personal],
+  },
+  {
     appName: 'Support CRM',
     description: 'Manage your support team and helping your customers',
     bulletPoints: ['Email Integration'],
@@ -73,12 +81,6 @@ export const referenceApps: ReferenceApp[] = [
     appName: 'StudyBuddy',
     description: 'Generate study materials for any topic',
     bulletPoints: ['PDF Imports', 'AI Generated Flash Cards'],
-    categories: [ReferenceAppCategory.Personal],
-  },
-  {
-    appName: 'MealMinder',
-    description: 'Family meal planning and shared grocery lists',
-    bulletPoints: ['Automatic Recipe Lookup'],
     categories: [ReferenceAppCategory.Personal],
   },
   {
