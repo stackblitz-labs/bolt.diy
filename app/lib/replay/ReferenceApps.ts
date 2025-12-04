@@ -74,6 +74,14 @@ export const referenceApps: ReferenceApp[] = [
     categories: [ReferenceAppCategory.Business],
   },
   {
+    appPath: 'social/CommunityIdeas',
+    appName: 'Community Ideas',
+    description: 'Collect ideas from your users on upcoming features',
+    bulletPoints: ['Voting System', 'User Comments'],
+    photo: 'https://utfs.io/f/g4w5SXU7E8Kd4gd56oTwYcWkB0HDfQ6qhVKvEnaUGMbL8owF',
+    categories: [ReferenceAppCategory.Business],
+  },
+  {
     appName: 'Invoicerator',
     description: 'Track time and costs for you and your team and generate invoices',
     bulletPoints: ['PDF Invoicing'],
@@ -84,11 +92,5 @@ export const referenceApps: ReferenceApp[] = [
     description: 'Generate study materials for any topic',
     bulletPoints: ['PDF Imports', 'AI Generated Flash Cards'],
     categories: [ReferenceAppCategory.Personal],
-  },
-  {
-    appName: 'ChangeLogger',
-    description: 'Collect feedback and build a roadmap and change log for your users',
-    bulletPoints: ['Voting System', 'Email Broadcast'],
-    categories: [ReferenceAppCategory.Technical],
   },
 ];
