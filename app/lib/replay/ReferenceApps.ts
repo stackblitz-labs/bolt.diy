@@ -66,9 +66,11 @@ export const referenceApps: ReferenceApp[] = [
     categories: [ReferenceAppCategory.Personal],
   },
   {
+    appPath: 'management/SupportCRM',
     appName: 'Support CRM',
-    description: 'Manage your support team and helping your customers',
-    bulletPoints: ['Email Integration'],
+    description: 'Manage support tickets from your customers',
+    bulletPoints: ['Email Notifications'],
+    photo: 'https://utfs.io/f/g4w5SXU7E8KdfbHk8O1ureDlVQJGmHCq126KNU7B3RpWcTtE',
     categories: [ReferenceAppCategory.Business],
   },
   {
