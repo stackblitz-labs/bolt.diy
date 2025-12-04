@@ -82,15 +82,19 @@ export const referenceApps: ReferenceApp[] = [
     categories: [ReferenceAppCategory.Business],
   },
   {
+    appPath: 'management/Invoicerator',
     appName: 'Invoicerator',
-    description: 'Track time and costs for you and your team and generate invoices',
+    description: 'Track time on different projects and generate invoices',
     bulletPoints: ['PDF Invoicing'],
+    photo: 'https://utfs.io/f/g4w5SXU7E8Kdjs887pUektSnylW57BEZobPcKpDY4LHifIMz',
     categories: [ReferenceAppCategory.Business, ReferenceAppCategory.Personal],
   },
+  /*
   {
     appName: 'StudyBuddy',
     description: 'Generate study materials for any topic',
     bulletPoints: ['PDF Imports', 'AI Generated Flash Cards'],
     categories: [ReferenceAppCategory.Personal],
   },
+  */
 ];
