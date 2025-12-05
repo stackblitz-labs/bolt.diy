@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { authModalStore } from '~/lib/stores/authModal';
 import { SignInForm } from './SignInForm';
@@ -8,6 +9,13 @@ import { toast } from 'react-toastify';
 import { X } from '~/components/ui/Icon';
 
 export function GlobalAuthModal() {
+  // Open modal to SignInForm if URL has login=true parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('login') === 'true') {
+      authModalStore.open(false); // false = SignInForm
+    }
+  }, []);
   const isOpen = useStore(authModalStore.isOpen);
   const isSignUp = useStore(authModalStore.isSignUp);
   const state = useStore(authModalStore.state);

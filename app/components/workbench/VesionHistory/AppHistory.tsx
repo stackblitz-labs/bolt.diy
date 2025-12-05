@@ -178,7 +178,7 @@ const AppHistory = ({ appId }: AppHistoryProps) => {
                 }`}
               >
                 {isLatest && (
-                  <div className="absolute -top-3 left-6 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-semibold rounded-full shadow-lg border border-white/20">
+                  <div className="absolute -top-3 left-6 px-3 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-semibold rounded-full shadow-lg border border-white/20">
                     Current Selection
                   </div>
                 )}

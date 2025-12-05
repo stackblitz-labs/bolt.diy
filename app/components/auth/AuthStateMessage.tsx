@@ -60,7 +60,7 @@ export function AuthStateMessage({
                 onRetry
                   ? 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary border-bolt-elements-borderColor'
                   : isSuccess
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-white/20 hover:border-white/30 shadow-lg hover:shadow-xl'
+                    ? 'bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white border-white/20 hover:border-white/30 shadow-lg hover:shadow-xl'
                     : 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white border-white/20 hover:border-white/30 shadow-lg hover:shadow-xl'
               }`}
             >

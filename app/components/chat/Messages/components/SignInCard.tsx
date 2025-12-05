@@ -21,7 +21,7 @@ export const SignInCard: React.FC<SignInCardProps> = ({ onMount }) => {
     <div className="w-full mt-5">
       <div className="bg-gradient-to-br from-green-500/5 via-emerald-500/5 to-teal-500/5 border border-green-500/20 rounded-2xl p-6 transition-all duration-300 hover:border-green-500/30 hover:shadow-lg">
         <div className="flex flex-col items-center text-center space-y-4">
-          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 text-white rounded-full shadow-lg">
+          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-rose-500 to-pink-500 text-white rounded-full shadow-lg">
             <UserPlus className="text-white" size={24} />
           </div>
 

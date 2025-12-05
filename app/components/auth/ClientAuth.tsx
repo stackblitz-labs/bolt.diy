@@ -80,7 +80,7 @@ export function ClientAuth() {
         <div className="relative">
           <button
             ref={buttonRef}
-            className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-green-500 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border-2 border-white/20 hover:border-white/30 group"
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border-2 border-white/20 hover:border-white/30 group"
             onClick={() => setShowDropdown(!showDropdown)}
           >
             {useAvatarURL && user.user_metadata?.avatar_url ? (
@@ -169,7 +169,7 @@ export function ClientAuth() {
       ) : (
         <button
           onClick={() => authModalStore.open(false)}
-          className="px-4 py-1.5 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-xl hover:from-blue-600 hover:to-green-600 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group"
+          className="px-4 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl hover:from-rose-600 hover:to-pink-600 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group"
         >
           <span className="transition-transform duration-200 group-hover:scale-105">Sign In</span>
         </button>

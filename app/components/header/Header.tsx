@@ -20,7 +20,7 @@ import { includeHistorySummary } from '~/components/workbench/VesionHistory/AppH
 import { PanelLeft } from '~/components/ui/Icon';
 import { useEffect } from 'react';
 import { useLocation } from '@remix-run/react';
-import { NavigationMenuComponent } from '~/components/header/components/NavigationMenu';
+// import { NavigationMenuComponent } from '~/components/header/components/NavigationMenu';
 import { MobileMenu } from '~/components/header/components/MobileMenu';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 
@@ -80,14 +80,14 @@ export function Header() {
           <a href="/">
             <div className="flex items-center gap-3">
               <h1 className="text-bolt-elements-textHeading font-bold text-xl">
-                REPLAY<span className="text-green-500">.BUILDER</span>
+                REPLAY<span className="text-rose-500">.BUILDER</span>
               </h1>
             </div>
           </a>
         )}
         {appSummary && !isSmallViewport && <ChatDescription />}
       </div>
-      {!user && !chatStarted && !isSmallViewport && <NavigationMenuComponent />}
+      {/* {!user && !chatStarted && !isSmallViewport && <NavigationMenuComponent />} */}
 
       {appSummary && !isSmallViewport && (
         <div className="flex-1 flex justify-center">

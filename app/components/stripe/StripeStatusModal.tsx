@@ -55,7 +55,7 @@ export function StripeStatusModal({ isOpen, onClose, type, title, message, detai
           icon: 'text-green-500',
           bg: 'from-green-500/5 to-emerald-500/5',
           border: 'border-green-500/20',
-          button: 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600',
+          button: 'bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600',
         };
       case 'error':
         return {

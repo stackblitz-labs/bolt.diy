@@ -57,7 +57,7 @@ function DropdownMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "text-bolt-elements-textPrimary focus:text-green-500 hover:text-green-500 data-[highlighted]:text-green-500 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 !border-0 !ring-0 data-[variant=destructive]:text-red-500 data-[variant=destructive]:focus:text-red-500 data-[variant=destructive]:hover:text-red-500 data-[variant=destructive]:data-[highlighted]:text-red-500 data-[variant=destructive]:*:[svg]:!text-red-500 [&_svg:not([class*='text-'])]:text-bolt-elements-textSecondary relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 transition-colors [&:focus]:border-0 [&:focus]:ring-0 [&:hover]:border-0",
+        "text-bolt-elements-textPrimary focus:text-rose-500 hover:text-rose-500 data-[highlighted]:text-rose-500 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 !border-0 !ring-0 data-[variant=destructive]:text-red-500 data-[variant=destructive]:focus:text-red-500 data-[variant=destructive]:hover:text-red-500 data-[variant=destructive]:data-[highlighted]:text-red-500 data-[variant=destructive]:*:[svg]:!text-red-500 [&_svg:not([class*='text-'])]:text-bolt-elements-textSecondary relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 transition-colors [&:focus]:border-0 [&:focus]:ring-0 [&:hover]:border-0",
         className,
       )}
       {...props}
@@ -173,7 +173,7 @@ function DropdownMenuSubTrigger({
       data-slot="dropdown-menu-sub-trigger"
       data-inset={inset}
       className={cn(
-        "text-bolt-elements-textPrimary focus:text-green-500 hover:text-green-500 data-[highlighted]:text-green-500 data-[state=open]:text-green-500 [&_svg:not([class*='text-'])]:text-bolt-elements-textSecondary flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 transition-colors",
+        "text-bolt-elements-textPrimary focus:text-rose-500 hover:text-rose-500 data-[highlighted]:text-rose-500 data-[state=open]:text-rose-500 [&_svg:not([class*='text-'])]:text-bolt-elements-textSecondary flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 transition-colors",
         className,
       )}
       {...props}

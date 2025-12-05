@@ -73,8 +73,8 @@ const GlobalFeedbackModal = () => {
         {submitted ? (
           <>
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-green-500/20 shadow-lg">
-                <CheckCircle className="text-green-500" size={32} />
+              <div className="w-20 h-20 bg-gradient-to-br from-rose-500/10 to-pink-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-rose-500/20 shadow-lg">
+                <CheckCircle className="text-rose-500" size={32} />
               </div>
               <h2 className="text-3xl font-bold mb-4 text-bolt-elements-textHeading">Feedback Submitted</h2>
               <p className="text-bolt-elements-textSecondary text-lg bg-bolt-elements-background-depth-2 bg-opacity-30 px-4 py-2 rounded-xl inline-block border border-bolt-elements-borderColor border-opacity-30">
@@ -140,7 +140,7 @@ const GlobalFeedbackModal = () => {
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
               <button
                 onClick={handleSubmitFeedback}
-                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group flex items-center justify-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl hover:scale-105 border border-white/20 hover:border-white/30 group flex items-center justify-center gap-2"
               >
                 <Send className="transition-transform duration-200 group-hover:scale-110" size={18} />
                 <span className="transition-transform duration-200 group-hover:scale-105">Submit Feedback</span>

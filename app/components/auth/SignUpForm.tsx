@@ -89,8 +89,8 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
   return (
     <>
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-500/20 shadow-lg">
-          <UserPlus className="text-green-500" size={24} />
+        <div className="w-16 h-16 bg-gradient-to-br from-rose-500/10 to-pink-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-500/20 shadow-lg">
+          <UserPlus className="text-rose-500" size={24} />
         </div>
         <h2 className="text-3xl font-bold text-bolt-elements-textHeading">Create Account</h2>
         <p className="text-bolt-elements-textSecondary mt-2">
@@ -132,7 +132,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Enter your name"
             required
           />
@@ -147,7 +147,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Enter your email"
             required
           />
@@ -167,7 +167,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Create a password"
             required
           />
@@ -182,7 +182,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
+            className="w-full p-4 border rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border-bolt-elements-borderColor border-opacity-50 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 transition-all duration-200 shadow-sm focus:shadow-md"
             placeholder="Confirm your password"
             required
           />
@@ -208,7 +208,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
                 id="terms"
                 checked={isChecked}
                 onChange={() => setIsChecked(!isChecked)}
-                className="peer appearance-none h-5 w-5 rounded-lg border-2 border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 cursor-pointer checked:bg-green-500 checked:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all duration-200"
+                className="peer appearance-none h-5 w-5 rounded-lg border-2 border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 cursor-pointer checked:bg-rose-500 checked:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/50 transition-all duration-200"
               />
               <svg
                 className="absolute left-0 w-5 h-5 pointer-events-none opacity-0 peer-checked:opacity-100 text-white transition-opacity duration-200"
@@ -232,7 +232,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
         <button
           type="submit"
           disabled={isProcessing || disabled}
-          className="w-full py-4 !bg-gradient-to-r !from-green-500 !to-emerald-500 hover:!from-green-600 hover:!to-emerald-600 text-white rounded-xl disabled:cursor-not-allowed font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] disabled:hover:shadow-lg disabled:hover:scale-100 border border-white/20 hover:border-white/30 disabled:opacity-60 group"
+          className="w-full py-4 !bg-gradient-to-r !from-rose-500 !to-pink-500 hover:!from-rose-600 hover:!to-pink-600 text-white rounded-xl disabled:cursor-not-allowed font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] disabled:hover:shadow-lg disabled:hover:scale-100 border border-white/20 hover:border-white/30 disabled:opacity-60 group"
         >
           <span className="transition-transform duration-200 group-hover:scale-105">
             {isProcessing ? 'Creating Account...' : 'Create Account'}
@@ -245,7 +245,7 @@ export function SignUpForm({ addIntercomUser, onToggleForm, onSuccess, onError }
           Already have an account?{' '}
           <button
             onClick={onToggleForm}
-            className="text-green-500 hover:text-green-600 font-semibold bg-transparent transition-all duration-200 hover:scale-105 px-2 py-1 rounded-lg hover:bg-green-500/10"
+            className="text-rose-500 hover:text-rose-600 font-semibold bg-transparent transition-all duration-200 hover:scale-105 px-2 py-1 rounded-lg hover:bg-rose-500/10"
           >
             Sign In
           </button>

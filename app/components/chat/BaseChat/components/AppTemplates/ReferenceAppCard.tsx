@@ -1,15 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import { classNames } from '~/utils/classNames';
 import { assert } from '~/utils/nut';
-import {
-  CheckCircle,
-  Rocket,
-  // ExternalLink
-} from '~/components/ui/Icon';
-import { TooltipProvider } from '@radix-ui/react-tooltip';
-import WithTooltip from '~/components/ui/Tooltip';
+// import { ExternalLink } from 'lucide-react';
 
 interface ReferenceAppCardProps {
   appName: string;
@@ -27,10 +21,11 @@ export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
   bulletPoints = [],
   photo,
   appPath,
-  photoOnLeft = true,
   sendMessage,
 }) => {
-  const handleClick = async () => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleCustomize = async () => {
     assert(appPath, 'App path is required');
 
     sendMessage({
@@ -40,87 +35,81 @@ export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
     });
   };
 
-  const isClickable = !!appPath;
-  const displayPhoto = photo || 'https://placehold.co/800x450/1e293b/94a3b8?text=Coming+Soon';
-
-  // const handleViewDemo = (e: React.MouseEvent) => {
+  // const handleViewApplication = (e: React.MouseEvent) => {
   //   e.stopPropagation();
   //   if (appPath) {
   //     window.open(`/app/${appPath}`, '_blank');
   //   }
   // };
 
+  const isClickable = !!appPath;
+  const displayPhoto = photo || 'https://placehold.co/800x450/1e293b/94a3b8?text=Coming+Soon';
+
   return (
     <div
-      className={classNames('flex flex-col lg:flex-row gap-6 lg:gap-8', {
-        'lg:flex-row-reverse': !photoOnLeft,
-      })}
+      className="relative overflow-hidden rounded-2xl bg-black shadow-lg flex-shrink-0"
+      style={{ width: '600px', height: '370px' }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Photo Section with Border */}
-      <div className="relative w-full lg:w-3/5 aspect-video lg:aspect-auto lg:h-auto min-h-[280px] overflow-hidden bg-white dark:bg-bolt-elements-background-depth-2 rounded-2xl shadow-md border border-gray-200 dark:border-bolt-elements-borderColor flex-shrink-0">
-        <img
-          src={displayPhoto}
-          alt={appName}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-        />
-      </div>
+      {/* App Screenshot */}
+      <img
+        src={displayPhoto}
+        alt={appName}
+        className={classNames('w-full h-full object-cover object-top transition-all duration-300', {
+          'blur-sm scale-105': isHovered && isClickable,
+        })}
+      />
 
-      {/* Content Section - No Border */}
-      <div className="flex-1 flex flex-col justify-center">
-        <div>
-          {/* Title */}
-          <h3 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-bolt-elements-textHeading mb-4 leading-tight">
-            {appName}
-          </h3>
+      {/* Gradient overlay for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
-          {/* Description */}
-          <p className="text-base lg:text-lg text-gray-600 dark:text-bolt-elements-textSecondary leading-relaxed mb-6">
-            {description}
-          </p>
+      {/* Content Section - Overlaid at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 p-5 bg-white/60 dark:bg-white/40 backdrop-blur-sm">
+        {/* Title */}
+        <h3 className="text-xl font-bold text-black mb-1">{appName}</h3>
 
-          {/* Bullet Points with Checkmarks */}
-          {bulletPoints.length > 0 && (
-            <ul className="space-y-3 mb-8">
-              {bulletPoints.map((point, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <CheckCircle
-                    className="text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0"
-                    size={20}
-                    strokeWidth={2.5}
-                  />
-                  <span className="text-sm lg:text-base text-gray-700 dark:text-bolt-elements-textSecondary leading-relaxed">
-                    {point}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {/* Description */}
+        <p className="text-sm text-gray-900 leading-relaxed mb-4">{description}</p>
 
-        {/* Action Buttons */}
-        {isClickable && (
-          <div className="flex flex-wrap gap-3">
-            <TooltipProvider>
-              {/* <button
-              onClick={handleViewDemo}
-              className="flex-1 min-w-[140px] px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-            >
-              <ExternalLink size={18} />
-              <span>View Live Demo</span>
-            </button> */}
-              <WithTooltip tooltip="Start customizing this app">
-                <button
-                  onClick={handleClick}
-                  className="flex items-center justify-center gap-2 w-fit px-6 py-3 bg-white dark:bg-bolt-elements-background-depth-2 border-2 border-gray-300 dark:border-bolt-elements-borderColor text-gray-700 dark:text-bolt-elements-textHeading font-semibold rounded-xl transition-all duration-200 hover:border-gray-400 dark:hover:border-bolt-elements-focus/60 hover:bg-gray-50 dark:hover:bg-bolt-elements-background-depth-3"
-                >
-                  Customize It!
-                  <Rocket className="transition-transform duration-200 group-hover:scale-110" size={18} />
-                </button>
-              </WithTooltip>
-            </TooltipProvider>
+        {/* Feature Tags */}
+        {bulletPoints.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {bulletPoints.map((point, index) => (
+              <span key={index} className="px-3 py-1.5 text-sm font-medium text-rose-600 bg-gray-200 rounded-full">
+                {point}
+              </span>
+            ))}
           </div>
         )}
       </div>
+
+      {/* Hover Overlay with Buttons */}
+      {isClickable && (
+        <div
+          className={classNames(
+            'absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 transition-all duration-300',
+            isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none',
+          )}
+        >
+          {/* Customize Button */}
+          <button
+            onClick={handleCustomize}
+            className="px-8 py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-full transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+          >
+            Customize it
+          </button>
+
+          {/* View Application Button */}
+          {/* <button
+            onClick={handleViewApplication}
+            className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-800 font-medium rounded-full transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+          >
+            View application
+            <ExternalLink size={16} />
+          </button> */}
+        </div>
+      )}
     </div>
   );
 };

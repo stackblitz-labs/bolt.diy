@@ -34,9 +34,9 @@ import { toast } from 'react-toastify';
 import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
 import { PlanUpgradeBlock } from './components/PlanUpgradeBlock';
 import AppTemplates from './components/AppTemplates/AppTemplates';
-import Pricing from '~/components/landingPage/components/Pricing';
-import FAQs from '~/components/landingPage/components/FAQs';
-import Explanation from '~/components/landingPage/components/Explanation';
+// import Pricing from '~/components/landingPage/components/Pricing';
+// import FAQs from '~/components/landingPage/components/FAQs';
+// import Explanation from '~/components/landingPage/components/Explanation';
 import { designPanelStore } from '~/lib/stores/designSystemStore';
 import { DesignSystemPanel } from '~/components/panels/DesignSystemPanel';
 import { DesignToolbar } from '~/components/panels/DesignToolbar';
@@ -525,10 +525,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </>
                   ) : null;
                 })()}
-                {!user && !chatStarted && <Pricing />}
-                {!user && !chatStarted && <Explanation />}
+                {/* {!user && !chatStarted && <Pricing />}
+                {!user && !chatStarted && <Explanation />} */}
                 {!chatStarted && <AppTemplates sendMessage={handleSendMessage} />}
-                {!user && !chatStarted && <FAQs />}
+                {/* {!user && !chatStarted && <FAQs />} */}
               </div>
             </div>
             <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>

@@ -45,7 +45,7 @@ export default function Explanation() {
           <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
             <span className="text-bolt-elements-textHeading">With you,</span>
             <br />
-            <span className="text-green-500 dark:text-green-400">Every step of the way</span>
+            <span className="text-rose-500 dark:text-rose-400">every step of the way.</span>
           </h1>
           <p className="text-lg md:text-xl text-bolt-elements-textSecondary max-w-3xl">
             Its like having a team of designers and engineers that never sleep.
@@ -59,8 +59,8 @@ export default function Explanation() {
             return (
               <div key={index} className="flex flex-col items-start">
                 {/* Icon */}
-                <div className="mb-4 p-3 rounded-lg border-2 border-green-500/50 bg-bolt-elements-background-depth-2">
-                  <IconComponent className="text-green-500 dark:text-green-400" size={32} />
+                <div className="mb-4 p-3 rounded-lg border-2 border-rose-500/50 bg-bolt-elements-background-depth-2">
+                  <IconComponent className="text-rose-500 dark:text-rose-400" size={32} />
                 </div>
 
                 {/* Title */}
@@ -79,8 +79,8 @@ export default function Explanation() {
             onClick={handleStartBuilding}
             className={cn(
               'px-8 py-4 rounded-lg text-base font-semibold text-white',
-              'bg-gradient-to-r from-green-500 to-emerald-500',
-              'hover:from-green-600 hover:to-emerald-600',
+              'bg-gradient-to-r from-rose-500 to-pink-500',
+              'hover:from-rose-600 hover:to-pink-600',
               'shadow-lg hover:shadow-xl transition-all duration-200',
               'hover:scale-105',
             )}

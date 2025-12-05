@@ -162,7 +162,7 @@ export const StatusModal: React.FC<StatusModalProps> = ({ appSummary, onContinue
                     className={classNames(
                       'h-full rounded-xl shadow-sm',
                       isFullyComplete
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                        ? 'bg-gradient-to-r from-rose-500 to-pink-500'
                         : 'bg-gradient-to-r from-blue-500 to-purple-500',
                     )}
                     variants={progressBarVariants}

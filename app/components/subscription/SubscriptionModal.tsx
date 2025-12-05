@@ -83,7 +83,7 @@ export function SubscriptionModal() {
                   className={classNames(
                     'relative p-6 rounded-2xl border transition-all duration-300 hover:shadow-xl hover:scale-105 group min-h-[400px] flex flex-col',
                     {
-                      'border-emerald-400/60 bg-gradient-to-br from-emerald-50/80 to-green-50/60 shadow-xl ring-2 ring-emerald-200/40 dark:from-emerald-900/10 dark:to-green-900/5 dark:ring-emerald-500/20':
+                      'border-rose-400/60 bg-gradient-to-br from-rose-50/80 to-pink-50/60 shadow-xl ring-2 ring-rose-200/40 dark:from-rose-900/10 dark:to-pink-900/5 dark:ring-rose-500/20':
                         isCurrentTier,
                       'border-bolt-elements-borderColor border-opacity-50 bg-gradient-to-br from-bolt-elements-background-depth-2/30 to-bolt-elements-background-depth-3/20 shadow-sm':
                         !isCurrentTier,
@@ -93,7 +93,7 @@ export function SubscriptionModal() {
                 >
                   {isCurrentTier && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold shadow-lg border border-emerald-400/50 whitespace-nowrap">
+                      <span className="bg-gradient-to-r from-rose-500 to-pink-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold shadow-lg border border-rose-400/50 whitespace-nowrap">
                         ✓ Current Subscription
                       </span>
                     </div>
@@ -103,7 +103,7 @@ export function SubscriptionModal() {
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-bolt-elements-background-depth-3/50 to-bolt-elements-background-depth-2/30 border border-bolt-elements-borderColor border-opacity-30 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-300">
                       {isFree ? (
                         <Gift
-                          className="text-green-500 transition-transform duration-300 group-hover:scale-110"
+                          className="text-rose-500 transition-transform duration-300 group-hover:scale-110"
                           size={24}
                         />
                       ) : (
@@ -117,13 +117,13 @@ export function SubscriptionModal() {
                       className={classNames(
                         'text-xl font-bold mb-3 transition-transform duration-300 group-hover:scale-105',
                         {
-                          'text-emerald-700 dark:text-emerald-400': isCurrentTier,
+                          'text-rose-700 dark:text-rose-400': isCurrentTier,
                           'text-bolt-elements-textHeading': !isCurrentTier,
                         },
                       )}
                     >
                       {details.name}
-                      {isCurrentTier && <span className="ml-2 text-emerald-500">✓</span>}
+                      {isCurrentTier && <span className="ml-2 text-rose-500">✓</span>}
                     </h3>
                     <div className="text-4xl font-bold text-bolt-elements-textHeading mb-2 transition-transform duration-300 group-hover:scale-105">
                       ${details.price}
@@ -137,9 +137,9 @@ export function SubscriptionModal() {
                   <div className="space-y-3 mb-8 flex-grow">
                     {details.features.map((feature, index) => (
                       <div key={index} className="flex items-start gap-3 group/feature">
-                        <div className="w-6 h-6 rounded-lg bg-green-500/20 flex items-center justify-center mt-0.5 flex-shrink-0 border border-green-500/30 transition-all duration-200 group-hover/feature:scale-110 group-hover/feature:bg-green-500/30">
+                        <div className="w-6 h-6 rounded-lg bg-rose-500/20 flex items-center justify-center mt-0.5 flex-shrink-0 border border-rose-500/30 transition-all duration-200 group-hover/feature:scale-110 group-hover/feature:bg-rose-500/30">
                           <Check
-                            className="text-green-500 transition-transform duration-200 group-hover/feature:scale-110"
+                            className="text-rose-500 transition-transform duration-200 group-hover/feature:scale-110"
                             size={14}
                           />
                         </div>
@@ -157,12 +157,10 @@ export function SubscriptionModal() {
                       className={classNames(
                         'w-full py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl group/btn min-h-[56px]',
                         {
-                          'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-600 border border-green-500/30 cursor-not-allowed':
+                          'bg-gradient-to-r from-rose-500/20 to-pink-500/20 text-rose-600 border border-rose-500/30 cursor-not-allowed':
                             isCurrentTier,
-                          'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border border-blue-500/50 hover:border-blue-400 hover:scale-105':
-                            !isFree && !isCurrentTier && !isLoading,
-                          'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border border-green-500/50 hover:border-green-400 hover:scale-105':
-                            isFree && !isCurrentTier && !isLoading,
+                          'bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white border border-rose-500/50 hover:border-rose-400 hover:scale-105':
+                            !isCurrentTier && !isLoading,
                           'opacity-50 cursor-not-allowed hover:scale-100': isLoading,
                         },
                       )}

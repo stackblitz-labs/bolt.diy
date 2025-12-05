@@ -71,7 +71,7 @@ export default function Faqs() {
             <span className="text-bolt-elements-textHeading">Frequently</span>
             <br />
             <span className="text-bolt-elements-textHeading">asked </span>
-            <span className="text-green-500 dark:text-green-400">questions</span>
+            <span className="text-rose-500 dark:text-rose-400">questions</span>
           </h1>
           <p className="text-lg md:text-xl text-bolt-elements-textSecondary max-w-3xl">
             Everything you need to know about Replay.Builder
@@ -90,8 +90,8 @@ export default function Faqs() {
                 <AccordionTrigger
                   className={cn(
                     'px-6 py-5 text-left hover:no-underline',
-                    'text-lg font-semibold text-green-500 dark:text-green-400',
-                    'hover:text-green-600 dark:hover:text-green-300',
+                    'text-lg font-semibold text-rose-500 dark:text-rose-400',
+                    'hover:text-rose-600 dark:hover:text-rose-300',
                     'transition-colors duration-200',
                     '[&[data-state=open]]:bg-bolt-elements-background-depth-3/50',
                   )}
@@ -118,8 +118,8 @@ export default function Faqs() {
             onClick={handleStartBuilding}
             className={cn(
               'px-8 py-4 rounded-lg text-base font-semibold text-white',
-              'bg-gradient-to-r from-green-500 to-emerald-500',
-              'hover:from-green-600 hover:to-emerald-600',
+              'bg-gradient-to-r from-rose-500 to-pink-500',
+              'hover:from-rose-600 hover:to-pink-600',
               'shadow-lg hover:shadow-xl transition-all duration-200',
               'hover:scale-105',
             )}

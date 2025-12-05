@@ -39,7 +39,7 @@ export default function Pricing() {
       price: '$49',
       pricePeriod: '/month',
       emphasized: true,
-      titleColor: 'text-green-500 dark:text-green-400',
+      titleColor: 'text-rose-500 dark:text-rose-400',
       featuresLabel: 'Everything in Basic, plus:',
       features: [
         { name: 'Unlimited projects', included: true, tooltip: 'Build as many apps as you want' },
@@ -83,7 +83,7 @@ export default function Pricing() {
           <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
             <span className="text-bolt-elements-textHeading">Simple,</span>
             <br />
-            <span className="text-green-500 dark:text-green-400">transparent</span>{' '}
+            <span className="text-rose-500 dark:text-rose-400">transparent</span>{' '}
             <span className="text-bolt-elements-textHeading">pricing</span>
           </h1>
           <p className="text-lg md:text-xl text-bolt-elements-textSecondary max-w-3xl">
@@ -117,8 +117,8 @@ export default function Pricing() {
             onClick={handleStartBuilding}
             className={cn(
               'px-8 py-4 rounded-lg text-base font-semibold text-white',
-              'bg-gradient-to-r from-green-500 to-emerald-500',
-              'hover:from-green-600 hover:to-emerald-600',
+              'bg-gradient-to-r from-rose-500 to-pink-500',
+              'hover:from-rose-600 hover:to-pink-600',
               'shadow-lg hover:shadow-xl transition-all duration-200',
               'hover:scale-105',
             )}
