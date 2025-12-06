@@ -1,3 +1,18 @@
+// Mock ESM-only dependencies to avoid CJS require issues in tests
+vi.mock('@web3-storage/multipart-parser', () => ({}));
+vi.mock('@web3-storage/multipart-parser/esm/src/index.js', () => ({}));
+vi.mock('@remix-run/cloudflare', () => ({
+  Response: class MockResponse {
+    status: number;
+    statusText?: string;
+    constructor(body?: any, init?: { status?: number; statusText?: string }) {
+      this.status = init?.status ?? 200;
+      this.statusText = init?.statusText;
+    }
+  },
+  eventStream: (fn: any) => fn(() => {}),
+  createRequestHandler: () => {},
+}));
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('~/lib/services/crawlerAgent.server', () => ({

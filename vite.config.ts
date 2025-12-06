@@ -20,6 +20,8 @@ export default defineConfig((config) => {
       alias: {
         // Fix for istextorbinary browser edition requiring path.basename
         path: 'path-browserify',
+        '@smithy/core/dist-es/getSmithyContext': '/test/stubs/smithy-get.ts',
+        '@smithy/core/dist-es': '/test/stubs/smithy-index.ts',
       },
       // Prevent esbuild from trying to resolve node: protocol imports
       conditions: ['import', 'module', 'browser', 'default'],
@@ -237,6 +239,20 @@ export default defineConfig((config) => {
       },
     },
     test: {
+      environment: 'node',
+      setupFiles: ['./vitest.setup.ts'],
+      deps: {
+        inline: [
+          'ollama-ai-provider',
+          '@ai-sdk/provider-utils',
+          'style-to-object',
+          'style-to-js',
+          '@web3-storage/multipart-parser',
+          '@web3-storage/multipart-parser/esm/src/index.js',
+          '@smithy/core',
+        ],
+        interopDefault: true,
+      },
       exclude: [
         '**/node_modules/**',
         '**/dist/**',

@@ -163,7 +163,8 @@
     "use-debounce": "^10.0.4",
     "vite-plugin-node-polyfills": "^0.22.0",
     "zod": "^3.24.1",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "web-tree-sitter": "^0.20.7"
   },
   "devDependencies": {
     "@better-auth/cli": "^1.4.1",

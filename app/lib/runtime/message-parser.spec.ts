@@ -157,6 +157,74 @@ describe('StreamingMessageParser', () => {
       runTest(input, expected);
     });
   });
+
+  describe('edit actions', () => {
+    it('parses edit action as non-streaming', () => {
+      const callbacks = {
+        onArtifactOpen: vi.fn(),
+        onArtifactClose: vi.fn(),
+        onActionOpen: vi.fn(),
+        onActionStream: vi.fn(),
+        onActionClose: vi.fn(),
+      };
+
+      const parser = new StreamingMessageParser({ callbacks });
+
+      const input = `<boltArtifact title="Edit Files" id="edit_1">
+<boltAction type="edit">
+src/App.tsx
+<<<<<<< SEARCH
+const a = 1;
+=======
+const a = 2;
+>>>>>>> REPLACE
+</boltAction>
+</boltArtifact>`;
+
+      parser.parse('test_edit', input);
+
+      expect(callbacks.onActionOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onActionStream).not.toHaveBeenCalled();
+      expect(callbacks.onActionClose).toHaveBeenCalledTimes(1);
+
+      const closeCall = callbacks.onActionClose.mock.calls[0][0];
+      expect(closeCall.action.type).toBe('edit');
+      expect(closeCall.action.content).toContain('<<<<<<< SEARCH');
+      expect(closeCall.action.content).toContain('>>>>>>> REPLACE');
+    });
+
+    it('preserves exact content including markers', () => {
+      const callbacks = {
+        onArtifactOpen: vi.fn(),
+        onArtifactClose: vi.fn(),
+        onActionOpen: vi.fn(),
+        onActionClose: vi.fn(),
+      };
+
+      const parser = new StreamingMessageParser({ callbacks });
+
+      const editContent = `path/to/file.tsx
+<<<<<<< SEARCH
+  exact indentation
+    preserved here
+=======
+  new indentation
+    also preserved
+>>>>>>> REPLACE`;
+
+      const input = `<boltArtifact title="Test" id="test_1">
+<boltAction type="edit">
+${editContent}
+</boltAction>
+</boltArtifact>`;
+
+      parser.parse('test_preserve', input);
+
+      const closeCall = callbacks.onActionClose.mock.calls[0][0];
+      expect(closeCall.action.content).toContain('  exact indentation');
+      expect(closeCall.action.content).toContain('    preserved here');
+    });
+  });
 });
 
 describe('EnhancedStreamingMessageParser', () => {

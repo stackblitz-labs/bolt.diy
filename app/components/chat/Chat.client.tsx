@@ -8,6 +8,8 @@ import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { getThemeByTemplateName } from '~/theme-prompts/registry';
+import type { RestaurantThemeId } from '~/types/restaurant-theme';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
@@ -115,6 +117,7 @@ export const ChatImpl = memo(
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
+    const restaurantThemeIdRef = useRef<RestaurantThemeId | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
 
     const {
@@ -133,13 +136,15 @@ export const ChatImpl = memo(
       addToolResult,
     } = useChat({
       api: '/api/chat',
-      body: {
+      experimental_prepareRequestBody: ({ messages }) => ({
+        messages,
         apiKeys,
         files,
         promptId,
         contextOptimization: contextOptimizationEnabled,
         chatMode,
         designScheme,
+        restaurantThemeId: restaurantThemeIdRef.current,
         supabase: {
           isConnected: supabaseConn.isConnected,
           hasSelectedProject: !!selectedProject,
@@ -149,7 +154,7 @@ export const ChatImpl = memo(
           },
         },
         maxLLMSteps: mcpSettings.maxLLMSteps,
-      },
+      }),
       sendExtraMessageFields: true,
       onError: (e) => {
         setFakeLoading(false);
@@ -420,7 +425,13 @@ export const ChatImpl = memo(
           });
 
           if (template !== 'blank') {
+            logger.info(`[THEME DEBUG] Template selected: "${template}", checking for restaurant theme...`);
+
             const temResp = await getTemplates(template, title).catch((e) => {
+              // Clear restaurantThemeId on template loading failure
+              logger.warn(`[THEME DEBUG] Template loading failed for "${template}", clearing restaurantThemeId`);
+              restaurantThemeIdRef.current = null;
+
               if (e.message.includes('rate limit')) {
                 toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
               } else {
@@ -433,6 +444,20 @@ export const ChatImpl = memo(
             if (temResp) {
               const { assistantMessage, userMessage } = temResp;
               const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
+
+              // Set restaurantThemeId based on selected template
+              const selectedTheme = getThemeByTemplateName(template);
+              logger.info(`[THEME DEBUG] Looking up theme for template: "${template}"`);
+
+              if (selectedTheme) {
+                logger.info(`[THEME DEBUG] Theme found: id="${selectedTheme.id}", label="${selectedTheme.label}"`);
+              } else {
+                logger.warn(`[THEME DEBUG] No theme found for template: "${template}"`);
+              }
+
+              const themeId = selectedTheme?.id || null;
+              logger.info(`[THEME DEBUG] Setting restaurantThemeId to: ${themeId || 'null'}`);
+              restaurantThemeIdRef.current = themeId;
 
               setMessages([
                 {

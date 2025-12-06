@@ -11,7 +11,11 @@
       "Bash(cat:*)",
       "Bash(pnpm list:*)",
       "Bash(pnpm test:*)",
-      "Bash(pnpm run test:*)"
+      "Bash(pnpm run test:*)",
+      "Bash(bash:*)",
+      "Bash(find:*)",
+      "Bash(pnpm exec vitest run:*)",
+      "Bash(pnpm run dev)"
     ],
     "deny": [],
     "ask": []

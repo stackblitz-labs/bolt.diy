@@ -7,7 +7,7 @@ exports[`StreamingMessageParser > valid artifacts with actions > should correctl
     "type": "shell",
   },
   "actionId": "0",
-  "artifactId": "message_1-0",
+  "artifactId": "artifact_1",
   "messageId": "message_1",
 }
 `;
@@ -19,15 +19,15 @@ exports[`StreamingMessageParser > valid artifacts with actions > should correctl
     "type": "shell",
   },
   "actionId": "0",
-  "artifactId": "message_1-0",
+  "artifactId": "artifact_1",
   "messageId": "message_1",
 }
 `;
 
 exports[`StreamingMessageParser > valid artifacts with actions > should correctly parse chunks and strip out bolt artifacts (0) > onArtifactClose 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -36,8 +36,8 @@ exports[`StreamingMessageParser > valid artifacts with actions > should correctl
 
 exports[`StreamingMessageParser > valid artifacts with actions > should correctly parse chunks and strip out bolt artifacts (0) > onArtifactOpen 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -51,7 +51,7 @@ exports[`StreamingMessageParser > valid artifacts with actions > should correctl
     "type": "shell",
   },
   "actionId": "0",
-  "artifactId": "message_1-0",
+  "artifactId": "artifact_1",
   "messageId": "message_1",
 }
 `;
@@ -65,7 +65,7 @@ exports[`StreamingMessageParser > valid artifacts with actions > should correctl
     "type": "file",
   },
   "actionId": "1",
-  "artifactId": "message_1-0",
+  "artifactId": "artifact_1",
   "messageId": "message_1",
 }
 `;
@@ -77,7 +77,7 @@ exports[`StreamingMessageParser > valid artifacts with actions > should correctl
     "type": "shell",
   },
   "actionId": "0",
-  "artifactId": "message_1-0",
+  "artifactId": "artifact_1",
   "messageId": "message_1",
 }
 `;
@@ -90,15 +90,15 @@ exports[`StreamingMessageParser > valid artifacts with actions > should correctl
     "type": "file",
   },
   "actionId": "1",
-  "artifactId": "message_1-0",
+  "artifactId": "artifact_1",
   "messageId": "message_1",
 }
 `;
 
 exports[`StreamingMessageParser > valid artifacts with actions > should correctly parse chunks and strip out bolt artifacts (1) > onArtifactClose 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -107,8 +107,8 @@ exports[`StreamingMessageParser > valid artifacts with actions > should correctl
 
 exports[`StreamingMessageParser > valid artifacts with actions > should correctly parse chunks and strip out bolt artifacts (1) > onArtifactOpen 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -117,8 +117,8 @@ exports[`StreamingMessageParser > valid artifacts with actions > should correctl
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (0) > onArtifactClose 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -127,8 +127,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (0) > onArtifactOpen 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -137,8 +137,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (1) > onArtifactClose 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": "bundled",
@@ -147,8 +147,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (1) > onArtifactOpen 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": "bundled",
@@ -157,8 +157,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (2) > onArtifactClose 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -167,8 +167,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (2) > onArtifactOpen 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -177,8 +177,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (3) > onArtifactClose 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -187,8 +187,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (3) > onArtifactOpen 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -197,8 +197,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (4) > onArtifactClose 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -207,8 +207,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (4) > onArtifactOpen 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -217,8 +217,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (5) > onArtifactClose 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -227,8 +227,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (5) > onArtifactOpen 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -237,8 +237,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (6) > onArtifactClose 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
@@ -247,8 +247,8 @@ exports[`StreamingMessageParser > valid artifacts without actions > should corre
 
 exports[`StreamingMessageParser > valid artifacts without actions > should correctly parse chunks and strip out bolt artifacts (6) > onArtifactOpen 1`] = `
 {
-  "artifactId": "message_1-0",
-  "id": "message_1-0",
+  "artifactId": "artifact_1",
+  "id": "artifact_1",
   "messageId": "message_1",
   "title": "Some title",
   "type": undefined,
