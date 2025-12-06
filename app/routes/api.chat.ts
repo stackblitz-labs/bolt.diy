@@ -52,25 +52,34 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     },
   });
 
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, restaurantThemeId, maxLLMSteps } =
-    await request.json<{
-      messages: Messages;
-      files: any;
-      promptId?: string;
-      contextOptimization: boolean;
-      chatMode: 'discuss' | 'build';
-      designScheme?: DesignScheme;
-      restaurantThemeId?: RestaurantThemeId | null;
-      supabase?: {
-        isConnected: boolean;
-        hasSelectedProject: boolean;
-        credentials?: {
-          anonKey?: string;
-          supabaseUrl?: string;
-        };
+  const {
+    messages,
+    files,
+    promptId,
+    contextOptimization,
+    supabase,
+    chatMode,
+    designScheme,
+    restaurantThemeId,
+    maxLLMSteps,
+  } = await request.json<{
+    messages: Messages;
+    files: any;
+    promptId?: string;
+    contextOptimization: boolean;
+    chatMode: 'discuss' | 'build';
+    designScheme?: DesignScheme;
+    restaurantThemeId?: RestaurantThemeId | null;
+    supabase?: {
+      isConnected: boolean;
+      hasSelectedProject: boolean;
+      credentials?: {
+        anonKey?: string;
+        supabaseUrl?: string;
       };
-      maxLLMSteps: number;
-    }>();
+    };
+    maxLLMSteps: number;
+  }>();
 
   logger.info(`[THEME DEBUG] Received restaurantThemeId: ${restaurantThemeId || 'null'}, chatMode: ${chatMode}`);
 
@@ -273,7 +282,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${CONTINUE_PROMPT}`,
             });
 
-            logger.info(`[THEME DEBUG] Calling streamText (continuation) with restaurantThemeId: ${restaurantThemeId || 'null'}`);
+            logger.info(
+              `[THEME DEBUG] Calling streamText (continuation) with restaurantThemeId: ${restaurantThemeId || 'null'}`,
+            );
+
             const result = await streamText({
               messages: [...processedMessages],
               env: context.cloudflare?.env,
@@ -317,6 +329,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         } satisfies ProgressAnnotation);
 
         logger.info(`[THEME DEBUG] Calling streamText (main) with restaurantThemeId: ${restaurantThemeId || 'null'}`);
+
         const result = await streamText({
           messages: [...processedMessages],
           env: context.cloudflare?.env,

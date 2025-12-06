@@ -112,6 +112,18 @@ const envSchema = z.object({
     .default('true')
     .transform((val) => val.toLowerCase() === 'true' || val === '1'),
 
+  // Enable SEARCH/REPLACE edit actions (vs full-file rewrites)
+  ENABLE_EDIT_ACTIONS: z
+    .string()
+    .default('true') // Enabled by default in development
+    .transform((val) => val.toLowerCase() === 'true' || val === '1'),
+
+  // Optional: enable AST-based matching for edit actions (requires WASM parsers)
+  ENABLE_AST_MATCHING: z
+    .string()
+    .default('false')
+    .transform((val) => val.toLowerCase() === 'true' || val === '1'),
+
   /*
    * ============================================================================
    * Optional Configuration
@@ -143,6 +155,8 @@ export interface InternalPlacesServiceConfig {
 export interface FeatureFlags {
   pccAccessibility: boolean;
   crawlerTelemetry: boolean;
+  editActions: boolean;
+  astMatching: boolean;
 }
 
 /**
@@ -217,6 +231,8 @@ export function getFeatureFlags(): FeatureFlags {
   return {
     pccAccessibility: env.ENABLE_PCC_ACCESSIBILITY,
     crawlerTelemetry: env.ENABLE_CRAWLER_TELEMETRY,
+    editActions: env.ENABLE_EDIT_ACTIONS,
+    astMatching: env.ENABLE_AST_MATCHING,
   };
 }
 

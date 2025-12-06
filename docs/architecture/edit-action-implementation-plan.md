@@ -4,6 +4,14 @@
 > **Related Spec:** [copy-edit-grep-ast-solution.md](./copy-edit-grep-ast-solution.md)  
 > **Estimated Effort:** 7-10 days (Phase 1), +3-5 days (Phase 2 AST)
 
+## Progress Updates
+
+- 2025-12-06: Phase 1 core implementation merged into code (types, parser, message parser, action runner, prompts, unit tests). Automated test run still pending.
+- 2025-12-06: Phase 2 AST groundwork added (web-tree-sitter dependency, AST context loader, feature-flagged AST-aware matching in edit application). WASM binaries still required under `public/parsers/`.
+- 2025-12-06: Tests now passing; added ENV flag `ENABLE_AST_MATCHING` and `public/parsers/README.md` with required WASM list. Actual WASM binaries still need to be added to enable AST matching.
+- 2025-12-06: Downloaded Tree-sitter WASM binaries (tree-sitter-typescript.wasm, tree-sitter-tsx.wasm, tree-sitter-javascript.wasm) to `public/parsers/`. AST matching now available with `ENABLE_AST_MATCHING=true`.
+- 2025-12-06: Added `ENABLE_EDIT_ACTIONS` feature flag per Section 7 (Rollout Plan). Edit actions enabled by default in development. All tests passing.
+
 ---
 
 ## Table of Contents

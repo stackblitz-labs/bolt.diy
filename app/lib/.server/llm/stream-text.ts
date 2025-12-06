@@ -31,6 +31,7 @@ const logger = createScopedLogger('stream-text');
 function getCompletionTokenLimit(modelDetails: any): number {
   // 1. If model specifies completion tokens, use that
   console.log('modelDetails', modelDetails);
+
   if (modelDetails.maxCompletionTokens && modelDetails.maxCompletionTokens > 0) {
     return modelDetails.maxCompletionTokens;
   }
@@ -86,9 +87,18 @@ export async function streamText(props: {
     restaurantThemeId,
   } = props;
 
-  logger.info(`[THEME DEBUG] streamText called with restaurantThemeId: ${restaurantThemeId || 'null'}, chatMode: ${chatMode || 'undefined'}`);
+  logger.info(
+    `[THEME DEBUG] streamText called with restaurantThemeId: ${restaurantThemeId || 'null'}, chatMode: ${chatMode || 'undefined'}`,
+  );
+
+  const fallbackProvider = DEFAULT_PROVIDER ?? PROVIDER_LIST[0];
+
+  if (!fallbackProvider) {
+    throw new Error('No provider configured');
+  }
+
   let currentModel = DEFAULT_MODEL;
-  let currentProvider = DEFAULT_PROVIDER.name;
+  let currentProvider = fallbackProvider.name;
   let processedMessages = messages.map((message) => {
     const newMessage = { ...message };
 
@@ -111,7 +121,7 @@ export async function streamText(props: {
     return newMessage;
   });
 
-  const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) || DEFAULT_PROVIDER;
+  const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) ?? fallbackProvider;
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);
   let modelDetails = staticModels.find((m) => m.name === currentModel);
 
@@ -172,8 +182,9 @@ export async function streamText(props: {
   // Inject restaurant theme prompt if applicable
   if (chatMode === 'build' && restaurantThemeId) {
     logger.info(`[THEME DEBUG] Attempting to load theme prompt for restaurantThemeId: ${restaurantThemeId}`);
+
     const themePrompt = getThemePrompt(restaurantThemeId);
-    
+
     if (themePrompt) {
       logger.info(`[THEME DEBUG] Theme prompt loaded successfully. Length: ${themePrompt.length} characters`);
       logger.debug(`[THEME DEBUG] Theme prompt preview: ${themePrompt.substring(0, 200)}...`);
@@ -192,6 +203,7 @@ ${themePrompt}
     if (chatMode !== 'build') {
       logger.debug(`[THEME DEBUG] Theme prompt skipped - chatMode is "${chatMode}", not "build"`);
     }
+
     if (!restaurantThemeId) {
       logger.debug(`[THEME DEBUG] Theme prompt skipped - restaurantThemeId is ${restaurantThemeId}`);
     }

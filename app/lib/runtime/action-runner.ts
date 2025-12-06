@@ -6,6 +6,8 @@ import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import type { BoltShell } from '~/utils/shell';
+import { applyEdit, groupEditsByFile, parseEditBlocks, sortEditsForApplication } from './edit-parser';
+import { ENABLE_AST_MATCHING, getAstContext } from './ast-context';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -185,6 +187,10 @@ export class ActionRunner {
           this.buildOutput = buildOutput;
           break;
         }
+        case 'edit': {
+          await this.#runEditAction(action);
+          break;
+        }
         case 'start': {
           // making the start app non blocking
 
@@ -336,6 +342,113 @@ export class ActionRunner {
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
     }
+  }
+
+  async #runEditAction(action: ActionState) {
+    if (action.type !== 'edit') {
+      unreachable('Expected edit action');
+    }
+
+    const webcontainer = await this.#webcontainer;
+    const { blocks, errors } = parseEditBlocks(action.content);
+
+    if (errors.length > 0) {
+      logger.warn('Edit parsing warnings:', errors);
+    }
+
+    if (blocks.length === 0) {
+      logger.warn('EditAction contains no valid edit blocks');
+      this.onAlert?.({
+        type: 'warning',
+        title: 'No Edits Found',
+        description: 'The edit action did not contain any valid SEARCH/REPLACE blocks.',
+        content: action.content.slice(0, 200),
+      });
+
+      return;
+    }
+
+    const editsByFile = groupEditsByFile(blocks);
+    const results: { filePath: string; applied: number; failed: number; strategies: string[] }[] = [];
+
+    for (const [filePath, fileBlocks] of editsByFile) {
+      const normalizedPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+      const absolutePath = nodePath.join(webcontainer.workdir, normalizedPath);
+      const relativePath = nodePath.relative(webcontainer.workdir, absolutePath);
+
+      let fileContent: string;
+
+      try {
+        fileContent = await webcontainer.fs.readFile(relativePath, 'utf-8');
+      } catch (error) {
+        logger.warn(`File not found for edit: ${relativePath}`, error);
+        this.onAlert?.({
+          type: 'error',
+          title: 'Edit Failed',
+          description: `File not found: ${filePath}`,
+          content: 'The target file does not exist. Create it first with a file action.',
+        });
+        results.push({ filePath, applied: 0, failed: fileBlocks.length, strategies: [] });
+        continue;
+      }
+
+      const sortedBlocks = sortEditsForApplication(fileBlocks, fileContent);
+
+      let currentContent = fileContent;
+      let applied = 0;
+      let failed = 0;
+      const strategies: string[] = [];
+      let tree = ENABLE_AST_MATCHING ? await getAstContext(filePath, currentContent) : null;
+
+      for (const block of sortedBlocks) {
+        const result = applyEdit(currentContent, block, tree);
+
+        if (result.success) {
+          currentContent = result.newContent;
+          applied++;
+          strategies.push(result.strategy);
+
+          if (ENABLE_AST_MATCHING) {
+            tree = await getAstContext(filePath, currentContent);
+          }
+
+          logger.debug(`Edit applied (${result.strategy})`, {
+            filePath,
+            searchSnippet: block.searchContent.slice(0, 80),
+          });
+        } else {
+          failed++;
+          logger.warn('Failed to apply edit block', {
+            filePath,
+            searchSnippet: block.searchContent.slice(0, 120),
+            error: result.error,
+          });
+
+          this.onAlert?.({
+            type: 'error',
+            title: 'Edit Match Failed',
+            description: `Could not find matching code in ${filePath}`,
+            content: `SEARCH block:\n${block.searchContent.slice(0, 300)}`,
+          });
+        }
+      }
+
+      if (applied > 0 && currentContent !== fileContent) {
+        await webcontainer.fs.writeFile(relativePath, currentContent);
+        logger.info(`Edited ${filePath}: ${applied} edits applied`);
+      }
+
+      results.push({ filePath, applied, failed, strategies });
+    }
+
+    const totalApplied = results.reduce((sum, entry) => sum + entry.applied, 0);
+    const totalFailed = results.reduce((sum, entry) => sum + entry.failed, 0);
+
+    logger.info('Edit action complete', {
+      totalApplied,
+      totalFailed,
+      files: results.length,
+    });
   }
 
   #updateAction(id: string, newState: ActionStateUpdate) {

@@ -113,10 +113,10 @@ const parseSelectedTemplate = (llmOutput: string): { template: string; title: st
 
 export const selectStarterTemplate = async (options: { message: string; model: string; provider: ProviderInfo }) => {
   const { message, model, provider } = options;
-  
+
   logger.info(`[THEME DEBUG] selectStarterTemplate called with message: "${message.substring(0, 100)}..."`);
   logger.debug(`[THEME DEBUG] Model: ${model}, Provider: ${provider.name}`);
-  
+
   const requestBody = {
     message,
     model,
@@ -149,6 +149,7 @@ export const selectStarterTemplate = async (options: { message: string; model: s
 const getGitHubRepoContent = async (repoName: string): Promise<{ name: string; path: string; content: string }[]> => {
   try {
     logger.info(`[THEME DEBUG] Fetching GitHub repo content for: ${repoName}`);
+
     // Instead of directly fetching from GitHub, use our own API endpoint as a proxy
     const response = await fetch(`/api/github-template?repo=${encodeURIComponent(repoName)}`);
 
@@ -170,7 +171,7 @@ const getGitHubRepoContent = async (repoName: string): Promise<{ name: string; p
 
 export async function getTemplates(templateName: string, title?: string) {
   logger.info(`[THEME DEBUG] getTemplates called with templateName: "${templateName}", title: "${title || 'N/A'}"`);
-  
+
   const template = STARTER_TEMPLATES.find((t) => t.name == templateName);
 
   if (!template) {
@@ -178,11 +179,16 @@ export async function getTemplates(templateName: string, title?: string) {
     return null;
   }
 
-  logger.info(`[THEME DEBUG] Template found: "${template.name}", category: "${template.category || 'N/A'}", restaurantThemeId: "${template.restaurantThemeId || 'N/A'}"`);
-  logger.debug(`[THEME DEBUG] Template details: ${JSON.stringify({ name: template.name, githubRepo: template.githubRepo, category: template.category, restaurantThemeId: template.restaurantThemeId })}`);
+  logger.info(
+    `[THEME DEBUG] Template found: "${template.name}", category: "${template.category || 'N/A'}", restaurantThemeId: "${template.restaurantThemeId || 'N/A'}"`,
+  );
+  logger.debug(
+    `[THEME DEBUG] Template details: ${JSON.stringify({ name: template.name, githubRepo: template.githubRepo, category: template.category, restaurantThemeId: template.restaurantThemeId })}`,
+  );
 
   const githubRepo = template.githubRepo;
   logger.info(`[THEME DEBUG] Fetching files from GitHub repo: ${githubRepo}`);
+
   const files = await getGitHubRepoContent(githubRepo);
 
   let filteredFiles = files;
@@ -211,6 +217,7 @@ export async function getTemplates(templateName: string, title?: string) {
 
   // check for ignore file in .bolt folder
   const templateIgnoreFile = files.find((x) => x.path.startsWith('.bolt') && x.name == 'ignore');
+
   if (templateIgnoreFile) {
     logger.debug(`[THEME DEBUG] Found template ignore file: ${templateIgnoreFile.path}`);
   }
@@ -234,7 +241,7 @@ export async function getTemplates(templateName: string, title?: string) {
 
   logger.info(`[THEME DEBUG] Constructing assistant message with ${filesToImport.files.length} files to import`);
   logger.debug(`[THEME DEBUG] Ignored files count: ${filesToImport.ignoreFile.length}`);
-  
+
   const assistantMessage = `
 Bolt is initializing your project with the required files using the ${template.name} template.
 <boltArtifact id="imported-files" title="${title || 'Create initial files'}" type="bundled">
@@ -330,8 +337,10 @@ Now that the Template is imported please continue with my original request
 IMPORTANT: Dont Forget to install the dependencies before running the app by using \`npm install && npm run dev\`
 `;
 
-  logger.info(`[THEME DEBUG] getTemplates completed successfully. Assistant message length: ${assistantMessage.length}, User message length: ${userMessage.length}`);
-  
+  logger.info(
+    `[THEME DEBUG] getTemplates completed successfully. Assistant message length: ${assistantMessage.length}, User message length: ${userMessage.length}`,
+  );
+
   return {
     assistantMessage,
     userMessage,

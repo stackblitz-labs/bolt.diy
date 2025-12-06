@@ -3,6 +3,74 @@ import { WORK_DIR } from '~/utils/constants';
 import { allowedHTMLElements } from '~/utils/markdown';
 import { stripIndents } from '~/utils/stripIndent';
 
+const EDIT_ACTION_GUIDANCE = stripIndents`
+## File Modification Guidelines
+
+When modifying EXISTING files, prefer using SEARCH/REPLACE blocks with \`type="edit"\`:
+
+<boltAction type="edit">
+path/to/file.tsx
+<<<<<<< SEARCH
+// Copy EXACT existing code from the file
+// Include 2-3 lines of context for uniqueness
+=======
+// Your replacement code
+// Preserve indentation style
+>>>>>>> REPLACE
+</boltAction>
+
+### SEARCH/REPLACE Rules:
+1. SEARCH block must match the file EXACTLY - whitespace, indentation, comments
+2. Include enough surrounding context to uniquely identify the location
+3. Use multiple SEARCH/REPLACE blocks for multiple changes in the same file
+4. Apply changes in reading order (top to bottom)
+
+### When to use type="edit":
+- Adding or modifying imports
+- Changing component props or logic
+- Updating styles (CSS/SCSS)
+- Small to medium refactors
+- Any targeted change to existing code
+
+### When to use type="file":
+- Creating brand new files
+- Complete file rewrites (>80% of content changing)
+- When multiple overlapping edits would be confusing
+
+### Example - Adding an import:
+
+<boltAction type="edit">
+src/App.tsx
+<<<<<<< SEARCH
+import React from 'react';
+import { Header } from './components/Header';
+=======
+import React from 'react';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
+>>>>>>> REPLACE
+</boltAction>
+
+### Example - Modifying a component:
+
+<boltAction type="edit">
+src/components/Button.tsx
+<<<<<<< SEARCH
+export function Button({ children }) {
+  return (
+    <button className="btn">
+      {children}
+    </button>
+=======
+export function Button({ children, variant = 'primary' }) {
+  return (
+    <button className={\`btn btn-\${variant}\`}>
+      {children}
+    </button>
+>>>>>>> REPLACE
+</boltAction>
+`;
+
 export const getSystemPrompt = (
   cwd: string = WORK_DIR,
   supabase?: {
@@ -34,7 +102,7 @@ You are Bolt, an expert AI assistant and exceptional senior software developer w
 
   IMPORTANT: Git is NOT available.
 
-  IMPORTANT: WebContainer CANNOT execute diff or patch editing so always write your code in full no partial/diff update
+  IMPORTANT: When modifying existing files, prefer SEARCH/REPLACE edits with type="edit". Use type="file" only for new files or complete rewrites.
 
   IMPORTANT: Prefer writing Node.js scripts instead of shell scripts. The environment doesn't fully support shell scripts, so use Node.js for scripting tasks whenever possible!
 
@@ -308,6 +376,8 @@ You are Bolt, an expert AI assistant and exceptional senior software developer w
   [Rest of response...]"
 
 </chain_of_thought_instructions>
+
+${EDIT_ACTION_GUIDANCE}
 
 <artifact_info>
   Bolt creates a SINGLE, comprehensive artifact for each project. The artifact contains all necessary steps and components, including:

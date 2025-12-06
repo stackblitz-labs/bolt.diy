@@ -117,7 +117,6 @@ export const ChatImpl = memo(
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
-    const [restaurantThemeId, setRestaurantThemeId] = useState<RestaurantThemeId | null>(null);
     const restaurantThemeIdRef = useRef<RestaurantThemeId | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
 
@@ -427,11 +426,11 @@ export const ChatImpl = memo(
 
           if (template !== 'blank') {
             logger.info(`[THEME DEBUG] Template selected: "${template}", checking for restaurant theme...`);
+
             const temResp = await getTemplates(template, title).catch((e) => {
               // Clear restaurantThemeId on template loading failure
               logger.warn(`[THEME DEBUG] Template loading failed for "${template}", clearing restaurantThemeId`);
               restaurantThemeIdRef.current = null;
-              setRestaurantThemeId(null);
 
               if (e.message.includes('rate limit')) {
                 toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
@@ -449,15 +448,16 @@ export const ChatImpl = memo(
               // Set restaurantThemeId based on selected template
               const selectedTheme = getThemeByTemplateName(template);
               logger.info(`[THEME DEBUG] Looking up theme for template: "${template}"`);
+
               if (selectedTheme) {
                 logger.info(`[THEME DEBUG] Theme found: id="${selectedTheme.id}", label="${selectedTheme.label}"`);
               } else {
                 logger.warn(`[THEME DEBUG] No theme found for template: "${template}"`);
               }
+
               const themeId = selectedTheme?.id || null;
               logger.info(`[THEME DEBUG] Setting restaurantThemeId to: ${themeId || 'null'}`);
               restaurantThemeIdRef.current = themeId;
-              setRestaurantThemeId(themeId);
 
               setMessages([
                 {
