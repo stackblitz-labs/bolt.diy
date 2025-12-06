@@ -52,4 +52,3 @@ export default class ZAIProvider extends BaseProvider {
     return openai(model);
   }
 }
-
