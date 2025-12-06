@@ -10,6 +10,8 @@ import { createScopedLogger } from '~/utils/logger';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import type { DesignScheme } from '~/types/design-scheme';
+import type { RestaurantThemeId } from '~/types/restaurant-theme';
+import { getThemePrompt } from '~/theme-prompts/registry';
 
 export type Messages = Message[];
 
@@ -28,6 +30,7 @@ const logger = createScopedLogger('stream-text');
 
 function getCompletionTokenLimit(modelDetails: any): number {
   // 1. If model specifies completion tokens, use that
+  console.log('modelDetails', modelDetails);
   if (modelDetails.maxCompletionTokens && modelDetails.maxCompletionTokens > 0) {
     return modelDetails.maxCompletionTokens;
   }
@@ -65,6 +68,7 @@ export async function streamText(props: {
   messageSliceId?: number;
   chatMode?: 'discuss' | 'build';
   designScheme?: DesignScheme;
+  restaurantThemeId?: RestaurantThemeId | null;
 }) {
   const {
     messages,
@@ -79,7 +83,10 @@ export async function streamText(props: {
     summary,
     chatMode,
     designScheme,
+    restaurantThemeId,
   } = props;
+
+  logger.info(`[THEME DEBUG] streamText called with restaurantThemeId: ${restaurantThemeId || 'null'}, chatMode: ${chatMode || 'undefined'}`);
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
   let processedMessages = messages.map((message) => {
@@ -161,6 +168,34 @@ export async function streamText(props: {
         credentials: options?.supabaseConnection?.credentials || undefined,
       },
     }) ?? getSystemPrompt();
+
+  // Inject restaurant theme prompt if applicable
+  if (chatMode === 'build' && restaurantThemeId) {
+    logger.info(`[THEME DEBUG] Attempting to load theme prompt for restaurantThemeId: ${restaurantThemeId}`);
+    const themePrompt = getThemePrompt(restaurantThemeId);
+    
+    if (themePrompt) {
+      logger.info(`[THEME DEBUG] Theme prompt loaded successfully. Length: ${themePrompt.length} characters`);
+      logger.debug(`[THEME DEBUG] Theme prompt preview: ${themePrompt.substring(0, 200)}...`);
+      systemPrompt = `${systemPrompt}
+
+---
+RESTAURANT THEME INSTRUCTIONS:
+${themePrompt}
+---
+`;
+      logger.info(`[THEME DEBUG] Theme prompt injected. Final system prompt length: ${systemPrompt.length} characters`);
+    } else {
+      logger.warn(`[THEME DEBUG] Theme prompt not found for restaurantThemeId: ${restaurantThemeId}`);
+    }
+  } else {
+    if (chatMode !== 'build') {
+      logger.debug(`[THEME DEBUG] Theme prompt skipped - chatMode is "${chatMode}", not "build"`);
+    }
+    if (!restaurantThemeId) {
+      logger.debug(`[THEME DEBUG] Theme prompt skipped - restaurantThemeId is ${restaurantThemeId}`);
+    }
+  }
 
   if (chatMode === 'build' && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);

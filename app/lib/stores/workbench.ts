@@ -18,8 +18,10 @@ import { description } from '~/lib/persistence';
 import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
+import { createScopedLogger } from '~/utils/logger';
 
 const { saveAs } = fileSaver;
+const logger = createScopedLogger('WorkbenchStore');
 
 export interface ArtifactState {
   id: string;
@@ -80,7 +82,13 @@ export class WorkbenchStore {
   }
 
   addToExecutionQueue(callback: () => Promise<void>) {
-    this.#globalExecutionQueue = this.#globalExecutionQueue.then(() => callback());
+    this.#globalExecutionQueue = this.#globalExecutionQueue.then(async () => {
+      try {
+        await callback();
+      } catch (error) {
+        logger.error('Execution queue error:', error);
+      }
+    });
   }
 
   get previews() {
@@ -523,7 +531,14 @@ export class WorkbenchStore {
     this.artifacts.setKey(artifactId, { ...artifact, ...state });
   }
   addAction(data: ActionCallbackData) {
-    // this._addAction(data);
+    const artifact = this.#getArtifact(data.artifactId);
+    
+    // For bundled artifacts, add actions synchronously and mark as complete
+    // since bundled artifacts are just for display (files are pre-loaded)
+    if (artifact?.type === 'bundled') {
+      artifact.runner.addAction(data);
+      return;
+    }
 
     this.addToExecutionQueue(() => this._addAction(data));
   }
@@ -543,7 +558,44 @@ export class WorkbenchStore {
     if (isStreaming) {
       this.actionStreamSampler(data, isStreaming);
     } else {
+      const artifact = this.#getArtifact(data.artifactId);
+      
+      // For bundled artifacts, execute file actions directly without queue
+      // This ensures files are actually written to webcontainer
+      if (artifact?.type === 'bundled') {
+        this._runBundledAction(data);
+        return;
+      }
+      
       this.addToExecutionQueue(() => this._runAction(data, isStreaming));
+    }
+  }
+  
+  async _runBundledAction(data: ActionCallbackData) {
+    const artifact = this.#getArtifact(data.artifactId);
+    if (!artifact) return;
+    
+    const actions = artifact.runner.actions.get();
+    const action = actions[data.actionId];
+    if (!action || action.executed) return;
+    
+    try {
+      // For file actions, write to webcontainer and update editor
+      if (data.action.type === 'file') {
+        const wc = await webcontainer;
+        const fullPath = path.join(wc.workdir, data.action.filePath);
+        
+        // Write file to webcontainer via runner (handles mkdir + writeFile)
+        await artifact.runner.runAction(data, false);
+        
+        // Also update the editor store so files appear in editor
+        this.#editorStore.updateFile(fullPath, data.action.content);
+      } else {
+        // For non-file actions, run through runner
+        await artifact.runner.runAction(data, false);
+      }
+    } catch (error) {
+      logger.error('Bundled action failed:', error);
     }
   }
   async _runAction(data: ActionCallbackData, isStreaming: boolean = false) {

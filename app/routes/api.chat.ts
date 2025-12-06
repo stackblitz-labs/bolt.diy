@@ -15,6 +15,7 @@ import type { DesignScheme } from '~/types/design-scheme';
 import { MCPService } from '~/lib/services/mcpService';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { requireSessionOrError } from '~/lib/auth/guards.server';
+import type { RestaurantThemeId } from '~/types/restaurant-theme';
 
 export async function action(args: ActionFunctionArgs) {
   // Require authentication for chat API
@@ -51,7 +52,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     },
   });
 
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
+  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, restaurantThemeId, maxLLMSteps } =
     await request.json<{
       messages: Messages;
       files: any;
@@ -59,6 +60,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       contextOptimization: boolean;
       chatMode: 'discuss' | 'build';
       designScheme?: DesignScheme;
+      restaurantThemeId?: RestaurantThemeId | null;
       supabase?: {
         isConnected: boolean;
         hasSelectedProject: boolean;
@@ -69,6 +71,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       };
       maxLLMSteps: number;
     }>();
+
+  logger.info(`[THEME DEBUG] Received restaurantThemeId: ${restaurantThemeId || 'null'}, chatMode: ${chatMode}`);
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
@@ -269,6 +273,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${CONTINUE_PROMPT}`,
             });
 
+            logger.info(`[THEME DEBUG] Calling streamText (continuation) with restaurantThemeId: ${restaurantThemeId || 'null'}`);
             const result = await streamText({
               messages: [...processedMessages],
               env: context.cloudflare?.env,
@@ -281,6 +286,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               contextFiles: filteredFiles,
               chatMode,
               designScheme,
+              restaurantThemeId,
               summary,
               messageSliceId,
             });
@@ -310,6 +316,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           message: 'Generating Response',
         } satisfies ProgressAnnotation);
 
+        logger.info(`[THEME DEBUG] Calling streamText (main) with restaurantThemeId: ${restaurantThemeId || 'null'}`);
         const result = await streamText({
           messages: [...processedMessages],
           env: context.cloudflare?.env,
@@ -322,6 +329,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           contextFiles: filteredFiles,
           chatMode,
           designScheme,
+          restaurantThemeId,
           summary,
           messageSliceId,
         });

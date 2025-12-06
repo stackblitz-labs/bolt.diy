@@ -42,6 +42,14 @@ export default class AnthropicProvider extends BaseProvider {
       maxTokenAllowed: 200000,
       maxCompletionTokens: 32000,
     },
+
+    {
+      name: 'claude-sonnet-4-5-20250929',
+      label: 'Claude 4.5 Sonnet',
+      provider: 'Anthropic',
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 64000,
+    },
   ];
 
   async getDynamicModels(
@@ -84,10 +92,8 @@ export default class AnthropicProvider extends BaseProvider {
         contextWindow = 200000; // Claude 3.5 Sonnet has 200k context
       } else if (m.id?.includes('claude-3-haiku')) {
         contextWindow = 200000; // Claude 3 Haiku has 200k context
-      } else if (m.id?.includes('claude-3-opus')) {
-        contextWindow = 200000; // Claude 3 Opus has 200k context
-      } else if (m.id?.includes('claude-3-sonnet')) {
-        contextWindow = 200000; // Claude 3 Sonnet has 200k context
+      } else if (m.id?.includes('claude-sonnet-4-5')) {
+        contextWindow = 200000; // Claude 4.5 Sonnet has 200k context
       }
 
       // Determine completion token limits based on specific model
@@ -95,10 +101,8 @@ export default class AnthropicProvider extends BaseProvider {
 
       if (m.id?.includes('claude-opus-4')) {
         maxCompletionTokens = 32000; // Claude 4 Opus: 32K output limit
-      } else if (m.id?.includes('claude-sonnet-4')) {
-        maxCompletionTokens = 64000; // Claude 4 Sonnet: 64K output limit
-      } else if (m.id?.includes('claude-4')) {
-        maxCompletionTokens = 32000; // Other Claude 4 models: conservative 32K limit
+      } else if (m.id?.includes('claude-sonnet-4-5')) {
+        maxCompletionTokens = 64000; // Claude 4.5 Sonnet: 128K output limit
       }
 
       return {
