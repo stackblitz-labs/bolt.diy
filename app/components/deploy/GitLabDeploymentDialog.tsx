@@ -333,7 +333,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
                   <div className="bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg p-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                     <p className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-2 flex items-center gap-2">
-                      <span className="i-ph:files w-4 h-4 text-purple-500" />
+                      <span className="i-ph:files w-4 h-4 text-accent-500" />
                       Pushed Files ({pushedFiles.length})
                     </p>
                     <div className="max-h-[200px] overflow-y-auto custom-scrollbar pr-2">

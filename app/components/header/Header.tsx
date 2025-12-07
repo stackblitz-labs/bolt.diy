@@ -17,10 +17,27 @@ export function Header() {
     >
       <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
         <div className="i-ph:sidebar-simple-duotone text-xl" />
-        <a href="/" className="text-2xl font-semibold text-accent flex items-center">
-          {/* <span className="i-bolt:logo-text?mask w-[46px] inline-block" /> */}
-          <img src="/logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
-          <img src="/logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
+        <a href="/" className="flex items-center gap-2">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="brainiac-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#00E5FF"/>
+                <stop offset="100%" stopColor="#00B8D4"/>
+              </linearGradient>
+            </defs>
+            <circle cx="14" cy="14" r="11" fill="none" stroke="url(#brainiac-gradient)" strokeWidth="2.5"/>
+            <path d="M10 14 L14 10 L18 14 M14 10 L14 18" stroke="url(#brainiac-gradient)" strokeWidth="2" fill="none"/>
+            <circle cx="10" cy="14" r="1.5" fill="#00E5FF"/>
+            <circle cx="18" cy="14" r="1.5" fill="#00E5FF"/>
+            <circle cx="14" cy="10" r="1.5" fill="#00E5FF"/>
+          </svg>
+          <span className="text-2xl font-black tracking-wider" style={{
+            color: '#00E5FF',
+            textShadow: '0 0 10px rgba(0, 229, 255, 0.5), 0 0 20px rgba(0, 229, 255, 0.3)',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}>
+            BRAINIAC
+          </span>
         </a>
       </div>
       {chat.started && ( // Display ChatDescription and HeaderActionButtons only when the chat has started.

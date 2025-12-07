@@ -49,9 +49,9 @@ export const TabTile: React.FC<TabTileProps> = ({
                   'relative flex flex-col items-center justify-center h-full p-4 rounded-lg',
                   'bg-white dark:bg-[#141414]',
                   'group cursor-pointer',
-                  'hover:bg-purple-50 dark:hover:bg-[#1a1a1a]',
+                  'hover:bg-accent-50 dark:hover:bg-[#1a1a1a]',
                   'transition-colors duration-100 ease-out',
-                  isActive ? 'bg-purple-500/5 dark:bg-purple-500/10' : '',
+                  isActive ? 'bg-accent-500/5 dark:bg-accent-500/10' : '',
                   isLoading ? 'cursor-wait opacity-70 pointer-events-none' : '',
                 )}
               >
@@ -64,10 +64,10 @@ export const TabTile: React.FC<TabTileProps> = ({
                     'rounded-xl',
                     'bg-gray-100 dark:bg-gray-800',
                     'ring-1 ring-gray-200 dark:ring-gray-700',
-                    'group-hover:bg-purple-100 dark:group-hover:bg-gray-700/80',
-                    'group-hover:ring-purple-200 dark:group-hover:ring-purple-800/30',
+                    'group-hover:bg-accent-100 dark:group-hover:bg-gray-700/80',
+                    'group-hover:ring-accent-200 dark:group-hover:ring-accent-800/30',
                     'transition-all duration-100 ease-out',
-                    isActive ? 'bg-purple-500/10 dark:bg-purple-500/10 ring-purple-500/30 dark:ring-purple-500/20' : '',
+                    isActive ? 'bg-accent-500/10 dark:bg-accent-500/10 ring-accent-500/30 dark:ring-accent-500/20' : '',
                   )}
                 >
                   {(() => {
@@ -77,9 +77,9 @@ export const TabTile: React.FC<TabTileProps> = ({
                         className={classNames(
                           'w-8 h-8',
                           'text-gray-600 dark:text-gray-300',
-                          'group-hover:text-purple-500 dark:group-hover:text-purple-400/80',
+                          'group-hover:text-accent-500 dark:group-hover:text-accent-400/80',
                           'transition-colors duration-100 ease-out',
-                          isActive ? 'text-purple-500 dark:text-purple-400/90' : '',
+                          isActive ? 'text-accent-500 dark:text-accent-400/90' : '',
                         )}
                       />
                     );
@@ -92,9 +92,9 @@ export const TabTile: React.FC<TabTileProps> = ({
                     className={classNames(
                       'text-[15px] font-medium leading-snug mb-2',
                       'text-gray-700 dark:text-gray-200',
-                      'group-hover:text-purple-600 dark:group-hover:text-purple-300/90',
+                      'group-hover:text-accent-600 dark:group-hover:text-accent-300/90',
                       'transition-colors duration-100 ease-out',
-                      isActive ? 'text-purple-500 dark:text-purple-400/90' : '',
+                      isActive ? 'text-accent-500 dark:text-accent-400/90' : '',
                     )}
                   >
                     {TAB_LABELS[tab.id]}
@@ -106,9 +106,9 @@ export const TabTile: React.FC<TabTileProps> = ({
                         'text-gray-500 dark:text-gray-400',
                         'max-w-[85%]',
                         'text-center',
-                        'group-hover:text-purple-500 dark:group-hover:text-purple-400/70',
+                        'group-hover:text-accent-500 dark:group-hover:text-accent-400/70',
                         'transition-colors duration-100 ease-out',
-                        isActive ? 'text-purple-400 dark:text-purple-400/80' : '',
+                        isActive ? 'text-accent-400 dark:text-accent-400/80' : '',
                       )}
                     >
                       {description}
@@ -119,7 +119,7 @@ export const TabTile: React.FC<TabTileProps> = ({
                 {/* Update Indicator with Tooltip */}
                 {hasUpdate && (
                   <>
-                    <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400 animate-pulse" />
+                    <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-accent-500 dark:bg-accent-400 animate-pulse" />
                     <Tooltip.Portal>
                       <Tooltip.Content
                         className={classNames(
