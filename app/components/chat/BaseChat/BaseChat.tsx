@@ -344,9 +344,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const baseChat = (
       <div
         ref={ref}
-        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden', {
-          'max-w-[1337px] mx-auto': !chatStarted,
-        })}
+        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
         data-chat-visible={showChat}
       >
         {user && <ClientOnly>{() => <Menu />}</ClientOnly>}

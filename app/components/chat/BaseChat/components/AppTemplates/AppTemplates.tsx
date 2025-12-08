@@ -38,8 +38,8 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
   }, [selectedCategory]);
 
   return (
-    <div id="showcase-gallery" className="w-full mx-auto px-6 lg:px-8 mt-24 mb-4">
-      <div className="flex flex-col mb-12 animate-fade-in animation-delay-100">
+    <div id="showcase-gallery" className="w-full mx-auto mt-24 mb-4">
+      <div className="max-w-[1337px] mx-auto flex flex-col mb-12 animate-fade-in animation-delay-100">
         <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
           <span className="text-bolt-elements-textHeading">Not sure</span>
           <br />
@@ -58,7 +58,7 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
 
       {/* Horizontal scrolling card container */}
       {filteredApps.length > 0 && (
-        <div className="overflow-x-auto pb-4 -mx-6 px-6 animate-fade-in animation-delay-400 mb-8">
+        <div className="overflow-x-auto pb-4 px-2 animate-fade-in animation-delay-400 mb-8">
           <div className="flex gap-6" style={{ minWidth: 'min-content' }}>
             {filteredApps.map((app) => (
               <ReferenceAppCard
