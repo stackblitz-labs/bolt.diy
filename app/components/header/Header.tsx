@@ -21,7 +21,6 @@ import { PanelLeft } from '~/components/ui/Icon';
 import { useEffect } from 'react';
 import { useLocation } from '@remix-run/react';
 // import { NavigationMenuComponent } from '~/components/header/components/NavigationMenu';
-import { MobileMenu } from '~/components/header/components/MobileMenu';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 
 export function Header() {
@@ -33,13 +32,6 @@ export function Header() {
   const repositoryId = useStore(workbenchStore.pendingRepositoryId);
   const [history, setHistory] = useState<AppSummary[]>([]);
   const location = useLocation();
-
-  const handleScrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
 
   const fetchHistory = async () => {
     try {
@@ -101,25 +93,20 @@ export function Header() {
       )}
 
       {/* Desktop view - show ClientAuth directly */}
-      {(!isSmallViewport || chatStarted || user) && (
-        <ClientOnly>
-          {() => (
-            <Suspense
-              fallback={
-                <div className="w-10 h-10 rounded-xl bg-bolt-elements-background-depth-2 animate-pulse border border-bolt-elements-borderColor gap-2" />
-              }
-            >
-              <div className="flex items-center gap-3">
-                <ThemeSwitch />
-                <ClientAuth />
-              </div>
-            </Suspense>
-          )}
-        </ClientOnly>
-      )}
-
-      {/* Mobile view - show menu icon with dropdown */}
-      {isSmallViewport && !chatStarted && !user && <MobileMenu handleScrollToSection={handleScrollToSection} />}
+      <ClientOnly>
+        {() => (
+          <Suspense
+            fallback={
+              <div className="w-10 h-10 rounded-xl bg-bolt-elements-background-depth-2 animate-pulse border border-bolt-elements-borderColor gap-2" />
+            }
+          >
+            <div className="flex items-center gap-3">
+              <ThemeSwitch />
+              <ClientAuth />
+            </div>
+          </Suspense>
+        )}
+      </ClientOnly>
     </header>
   );
 }
