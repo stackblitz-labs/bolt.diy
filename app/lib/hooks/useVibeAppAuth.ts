@@ -38,7 +38,7 @@ export function useVibeAppAuthPopup({
         }
 
         const provider = encodeURIComponent(e.data.provider);
-        const oauthUrl = `https://auth.nut.new/functions/v1/oauth/start?app_id=${encodeURIComponent(appId)}&provider=${provider}&redirect_to=${encodeURIComponent(customRedirectUrl)}`;
+        const oauthUrl = `https://auth.builder.replay.io/functions/v1/oauth/start?app_id=${encodeURIComponent(appId)}&provider=${provider}&redirect_to=${encodeURIComponent(customRedirectUrl)}`;
 
         // Open OAuth URL in a popup window
         const width = 500;
