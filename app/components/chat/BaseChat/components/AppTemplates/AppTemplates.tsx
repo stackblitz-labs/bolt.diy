@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from '@remix-run/react';
 import { CategorySelector, type IntroSectionCategory } from './CategorySelector';
 import { ReferenceAppCard } from './ReferenceAppCard';
 import { referenceApps } from '~/lib/replay/ReferenceApps';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
+import { ChatMode } from '~/lib/replay/SendChatMessage';
 
 interface AppTemplatesProps {
   sendMessage: (params: ChatMessageParams) => void;
@@ -10,6 +12,36 @@ interface AppTemplatesProps {
 
 const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>('All');
+  const [searchParams] = useSearchParams();
+  const hasHandledAppPath = useRef(false);
+
+  // Handle appPath URL parameter - automatically trigger customize action
+  useEffect(() => {
+    if (hasHandledAppPath.current) {
+      return;
+    }
+
+    const appPathParam = searchParams.get('appPath');
+    if (!appPathParam) {
+      return;
+    }
+
+    // Find the matching app in referenceApps
+    const matchingApp = referenceApps.find((app) => app.appPath === appPathParam);
+    if (!matchingApp || !matchingApp.appPath) {
+      return;
+    }
+
+    // Mark as handled to prevent multiple triggers
+    hasHandledAppPath.current = true;
+
+    // Automatically trigger the customize action
+    sendMessage({
+      messageInput: `Build me a new app based on '${matchingApp.appName}'`,
+      chatMode: ChatMode.UserMessage,
+      referenceAppPath: matchingApp.appPath,
+    });
+  }, [searchParams, sendMessage]);
 
   const categories = useMemo(() => {
     const sectionCategories: IntroSectionCategory[] = [];
