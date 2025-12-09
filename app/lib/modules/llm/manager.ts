@@ -73,7 +73,7 @@ export class LLMManager {
   getVisibleProviders(): BaseProvider[] {
     const hiddenProviders = [
       'Perplexity',
-      'OpenRouter', 
+      'OpenRouter',
       'Moonshot',
       'Mistral',
       'Anthropic',
@@ -86,12 +86,10 @@ export class LLMManager {
       'LMStudio',
       'OpenAILike',
       'Together',
-      'Cohere'
+      'Cohere',
     ];
-    
-    return Array.from(this._providers.values()).filter(
-      provider => !hiddenProviders.includes(provider.name)
-    );
+
+    return Array.from(this._providers.values()).filter((provider) => !hiddenProviders.includes(provider.name));
   }
 
   getModelList(): ModelInfo[] {

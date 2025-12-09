@@ -42,6 +42,7 @@ export function ResizeHandle({ position, onMouseDown }: ResizeHandleProps) {
   const handlePointerDown = (e: React.PointerEvent) => {
     // Capture pointer for smooth tracking even when cursor moves fast
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
     // Call the parent's handler with the event cast to MouseEvent-like
     onMouseDown(e as unknown as React.MouseEvent);
   };

@@ -8,7 +8,6 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
 import { visualEditorStore, visualEditorActions } from '~/lib/stores/visual-editor';
 import { CanvasElementRenderer } from './CanvasElementRenderer';
-import type { CanvasElement } from '~/lib/visual-editor/types';
 
 interface CanvasOverlayProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -35,14 +34,19 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
 
   // Update overlay bounds to match iframe position and size
   const updateOverlayBounds = useCallback(() => {
-    if (!iframeRef.current || !overlayRef.current) return;
+    if (!iframeRef.current || !overlayRef.current) {
+      return;
+    }
 
     const iframe = iframeRef.current;
     const overlay = overlayRef.current;
 
     // Get the closest positioned ancestor of the overlay
     const positionedAncestor = overlay.offsetParent as HTMLElement | null;
-    if (!positionedAncestor) return;
+
+    if (!positionedAncestor) {
+      return;
+    }
 
     const ancestorRect = positionedAncestor.getBoundingClientRect();
     const iframeRect = iframe.getBoundingClientRect();
@@ -63,6 +67,7 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
 
     // Set up resize observer to track iframe size changes
     const resizeObserver = new ResizeObserver(updateOverlayBounds);
+
     if (iframeRef.current) {
       resizeObserver.observe(iframeRef.current);
     }
@@ -72,6 +77,7 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
 
     // Update on scroll too (in case container is scrollable)
     const container = overlayRef.current?.offsetParent;
+
     if (container) {
       container.addEventListener('scroll', updateOverlayBounds);
     }
@@ -80,6 +86,7 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
       clearTimeout(timer);
       resizeObserver.disconnect();
       window.removeEventListener('resize', updateOverlayBounds);
+
       if (container) {
         container.removeEventListener('scroll', updateOverlayBounds);
       }
@@ -98,19 +105,24 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
     };
 
     window.addEventListener('message', handleMessage);
+
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Handle pointer events for transform operations
-  // Using pointer events for better touch support and smoother tracking
+  /*
+   * Handle pointer events for transform operations
+   * Using pointer events for better touch support and smoother tracking
+   */
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
       if (!state.transform.type || !isTransforming) {
         return;
       }
 
-      // Use viewport coordinates (clientX/clientY) directly
-      // This matches the coordinates stored in startTransform
+      /*
+       * Use viewport coordinates (clientX/clientY) directly
+       * This matches the coordinates stored in startTransform
+       */
       visualEditorActions.updateTransform(e.clientX, e.clientY);
     };
 
@@ -130,6 +142,8 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
         window.removeEventListener('pointerup', handlePointerUp);
       };
     }
+
+    return undefined;
   }, [isTransforming, state.transform.type]);
 
   // Handle canvas background click (deselect)
@@ -167,12 +181,14 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
         state.selection.selectedElementIds.length > 0
       ) {
         e.preventDefault();
+
         const delta = e.shiftKey ? 10 : 1;
         const dx = e.key === 'ArrowLeft' ? -delta : e.key === 'ArrowRight' ? delta : 0;
         const dy = e.key === 'ArrowUp' ? -delta : e.key === 'ArrowDown' ? delta : 0;
 
         state.selection.selectedElementIds.forEach((id) => {
           const element = state.canvasElements.find((el) => el.id === id);
+
           if (element) {
             visualEditorActions.updateElement(id, {
               x: element.x + dx,
@@ -184,6 +200,7 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
     };
 
     window.addEventListener('keydown', handleKeyDown);
+
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.selection.selectedElementIds, state.canvasElements]);
 
@@ -213,11 +230,7 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
       };
 
   return (
-    <div
-      ref={overlayRef}
-      style={overlayStyle}
-      onClick={handleCanvasClick}
-    >
+    <div ref={overlayRef} style={overlayStyle} onClick={handleCanvasClick}>
       {/* Inner container that scrolls with iframe content */}
       <div
         style={{
@@ -241,7 +254,7 @@ export function CanvasOverlay({ iframeRef }: CanvasOverlayProps) {
               element={element}
               isSelected={isSelected}
               isHovered={isHovered}
-              onTransformStart={(type, handle) => {
+              onTransformStart={(_type, _handle) => {
                 setIsTransforming(true);
               }}
               iframeRef={iframeRef}

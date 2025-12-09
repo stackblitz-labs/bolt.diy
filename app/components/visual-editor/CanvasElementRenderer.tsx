@@ -3,7 +3,7 @@
  * Renders individual canvas elements with drag/resize/rotate handles
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { visualEditorActions } from '~/lib/stores/visual-editor';
 import { syncCanvasToDOM } from '~/lib/visual-editor/dom-to-canvas';
 import type { CanvasElement } from '~/lib/visual-editor/types';
@@ -29,13 +29,16 @@ export function CanvasElementRenderer({
   // Handle element click (selection)
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+
     const multiSelect = e.metaKey || e.ctrlKey;
     visualEditorActions.selectElement(element.id, multiSelect);
   };
 
   // Handle drag start with pointer capture for smooth tracking
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return; // Only left click
+    if (e.button !== 0) {
+      return;
+    } // Only left click
 
     e.stopPropagation();
 
@@ -50,13 +53,7 @@ export function CanvasElementRenderer({
   const handleResizeStart = (handle: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    visualEditorActions.startTransform(
-      'resize',
-      element.id,
-      e.clientX,
-      e.clientY,
-      handle as any,
-    );
+    visualEditorActions.startTransform('resize', element.id, e.clientX, e.clientY, handle as any);
     onTransformStart('resize', handle);
   };
 
@@ -134,10 +131,7 @@ export function CanvasElementRenderer({
               className="w-3 h-3 bg-blue-500 rounded-full border-2 border-white"
               style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
             />
-            <div
-              className="absolute left-1/2 top-3 w-0.5 h-6 bg-blue-500"
-              style={{ transform: 'translateX(-50%)' }}
-            />
+            <div className="absolute left-1/2 top-3 w-0.5 h-6 bg-blue-500" style={{ transform: 'translateX(-50%)' }} />
           </div>
         </>
       )}
@@ -148,8 +142,7 @@ export function CanvasElementRenderer({
           className="absolute -top-6 left-0 text-xs bg-blue-500 text-white px-2 py-1 rounded pointer-events-none"
           style={{ whiteSpace: 'nowrap' }}
         >
-          {element.domInfo?.tagName || element.type} {Math.round(element.width)}×
-          {Math.round(element.height)}
+          {element.domInfo?.tagName || element.type} {Math.round(element.width)}×{Math.round(element.height)}
         </div>
       )}
     </div>

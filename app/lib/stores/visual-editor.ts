@@ -4,13 +4,7 @@
  */
 
 import { atom, map } from 'nanostores';
-import type {
-  CanvasElement,
-  VisualEditorState,
-  SelectionState,
-  TransformState,
-  StyleChange,
-} from '../visual-editor/types';
+import type { CanvasElement, VisualEditorState, TransformState, StyleChange } from '~/lib/visual-editor/types';
 
 // Main visual editor state
 export const visualEditorStore = map<VisualEditorState>({
@@ -233,23 +227,28 @@ export const visualEditorActions = {
       const minSize = 20;
       let { x, y, width, height } = element;
 
-      // 8-point resize logic using incremental deltas
-      // For north (top) handles
+      /*
+       * 8-point resize logic using incremental deltas
+       * For north (top) handles
+       */
       if (handle.includes('t')) {
         const newHeight = Math.max(minSize, height - dy);
         y += height - newHeight;
         height = newHeight;
       }
+
       // For south (bottom) handles
       if (handle.includes('b')) {
         height = Math.max(minSize, height + dy);
       }
+
       // For west (left) handles
       if (handle.includes('l')) {
         const newWidth = Math.max(minSize, width - dx);
         x += width - newWidth;
         width = newWidth;
       }
+
       // For east (right) handles
       if (handle.includes('r')) {
         width = Math.max(minSize, width + dx);

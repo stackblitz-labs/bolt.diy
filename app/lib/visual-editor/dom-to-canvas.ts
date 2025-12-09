@@ -3,7 +3,7 @@
  * Bridges the gap between real DOM elements and canvas state
  */
 
-import type { CanvasElement, DOMElementInfo, ElementType } from './types';
+import type { CanvasElement, ElementType } from './types';
 import { ElementType as ET } from './types';
 
 /**
@@ -43,9 +43,11 @@ export function parseElementToCanvas(
   // Determine element type based on tag and styles
   const type = determineElementType(tagName, computedStyles);
 
-  // Use iframe-relative coordinates directly
-  // The canvas overlay is positioned at the same origin as the iframe,
-  // so we don't need to add the iframe offset
+  /*
+   * Use iframe-relative coordinates directly
+   * The canvas overlay is positioned at the same origin as the iframe,
+   * so we don't need to add the iframe offset
+   */
   const x = rect.x;
   const y = rect.y;
 
@@ -207,10 +209,7 @@ export function generateCSSFromCanvas(original: CanvasElement, updated: CanvasEl
 /**
  * Apply canvas element changes to DOM element via postMessage
  */
-export function syncCanvasToDOM(
-  canvasElement: CanvasElement,
-  iframeWindow: Window,
-): void {
+export function syncCanvasToDOM(canvasElement: CanvasElement, iframeWindow: Window): void {
   if (!canvasElement.domInfo) {
     return;
   }
@@ -227,7 +226,7 @@ export function syncCanvasToDOM(
   const deltaX = canvasElement.x - canvasElement.domInfo.originalPosition.x;
   const deltaY = canvasElement.y - canvasElement.domInfo.originalPosition.y;
 
-  let transformParts: string[] = [];
+  const transformParts: string[] = [];
 
   if (deltaX !== 0 || deltaY !== 0) {
     transformParts.push(`translate(${deltaX}px, ${deltaY}px)`);

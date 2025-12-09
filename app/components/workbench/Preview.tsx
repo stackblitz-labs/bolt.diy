@@ -29,7 +29,6 @@ function VisualEditorOverlay({
   onExit: () => void;
 }) {
   const [selectedElement, setSelectedElement] = useState<SelectedElementInfo | null>(null);
-  const [hoveredElement, setHoveredElement] = useState<SelectedElementInfo | null>(null);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -64,17 +63,16 @@ function VisualEditorOverlay({
               console.error('[VisualEditor] Error processing element:', error);
             }
           }
+
           break;
         case 'VISUAL_EDITOR_HOVER':
-          setHoveredElement(elementInfo);
-
           // Update hovered state in canvas
           if (elementInfo) {
             visualEditorActions.setHovered(elementInfo.sourceInfo?.selector || elementInfo.id);
           }
+
           break;
         case 'VISUAL_EDITOR_HOVER_OUT':
-          setHoveredElement(null);
           visualEditorActions.setHovered(null);
           break;
         case 'VISUAL_EDITOR_ELEMENT_UPDATED':
@@ -462,8 +460,6 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isInspectorMode, setIsInspectorMode] = useState(false);
   const [isDeviceModeOn, setIsDeviceModeOn] = useState(false);
-  const [useStaticPreview, setUseStaticPreview] = useState(false);
-  const [staticHtml, setStaticHtml] = useState<string | null>(null);
   const [widthPercent, setWidthPercent] = useState<number>(37.5);
   const [currentWidth, setCurrentWidth] = useState<number>(0);
   const [isDesignMode, setIsDesignMode] = useState(false);

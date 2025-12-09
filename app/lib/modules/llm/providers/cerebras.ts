@@ -87,11 +87,6 @@ export default class CerebrasProvider extends BaseProvider {
     }
 
     try {
-      const cerebras = createCerebras({
-        apiKey,
-        baseURL: this.config.baseUrl,
-      });
-
       // Fetch available models from Cerebras API
       const response = await fetch(`${this.config.baseUrl}/models`, {
         headers: {
@@ -103,12 +98,12 @@ export default class CerebrasProvider extends BaseProvider {
         throw new Error(`Failed to fetch models: ${response.statusText}`);
       }
 
-      const data = await response.json() as { data?: any[] };
-      
+      const data = (await response.json()) as { data?: any[] };
+
       if (data.data && Array.isArray(data.data)) {
         return data.data.map((model: any) => {
           // Determine context window and completion tokens based on model
-          let maxTokenAllowed = 8192; // Default for free tier
+          const maxTokenAllowed = 8192; // Default for free tier
           let maxCompletionTokens = 4096;
 
           // Model-specific configurations
