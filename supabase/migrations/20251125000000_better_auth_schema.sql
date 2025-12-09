@@ -2,7 +2,7 @@
 -- BETTER AUTH USER TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS "user" (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255),
   email VARCHAR(255) NOT NULL UNIQUE,
   email_verified BOOLEAN DEFAULT FALSE,
@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_user_tenant_id ON "user"(tenant_id) WHERE tenant_
 -- BETTER AUTH SESSION TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS session (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   token VARCHAR(255) NOT NULL UNIQUE,
   expires_at TIMESTAMPTZ NOT NULL,
@@ -37,7 +37,7 @@ CREATE INDEX IF NOT EXISTS idx_session_expires_at ON session(expires_at);
 -- BETTER AUTH ACCOUNT TABLE (OAuth Providers)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS account (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   provider_id VARCHAR(255) NOT NULL,
   provider_account_id VARCHAR(255) NOT NULL,
@@ -58,7 +58,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_account_provider ON account(provider_id, p
 DROP TABLE IF EXISTS verification CASCADE;
 
 CREATE TABLE verification (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   identifier VARCHAR(255) NOT NULL,
   value TEXT NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
@@ -78,16 +78,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_user_updated_at ON "user";
 CREATE TRIGGER update_user_updated_at
   BEFORE UPDATE ON "user"
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_session_updated_at ON session;
 CREATE TRIGGER update_session_updated_at
   BEFORE UPDATE ON session
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_account_updated_at ON account;
 CREATE TRIGGER update_account_updated_at
   BEFORE UPDATE ON account
   FOR EACH ROW

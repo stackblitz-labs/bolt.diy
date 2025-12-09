@@ -628,7 +628,7 @@ export class ActionRunner {
     details?: {
       url?: string;
       error?: string;
-      source?: 'netlify' | 'vercel' | 'github' | 'gitlab';
+      source?: 'netlify' | 'vercel' | 'github' | 'gitlab' | 'amplify' | 'cloudflare';
     },
   ): void {
     if (!this.onDeployAlert) {

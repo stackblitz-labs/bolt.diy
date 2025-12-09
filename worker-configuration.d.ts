@@ -19,4 +19,15 @@ interface Env {
   XAI_API_KEY: string;
   PERPLEXITY_API_KEY: string;
   AWS_BEDROCK_CONFIG: string;
+
+  // AWS Amplify deployment credentials
+  AMPLIFY_ACCESS_KEY_ID?: string;
+  AMPLIFY_SECRET_ACCESS_KEY?: string;
+  AMPLIFY_REGION?: string;
+  AMPLIFY_APP_ID?: string;
+
+  // Cloudflare Workers deployment credentials
+  CLOUDFLARE_API_TOKEN?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_WORKER_NAME?: string;
 }
