@@ -2,15 +2,12 @@
 -- Creates tables for business profiles, crawled data, and site snapshots
 -- Based on specs/001-phase1-plan/data-model.md
 
--- Enable UUID extension if not already enabled
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- ============================================================================
 -- TENANTS TABLE
 -- ============================================================================
 -- Represents a single restaurant/customer operating inside HuskIT
 CREATE TABLE IF NOT EXISTS tenants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_name VARCHAR(255) NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'archived')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -25,7 +22,7 @@ CREATE INDEX idx_tenants_status ON tenants(status);
 -- ============================================================================
 -- Canonical, AI-enhanced representation of a tenant's brand, menu, and design system
 CREATE TABLE IF NOT EXISTS business_profiles (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   google_place_id VARCHAR(255),
   gmaps_url TEXT NOT NULL,
@@ -75,7 +72,7 @@ CREATE INDEX idx_business_profiles_google_place_id ON business_profiles(google_p
 -- ============================================================================
 -- Cached raw payloads fetched from Google Places or supplied URLs
 CREATE TABLE IF NOT EXISTS crawled_data (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   source_url TEXT NOT NULL,
   raw_data_blob JSONB NOT NULL,
@@ -98,7 +95,7 @@ CREATE INDEX idx_crawled_data_source_url ON crawled_data(source_url);
 -- ============================================================================
 -- Versioned archive of a generated site plus metadata for restoration
 CREATE TABLE IF NOT EXISTS site_snapshots (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   business_profile_id UUID NOT NULL REFERENCES business_profiles(id) ON DELETE CASCADE,
   template_id VARCHAR(255) NOT NULL,
@@ -126,12 +123,14 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Apply trigger to tenants
+DROP TRIGGER IF EXISTS update_tenants_updated_at ON tenants;
 CREATE TRIGGER update_tenants_updated_at
     BEFORE UPDATE ON tenants
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Apply trigger to business_profiles
+DROP TRIGGER IF EXISTS update_business_profiles_updated_at ON business_profiles;
 CREATE TRIGGER update_business_profiles_updated_at
     BEFORE UPDATE ON business_profiles
     FOR EACH ROW

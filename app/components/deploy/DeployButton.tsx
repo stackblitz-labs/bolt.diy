@@ -2,6 +2,8 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useStore } from '@nanostores/react';
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { vercelConnection } from '~/lib/stores/vercel';
+import { amplifyConnection } from '~/lib/stores/amplify';
+import { cloudflareConnection } from '~/lib/stores/cloudflare';
 import { isGitLabConnected } from '~/lib/stores/gitlabConnection';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { streamingState } from '~/lib/stores/streaming';
@@ -11,6 +13,8 @@ import { NetlifyDeploymentLink } from '~/components/chat/NetlifyDeploymentLink.c
 import { VercelDeploymentLink } from '~/components/chat/VercelDeploymentLink.client';
 import { useVercelDeploy } from '~/components/deploy/VercelDeploy.client';
 import { useNetlifyDeploy } from '~/components/deploy/NetlifyDeploy.client';
+import { useAmplifyDeploy } from '~/components/deploy/AmplifyDeploy.client';
+import { useCloudflareDeploy } from '~/components/deploy/CloudflareDeploy.client';
 import { useGitHubDeploy } from '~/components/deploy/GitHubDeploy.client';
 import { useGitLabDeploy } from '~/components/deploy/GitLabDeploy.client';
 import { GitHubDeploymentDialog } from '~/components/deploy/GitHubDeploymentDialog';
@@ -19,6 +23,8 @@ import { GitLabDeploymentDialog } from '~/components/deploy/GitLabDeploymentDial
 interface DeployButtonProps {
   onVercelDeploy?: () => Promise<void>;
   onNetlifyDeploy?: () => Promise<void>;
+  onAmplifyDeploy?: () => Promise<void>;
+  onCloudflareDeploy?: () => Promise<void>;
   onGitHubDeploy?: () => Promise<void>;
   onGitLabDeploy?: () => Promise<void>;
 }
@@ -26,20 +32,26 @@ interface DeployButtonProps {
 export const DeployButton = ({
   onVercelDeploy,
   onNetlifyDeploy,
+  onAmplifyDeploy,
+  onCloudflareDeploy,
   onGitHubDeploy,
   onGitLabDeploy,
 }: DeployButtonProps) => {
   const netlifyConn = useStore(netlifyConnection);
   const vercelConn = useStore(vercelConnection);
+  const amplifyConn = useStore(amplifyConnection);
+  const cloudflareConn = useStore(cloudflareConnection);
   const gitlabIsConnected = useStore(isGitLabConnected);
   const [activePreviewIndex] = useState(0);
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployingTo, setDeployingTo] = useState<'netlify' | 'vercel' | 'github' | 'gitlab' | null>(null);
+  const [deployingTo, setDeployingTo] = useState<'netlify' | 'vercel' | 'amplify' | 'cloudflare' | 'github' | 'gitlab' | null>(null);
   const isStreaming = useStore(streamingState);
   const { handleVercelDeploy } = useVercelDeploy();
   const { handleNetlifyDeploy } = useNetlifyDeploy();
+  const { handleAmplifyDeploy } = useAmplifyDeploy();
+  const { handleCloudflareDeploy } = useCloudflareDeploy();
   const { handleGitHubDeploy } = useGitHubDeploy();
   const { handleGitLabDeploy } = useGitLabDeploy();
   const [showGitHubDeploymentDialog, setShowGitHubDeploymentDialog] = useState(false);
@@ -96,6 +108,38 @@ export const DeployButton = ({
           setGithubProjectName(result.projectName);
           setShowGitHubDeploymentDialog(true);
         }
+      }
+    } finally {
+      setIsDeploying(false);
+      setDeployingTo(null);
+    }
+  };
+
+  const handleAmplifyDeployClick = async () => {
+    setIsDeploying(true);
+    setDeployingTo('amplify');
+
+    try {
+      if (onAmplifyDeploy) {
+        await onAmplifyDeploy();
+      } else {
+        await handleAmplifyDeploy();
+      }
+    } finally {
+      setIsDeploying(false);
+      setDeployingTo(null);
+    }
+  };
+
+  const handleCloudflareDeployClick = async () => {
+    setIsDeploying(true);
+    setDeployingTo('cloudflare');
+
+    try {
+      if (onCloudflareDeploy) {
+        await onCloudflareDeploy();
+      } else {
+        await handleCloudflareDeploy();
       }
     } finally {
       setIsDeploying(false);
@@ -236,8 +280,14 @@ export const DeployButton = ({
             </DropdownMenu.Item>
 
             <DropdownMenu.Item
-              disabled
-              className="flex items-center w-full rounded-md px-4 py-2 text-sm text-bolt-elements-textTertiary gap-2 opacity-60 cursor-not-allowed"
+              className={classNames(
+                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                {
+                  'opacity-60 cursor-not-allowed': isDeploying || !activePreview,
+                },
+              )}
+              disabled={isDeploying || !activePreview}
+              onClick={handleCloudflareDeployClick}
             >
               <img
                 className="w-5 h-5"
@@ -247,7 +297,32 @@ export const DeployButton = ({
                 src="https://cdn.simpleicons.org/cloudflare"
                 alt="cloudflare"
               />
-              <span className="mx-auto">Deploy to Cloudflare (Coming Soon)</span>
+              <span className="mx-auto">
+                {!cloudflareConn.user ? 'Deploy to Cloudflare (Quick Deploy)' : 'Deploy to Cloudflare'}
+              </span>
+            </DropdownMenu.Item>
+
+            <DropdownMenu.Item
+              className={classNames(
+                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                {
+                  'opacity-60 cursor-not-allowed': isDeploying || !activePreview,
+                },
+              )}
+              disabled={isDeploying || !activePreview}
+              onClick={handleAmplifyDeployClick}
+            >
+              <img
+                className="w-5 h-5"
+                height="24"
+                width="24"
+                crossOrigin="anonymous"
+                src="https://cdn.simpleicons.org/awsamplify"
+                alt="aws amplify"
+              />
+              <span className="mx-auto">
+                {!amplifyConn.user ? 'Deploy to Amplify (Quick Deploy)' : 'Deploy to AWS Amplify'}
+              </span>
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Root>

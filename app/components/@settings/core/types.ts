@@ -16,6 +16,8 @@ export type TabType =
   | 'netlify'
   | 'vercel'
   | 'supabase'
+  | 'cloudflare'
+  | 'amplify'
   | 'event-logs'
   | 'mcp';
 
@@ -79,6 +81,8 @@ export const TAB_LABELS: Record<TabType, string> = {
   netlify: 'Netlify',
   vercel: 'Vercel',
   supabase: 'Supabase',
+  cloudflare: 'Cloudflare',
+  amplify: 'AWS Amplify',
   'event-logs': 'Event Logs',
   mcp: 'MCP Servers',
 };

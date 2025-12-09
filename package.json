@@ -110,6 +110,7 @@
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
     "ai": "4.3.16",
+    "aws4fetch": "^1.0.20",
     "better-auth": "^1.4.1",
     "chalk": "^5.4.1",
     "chart.js": "^4.4.7",
@@ -162,9 +163,9 @@
     "unist-util-visit": "^5.0.0",
     "use-debounce": "^10.0.4",
     "vite-plugin-node-polyfills": "^0.22.0",
+    "web-tree-sitter": "^0.20.7",
     "zod": "^3.24.1",
-    "zustand": "^5.0.3",
-    "web-tree-sitter": "^0.20.7"
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@better-auth/cli": "^1.4.1",
