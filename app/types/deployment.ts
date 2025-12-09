@@ -66,6 +66,10 @@ export interface AmplifyConnection extends PlatformConnection {
   secretAccessKey: string;
   region: string;
   appId?: string; // Existing app to deploy to
+  stats?: {
+    apps: Array<{ id: string; name: string }>;
+    totalApps: number;
+  };
 }
 
 /**
@@ -74,6 +78,10 @@ export interface AmplifyConnection extends PlatformConnection {
 export interface CloudflareConnection extends PlatformConnection {
   accountId: string;
   workerName?: string; // Existing worker to update
+  stats?: {
+    workers: Array<{ id: string; name: string }>;
+    totalWorkers: number;
+  };
 }
 
 /**
@@ -131,6 +139,7 @@ export interface DeployRequestBody {
   chatId: string;
   projectId?: string; // For existing deployments
   authMode?: AuthMode;
+
   // User-token mode fields
   token?: string;
   accessKeyId?: string;
@@ -149,4 +158,3 @@ export interface DeployResponse {
   url?: string;
   error?: string;
 }
-

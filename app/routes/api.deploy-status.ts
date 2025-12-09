@@ -49,22 +49,25 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 }
 
 async function getAmplifyStatus(
-  env: Env,
-  deploymentId: string,
-  externalId?: string | null,
+  _env: Env,
+  _deploymentId: string,
+  _externalId?: string | null,
 ): Promise<DeploymentStatusResponse> {
-  // TODO: Implement in Phase 3
-  // Use aws4fetch to sign request to Amplify GetJob API
+  /*
+   * TODO: Implement in Phase 3
+   * Use aws4fetch to sign request to Amplify GetJob API
+   */
   throw new Error('Amplify status not yet implemented');
 }
 
 async function getCloudflareStatus(
-  env: Env,
-  deploymentId: string,
-  externalId?: string | null,
+  _env: Env,
+  _deploymentId: string,
+  _externalId?: string | null,
 ): Promise<DeploymentStatusResponse> {
-  // TODO: Implement in Phase 2
-  // Query Cloudflare Workers deployment status
+  /*
+   * TODO: Implement in Phase 2
+   * Query Cloudflare Workers deployment status
+   */
   throw new Error('Cloudflare status not yet implemented');
 }
-

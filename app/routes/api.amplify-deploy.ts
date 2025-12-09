@@ -33,15 +33,18 @@ export async function action({ request, context }: ActionFunctionArgs) {
       if (!body.accessKeyId || !body.secretAccessKey || !body.region) {
         return json({ error: 'Missing AWS credentials' }, { status: 401 });
       }
+
       accessKeyId = body.accessKeyId;
       secretAccessKey = body.secretAccessKey;
       region = body.region;
+
       // User must provide their own app ID or we create one
       appId = body.projectId || '';
     } else {
       if (!env.AMPLIFY_ACCESS_KEY_ID || !env.AMPLIFY_SECRET_ACCESS_KEY) {
         return json({ error: 'Platform AWS credentials not configured' }, { status: 500 });
       }
+
       accessKeyId = env.AMPLIFY_ACCESS_KEY_ID;
       secretAccessKey = env.AMPLIFY_SECRET_ACCESS_KEY;
       region = env.AMPLIFY_REGION || 'us-east-1';
@@ -205,4 +208,3 @@ export async function action({ request, context }: ActionFunctionArgs) {
     );
   }
 }
-

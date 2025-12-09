@@ -9,7 +9,6 @@ import {
   initializeCloudflareConnection,
   fetchCloudflareStats,
 } from '~/lib/stores/cloudflare';
-import { Button } from '~/components/ui/Button';
 
 export default function CloudflareTab() {
   const connection = useStore(cloudflareConnection);
@@ -229,4 +228,3 @@ export default function CloudflareTab() {
     </div>
   );
 }
-

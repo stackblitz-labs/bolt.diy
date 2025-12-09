@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { amplifyConnection, updateAmplifyConnection, validateAmplifyCredentials } from '~/lib/stores/amplify';
-import { Button } from '~/components/ui/Button';
 
 const AWS_REGIONS = [
   { value: 'us-east-1', label: 'US East (N. Virginia)' },
@@ -111,7 +110,8 @@ export default function AmplifyTab() {
               <div className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 p-3 rounded-lg mb-4">
                 <p className="flex items-center gap-1 mb-1">
                   <span className="i-ph:lightbulb w-3.5 h-3.5 text-bolt-elements-icon-success" />
-                  <span className="font-medium">Tip:</span> Create an IAM user with Amplify permissions for best security
+                  <span className="font-medium">Tip:</span> Create an IAM user with Amplify permissions for best
+                  security
                 </p>
               </div>
 
@@ -268,4 +268,3 @@ export default function AmplifyTab() {
     </div>
   );
 }
-

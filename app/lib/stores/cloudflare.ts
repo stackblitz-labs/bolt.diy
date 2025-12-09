@@ -106,4 +106,3 @@ export async function fetchCloudflareStats(token: string, accountId: string) {
     isFetchingStats.set(false);
   }
 }
-

@@ -36,6 +36,7 @@ export function useAmplifyDeploy() {
         if (attempts >= MAX_POLL_ATTEMPTS) {
           clearInterval(pollIntervalRef.current!);
           reject(new Error('Deployment timed out'));
+
           return;
         }
 
@@ -207,10 +208,12 @@ export function useAmplifyDeploy() {
       await pollDeploymentStatus(data.deploymentId, data.externalId, deployArtifact);
 
       toast.success('🚀 AWS Amplify deployment completed successfully!');
+
       return true;
     } catch (error) {
       console.error('Amplify deploy error:', error);
       toast.error(error instanceof Error ? error.message : 'Deployment failed');
+
       return false;
     } finally {
       setIsDeploying(false);
@@ -224,4 +227,3 @@ export function useAmplifyDeploy() {
     isPlatformManagedAvailable: true,
   };
 }
-

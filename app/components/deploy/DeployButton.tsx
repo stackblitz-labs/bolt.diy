@@ -46,7 +46,9 @@ export const DeployButton = ({
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployingTo, setDeployingTo] = useState<'netlify' | 'vercel' | 'amplify' | 'cloudflare' | 'github' | 'gitlab' | null>(null);
+  const [deployingTo, setDeployingTo] = useState<
+    'netlify' | 'vercel' | 'amplify' | 'cloudflare' | 'github' | 'gitlab' | null
+  >(null);
   const isStreaming = useStore(streamingState);
   const { handleVercelDeploy } = useVercelDeploy();
   const { handleNetlifyDeploy } = useNetlifyDeploy();

@@ -208,10 +208,12 @@ export function useCloudflareDeploy() {
       });
 
       toast.success('🚀 Cloudflare deployment completed successfully!');
+
       return true;
     } catch (error) {
       console.error('Cloudflare deploy error:', error);
       toast.error(error instanceof Error ? error.message : 'Deployment failed');
+
       return false;
     } finally {
       setIsDeploying(false);
@@ -225,4 +227,3 @@ export function useCloudflareDeploy() {
     isPlatformManagedAvailable: true, // Always available for platform-managed mode
   };
 }
-

@@ -35,8 +35,10 @@ export async function validateAmplifyCredentials(
   region: string,
 ): Promise<{ valid: boolean; error?: string }> {
   try {
-    // We'll validate by making a test API call
-    // This will be done server-side to keep credentials secure
+    /*
+     * We'll validate by making a test API call
+     * This will be done server-side to keep credentials secure
+     */
     const response = await fetch('/api/amplify-validate', {
       method: 'POST',
       headers: {
@@ -46,6 +48,7 @@ export async function validateAmplifyCredentials(
     });
 
     const data = (await response.json()) as any;
+
     return { valid: data.valid, error: data.error };
   } catch (error) {
     return {
@@ -90,4 +93,3 @@ export async function fetchAmplifyStats(accessKeyId: string, secretAccessKey: st
     isFetchingStats.set(false);
   }
 }
-

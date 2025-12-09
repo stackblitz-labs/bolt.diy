@@ -150,6 +150,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
       if (!body.token || !body.accountId) {
         return json({ error: 'Missing Cloudflare credentials' }, { status: 401 });
       }
+
       token = body.token;
       accountId = body.accountId;
       workerName = `huskit-${chatId}`;
@@ -158,6 +159,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
       if (!env.CLOUDFLARE_API_TOKEN || !env.CLOUDFLARE_ACCOUNT_ID) {
         return json({ error: 'Platform Cloudflare credentials not configured' }, { status: 500 });
       }
+
       token = env.CLOUDFLARE_API_TOKEN;
       accountId = env.CLOUDFLARE_ACCOUNT_ID;
       workerName = env.CLOUDFLARE_WORKER_NAME || 'huskit-sites';
@@ -167,7 +169,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const fileEntries = Object.entries(files);
 
     console.log(`[Cloudflare Deploy] Received ${fileEntries.length} files to deploy`);
-    console.log('[Cloudflare Deploy] File paths:', fileEntries.slice(0, 10).map(([p]) => p));
+    console.log(
+      '[Cloudflare Deploy] File paths:',
+      fileEntries.slice(0, 10).map(([p]) => p),
+    );
 
     if (fileEntries.length === 0) {
       return json({ error: 'No files to deploy' }, { status: 400 });
@@ -190,9 +195,11 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const stringToBase64 = (str: string): string => {
       const bytes = new TextEncoder().encode(str);
       let binary = '';
+
       for (let i = 0; i < bytes.length; i++) {
         binary += String.fromCharCode(bytes[i]);
       }
+
       return btoa(binary);
     };
 
@@ -209,8 +216,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
         );
       }
 
-      // Calculate hash the same way Cloudflare SDK does:
-      // hash = sha256(base64(content) + extension).slice(0, 32)
+      /*
+       * Calculate hash the same way Cloudflare SDK does:
+       * hash = sha256(base64(content) + extension).slice(0, 32)
+       */
       const extension = normalizedPath.split('.').pop() || '';
       const base64Content = stringToBase64(content);
       const hashInput = base64Content + extension;
@@ -228,21 +237,27 @@ export async function action({ request, context }: ActionFunctionArgs) {
       });
     }
 
-    // Add a unique deployment metadata file to ALWAYS force an upload
-    // This ensures we get a proper completion token from the upload API
+    /*
+     * Add a unique deployment metadata file to ALWAYS force an upload
+     * This ensures we get a proper completion token from the upload API
+     */
     const assetMetadataContent = JSON.stringify({
       deployedAt: new Date().toISOString(),
       version: Date.now(),
       chatId,
     });
     const deployMetaBytes = new TextEncoder().encode(assetMetadataContent);
+
     // Use same hash algorithm: sha256(base64(content) + extension)
     const deployMetaBase64 = stringToBase64(assetMetadataContent);
     const deployMetaHashInput = deployMetaBase64 + 'json';
     const deployMetaHashInputBytes = new TextEncoder().encode(deployMetaHashInput);
     const deployMetaHashBuffer = await crypto.subtle.digest('SHA-256', deployMetaHashInputBytes);
     const deployMetaHashArray = Array.from(new Uint8Array(deployMetaHashBuffer));
-    const deployMetaHash = deployMetaHashArray.map((b) => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+    const deployMetaHash = deployMetaHashArray
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+      .substring(0, 32);
 
     manifest['/.huskit-deploy.json'] = { hash: deployMetaHash, size: deployMetaBytes.length };
     fileContents.set(deployMetaHash, {
@@ -292,8 +307,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
     console.log('[Cloudflare Deploy] Buckets count:', buckets.length);
     console.log('[Cloudflare Deploy] Total hashes in buckets:', buckets.flat().length);
 
-    // Step 2: Determine which files need uploading from buckets
-    // Buckets from assets-upload-session already contain only the hashes that need to be uploaded
+    /*
+     * Step 2: Determine which files need uploading from buckets
+     * Buckets from assets-upload-session already contain only the hashes that need to be uploaded
+     */
     const allHashes = buckets.flat();
 
     // Step 3: Upload files in batches
@@ -303,7 +320,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
     console.log('[Cloudflare Deploy] Files to upload:', filesToUpload.length);
     console.log('[Cloudflare Deploy] Asset paths in manifest:', Object.keys(manifest));
-    console.log('[Cloudflare Deploy] Files being uploaded:', filesToUpload.map((f) => f.path));
+    console.log(
+      '[Cloudflare Deploy] Files being uploaded:',
+      filesToUpload.map((f) => f.path),
+    );
 
     // Group files into batches by size
     const batches: Array<typeof filesToUpload> = [];
@@ -315,9 +335,11 @@ export async function action({ request, context }: ActionFunctionArgs) {
         if (currentBatch.length > 0) {
           batches.push(currentBatch);
         }
+
         currentBatch = [];
         currentBatchSize = 0;
       }
+
       currentBatch.push(file);
       currentBatchSize += file.size;
     }
@@ -326,12 +348,16 @@ export async function action({ request, context }: ActionFunctionArgs) {
       batches.push(currentBatch);
     }
 
-    // Upload each batch using Workers assets API
-    // Track completion token - the final JWT returned after all uploads
+    /*
+     * Upload each batch using Workers assets API
+     * Track completion token - the final JWT returned after all uploads
+     */
     let completionToken = jwt;
 
-    // If no batches to upload, warn that we're using the session JWT directly
-    // This should rarely happen since we always add a unique .huskit-deploy.json file
+    /*
+     * If no batches to upload, warn that we're using the session JWT directly
+     * This should rarely happen since we always add a unique .huskit-deploy.json file
+     */
     if (batches.length === 0) {
       console.log(
         '[Cloudflare Deploy] WARNING: No batches to upload. Using session JWT directly. ' +
@@ -368,8 +394,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
           );
 
           if (uploadResponse.ok) {
-            // Capture the completion token from the response
-            // Cloudflare API returns jwt at root level, not inside result
+            /*
+             * Capture the completion token from the response
+             * Cloudflare API returns jwt at root level, not inside result
+             */
             const uploadData = (await uploadResponse.json()) as { jwt?: string; result?: { jwt?: string } };
 
             console.log(`[Cloudflare Deploy] Batch ${i + 1}/${batches.length} uploaded successfully`);
@@ -406,13 +434,16 @@ export async function action({ request, context }: ActionFunctionArgs) {
               { status: 500 },
             );
           }
+
           await new Promise((resolve) => setTimeout(resolve, 2000 * retries));
         }
       }
     }
 
-    // Step 4: Deploy using Beta Workers Versions API (same pattern as official SDK)
-    // This properly initializes asset bindings unlike PUT /scripts endpoint
+    /*
+     * Step 4: Deploy using Beta Workers Versions API (same pattern as official SDK)
+     * This properly initializes asset bindings unlike PUT /scripts endpoint
+     */
     console.log('[Cloudflare Deploy] Deploying Worker with static assets using Versions API');
 
     const workerScript = `
@@ -456,16 +487,21 @@ export default {
     const scriptFilename = `${workerName}.mjs`;
     const compatibilityDate = new Date().toISOString().split('T')[0];
 
-    // Step 4: Deploy using PUT /scripts with assets
-    // PUT creates/updates the worker AND its assets in one call
-    // NOTE: Don't delete the worker - it would invalidate the asset upload session
+    /*
+     * Step 4: Deploy using PUT /scripts with assets
+     * PUT creates/updates the worker AND its assets in one call
+     * NOTE: Don't delete the worker - it would invalidate the asset upload session
+     */
     console.log('[Cloudflare Deploy] Deploying Worker with static assets...');
 
-    // Build metadata for PUT /scripts endpoint
-    // https://developers.cloudflare.com/workers/static-assets/direct-upload
+    /*
+     * Build metadata for PUT /scripts endpoint
+     * https://developers.cloudflare.com/workers/static-assets/direct-upload
+     */
     const deployMetadata = {
       main_module: scriptFilename,
       compatibility_date: compatibilityDate,
+
       // The assets.jwt links the uploaded files
       assets: {
         jwt: completionToken,
@@ -475,6 +511,7 @@ export default {
           run_worker_first: true,
         },
       },
+
       // The bindings array creates env.ASSETS in the Worker
       bindings: [
         {
@@ -490,10 +527,7 @@ export default {
 
     // Use FormData for multipart/form-data
     const deployFormData = new FormData();
-    deployFormData.append(
-      'metadata',
-      new Blob([JSON.stringify(deployMetadata)], { type: 'application/json' }),
-    );
+    deployFormData.append('metadata', new Blob([JSON.stringify(deployMetadata)], { type: 'application/json' }));
     deployFormData.append(
       scriptFilename,
       new Blob([workerScript], { type: 'application/javascript+module' }),
@@ -513,6 +547,7 @@ export default {
     if (!deployResponse.ok) {
       const errorData = (await deployResponse.json()) as any;
       console.error('[Cloudflare Deploy] PUT /scripts failed:', errorData);
+
       return json(
         { error: `Failed to deploy: ${errorData.errors?.[0]?.message || deployResponse.statusText}` },
         { status: deployResponse.status },
@@ -549,4 +584,3 @@ export default {
     );
   }
 }
-
