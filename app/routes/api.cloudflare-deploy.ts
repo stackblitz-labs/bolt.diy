@@ -191,16 +191,12 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const manifest: CloudflareAssetManifest = {};
     const fileContents: Map<string, { path: string; content: string; size: number }> = new Map();
 
-    // Helper to convert string to base64 (needed for hash calculation)
+    // Helper to convert string to base64 (properly handles UTF-8)
     const stringToBase64 = (str: string): string => {
       const bytes = new TextEncoder().encode(str);
-      let binary = '';
+      const binString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
 
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-
-      return btoa(binary);
+      return btoa(binString);
     };
 
     for (const [filePath, content] of fileEntries) {

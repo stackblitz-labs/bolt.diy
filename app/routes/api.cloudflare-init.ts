@@ -39,4 +39,3 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
-

@@ -7,7 +7,7 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    const body = await request.json();
+    const body = (await request.json()) as { token?: string; accountId?: string };
     const { token, accountId } = body;
 
     if (!token || !accountId) {
@@ -40,4 +40,3 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
-

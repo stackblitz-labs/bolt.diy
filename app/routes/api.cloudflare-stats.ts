@@ -14,11 +14,14 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    const workersResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${envAccountId}/workers/scripts`, {
-      headers: {
-        Authorization: `Bearer ${envToken}`,
+    const workersResponse = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${envAccountId}/workers/scripts`,
+      {
+        headers: {
+          Authorization: `Bearer ${envToken}`,
+        },
       },
-    });
+    );
 
     if (!workersResponse.ok) {
       throw new Error(`Failed to fetch workers: ${workersResponse.status}`);
@@ -39,4 +42,3 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
-

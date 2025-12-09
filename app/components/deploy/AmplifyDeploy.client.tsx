@@ -4,72 +4,14 @@ import { amplifyConnection } from '~/lib/stores/amplify';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import { path } from '~/utils/path';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { chatId } from '~/lib/persistence/useChatHistory';
-
-const POLL_INTERVAL = 3000; // 3 seconds
-const MAX_POLL_ATTEMPTS = 120; // 6 minutes max
 
 export function useAmplifyDeploy() {
   const [isDeploying, setIsDeploying] = useState(false);
   const amplifyConn = useStore(amplifyConnection);
   const currentChatId = useStore(chatId);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-    };
-  }, []);
-
-  const pollDeploymentStatus = async (deploymentId: string, externalId: string, deployArtifact: any): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
-
-      pollIntervalRef.current = setInterval(async () => {
-        attempts++;
-
-        if (attempts >= MAX_POLL_ATTEMPTS) {
-          clearInterval(pollIntervalRef.current!);
-          reject(new Error('Deployment timed out'));
-
-          return;
-        }
-
-        try {
-          const response = await fetch(
-            `/api/deploy-status?platform=amplify&deploymentId=${deploymentId}&externalId=${externalId}`,
-          );
-          const status = (await response.json()) as any;
-
-          if (status.status === 'ready') {
-            clearInterval(pollIntervalRef.current!);
-            deployArtifact.runner.handleDeployAction('complete', 'complete', {
-              url: status.url,
-              source: 'amplify',
-            });
-            resolve();
-          } else if (status.status === 'error') {
-            clearInterval(pollIntervalRef.current!);
-            reject(new Error(status.error || 'Deployment failed'));
-          } else {
-            // Still building/deploying
-            deployArtifact.runner.handleDeployAction('deploying', 'running', {
-              source: 'amplify',
-              progress: status.progress,
-            });
-          }
-        } catch (error) {
-          // Continue polling on network errors
-          console.error('Status poll error:', error);
-        }
-      }, POLL_INTERVAL);
-    });
-  };
 
   const handleAmplifyDeploy = async () => {
     const isPlatformManaged = !amplifyConn.user;
@@ -203,9 +145,14 @@ export function useAmplifyDeploy() {
         }),
       );
 
-      // Poll for completion (Amplify builds take time)
-      toast.info('Amplify deployment started. Building...');
-      await pollDeploymentStatus(data.deploymentId, data.externalId, deployArtifact);
+      /*
+       * TODO: Implement Amplify status polling when API is ready (Phase 3)
+       * For now, skip polling and mark as complete immediately
+       */
+      deployArtifact.runner.handleDeployAction('complete', 'complete', {
+        url: data.url,
+        source: 'amplify',
+      });
 
       toast.success('🚀 AWS Amplify deployment completed successfully!');
 

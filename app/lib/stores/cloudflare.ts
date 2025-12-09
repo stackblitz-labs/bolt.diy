@@ -3,18 +3,15 @@ import type { CloudflareConnection } from '~/types/deployment';
 import { logStore } from './logs';
 import { toast } from 'react-toastify';
 
-// Initialize with stored connection or environment variable
+// Initialize with stored connection only
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('cloudflare_connection') : null;
-
-const envToken = typeof window !== 'undefined' ? import.meta.env.VITE_CLOUDFLARE_API_TOKEN : '';
-const envAccountId = typeof window !== 'undefined' ? import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID : '';
 
 const initialConnection: CloudflareConnection = storedConnection
   ? JSON.parse(storedConnection)
   : {
       user: undefined,
-      token: envToken || '',
-      accountId: envAccountId || '',
+      token: '',
+      accountId: '',
     };
 
 export const cloudflareConnection = atom<CloudflareConnection>(initialConnection);
@@ -34,36 +31,31 @@ export const updateCloudflareConnection = (updates: Partial<CloudflareConnection
 export async function initializeCloudflareConnection() {
   const currentState = cloudflareConnection.get();
 
-  if (currentState.user || !envToken || !envAccountId) {
+  if (currentState.user) {
     return;
   }
 
   try {
     isConnecting.set(true);
 
-    // Verify token by fetching account details
-    const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${envAccountId}`, {
-      headers: {
-        Authorization: `Bearer ${envToken}`,
-      },
+    // Call server-side API to initialize with env credentials
+    const response = await fetch('/api/cloudflare-init', {
+      method: 'POST',
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to connect to Cloudflare: ${response.statusText}`);
-    }
 
     const data = (await response.json()) as any;
 
+    if (!data.success || !data.user) {
+      return; // No env credentials configured
+    }
+
     updateCloudflareConnection({
-      user: {
-        id: data.result.id,
-        name: data.result.name,
-      },
-      token: envToken,
-      accountId: envAccountId,
+      user: data.user,
+      token: '', // Don't store server token on client
+      accountId: data.accountId,
     });
 
-    await fetchCloudflareStats(envToken, envAccountId);
+    await fetchCloudflareStats();
   } catch (error) {
     console.error('Error initializing Cloudflare connection:', error);
     logStore.logError('Failed to initialize Cloudflare connection', { error });
@@ -72,31 +64,29 @@ export async function initializeCloudflareConnection() {
   }
 }
 
-export async function fetchCloudflareStats(token: string, accountId: string) {
+export async function fetchCloudflareStats() {
   try {
     isFetchingStats.set(true);
 
-    // Fetch Workers list
-    const workersResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    // Call server-side API to fetch stats (uses env credentials)
+    const response = await fetch('/api/cloudflare-stats', {
+      method: 'POST',
     });
 
-    if (!workersResponse.ok) {
-      throw new Error(`Failed to fetch workers: ${workersResponse.status}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch workers: ${response.status}`);
     }
 
-    const workersData = (await workersResponse.json()) as any;
-    const workers = workersData.result || [];
+    const data = (await response.json()) as any;
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch stats');
+    }
 
     const currentState = cloudflareConnection.get();
     updateCloudflareConnection({
       ...currentState,
-      stats: {
-        workers,
-        totalWorkers: workers.length,
-      },
+      stats: data.stats,
     });
   } catch (error) {
     console.error('Cloudflare API Error:', error);

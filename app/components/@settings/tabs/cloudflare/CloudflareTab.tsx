@@ -7,7 +7,6 @@ import {
   cloudflareConnection,
   updateCloudflareConnection,
   initializeCloudflareConnection,
-  fetchCloudflareStats,
 } from '~/lib/stores/cloudflare';
 
 export default function CloudflareTab() {
@@ -30,32 +29,28 @@ export default function CloudflareTab() {
     setIsConnecting(true);
 
     try {
-      // Verify token by fetching account details
-      const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountIdInput}`, {
+      // Verify token via server-side validation
+      const response = await fetch('/api/cloudflare-validate', {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${tokenInput}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ token: tokenInput, accountId: accountIdInput }),
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to connect: ${response.statusText}`);
-      }
 
       const data = (await response.json()) as any;
 
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to connect');
+      }
+
       updateCloudflareConnection({
-        user: {
-          id: data.result.id,
-          name: data.result.name,
-        },
+        user: data.user,
         token: tokenInput,
         accountId: accountIdInput,
       });
 
       toast.success('Connected to Cloudflare successfully');
-
-      // Fetch stats
-      await fetchCloudflareStats(tokenInput, accountIdInput);
     } catch (error) {
       console.error('Error connecting to Cloudflare:', error);
       toast.error(`Failed to connect: ${error instanceof Error ? error.message : 'Unknown error'}`);
