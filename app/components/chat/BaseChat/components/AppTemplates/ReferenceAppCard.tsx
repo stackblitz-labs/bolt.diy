@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import { classNames } from '~/utils/classNames';
 import { assert } from '~/utils/nut';
-// import { ExternalLink } from 'lucide-react';
 
 interface ReferenceAppCardProps {
   appName: string;
@@ -13,6 +12,7 @@ interface ReferenceAppCardProps {
   appPath?: string;
   photoOnLeft?: boolean;
   sendMessage: (params: ChatMessageParams) => void;
+  className?: string;
 }
 
 export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
@@ -22,9 +22,8 @@ export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
   photo,
   appPath,
   sendMessage,
+  className,
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
   const handleCustomize = async () => {
     assert(appPath, 'App path is required');
 
@@ -35,79 +34,102 @@ export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
     });
   };
 
-  // const handleViewApplication = (e: React.MouseEvent) => {
-  //   e.stopPropagation();
-  //   if (appPath) {
-  //     window.open(`/app/${appPath}`, '_blank');
-  //   }
-  // };
-
-  const isClickable = !!appPath;
   const displayPhoto = photo || 'https://placehold.co/800x450/1e293b/94a3b8?text=Coming+Soon';
+  const isClickable = !!appPath;
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl bg-black shadow-lg flex-shrink-0"
-      style={{ width: '600px', height: '370px' }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={classNames(
+        'group relative overflow-hidden rounded-lg flex flex-col justify-end items-start gap-4 p-4 border block w-full h-[369px] aspect-video border-[var(--base-border,#E5E5E5)] transition-all duration-300',
+        className,
+      )}
     >
-      {/* App Screenshot */}
+      {/* App Screenshot - Sharp, blurred on hover */}
       <img
         src={displayPhoto}
         alt={appName}
-        className={classNames('w-full h-full object-cover object-top transition-all duration-300', {
-          'blur-sm scale-105': isHovered && isClickable,
-        })}
+        className="absolute inset-0 w-full h-full object-cover object-top group-hover:blur-[2px] transition-all duration-300"
       />
 
-      {/* Gradient overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+      {/* Blurred image overlay - only at bottom (default state) */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none group-hover:opacity-0 transition-opacity duration-300">
+        <img
+          src={displayPhoto}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover object-top blur-[2px]"
+          style={{
+            maskImage: 'linear-gradient(to top, black 0%, black 40%, transparent 60%)',
+            WebkitMaskImage: 'linear-gradient(to top, black 0%, black 40%, transparent 60%)',
+          }}
+        />
+      </div>
 
-      {/* Content Section - Overlaid at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 p-5 bg-white/60 dark:bg-white/40 backdrop-blur-sm">
+      {/* Background gradient overlays - default state */}
+      <div
+        className="absolute inset-0 pointer-events-none group-hover:opacity-0 transition-opacity duration-300"
+        style={{
+          background:
+            'linear-gradient(156deg, rgba(255, 255, 255, 0.00) 44.15%, #FFF 95.01%), linear-gradient(236deg, rgba(255, 255, 255, 0.00) 26.51%, rgba(255, 255, 255, 0.60) 84.05%)',
+        }}
+      />
+
+      {/* Hover state: Gradient overlay with white and pink/red gradients */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{
+          background:
+            'linear-gradient(156deg, rgba(255, 255, 255, 0.00) 44.15%, #FFF 95.01%), linear-gradient(236deg, rgba(0, 0, 0, 0.00) 26.51%, var(--tailwind-colors-slate-500, rgba(240, 45, 94, 0.50)) 84.05%)',
+        }}
+      />
+
+      {/* Content Section - Positioned at bottom via flexbox, hidden on hover */}
+      <div className="flex flex-col relative w-full gap-4 group-hover:opacity-0 transition-opacity duration-300">
         {/* Title */}
-        <h3 className="text-xl font-bold text-black mb-1">{appName}</h3>
+        <div className="flex flex-col gap-2">
+          <h3
+            className="text-lg font-bold leading-none text-black"
+            style={{
+              textShadow:
+                'var(--shadow-sm-1-offset-x, 0) var(--shadow-sm-1-offset-y, 1px) var(--shadow-sm-1-blur-radius, 3px) var(--shadow-sm-1-color, rgba(0, 0, 0, 0.10)), var(--shadow-sm-2-offset-x, 0) var(--shadow-sm-2-offset-y, 1px) var(--shadow-sm-2-blur-radius, 2px) var(--shadow-sm-2-color, rgba(0, 0, 0, 0.10))',
+            }}
+          >
+            {appName}
+          </h3>
 
-        {/* Description */}
-        <p className="text-sm text-gray-900 leading-relaxed mb-4">{description}</p>
+          {/* Description */}
+          <p
+            className="text-xs font-normal leading-4 text-black"
+            style={{
+              textShadow:
+                'var(--shadow-sm-1-offset-x, 0) var(--shadow-sm-1-offset-y, 1px) var(--shadow-sm-1-blur-radius, 3px) var(--shadow-sm-1-color, rgba(0, 0, 0, 0.10)), var(--shadow-sm-2-offset-x, 0) var(--shadow-sm-2-offset-y, 1px) var(--shadow-sm-2-blur-radius, 2px) var(--shadow-sm-2-color, rgba(0, 0, 0, 0.10))',
+            }}
+          >
+            {description}
+          </p>
+        </div>
 
         {/* Feature Tags */}
         {bulletPoints.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {bulletPoints.map((point, index) => (
-              <span key={index} className="px-3 py-1.5 text-sm font-medium text-rose-600 bg-gray-200 rounded-full">
-                {point}
+            {bulletPoints.map((badge, index) => (
+              <span key={index} className="px-3 py-1.5 text-sm font-medium bg-white text-rose-500 rounded-full">
+                {badge}
               </span>
             ))}
           </div>
         )}
       </div>
 
-      {/* Hover Overlay with Buttons */}
+      {/* Hover state: Buttons - centered */}
       {isClickable && (
-        <div
-          className={classNames(
-            'absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 transition-all duration-300',
-            isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none',
-          )}
-        >
-          {/* Customize Button */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
+          {/* Customize it button */}
           <button
             onClick={handleCustomize}
-            className="px-8 py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-full transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+            className="px-6 py-3 bg-rose-500 text-white font-semibold rounded-full hover:bg-rose-600 transition-colors duration-200 whitespace-nowrap"
           >
             Customize it
           </button>
-
-          {/* View Application Button */}
-          {/* <button
-            onClick={handleViewApplication}
-            className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-800 font-medium rounded-full transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
-          >
-            View application
-            <ExternalLink size={16} />
-          </button> */}
         </div>
       )}
     </div>
