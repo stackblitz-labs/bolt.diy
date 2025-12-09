@@ -468,9 +468,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         {/* Custom styled placeholder */}
         {!input && !chatStarted && (
           <div className="absolute left-4 top-3 pointer-events-none text-base">
-            <span className="text-gray-400 dark:text-gray-500">What would you like </span>
-            <span className="text-rose-500 font-medium">Replay.Builder to build?</span>
-            <span className="text-gray-400 dark:text-gray-500"> Click here</span>
+            <span className="text-gray-400 dark:text-gray-500 animate-pulse animation-delay-200">
+              What would you like{' '}
+            </span>
+            <span className="text-rose-500 font-medium animate-pulse animation-delay-200">
+              Replay.Builder to build?
+            </span>
           </div>
         )}
         <textarea
