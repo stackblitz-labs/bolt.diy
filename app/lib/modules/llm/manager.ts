@@ -70,6 +70,30 @@ export class LLMManager {
     return Array.from(this._providers.values());
   }
 
+  getVisibleProviders(): BaseProvider[] {
+    const hiddenProviders = [
+      'Perplexity',
+      'OpenRouter', 
+      'Moonshot',
+      'Mistral',
+      'Anthropic',
+      'Amazon Bedrock',
+      'HuggingFace',
+      'Github',
+      'Hyperbolic',
+      'Deepseek',
+      'Ollama',
+      'LMStudio',
+      'OpenAILike',
+      'Together',
+      'Cohere'
+    ];
+    
+    return Array.from(this._providers.values()).filter(
+      provider => !hiddenProviders.includes(provider.name)
+    );
+  }
+
   getModelList(): ModelInfo[] {
     return this._modelList;
   }

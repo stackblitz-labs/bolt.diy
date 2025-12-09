@@ -16,7 +16,8 @@
       "Bash(ls:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(pnpm lint:fix:*)"
+      "Bash(pnpm lint:fix:*)",
+      "Bash(pnpm typecheck:*)"
     ],
     "deny": [],
     "ask": []

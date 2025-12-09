@@ -220,6 +220,19 @@
     );
   }
 
+  // Send scroll position to parent
+  function sendScrollPosition() {
+    if (!isActive) return;
+    window.parent.postMessage(
+      {
+        type: 'VISUAL_EDITOR_SCROLL',
+        scrollX: window.scrollX || document.documentElement.scrollLeft,
+        scrollY: window.scrollY || document.documentElement.scrollTop,
+      },
+      '*'
+    );
+  }
+
   function handleMessage(event) {
     const { type, active, elementId, styles, text } = event.data;
 
@@ -230,8 +243,13 @@
           document.body.style.cursor = 'crosshair';
           // Send READY message when activated to confirm script is loaded
           window.parent.postMessage({ type: 'VISUAL_EDITOR_READY' }, '*');
+          // Also send current scroll position
+          sendScrollPosition();
+          // Listen for scroll events
+          window.addEventListener('scroll', sendScrollPosition, true);
         } else {
           document.body.style.cursor = '';
+          window.removeEventListener('scroll', sendScrollPosition, true);
         }
         break;
 

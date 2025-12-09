@@ -6,6 +6,9 @@ import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
+import { CanvasOverlay } from '~/components/visual-editor/CanvasOverlay';
+import { visualEditorActions } from '~/lib/stores/visual-editor';
+import { parseElementToCanvas, getIframeOffset } from '~/lib/visual-editor/dom-to-canvas';
 import type { ElementInfo } from './Inspector';
 
 interface SelectedElementInfo {
@@ -36,12 +39,43 @@ function VisualEditorOverlay({
         case 'VISUAL_EDITOR_SELECT':
           console.log('[VisualEditor] Element selected:', elementInfo);
           setSelectedElement(elementInfo);
+
+          // Convert DOM element to canvas element and add to canvas state
+          if (iframeRef.current && elementInfo) {
+            try {
+              const iframeOffset = getIframeOffset(iframeRef.current);
+              console.log('[VisualEditor] Iframe offset:', iframeOffset);
+
+              const canvasElement = parseElementToCanvas(elementInfo, iframeOffset);
+              console.log('[VisualEditor] Canvas element created:', canvasElement);
+
+              // Check if element already exists in canvas
+              const existingElement = visualEditorActions.getElement(canvasElement.id);
+              console.log('[VisualEditor] Existing element:', existingElement);
+
+              if (!existingElement) {
+                console.log('[VisualEditor] Adding element to canvas');
+                visualEditorActions.addElement(canvasElement);
+              }
+
+              console.log('[VisualEditor] Selecting element:', canvasElement.id);
+              visualEditorActions.selectElement(canvasElement.id);
+            } catch (error) {
+              console.error('[VisualEditor] Error processing element:', error);
+            }
+          }
           break;
         case 'VISUAL_EDITOR_HOVER':
           setHoveredElement(elementInfo);
+
+          // Update hovered state in canvas
+          if (elementInfo) {
+            visualEditorActions.setHovered(elementInfo.sourceInfo?.selector || elementInfo.id);
+          }
           break;
         case 'VISUAL_EDITOR_HOVER_OUT':
           setHoveredElement(null);
+          visualEditorActions.setHovered(null);
           break;
         case 'VISUAL_EDITOR_ELEMENT_UPDATED':
           setSelectedElement(elementInfo);
@@ -52,7 +86,7 @@ function VisualEditorOverlay({
     window.addEventListener('message', handleMessage);
 
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [iframeRef]);
 
   const updateStyle = (property: string, value: string) => {
     if (!selectedElement || !iframeRef.current?.contentWindow) {
@@ -1152,6 +1186,9 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
                 const newDesignMode = !isDesignMode;
                 setIsDesignMode(newDesignMode);
 
+                // Activate visual editor store
+                visualEditorActions.setActive(newDesignMode);
+
                 // Activate visual editor in iframe
                 if (iframeRef.current?.contentWindow) {
                   iframeRef.current.contentWindow.postMessage(
@@ -1465,6 +1502,9 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
                 <ResizeHandle side="right" />
               </>
             )}
+
+            {/* Canvas overlay for drag/resize/rotate */}
+            {isDesignMode && <CanvasOverlay iframeRef={iframeRef} />}
           </div>
         </div>
       </div>
@@ -1473,6 +1513,9 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
           iframeRef={iframeRef}
           onExit={() => {
             setIsDesignMode(false);
+
+            // Deactivate visual editor
+            visualEditorActions.setActive(false);
 
             if (iframeRef.current?.contentWindow) {
               iframeRef.current.contentWindow.postMessage({ type: 'VISUAL_EDITOR_ACTIVATE', active: false }, '*');
