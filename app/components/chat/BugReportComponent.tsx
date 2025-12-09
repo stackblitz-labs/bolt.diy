@@ -96,7 +96,9 @@ export const BugReportComponent = ({ report, handleSendMessage }: BugReportCompo
           <h3 className="text-sm font-semibold text-bolt-elements-textHeading mb-1.5">
             {formatPascalCaseName(report.name)}
           </h3>
-          <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">{report.description}</p>
+          <WithTooltip tooltip={report.description} maxWidth={400}>
+            <p className="text-sm text-bolt-elements-textSecondary truncate">{report.description}</p>
+          </WithTooltip>
         </div>
 
         {processing ? (

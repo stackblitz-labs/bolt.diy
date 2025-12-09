@@ -17,6 +17,8 @@ import Events from '~/components/workbench/Preview/components/PlanView/component
 import Pages from '~/components/workbench/Preview/components/PlanView/components/Pages';
 import type { AppFeature } from '~/lib/persistence/messageAppSummary';
 import FeatureDebugControls from '~/components/ui/FeatureDebugControls';
+import WithTooltip from './Tooltip';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 
 interface IntegrationTestsModalContentProps {
   integrationTests: AppFeature[];
@@ -373,84 +375,90 @@ const FeatureModal: React.FC = () => {
 
   return (
     <AnimatePresence>
-      {modalState.isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-          onClick={handleBackdropClick}
-        >
+      <TooltipProvider>
+        {modalState.isOpen && (
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="relative w-full max-w-4xl mx-4 max-h-[90vh] bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor shadow-2xl overflow-hidden"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            onClick={handleBackdropClick}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
-              <div className="flex items-center gap-4 flex-1">
-                {/* Feature Info */}
-                <div className="flex-1">
-                  <h2 className="flex items-center gap-2 text-xl font-bold text-bolt-elements-textHeading">
-                    {name}
-                    <div className="flex-shrink-0">{renderFeatureStatus(status)}</div>
-                    <div className="flex-1" />
-                    <FeatureDebugControls featureName={currentFeature.name} />
-                  </h2>
-                  <p className="text-bolt-elements-textSecondary mt-1">{description}</p>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-4xl mx-4 max-h-[90vh] bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor shadow-2xl overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+                <div className="flex items-center gap-4 flex-1">
+                  {/* Feature Info */}
+                  <div className="flex-1 pr-4">
+                    <h2 className="flex items-center gap-4 text-xl font-bold text-bolt-elements-textHeading">
+                      {name}
+                      <div className="flex-shrink-0">{renderFeatureStatus(status)}</div>
+
+                      <FeatureDebugControls featureName={currentFeature.name} />
+                    </h2>
+                    {description && (
+                      <WithTooltip tooltip={description} maxWidth={400}>
+                        <p className="text-bolt-elements-textSecondary mt-1 line-clamp-2">{description}</p>
+                      </WithTooltip>
+                    )}
+                  </div>
                 </div>
+
+                {/* Close Button */}
+                <button
+                  onClick={closeFeatureModal}
+                  className="p-2 rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3 transition-all duration-200 flex items-center justify-center"
+                >
+                  <X size={20} strokeWidth={2.5} />
+                </button>
               </div>
 
-              {/* Close Button */}
-              <button
-                onClick={closeFeatureModal}
-                className="p-2 rounded-xl bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3 transition-all duration-200 flex items-center justify-center"
-              >
-                <X size={20} strokeWidth={2.5} />
-              </button>
-            </div>
+              {/* Content with Navigation */}
+              <div className="flex items-center">
+                {/* Content */}
+                <div className="flex-1 p-6 overflow-y-auto max-h-[calc(90vh-120px)] ">
+                  <div className="space-y-6">
+                    {currentFeature.kind === AppFeatureKind.BuildInitialApp && <Pages />}
 
-            {/* Content with Navigation */}
-            <div className="flex items-center">
-              {/* Content */}
-              <div className="flex-1 p-6 overflow-y-auto max-h-[calc(90vh-120px)] ">
-                <div className="space-y-6">
-                  {currentFeature.kind === AppFeatureKind.BuildInitialApp && <Pages />}
+                    {currentFeature.databaseChange &&
+                      currentFeature.databaseChange.tables &&
+                      currentFeature.databaseChange.tables.length > 0 && <DatabaseChanges feature={currentFeature} />}
 
-                  {currentFeature.databaseChange &&
-                    currentFeature.databaseChange.tables &&
-                    currentFeature.databaseChange.tables.length > 0 && <DatabaseChanges feature={currentFeature} />}
+                    {currentFeature.componentNames && currentFeature.componentNames.length > 0 && (
+                      <Components summary={appSummary} feature={currentFeature} />
+                    )}
 
-                  {currentFeature.componentNames && currentFeature.componentNames.length > 0 && (
-                    <Components summary={appSummary} feature={currentFeature} />
-                  )}
+                    {currentFeature.definedAPIs && currentFeature.definedAPIs.length > 0 && (
+                      <DefinedApis feature={currentFeature} />
+                    )}
 
-                  {currentFeature.definedAPIs && currentFeature.definedAPIs.length > 0 && (
-                    <DefinedApis feature={currentFeature} />
-                  )}
+                    {currentFeature.tests && currentFeature.tests.length > 0 && (
+                      <Tests
+                        status={currentFeature.status}
+                        featureTests={
+                          currentFeature.kind === AppFeatureKind.IntegrationTests &&
+                          currentFeature.status === AppFeatureStatus.Implemented
+                            ? currentFeature.tests.filter((test) => test.status)
+                            : currentFeature.tests
+                        }
+                      />
+                    )}
 
-                  {currentFeature.tests && currentFeature.tests.length > 0 && (
-                    <Tests
-                      status={currentFeature.status}
-                      featureTests={
-                        currentFeature.kind === AppFeatureKind.IntegrationTests &&
-                        currentFeature.status === AppFeatureStatus.Implemented
-                          ? currentFeature.tests.filter((test) => test.status)
-                          : currentFeature.tests
-                      }
-                    />
-                  )}
-
-                  <Events featureName={currentFeature.name} />
+                    <Events featureName={currentFeature.name} />
+                  </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
+      </TooltipProvider>
     </AnimatePresence>
   );
 };

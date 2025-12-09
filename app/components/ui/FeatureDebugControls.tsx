@@ -4,6 +4,9 @@ import { chatStore } from '~/lib/stores/chat';
 import { isAdmin } from '~/lib/utils';
 import { getChatIdsForFeature } from '~/components/workbench/Preview/components/PlanView/components/Features/components/Events';
 import type { ChatResponse } from '~/lib/persistence/response';
+import { Bug } from 'lucide-react';
+import { IconButton } from './IconButton';
+import WithTooltip from '~/components/ui/Tooltip';
 
 interface FeatureDebugControlsProps {
   featureName: string | undefined;
@@ -62,9 +65,15 @@ const FeatureDebugControls = ({ featureName }: FeatureDebugControlsProps) => {
   };
 
   return (
-    <button onClick={handleClick} className="text-lg hover:scale-110 transition-transform" title="Show backend events">
-      🐛
-    </button>
+    <WithTooltip tooltip="Show backend events">
+      <IconButton
+        onClick={handleClick}
+        className="text-lg hover:scale-110 transition-transform button-icon"
+        title="Show backend events"
+      >
+        <Bug size={20} />
+      </IconButton>
+    </WithTooltip>
   );
 };
 
