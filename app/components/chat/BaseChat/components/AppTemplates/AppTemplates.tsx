@@ -41,12 +41,12 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
     <div id="showcase-gallery" className="w-full mx-auto mt-24 mb-4">
       <div className="max-w-[1337px] mx-auto flex flex-col mb-12 animate-fade-in animation-delay-100">
         <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-          <span className="text-bolt-elements-textHeading">Not sure</span>
+          <span className="text-bolt-elements-textHeading">Start with</span>
           <br />
-          <span className="text-rose-500 dark:text-rose-400"> where to start?</span>
+          <span className="text-rose-500 dark:text-rose-400">a fully working app</span>
         </h1>
         <p className="text-lg md:text-xl text-bolt-elements-textSecondary max-w-3xl">
-          Customize one of our reference apps to exactly what you need.
+          Ready to use out-of-the-box (but can be aligned to your needs)
         </p>
       </div>
 
