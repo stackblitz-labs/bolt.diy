@@ -14,6 +14,9 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>('All');
   const [searchParams] = useSearchParams();
   const hasHandledAppPath = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, scrollLeft: 0 });
 
   // Handle appPath URL parameter - automatically trigger customize action
   useEffect(() => {
@@ -69,6 +72,47 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
     return referenceApps.filter((app) => app.categories.some((category) => category === selectedCategory));
   }, [selectedCategory]);
 
+  // Drag-to-scroll handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!scrollContainerRef.current) {
+      return;
+    }
+
+    // Don't start dragging if clicking on a button or interactive element
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.closest('button')) {
+      return;
+    }
+
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.pageX - scrollContainerRef.current.offsetLeft,
+      scrollLeft: scrollContainerRef.current.scrollLeft,
+    };
+
+    // Prevent text selection during drag
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !scrollContainerRef.current) {
+      return;
+    }
+
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - dragStartRef.current.x) * 1.5; // Scroll speed multiplier
+    scrollContainerRef.current.scrollLeft = dragStartRef.current.scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div id="showcase-gallery" className="w-full mx-auto mt-24 mb-4">
       <div className="max-w-[1337px] mx-auto flex flex-col mb-12 animate-fade-in animation-delay-100">
@@ -90,7 +134,20 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
 
       {/* Horizontal scrolling card container */}
       {filteredApps.length > 0 && (
-        <div className="overflow-x-auto pb-4 px-2 animate-fade-in animation-delay-400 mb-8">
+        <div
+          ref={scrollContainerRef}
+          className={`overflow-x-auto pb-4 px-2 animate-fade-in animation-delay-400 mb-8 ${
+            isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+          }`}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollBehavior: isDragging ? 'auto' : 'smooth',
+          }}
+        >
           <div className="flex gap-6" style={{ minWidth: 'min-content' }}>
             {filteredApps.map((app) => (
               <ReferenceAppCard
