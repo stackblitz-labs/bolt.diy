@@ -267,6 +267,7 @@ export class ImportExportService {
       xAI: '',
       Perplexity: '',
       Cohere: '',
+      Cerebras: '',
       AzureOpenAI: '',
     };
 

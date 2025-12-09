@@ -19,6 +19,7 @@ import type { IconType } from 'react-icons';
 type ProviderName =
   | 'AmazonBedrock'
   | 'Anthropic'
+  | 'Cerebras'
   | 'Cohere'
   | 'Deepseek'
   | 'Github'
@@ -37,6 +38,7 @@ type ProviderName =
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   AmazonBedrock: SiAmazon,
   Anthropic: FaBrain,
+  Cerebras: TbBrain,
   Cohere: BiChip,
   Deepseek: BiCodeBlock,
   Github: SiGithub,
@@ -55,6 +57,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
 // Update PROVIDER_DESCRIPTIONS to use the same type
 const PROVIDER_DESCRIPTIONS: Partial<Record<ProviderName, string>> = {
   Anthropic: 'Access Claude and other Anthropic models',
+  Cerebras: 'Fast inference with Llama, Qwen, and GPT models on powerful hardware',
   Github: 'Use OpenAI models hosted through GitHub infrastructure',
   OpenAI: 'Use GPT-4, GPT-3.5, and other OpenAI models',
 };
