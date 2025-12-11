@@ -13,7 +13,7 @@ const infoCardVariants = cva('flex items-start gap-3 rounded-2xl border p-4 tran
   variants: {
     variant: {
       default: 'bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor',
-      active: 'bg-bolt-elements-background-depth-2 border-bolt-elements-borderColorActive border-2',
+      active: 'bg-bolt-elements-background-depth-2 border-green-500 border-2',
       warning: 'bg-bolt-elements-background-depth-2 border-bolt-elements-borderColorWarning border-2',
     },
     size: {
