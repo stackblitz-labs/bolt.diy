@@ -14,7 +14,6 @@ import { userStore } from '~/lib/stores/auth';
 import CopyApp from './components/CopyApp';
 import ClearAppHistory from './components/ClearAppHistory';
 import { X, Settings, Type } from '~/components/ui/Icon';
-import { hasExperimentalFeatures } from '~/lib/stores/experimentalFeatures';
 import { isAppOwner } from '~/lib/api/permissions';
 
 export function GlobalAppSettingsModal() {
@@ -136,6 +135,21 @@ export function GlobalAppSettingsModal() {
                     <ChatDescription />
                   </div>
 
+                  {/* Authentication Settings */}
+                  {appSummary && <AuthSelectorComponent appSummary={appSummary} />}
+
+                  {/* API Integrations */}
+                  {appSummary && allSecrets.length > 0 && <SecretsComponent appSummary={appSummary} />}
+
+                  {/* Experimental Features */}
+                  {appSummary && <ExperimentalFeaturesComponent appSummary={appSummary} />}
+
+                  {/* Permissions */}
+                  {appId &&
+                    isAppAccessAllowed(permissions, AppAccessKind.SetPermissions, user?.email ?? '', isOwner) && (
+                      <PermissionsSelectionComponent />
+                    )}
+
                   {/* Copy App */}
                   {appId && isAppAccessAllowed(permissions, AppAccessKind.Copy, user?.email ?? '', isOwner) && (
                     <CopyApp />
@@ -145,21 +159,6 @@ export function GlobalAppSettingsModal() {
                   {appId && isAppAccessAllowed(permissions, AppAccessKind.Delete, user?.email ?? '', isOwner) && (
                     <ClearAppHistory />
                   )}
-
-                  {/* Authentication Settings */}
-                  {appSummary && <AuthSelectorComponent appSummary={appSummary} />}
-
-                  {/* Permissions */}
-                  {appId &&
-                    isAppAccessAllowed(permissions, AppAccessKind.SetPermissions, user?.email ?? '', isOwner) && (
-                      <PermissionsSelectionComponent />
-                    )}
-
-                  {/* API Integrations */}
-                  {appSummary && allSecrets.length > 0 && <SecretsComponent appSummary={appSummary} />}
-
-                  {/* Experimental Features */}
-                  {appSummary && hasExperimentalFeatures() && <ExperimentalFeaturesComponent />}
                 </div>
 
                 {/* Action Buttons */}

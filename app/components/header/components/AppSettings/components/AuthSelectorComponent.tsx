@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppCard } from '~/components/chat/Messages/components/AppCard';
 import { Switch } from '~/components/ui/Switch';
-import { DisableAppBlockChangesSecret, type AppSummary } from '~/lib/persistence/messageAppSummary';
+import { type AppSummary } from '~/lib/persistence/messageAppSummary';
 import { chatStore, onChatResponse } from '~/lib/stores/chat';
 import { callNutAPI } from '~/lib/replay/NutAPI';
 import { toast } from 'react-toastify';
@@ -9,8 +9,8 @@ import { assert } from '~/utils/nut';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { Skeleton } from '~/components/ui/Skeleton';
-import { Globe, Lock, Trash2, Plus, ShieldCheck, MessageSquare } from '~/components/ui/Icon';
-import { AuthRequiredSecret, AppMessagesSecret } from '~/lib/persistence/messageAppSummary';
+import { Globe, Lock, Trash2, Plus, ShieldCheck, KeyRound, AlertCircle, Info } from '~/components/ui/Icon';
+import { AuthRequiredSecret } from '~/lib/persistence/messageAppSummary';
 
 interface AuthSelectorComponentProps {
   appSummary: AppSummary;
@@ -34,10 +34,10 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
   const appId = chatStore.currentAppId.get();
   assert(appId, 'App ID is required');
 
+  console.log('appSummary', appSummary);
+
   const [saving, setSaving] = useState(false);
   const authRequired = appSummary?.setSecrets?.includes(AuthRequiredSecret);
-  const appMessagesEnabled = appSummary?.setSecrets?.includes(AppMessagesSecret);
-  const disableAppBlockChanges = appSummary?.setSecrets?.includes(DisableAppBlockChangesSecret);
 
   const handleAuthToggle = async () => {
     setSaving(true);
@@ -61,60 +61,6 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
     } catch (error) {
       toast.error('Failed to update authentication settings');
       console.error('Failed to update authentication settings:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleAppMessagesToggle = async () => {
-    setSaving(true);
-
-    try {
-      const { response } = await callNutAPI('set-app-secrets', {
-        appId,
-        secrets: [
-          {
-            key: AppMessagesSecret,
-            value: appMessagesEnabled ? undefined : 'true',
-          },
-        ],
-      });
-
-      if (response) {
-        onChatResponse(response, 'ToggleAppMessages');
-      }
-
-      toast.success('In-app feedback settings updated successfully');
-    } catch (error) {
-      toast.error('Failed to update in-app feedback settings');
-      console.error('Failed to update in-app feedback settings:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleAppBlockChangesToggle = async () => {
-    setSaving(true);
-
-    try {
-      const { response } = await callNutAPI('set-app-secrets', {
-        appId,
-        secrets: [
-          {
-            key: DisableAppBlockChangesSecret,
-            value: disableAppBlockChanges ? undefined : 'true',
-          },
-        ],
-      });
-
-      if (response) {
-        onChatResponse(response, 'ToggleAppMessages');
-      }
-
-      toast.success('App block changes settings updated successfully');
-    } catch (error) {
-      toast.error('Failed to update app block changes settings');
-      console.error('Failed to update app block changes settings:', error);
     } finally {
       setSaving(false);
     }
@@ -262,232 +208,156 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
     }
   }, [haveAny, allValid, domains, appId]);
 
-  const getAppMessagesToggleControl = () => {
-    const tooltipText = appMessagesEnabled
-      ? 'Disable in-app updates and bug reporting'
-      : 'Enable updating and reporting bugs directly from the app';
-
-    return (
-      <TooltipProvider>
-        <WithTooltip tooltip={tooltipText}>
-          <button
-            className={`group p-4 bg-bolt-elements-background-depth-2 rounded-xl border transition-all duration-200 w-full shadow-sm ${
-              saving
-                ? 'border-bolt-elements-borderColor border-opacity-30 cursor-not-allowed opacity-60'
-                : 'border-bolt-elements-borderColor hover:border-bolt-elements-focus/60 hover:bg-bolt-elements-background-depth-3 hover:shadow-md hover:scale-[1.02] cursor-pointer'
-            }`}
-            onClick={!saving ? handleAppMessagesToggle : undefined}
-            disabled={saving}
-            type="button"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MessageSquare
-                  className={appMessagesEnabled ? 'text-bolt-elements-icon-success' : 'text-bolt-elements-textPrimary'}
-                  size={18}
-                />
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-bolt-elements-textPrimary transition-transform duration-200 group-hover:scale-105">
-                    {appMessagesEnabled ? 'In-App Feedback Enabled' : 'Enable In-App Feedback'}
-                  </span>
-                  <span className="text-xs text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary transition-all duration-200">
-                    {saving
-                      ? 'Updating...'
-                      : appMessagesEnabled
-                        ? 'Users can report issues or request updates directly in the app'
-                        : 'In app issue reporting disabled'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {saving && (
-                  <div className="w-4 h-4 rounded-full border-2 border-bolt-elements-borderColor border-t-blue-500 animate-spin" />
-                )}
-                <Switch
-                  checked={appMessagesEnabled}
-                  onCheckedChange={!saving ? handleAppMessagesToggle : undefined}
-                  className={`${saving ? 'opacity-50' : 'group-hover:scale-110'} transition-all duration-200 pointer-events-none`}
-                />
-              </div>
-            </div>
-          </button>
-        </WithTooltip>
-      </TooltipProvider>
-    );
-  };
-
-  const getAppBlockChangesToggleControl = () => {
-    const tooltipText = disableAppBlockChanges
-      ? 'Enable Builder improvements based on developed changes'
-      : 'Disable Builder improvements based on developed changes';
-
-    return (
-      <TooltipProvider>
-        <WithTooltip tooltip={tooltipText}>
-          <button
-            className={`group p-4 bg-bolt-elements-background-depth-2 rounded-xl border transition-all duration-200 w-full shadow-sm ${
-              saving
-                ? 'border-bolt-elements-borderColor border-opacity-30 cursor-not-allowed opacity-60'
-                : 'border-bolt-elements-borderColor hover:border-bolt-elements-focus/60 hover:bg-bolt-elements-background-depth-3 hover:shadow-md hover:scale-[1.02] cursor-pointer'
-            }`}
-            onClick={!saving ? handleAppBlockChangesToggle : undefined}
-            disabled={saving}
-            type="button"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MessageSquare
-                  className={
-                    disableAppBlockChanges ? 'text-bolt-elements-icon-success' : 'text-bolt-elements-textPrimary'
-                  }
-                  size={18}
-                />
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-bolt-elements-textPrimary transition-transform duration-200 group-hover:scale-105">
-                    {disableAppBlockChanges ? 'Builder Improvement Disabled' : 'Builder Improvement Enabled'}
-                  </span>
-                  <span className="text-xs text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary transition-all duration-200">
-                    {saving
-                      ? 'Updating...'
-                      : disableAppBlockChanges
-                        ? 'Developed changes will not be used to improve future apps'
-                        : 'Use developed changes to improve future apps for everyone'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {saving && (
-                  <div className="w-4 h-4 rounded-full border-2 border-bolt-elements-borderColor border-t-blue-500 animate-spin" />
-                )}
-                <Switch
-                  checked={disableAppBlockChanges}
-                  onCheckedChange={!saving ? handleAppBlockChangesToggle : undefined}
-                  className={`${saving ? 'opacity-50' : 'group-hover:scale-110'} transition-all duration-200 pointer-events-none`}
-                />
-              </div>
-            </div>
-          </button>
-        </WithTooltip>
-      </TooltipProvider>
-    );
-  };
-
   return (
     <AppCard
-      title="App Settings"
+      title="Authentication Settings"
       description={getDescription()}
       icon={<ShieldCheck className="text-white" size={18} />}
       iconColor="indigo"
-      status="completed"
+      status={null}
       progressText="Configured"
     >
       <div className="space-y-3">
         {getAuthToggleControl()}
         {authRequired && (
-          <div className="p-5 space-y-4">
-            <div>
-              <div className="text-md font-medium text-bolt-elements-textHeading mb-1">Set Allowed Domains</div>
-              <div className="text-xs text-bolt-elements-textSecondary">
-                Users can sign in only with emails belonging to these domains.
+          <div className="p-5 space-y-5 bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor/50">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-indigo-500/20 to-blue-500/20 border border-indigo-500/30">
+                <KeyRound className="text-indigo-500" size={18} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-bolt-elements-textHeading mb-1.5">Set Allowed Domains</h3>
+                <p className="text-xs text-bolt-elements-textSecondary leading-relaxed">
+                  Users can sign in only with emails belonging to these domains.
+                </p>
               </div>
             </div>
 
             <div className="space-y-3">
               {loading ? (
                 <>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 flex items-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 bg-bolt-elements-background-depth-2">
-                      <span className="text-bolt-elements-textSecondary select-none">@</span>
-                      <Skeleton className="h-6 w-full" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex-1 flex items-center gap-2.5 rounded-xl border border-bolt-elements-borderColor px-4 py-2.5 bg-bolt-elements-background-depth-2">
+                      <span className="text-bolt-elements-textSecondary select-none text-sm font-medium">@</span>
+                      <Skeleton className="h-5 w-full" />
                     </div>
-                    <Skeleton className="h-6 w-8" />
+                    <Skeleton className="h-9 w-9 rounded-lg" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 flex items-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 bg-bolt-elements-background-depth-2">
-                      <span className="text-bolt-elements-textSecondary select-none">@</span>
-                      <Skeleton className="h-6 w-full" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex-1 flex items-center gap-2.5 rounded-xl border border-bolt-elements-borderColor px-4 py-2.5 bg-bolt-elements-background-depth-2">
+                      <span className="text-bolt-elements-textSecondary select-none text-sm font-medium">@</span>
+                      <Skeleton className="h-5 w-full" />
                     </div>
-                    <Skeleton className="h-6 w-8" />
+                    <Skeleton className="h-9 w-9 rounded-lg" />
                   </div>
                   <div>
-                    <Skeleton className="h-9 6w-40 mt-2" />
+                    <Skeleton className="h-10 w-32 rounded-xl" />
                   </div>
                 </>
               ) : (
-                domains.map((domain, index) => {
-                  const showInvalid = touched[index] && domain.trim().length > 0 && !isValidDomain(domain);
-                  return (
-                    <div key={index} className="flex items-center gap-2">
-                      <div
-                        className={
-                          'flex-1 flex items-center gap-2 rounded-2xl border px-3 py-2 bg-bolt-elements-background-depth-2 ' +
-                          (showInvalid
-                            ? 'border-red-500 focus-within:border-red-500'
-                            : 'border-bolt-elements-borderColor focus-within:border-bolt-elements-focus')
-                        }
-                      >
-                        <span className="text-bolt-elements-textSecondary select-none">@</span>
-                        <input
-                          type="text"
-                          value={domain}
-                          onChange={(e) => setDomainAt(index, e.target.value)}
-                          onBlur={() => setTouchedAt(index, true)}
-                          placeholder="example.com"
-                          className={
-                            'w-full bg-transparent outline-none text-sm ' +
-                            (showInvalid
-                              ? 'text-red-600 placeholder-red-400'
-                              : 'text-bolt-elements-textPrimary placeholder-bolt-elements-textSecondary')
-                          }
-                        />
-                      </div>
-                      {domains.length > 1 && (
-                        <button
-                          className="h-8 w-8 border-0 text-red-500 bg-transparent items-center justify-center"
-                          onClick={() => removeRow(index)}
-                          aria-label="Remove domain"
-                          type="button"
-                          disabled={loading}
+                <>
+                  {domains.map((domain, index) => {
+                    const showInvalid = touched[index] && domain.trim().length > 0 && !isValidDomain(domain);
+                    const isValid = domain.trim().length > 0 && isValidDomain(domain);
+                    return (
+                      <div key={index} className="flex items-center gap-2.5">
+                        <div
+                          className={`group flex-1 flex items-center gap-2.5 rounded-xl border px-4 py-2.5 bg-bolt-elements-background-depth-2 transition-all duration-200 ${
+                            showInvalid
+                              ? 'border-red-500/60 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20'
+                              : isValid
+                                ? 'border-green-500/40 focus-within:border-green-500/60'
+                                : 'border-bolt-elements-borderColor focus-within:border-bolt-elements-focus focus-within:ring-2 focus-within:ring-bolt-elements-focus/20'
+                          }`}
                         >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-              <div className="ml-4 text-xs text-bolt-elements-textSecondary">
-                Enter domains like <span className="font-mono">example.com</span> or{' '}
-                <span className="font-mono">team.example.com</span>
-              </div>
-              {!loading && (
-                <div>
-                  <button
-                    className="mt-1 inline-flex items-center gap-2 px-3 h-9 rounded-xl border border-bolt-elements-borderColor text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 hover:scale-105"
-                    onClick={addRow}
-                    type="button"
-                    disabled={loading}
-                  >
-                    <Plus size={16} />
-                    <span>Add new domain</span>
-                  </button>
-                </div>
+                          <span
+                            className={`select-none text-sm font-medium transition-colors ${
+                              showInvalid
+                                ? 'text-red-500'
+                                : isValid
+                                  ? 'text-green-500'
+                                  : 'text-bolt-elements-textSecondary group-focus-within:text-bolt-elements-textPrimary'
+                            }`}
+                          >
+                            @
+                          </span>
+                          <input
+                            type="text"
+                            value={domain}
+                            onChange={(e) => setDomainAt(index, e.target.value)}
+                            onBlur={() => setTouchedAt(index, true)}
+                            placeholder="example.com"
+                            className={`w-full bg-transparent outline-none border-none focus:ring-0 text-sm transition-colors ${
+                              showInvalid
+                                ? 'text-red-600 placeholder-red-400/60'
+                                : isValid
+                                  ? 'text-bolt-elements-textPrimary placeholder-bolt-elements-textSecondary/50'
+                                  : 'text-bolt-elements-textPrimary placeholder-bolt-elements-textSecondary'
+                            }`}
+                          />
+                          {isValid && (
+                            <div className="flex-shrink-0 w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                              <div className="w-2 h-2 rounded-full bg-green-500" />
+                            </div>
+                          )}
+                          {showInvalid && <AlertCircle className="flex-shrink-0 text-red-500" size={16} />}
+                        </div>
+                        {domains.length > 1 && (
+                          <button
+                            className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-bolt-elements-textSecondary hover:text-red-500 bg-bolt-elements-background-depth-2 hover:bg-red-500/10 border border-bolt-elements-borderColor hover:border-red-500/40 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            onClick={() => removeRow(index)}
+                            aria-label="Remove domain"
+                            type="button"
+                            disabled={loading}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-start gap-2 pt-1">
+                    <Info className="text-bolt-elements-textSecondary flex-shrink-0 mt-0.5" size={14} />
+                    <p className="text-xs text-bolt-elements-textSecondary leading-relaxed">
+                      Enter domains like <span className="font-mono text-bolt-elements-textPrimary">example.com</span>{' '}
+                      or <span className="font-mono text-bolt-elements-textPrimary">team.example.com</span>
+                    </p>
+                  </div>
+                  {!loading && (
+                    <button
+                      className="inline-flex items-center gap-2 px-4 h-10 rounded-xl border border-bolt-elements-borderColor text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary hover:border-bolt-elements-focus/60 transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      onClick={addRow}
+                      type="button"
+                      disabled={loading}
+                    >
+                      <Plus size={16} />
+                      <span className="text-sm font-medium">Add new domain</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-bolt-elements-borderColor/50">
               <button
-                className="px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 hover:shadow-md hover:scale-105 active:scale-95"
+                className="px-6 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-indigo-500 to-blue-600 text-white hover:from-indigo-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 hover:shadow-md hover:scale-105 active:scale-95 disabled:hover:scale-100"
                 onClick={handleSave}
                 disabled={loading || saving || !haveAny || !allValid}
               >
-                {saving ? 'Saving…' : loading ? 'Loading…' : 'Save'}
+                {saving ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    Saving…
+                  </span>
+                ) : loading ? (
+                  'Loading…'
+                ) : (
+                  'Save Domains'
+                )}
               </button>
             </div>
           </div>
         )}
-        {getAppMessagesToggleControl()}
-        {getAppBlockChangesToggleControl()}
       </div>
     </AppCard>
   );

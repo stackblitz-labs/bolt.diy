@@ -7,7 +7,7 @@ interface AppCardProps {
   description: string;
   icon?: React.ReactNode;
   iconColor?: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'indigo';
-  status?: 'pending' | 'in-progress' | 'completed' | 'failed';
+  status?: 'pending' | 'in-progress' | 'completed' | 'failed' | 'canceled' | null;
   progressText?: string;
   onClick?: () => void;
   children?: React.ReactNode;
@@ -73,6 +73,15 @@ export const AppCard: React.FC<AppCardProps> = ({
               {progressText && (
                 <span className="text-sm font-medium text-bolt-elements-textPrimary">{progressText}</span>
               )}
+            </div>
+          ),
+        };
+      case 'canceled':
+        return {
+          badge: 'text-bolt-elements-textPrimary bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor',
+          indicator: (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-bolt-elements-textPrimary">Canceled</span>
             </div>
           ),
         };
