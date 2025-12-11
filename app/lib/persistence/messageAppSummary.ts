@@ -68,6 +68,9 @@ export enum AppFeatureStatus {
 
   // Implementation work for the feature failed after several attempts.
   Failed = 'Failed',
+
+  // The feature was canceled instead of being implemented.
+  Canceled = 'Canceled',
 }
 
 export enum AppFeatureKind {
@@ -245,7 +248,12 @@ export function parseAppSummaryMessage(message: Message): AppSummary | undefined
 }
 
 export function isFeatureStatusImplemented(status?: AppFeatureStatus) {
-  return status && (status === AppFeatureStatus.Implemented || status === AppFeatureStatus.Failed);
+  return (
+    status &&
+    (status === AppFeatureStatus.Implemented ||
+      status === AppFeatureStatus.Failed ||
+      status === AppFeatureStatus.Canceled)
+  );
 }
 
 // Secret which controls whether users must be logged in.
