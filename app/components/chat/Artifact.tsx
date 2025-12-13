@@ -8,9 +8,6 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { WORK_DIR } from '~/utils/constants';
-import { createScopedLogger } from '~/utils/logger';
-
-const logger = createScopedLogger('Artifact');
 
 const highlighterOptions = {
   langs: ['shell'],
