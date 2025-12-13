@@ -1,5 +1,4 @@
-pnpm-lock.yaml
-.astro
+# Generated to align with eslint.config.mjs ignores
 node_modules/
 dist/
 dist-ssr/
@@ -7,5 +6,8 @@ build/
 coverage/
 .wrangler/
 .history/
+.bolt/build/
 functions/build/
 supabase/.temp/
+*.snap
+

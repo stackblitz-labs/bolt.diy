@@ -70,6 +70,7 @@ export async function streamText(props: {
   chatMode?: 'discuss' | 'build';
   designScheme?: DesignScheme;
   restaurantThemeId?: RestaurantThemeId | null;
+  additionalSystemPrompt?: string;
 }) {
   const {
     messages,
@@ -85,6 +86,7 @@ export async function streamText(props: {
     chatMode,
     designScheme,
     restaurantThemeId,
+    additionalSystemPrompt,
   } = props;
 
   logger.info(
@@ -178,6 +180,12 @@ export async function streamText(props: {
         credentials: options?.supabaseConnection?.credentials || undefined,
       },
     }) ?? getSystemPrompt();
+
+  // Inject additional system prompt if provided (e.g., for info collection)
+  if (additionalSystemPrompt) {
+    systemPrompt = `${systemPrompt}${additionalSystemPrompt}`;
+    logger.debug(`Additional system prompt injected. Length: ${additionalSystemPrompt.length} characters`);
+  }
 
   // Inject restaurant theme prompt if applicable
   if (chatMode === 'build' && restaurantThemeId) {

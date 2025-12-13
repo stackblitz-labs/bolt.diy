@@ -63,10 +63,6 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
       );
       const finished = !unfinishedAction;
 
-      logger.debug(
-        `[ARTIFACT DEBUG] id=${artifact.id}, type=${artifact.type}, actions=${actions.length}, finished=${finished}, unfinishedAction=${unfinishedAction ? `${unfinishedAction.type}:${unfinishedAction.status}` : 'none'}`,
-      );
-
       if (allActionFinished !== finished) {
         setAllActionFinished(finished);
       }
