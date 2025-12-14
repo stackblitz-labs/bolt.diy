@@ -41,7 +41,7 @@ export async function retrievePendingGenerationResult(sessionId: string): Promis
     logger.debug('Retrieved and cleared pending generation result', { sessionId });
   }
 
-  return result;
+  return result as GenerationResult | undefined;
 }
 
 /*

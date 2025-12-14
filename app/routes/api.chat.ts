@@ -450,7 +450,7 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
               const { sessionId, generation } = (finalizeResult as any).result;
 
               // Retrieve the generation result from temporary storage
-              const pendingResult = retrievePendingGenerationResult(sessionId);
+              const pendingResult = await retrievePendingGenerationResult(sessionId);
 
               if (pendingResult?.chatInjection?.assistantMessage) {
                 const { chatInjection } = pendingResult;

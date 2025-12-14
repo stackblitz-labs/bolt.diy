@@ -398,6 +398,7 @@ export class InfoCollectionService {
       if (error.code === 'PGRST116') {
         return undefined;
       }
+
       throw new Error(`Failed to retrieve pending generation: ${error.message}`);
     }
 
