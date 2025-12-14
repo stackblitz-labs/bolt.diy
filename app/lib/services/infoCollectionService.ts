@@ -21,7 +21,7 @@ const logger = createScopedLogger('InfoCollectionService');
  */
 
 const getSupabaseClient = () => {
-  const url = process.env.VITE_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
 
   if (!url || !key) {
@@ -367,6 +367,48 @@ export class InfoCollectionService {
     }
 
     return rowToSession(data);
+  }
+
+  /**
+   * Store pending generation result (for serverless compatibility)
+   * Stores in DB instead of in-memory Map to work across instances
+   */
+  async storePendingGeneration(sessionId: string, result: unknown): Promise<void> {
+    const { error } = await this._supabase
+      .from('info_collection_sessions')
+      .update({ pending_generation: result })
+      .eq('id', sessionId);
+
+    if (error) {
+      throw new Error(`Failed to store pending generation: ${error.message}`);
+    }
+  }
+
+  /**
+   * Retrieve and clear pending generation result
+   */
+  async retrievePendingGeneration(sessionId: string): Promise<unknown | undefined> {
+    const { data, error } = await this._supabase
+      .from('info_collection_sessions')
+      .select('pending_generation')
+      .eq('id', sessionId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return undefined;
+      }
+      throw new Error(`Failed to retrieve pending generation: ${error.message}`);
+    }
+
+    const result = data.pending_generation;
+
+    // Clear the field after retrieval
+    if (result) {
+      await this._supabase.from('info_collection_sessions').update({ pending_generation: null }).eq('id', sessionId);
+    }
+
+    return result;
   }
 }
 

@@ -20,25 +20,24 @@ const logger = createScopedLogger('InfoCollectionTools');
  * ============================================================================
  * Used to pass chatInjection from tool to onStepFinish without storing
  * the massive template content in message history (which causes token explosion).
+ * Stored in DB to work across serverless instances.
  */
-const pendingGenerationResults = new Map<string, GenerationResult>();
 
 /**
  * Store a generation result for later retrieval by onStepFinish
  */
-export function storePendingGenerationResult(sessionId: string, result: GenerationResult): void {
-  pendingGenerationResults.set(sessionId, result);
+export async function storePendingGenerationResult(sessionId: string, result: GenerationResult): Promise<void> {
+  await infoCollectionService.storePendingGeneration(sessionId, result);
   logger.debug('Stored pending generation result', { sessionId });
 }
 
 /**
  * Retrieve and remove a pending generation result
  */
-export function retrievePendingGenerationResult(sessionId: string): GenerationResult | undefined {
-  const result = pendingGenerationResults.get(sessionId);
+export async function retrievePendingGenerationResult(sessionId: string): Promise<GenerationResult | undefined> {
+  const result = await infoCollectionService.retrievePendingGeneration(sessionId);
 
   if (result) {
-    pendingGenerationResults.delete(sessionId);
     logger.debug('Retrieved and cleared pending generation result', { sessionId });
   }
 
@@ -370,7 +369,7 @@ export function createInfoCollectionTools(context: ToolContext) {
            * The onStepFinish handler in api.chat.ts will retrieve this via
            * retrievePendingGenerationResult() and stream it via dataStream.
            */
-          storePendingGenerationResult(sessionId, generationResult);
+          await storePendingGenerationResult(sessionId, generationResult);
 
           return {
             success: true,

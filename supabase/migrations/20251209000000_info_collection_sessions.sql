@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS info_collection_sessions (
   crawler_job_id UUID,
   crawler_output JSONB,
 
+  -- Temporary storage for generation results (serverless-safe)
+  pending_generation JSONB,
+
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -39,12 +42,8 @@ CREATE INDEX idx_ics_user_active ON info_collection_sessions(user_id)
 -- Enable RLS
 ALTER TABLE info_collection_sessions ENABLE ROW LEVEL SECURITY;
 
--- Users can only access their own sessions
-CREATE POLICY ics_user_isolation ON info_collection_sessions
-  FOR ALL
-  USING (user_id = current_setting('app.current_user_id', TRUE));
-
 -- Service role bypass for server-side operations
+-- All operations use service_role (see app/lib/services/infoCollectionService.ts)
 CREATE POLICY ics_service_bypass ON info_collection_sessions
   FOR ALL
   TO service_role
