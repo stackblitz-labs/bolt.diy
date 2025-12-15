@@ -31,9 +31,11 @@ import { toast } from 'react-toastify';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { getCurrentIFrame } from '~/components/workbench/Preview/Preview';
-import { Crosshair, X, Palette, Plus } from 'lucide-react';
+import { Crosshair, X, Palette, Plus, MousePointerClickIcon } from 'lucide-react';
 import { buildAccessStore } from '~/lib/stores/buildAccess';
 import { designPanelStore } from '~/lib/stores/designSystemStore';
+import { elementPickerStore, setIsElementPickerEnabled, setIsElementPickerReady } from '~/lib/stores/elementPicker';
+import { useIsMobile } from '~/lib/hooks/useIsMobile';
 
 // const AudioWaveIcon = () => (
 //   <svg
@@ -116,6 +118,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   // const { isMobile, isTablet } = useIsMobile();
   const hasBuildAccess = useStore(buildAccessStore.hasAccess);
   const isDesignPanelVisible = useStore(designPanelStore.isVisible);
+  const { isMobile } = useIsMobile();
+  const isElementPickerEnabled = useStore(elementPickerStore.isEnabled);
+  const isElementPickerReady = useStore(elementPickerStore.isReady);
 
   // Focus textarea if URL has focus=true parameter
   useEffect(() => {
@@ -124,6 +129,22 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       textareaRef.current.focus();
     }
   }, [textareaRef]);
+
+  // Send postMessage to control element picker in iframe
+  const toggleElementPicker = (enabled: boolean) => {
+    const iframe = getCurrentIFrame();
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(
+        {
+          type: 'ELEMENT_PICKER_CONTROL',
+          enabled,
+        },
+        '*',
+      );
+    } else {
+      console.warn('[Preview] Cannot send message - iframe not ready');
+    }
+  };
 
   // Helper functions for element highlighting
   const highlightElement = (component: ReactComponent) => {
@@ -162,6 +183,26 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       '*',
     );
   };
+
+  // Listen for messages from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'ELEMENT_PICKED') {
+        // Store the full element data including the react tree
+        workbenchStore.setSelectedElement({
+          component: event.data.react.component,
+          tree: event.data.react.tree,
+        });
+        setIsElementPickerEnabled(false);
+      } else if (event.data.type === 'ELEMENT_PICKER_STATUS') {
+      } else if (event.data.type === 'ELEMENT_PICKER_READY' && event.data.source === 'element-picker') {
+        setIsElementPickerReady(true);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // Helper function to update when clicking breadcrumb items (sets clicked component as selected and trims tree)
   const updateTreeToComponent = (clickedComponent: ReactComponent, tree: ReactComponent[]) => {
@@ -652,6 +693,39 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                   <Palette size={18} />
                 </button>
               </WithTooltip>
+              {!isMobile && (
+                <WithTooltip
+                  tooltip={
+                    !isElementPickerReady || isMobile
+                      ? 'Element picker not available'
+                      : isElementPickerEnabled
+                        ? 'Stop selecting element'
+                        : 'Select element in app preview'
+                  }
+                >
+                  <button
+                    className={classNames(
+                      'w-10 h-10 rounded-full border-2 transition-all duration-200 flex items-center justify-center',
+                      !isElementPickerReady || isMobile
+                        ? 'border-gray-300 dark:border-gray-600 text-gray-400 opacity-50 cursor-not-allowed'
+                        : isElementPickerEnabled
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-500'
+                          : 'border-rose-300 dark:border-rose-500/50 bg-transparent text-rose-400 dark:text-rose-400 hover:border-rose-400 hover:text-rose-500',
+                    )}
+                    onClick={() => {
+                      if (!isElementPickerReady || isMobile) {
+                        return;
+                      }
+                      const newState = !isElementPickerEnabled;
+                      setIsElementPickerEnabled(newState);
+                      toggleElementPicker(newState);
+                    }}
+                    disabled={!isElementPickerReady || isMobile}
+                  >
+                    <MousePointerClickIcon size={18} />
+                  </button>
+                </WithTooltip>
+              )}
             </TooltipProvider>
           )}
         </div>
