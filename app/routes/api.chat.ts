@@ -16,11 +16,15 @@ import { MCPService } from '~/lib/services/mcpService';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { requireSessionOrError } from '~/lib/auth/guards.server';
 import type { RestaurantThemeId } from '~/types/restaurant-theme';
+import { createInfoCollectionTools, retrievePendingGenerationResult } from '~/lib/tools/infoCollectionTools';
+import { INFO_COLLECTION_SYSTEM_PROMPT } from '~/lib/prompts/infoCollectionPrompt';
+import { infoCollectionService } from '~/lib/services/infoCollectionService';
+import { PROVIDER_LIST } from '~/utils/constants';
 
 export async function action(args: ActionFunctionArgs) {
   // Require authentication for chat API
-  await requireSessionOrError(args.request);
-  return chatAction(args);
+  const session = await requireSessionOrError(args.request);
+  return chatAction(args, session);
 }
 
 const logger = createScopedLogger('api.chat');
@@ -43,7 +47,109 @@ function parseCookies(cookieHeader: string): Record<string, string> {
   return cookies;
 }
 
-async function chatAction({ context, request }: ActionFunctionArgs) {
+/*
+ * ============================================================================
+ * Token Estimation and Guard
+ * ============================================================================
+ * Simple token estimation (~4 chars per token) to detect potential context
+ * window overflow before making the LLM call.
+ */
+
+const TOKEN_LIMIT_WARNING_THRESHOLD = 150000; // Warn at 150K tokens
+const TOKEN_LIMIT_MAX = 190000; // Hard limit at 190K (leaving buffer for response)
+
+/**
+ * Estimate token count for a string (rough approximation: ~4 chars per token)
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Estimate total tokens for messages array
+ */
+function estimateMessagesTokens(messages: Messages): number {
+  return messages.reduce((total, msg) => {
+    const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+    return total + estimateTokens(content);
+  }, 0);
+}
+
+/**
+ * Truncate messages if they exceed token limit, keeping most recent messages
+ * Returns truncated messages and whether truncation occurred
+ */
+function truncateMessagesIfNeeded(
+  messages: Messages,
+  maxTokens: number = TOKEN_LIMIT_MAX,
+): { messages: Messages; truncated: boolean; originalTokens: number; finalTokens: number } {
+  const originalTokens = estimateMessagesTokens(messages);
+
+  if (originalTokens <= maxTokens) {
+    return { messages, truncated: false, originalTokens, finalTokens: originalTokens };
+  }
+
+  logger.warn(`[TOKEN GUARD] Messages exceed limit: ${originalTokens} > ${maxTokens} tokens. Truncating...`);
+
+  /*
+   * Strategy: Keep first message (usually system context) and last N messages
+   * Remove middle messages until under limit
+   */
+  const truncatedMessages: Messages = [];
+  let currentTokens = 0;
+
+  // Always keep last 3 messages (most recent context)
+  const lastMessages = messages.slice(-3);
+  const lastMessagesTokens = estimateMessagesTokens(lastMessages);
+
+  // If even the last 3 messages exceed limit, we have a problem
+  if (lastMessagesTokens > maxTokens) {
+    logger.error(`[TOKEN GUARD] Even last 3 messages exceed limit: ${lastMessagesTokens} tokens`);
+
+    // Return just the last message as emergency fallback
+    const lastMessage = messages[messages.length - 1];
+
+    return {
+      messages: [lastMessage],
+      truncated: true,
+      originalTokens,
+      finalTokens: estimateMessagesTokens([lastMessage]),
+    };
+  }
+
+  // Start with remaining budget after last messages
+  const remainingBudget = maxTokens - lastMessagesTokens;
+
+  // Add messages from the beginning until we run out of budget
+  for (let i = 0; i < messages.length - 3; i++) {
+    const msg = messages[i];
+    const msgTokens = estimateTokens(typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content));
+
+    if (currentTokens + msgTokens <= remainingBudget) {
+      truncatedMessages.push(msg);
+      currentTokens += msgTokens;
+    } else {
+      // Add a summary message indicating truncation
+      truncatedMessages.push({
+        id: 'truncation-notice',
+        role: 'system',
+        content: `[Previous ${messages.length - 3 - i} messages truncated to fit context window]`,
+      } as any);
+      break;
+    }
+  }
+
+  // Add the last messages
+  truncatedMessages.push(...lastMessages);
+
+  const finalTokens = estimateMessagesTokens(truncatedMessages);
+
+  logger.info(`[TOKEN GUARD] Truncated messages: ${originalTokens} -> ${finalTokens} tokens`);
+
+  return { messages: truncatedMessages, truncated: true, originalTokens, finalTokens };
+}
+
+async function chatAction({ context, request }: ActionFunctionArgs, session: any) {
   const streamRecovery = new StreamRecoveryManager({
     timeout: 45000,
     maxRetries: 2,
@@ -101,8 +207,70 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   try {
     const mcpService = MCPService.getInstance();
-    const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
+    const totalMessageContent = messages.reduce((acc, message) => {
+      const textContent = Array.isArray(message.content)
+        ? message.content.find((item) => item.type === 'text')?.text || ''
+        : message.content;
+      return acc + textContent;
+    }, '');
     logger.debug(`Total message length: ${totalMessageContent.split(' ').length}, words`);
+
+    // Detect if this is an info collection conversation
+    const isInfoCollectionMode = messages.some((m) => {
+      const textContent = Array.isArray(m.content)
+        ? m.content.find((item) => item.type === 'text')?.text || ''
+        : m.content;
+      return (
+        textContent.toLowerCase().includes('generate website') ||
+        textContent.toLowerCase().includes('create website') ||
+        textContent.toLowerCase().includes('build website') ||
+        textContent.toLowerCase().includes('new website')
+      );
+    });
+
+    // Create info collection tools if in that mode
+    const userId = session?.user?.id;
+
+    // Extract model and provider from the last user message for info collection tools
+    const lastUserMsg = messages.filter((m) => m.role === 'user').slice(-1)[0];
+    const { model: extractedModel, provider: extractedProviderName } = lastUserMsg
+      ? extractPropertiesFromMessage(lastUserMsg)
+      : { model: '', provider: '' };
+
+    /*
+     * Find provider info for info collection tools
+     * Cast to ProviderInfo since PROVIDER_LIST elements have compatible structure
+     */
+    const extractedProvider = (extractedProviderName
+      ? (PROVIDER_LIST.find((p) => p.name === extractedProviderName) ?? PROVIDER_LIST[0])
+      : PROVIDER_LIST[0]) as unknown as import('~/types/model').ProviderInfo | undefined;
+
+    // Get base URL from request for API calls
+    const url = new URL(request.url);
+    const baseUrl = `${url.protocol}//${url.host}`;
+
+    const infoCollectionTools =
+      isInfoCollectionMode && userId
+        ? createInfoCollectionTools({
+            userId,
+            model: extractedModel,
+            provider: extractedProvider,
+            baseUrl,
+          })
+        : {};
+
+    // Merge with existing MCP tools
+    const allTools = {
+      ...mcpService.toolsWithoutExecute,
+      ...infoCollectionTools,
+    };
+
+    // Modify system prompt if in info collection mode
+    const systemPromptAddition = isInfoCollectionMode ? `\n\n${INFO_COLLECTION_SYSTEM_PROMPT}` : '';
+
+    logger.debug(
+      `Info collection mode: ${isInfoCollectionMode}, user ID: ${userId || 'none'}, tools count: ${Object.keys(allTools).length}`,
+    );
 
     let lastChunk: string | undefined = undefined;
 
@@ -226,13 +394,89 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const options: StreamingOptions = {
           supabaseConnection: supabase,
           toolChoice: 'auto',
-          tools: mcpService.toolsWithoutExecute,
+          tools: allTools,
           maxSteps: maxLLMSteps,
-          onStepFinish: ({ toolCalls }) => {
+          onStepFinish: async ({ toolCalls, toolResults }) => {
             // add tool call annotations for frontend processing
             toolCalls.forEach((toolCall) => {
               mcpService.processToolCall(toolCall, dataStream);
             });
+
+            // Check if any info collection tools were called
+            const infoCollectionToolNames = [
+              'startInfoCollection',
+              'collectWebsiteUrl',
+              'collectGoogleMapsUrl',
+              'collectDescription',
+              'updateCollectedInfo',
+              'finalizeCollection',
+            ];
+
+            const hasInfoCollectionTool = toolCalls.some((toolCall) =>
+              infoCollectionToolNames.includes(toolCall.toolName),
+            );
+
+            // If info collection tools were called, fetch and stream updated session
+            if (hasInfoCollectionTool && userId) {
+              try {
+                const activeSession = await infoCollectionService.getActiveSession(userId);
+
+                if (activeSession) {
+                  logger.debug('Streaming session update', {
+                    sessionId: activeSession.id,
+                    step: activeSession.currentStep,
+                  });
+                  dataStream.writeData({
+                    type: 'sessionUpdate',
+                    session: activeSession,
+                  } as unknown as import('ai').JSONValue);
+                }
+              } catch (error) {
+                logger.error('Failed to fetch session for update', error);
+              }
+            }
+
+            /*
+             * Check for finalizeCollection tool result with hasPendingInjection flag.
+             * The actual chatInjection is stored in temporary storage (not in tool result)
+             * to avoid storing 100K+ tokens of template files in message history,
+             * which would cause token explosion when reload() is called.
+             */
+            const finalizeResult = toolResults?.find(
+              (result: any) => result.toolName === 'finalizeCollection' && result.result?.hasPendingInjection,
+            );
+
+            if (finalizeResult) {
+              const { sessionId, generation } = (finalizeResult as any).result;
+
+              // Retrieve the generation result from temporary storage
+              const pendingResult = await retrievePendingGenerationResult(sessionId);
+
+              if (pendingResult?.chatInjection?.assistantMessage) {
+                const { chatInjection } = pendingResult;
+
+                logger.info('[TEMPLATE INJECTION] Streaming template content to client', {
+                  templateName: generation?.templateName,
+                  themeId: generation?.themeId,
+                  assistantMessageLength: chatInjection.assistantMessage.length,
+                });
+
+                /*
+                 * Stream the template injection data to the client
+                 * The client will inject these messages to load the template files
+                 */
+                dataStream.writeData({
+                  type: 'templateInjection',
+                  chatInjection: {
+                    assistantMessage: chatInjection.assistantMessage,
+                    userMessage: chatInjection.userMessage,
+                  },
+                  generation,
+                } as unknown as import('ai').JSONValue);
+              } else {
+                logger.warn('[TEMPLATE INJECTION] No pending generation result found for session', { sessionId });
+              }
+            }
           },
           onFinish: async ({ text: content, finishReason, usage }) => {
             logger.debug('usage', JSON.stringify(usage));
@@ -301,6 +545,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               restaurantThemeId,
               summary,
               messageSliceId,
+              additionalSystemPrompt: systemPromptAddition,
             });
 
             result.mergeIntoDataStream(dataStream);
@@ -328,10 +573,38 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           message: 'Generating Response',
         } satisfies ProgressAnnotation);
 
+        /*
+         * Token Guard: Check and truncate messages if they exceed context window limit
+         * This prevents the "prompt is too long" error from the LLM API
+         */
+        const tokenGuardResult = truncateMessagesIfNeeded(processedMessages as Messages);
+
+        if (tokenGuardResult.truncated) {
+          logger.warn(`[TOKEN GUARD] Messages truncated before LLM call`, {
+            originalTokens: tokenGuardResult.originalTokens,
+            finalTokens: tokenGuardResult.finalTokens,
+            originalMessageCount: processedMessages.length,
+            finalMessageCount: tokenGuardResult.messages.length,
+          });
+
+          // Notify client about truncation
+          dataStream.writeData({
+            type: 'progress',
+            label: 'token-optimization',
+            status: 'complete',
+            order: progressCounter++,
+            message: `Context optimized (${Math.round(tokenGuardResult.originalTokens / 1000)}K → ${Math.round(tokenGuardResult.finalTokens / 1000)}K tokens)`,
+          } satisfies ProgressAnnotation);
+        } else if (tokenGuardResult.originalTokens > TOKEN_LIMIT_WARNING_THRESHOLD) {
+          logger.warn(`[TOKEN GUARD] Messages approaching limit: ${tokenGuardResult.originalTokens} tokens`);
+        }
+
+        const messagesToSend = tokenGuardResult.messages;
+
         logger.info(`[THEME DEBUG] Calling streamText (main) with restaurantThemeId: ${restaurantThemeId || 'null'}`);
 
         const result = await streamText({
-          messages: [...processedMessages],
+          messages: [...messagesToSend],
           env: context.cloudflare?.env,
           options,
           apiKeys,
@@ -345,6 +618,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           restaurantThemeId,
           summary,
           messageSliceId,
+          additionalSystemPrompt: systemPromptAddition,
         });
 
         (async () => {

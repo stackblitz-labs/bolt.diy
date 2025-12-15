@@ -8,9 +8,6 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { WORK_DIR } from '~/utils/constants';
-import { createScopedLogger } from '~/utils/logger';
-
-const logger = createScopedLogger('Artifact');
 
 const highlighterOptions = {
   langs: ['shell'],
@@ -62,10 +59,6 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
         (action) => action.status !== 'complete' && !(action.type === 'start' && action.status === 'running'),
       );
       const finished = !unfinishedAction;
-
-      logger.debug(
-        `[ARTIFACT DEBUG] id=${artifact.id}, type=${artifact.type}, actions=${actions.length}, finished=${finished}, unfinishedAction=${unfinishedAction ? `${unfinishedAction.type}:${unfinishedAction.status}` : 'none'}`,
-      );
 
       if (allActionFinished !== finished) {
         setAllActionFinished(finished);

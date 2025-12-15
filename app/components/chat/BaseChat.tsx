@@ -33,6 +33,8 @@ import { ChatBox } from './ChatBox';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
+import { InfoCollectionStatus } from './InfoCollectionStatus';
+import { activeSession } from '~/lib/stores/infoCollection';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -144,6 +146,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+    const infoCollectionSession = useStore(activeSession);
 
     useEffect(() => {
       if (expoUrl) {
@@ -391,6 +394,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 })}
               >
                 <div className="flex flex-col gap-2">
+                  {/* Show info collection progress when active */}
+                  {infoCollectionSession && infoCollectionSession.status === 'in_progress' && <InfoCollectionStatus />}
                   {deployAlert && (
                     <DeployChatAlert
                       alert={deployAlert}

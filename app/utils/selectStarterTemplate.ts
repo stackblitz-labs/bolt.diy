@@ -1,6 +1,7 @@
 import ignore from 'ignore';
 import type { ProviderInfo } from '~/types/model';
 import type { Template } from '~/types/template';
+import type { CrawlerOutput } from '~/types/info-collection';
 import { STARTER_TEMPLATES } from './constants';
 import { createScopedLogger } from '~/utils/logger';
 import { getThemePrompt } from '~/theme-prompts/registry';
@@ -145,6 +146,218 @@ export const selectStarterTemplate = async (options: { message: string; model: s
     };
   }
 };
+
+/*
+ * ============================================================================
+ * Crawler-based Template Selection
+ * ============================================================================
+ */
+
+/**
+ * Build a rich context string from crawler data for template selection
+ */
+function buildCrawlerContextPrompt(crawlerOutput: CrawlerOutput, userDescription: string): string {
+  const businessIntelligence = crawlerOutput.business_intelligence;
+  const brandStrategy = crawlerOutput.brand_strategy;
+  const visualAssetStrategy = crawlerOutput.visual_asset_strategy;
+  const coreIdentity = businessIntelligence.core_identity;
+  const industryContext = businessIntelligence.industry_context;
+  const reputationSnapshot = businessIntelligence.reputation_snapshot;
+
+  return `
+Business Profile:
+- Name: ${coreIdentity.brand_display_name}
+- Category: ${industryContext.primary_category}
+- Price Tier: ${industryContext.price_tier}
+- Features: ${industryContext.operational_highlights.join(', ')}
+
+Brand Strategy:
+- Tone of Voice: ${brandStrategy.tone_of_voice}
+- Target Audience: ${brandStrategy.target_audience_persona}
+- Visual Style: ${brandStrategy.visual_style_prompt}
+- Dark Mode Suitable: ${visualAssetStrategy.color_palette_extracted.is_dark_mode_suitable ? 'Yes' : 'No'}
+
+User Description: ${userDescription}
+
+Rating: ${reputationSnapshot.average_rating} stars (${reputationSnapshot.total_reviews} reviews)
+`.trim();
+}
+
+/**
+ * Restaurant-specific template selection prompt
+ */
+const crawlerTemplateSelectionPrompt = (templates: Template[]) => `
+You are an expert restaurant brand consultant selecting the perfect website template.
+
+Available Restaurant Templates:
+${templates
+  .filter((t) => t.category === 'restaurant')
+  .map(
+    (template) => `
+<template>
+  <name>${template.name}</name>
+  <description>${template.description}</description>
+  <tags>${template.tags?.join(', ') || ''}</tags>
+</template>
+`,
+  )
+  .join('\n')}
+
+Response Format:
+<selection>
+  <templateName>{exact template name}</templateName>
+  <reasoning>{brief explanation}</reasoning>
+</selection>
+
+Selection Guidelines:
+1. Match cuisine type to template specialty:
+   - Vietnamese/Pho: Saigon Veranda, Indochine Luxe
+   - Chinese/Dim Sum/Ramen: Bamboo Bistro, The Red Noodle
+   - Japanese/Sushi: Bamboo Bistro, Classic Minimalist v2
+   - Italian/European: Artisan Hearth v3, Noir Luxe v3
+   - American/Farm-to-table: Artisan Hearth v3, Bold Feast v2
+   - Fine Dining/Luxury: Noir Luxe v3, Classic Minimalist v2, Indochine Luxe
+   - Street Food/Casual: Chromatic Street, Fresh Market
+   - Fusion/Contemporary: Dynamic Fusion, Gastrobotanical
+
+2. Match style and ambiance:
+   - Luxury/Premium → Noir Luxe v3, Indochine Luxe
+   - Rustic/Warm → Artisan Hearth v3
+   - Modern/Clean → Classic Minimalist v2, Bold Feast v2
+   - Vibrant/Urban → Chromatic Street, Dynamic Fusion
+   - Fresh/Healthy → Fresh Market, Gastrobotanical
+
+3. Consider dark mode suitability:
+   - Dark mode suitable → Noir Luxe v3, Bamboo Bistro, The Red Noodle
+   - Light/bright preferred → Fresh Market, Artisan Hearth v3, Classic Minimalist v2
+
+Important: Choose the BEST single match. Return only the selection tags.
+`;
+
+/**
+ * Select the best restaurant template based on crawler data
+ * This uses LLM to intelligently match business profile to template
+ */
+export async function selectTemplateFromCrawlerData(options: {
+  crawlerOutput: CrawlerOutput;
+  userDescription: string;
+  model: string;
+  provider: ProviderInfo;
+}): Promise<{ template: string; title: string; reasoning?: string }> {
+  const { crawlerOutput, userDescription, model, provider } = options;
+
+  logger.info('[CRAWLER TEMPLATE] Selecting template from crawler data');
+  logger.debug(
+    '[CRAWLER TEMPLATE] Business category:',
+    crawlerOutput.business_intelligence.industry_context.primary_category,
+  );
+
+  const contextPrompt = buildCrawlerContextPrompt(crawlerOutput, userDescription);
+
+  const requestBody = {
+    message: contextPrompt,
+    model,
+    provider,
+    system: crawlerTemplateSelectionPrompt(templates),
+  };
+
+  try {
+    const response = await fetch('/api/llmcall', {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    });
+
+    const respJson: { text: string } = await response.json();
+    logger.debug('[CRAWLER TEMPLATE] LLM response:', respJson.text);
+
+    // Parse the response
+    const templateMatch = respJson.text.match(/<templateName>(.*?)<\/templateName>/);
+    const reasoningMatch = respJson.text.match(/<reasoning>(.*?)<\/reasoning>/s);
+
+    if (templateMatch) {
+      const selectedTemplate = templateMatch[1].trim();
+      const reasoning = reasoningMatch?.[1].trim();
+
+      logger.info(`[CRAWLER TEMPLATE] Selected: "${selectedTemplate}"`);
+
+      return {
+        template: selectedTemplate,
+        title: `${crawlerOutput.business_intelligence.core_identity.brand_display_name} Website`,
+        reasoning,
+      };
+    }
+  } catch (error) {
+    logger.error('[CRAWLER TEMPLATE] LLM selection failed:', error);
+  }
+
+  // Fallback: Use deterministic selection based on cuisine keywords
+  return selectTemplateFromCrawlerDataFallback(crawlerOutput, userDescription);
+}
+
+/**
+ * Fallback deterministic template selection when LLM is unavailable
+ */
+function selectTemplateFromCrawlerDataFallback(
+  crawlerOutput: CrawlerOutput,
+  userDescription: string,
+): { template: string; title: string; reasoning: string } {
+  const category = crawlerOutput.business_intelligence.industry_context.primary_category.toLowerCase();
+  const priceTier = crawlerOutput.business_intelligence.industry_context.price_tier;
+  const isDarkMode = crawlerOutput.visual_asset_strategy.color_palette_extracted.is_dark_mode_suitable;
+
+  logger.info('[CRAWLER TEMPLATE FALLBACK] Using deterministic selection');
+
+  // Map category keywords to templates
+  const categoryMappings: Record<string, string> = {
+    vietnamese: 'Saigon Veranda',
+    chinese: 'Bamboo Bistro',
+    japanese: 'Bamboo Bistro',
+    thai: 'Bamboo Bistro',
+    asian: 'Bamboo Bistro',
+    italian: 'Artisan Hearth v3',
+    american: 'Bold Feast v2',
+    'farm-to-table': 'Artisan Hearth v3',
+    'fine dining': 'Noir Luxe v3',
+    fusion: 'Dynamic Fusion',
+    'street food': 'Chromatic Street',
+    café: 'Fresh Market',
+    cafe: 'Fresh Market',
+    seafood: 'Classic Minimalist v2',
+  };
+
+  // Find matching category
+  let selectedTemplate = 'Artisan Hearth v3'; // Default
+
+  for (const [keyword, template] of Object.entries(categoryMappings)) {
+    if (category.includes(keyword) || userDescription.toLowerCase().includes(keyword)) {
+      selectedTemplate = template;
+      break;
+    }
+  }
+
+  // Override for luxury/premium
+  if (priceTier === 'Luxury' || priceTier === 'Premium') {
+    if (isDarkMode) {
+      selectedTemplate = 'Noir Luxe v3';
+    } else {
+      selectedTemplate = 'Classic Minimalist v2';
+    }
+  }
+
+  logger.info(`[CRAWLER TEMPLATE FALLBACK] Selected: "${selectedTemplate}"`);
+
+  return {
+    template: selectedTemplate,
+    title: `${crawlerOutput.business_intelligence.core_identity.brand_display_name} Website`,
+    reasoning: `Fallback selection based on category: ${category}, price tier: ${priceTier}`,
+  };
+}
+
+/*
+ * ============================================================================
+ * GitHub Template Content
+ * ============================================================================
+ */
 
 const getGitHubRepoContent = async (repoName: string): Promise<{ name: string; path: string; content: string }[]> => {
   try {

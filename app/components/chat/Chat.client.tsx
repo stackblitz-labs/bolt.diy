@@ -30,6 +30,9 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
 import { useMCPStore } from '~/lib/stores/mcp';
 import type { LlmErrorAlertType } from '~/types/actions';
+import { shouldRunInfoCollection } from '~/lib/hooks/useInfoCollectionGate';
+import { setActiveSession } from '~/lib/stores/infoCollection';
+import type { SessionUpdateAnnotation, TemplateInjectionAnnotation } from '~/types/info-collection';
 
 const logger = createScopedLogger('Chat');
 
@@ -195,6 +198,130 @@ export const ChatImpl = memo(
         });
       }
     }, [model, provider, searchParams]);
+
+    // Listen for info collection session updates from the data stream
+    useEffect(() => {
+      if (chatData) {
+        const sessionUpdates = chatData.filter(
+          (x) => typeof x === 'object' && (x as any).type === 'sessionUpdate',
+        ) as unknown as SessionUpdateAnnotation[];
+
+        if (sessionUpdates.length > 0) {
+          // Use the most recent session update
+          const latestUpdate = sessionUpdates[sessionUpdates.length - 1];
+          logger.debug('Received session update from stream', {
+            sessionId: latestUpdate.session.id,
+            step: latestUpdate.session.currentStep,
+          });
+          setActiveSession(latestUpdate.session);
+        }
+      }
+    }, [chatData]);
+
+    // Track if we've already processed a template injection to avoid duplicates
+    const templateInjectionProcessedRef = useRef<string | null>(null);
+
+    /*
+     * Listen for template injection from info collection flow
+     * Process IMMEDIATELY when received (don't wait for isLoading to be false)
+     * This ensures template files are injected before LLM generates incorrect content
+     */
+    useEffect(() => {
+      if (chatData) {
+        const templateInjections = chatData.filter(
+          (x) => typeof x === 'object' && (x as any).type === 'templateInjection',
+        ) as unknown as TemplateInjectionAnnotation[];
+
+        if (templateInjections.length > 0) {
+          const latestInjection = templateInjections[templateInjections.length - 1];
+          const injectionKey = `${latestInjection.generation?.templateName}-${latestInjection.chatInjection.assistantMessage.length}`;
+
+          // Only process if we haven't processed this injection yet
+          if (templateInjectionProcessedRef.current !== injectionKey) {
+            templateInjectionProcessedRef.current = injectionKey;
+
+            logger.info('[TEMPLATE INJECTION] Received template injection from server', {
+              templateName: latestInjection.generation?.templateName,
+              themeId: latestInjection.generation?.themeId,
+              isLoading,
+            });
+
+            // IMPORTANT: Stop the current request immediately to prevent LLM from generating wrong content
+            if (isLoading) {
+              logger.info('[TEMPLATE INJECTION] Stopping current request to inject template');
+              stop();
+            }
+
+            const { assistantMessage, userMessage } = latestInjection.chatInjection;
+
+            // Set the restaurant theme ID if available
+            if (latestInjection.generation?.themeId) {
+              restaurantThemeIdRef.current = latestInjection.generation.themeId as RestaurantThemeId;
+              logger.info(`[TEMPLATE INJECTION] Setting restaurantThemeId: ${latestInjection.generation.themeId}`);
+            }
+
+            /*
+             * Inject the template messages into the chat
+             * IMPORTANT: We truncate the message history to avoid token explosion.
+             * The info collection conversation (5-10 messages with tool calls) is
+             * replaced with just:
+             * 1. A brief context summary message (hidden from UI)
+             * 2. The template assistant message (for WebContainer file parsing)
+             * 3. The user continuation message
+             *
+             * This reduces token usage from ~200K+ to ~150K (just template files).
+             */
+            const timestamp = Date.now();
+            const { generation } = latestInjection;
+
+            // Create a condensed context message summarizing what was collected
+            const contextSummary = `[CONTEXT] Website generation for ${generation?.businessName || 'business'} (${generation?.category || 'restaurant'}). Template: ${generation?.templateName}. Theme: ${generation?.themeId}.`;
+
+            const newMessages = [
+              /*
+               * Brief context summary (hidden from UI but provides LLM context)
+               */
+              {
+                id: `context-summary-${timestamp}`,
+                role: 'user' as const,
+                content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${contextSummary}`,
+                annotations: ['hidden'],
+              },
+
+              /* Template files from assistant */
+              {
+                id: `template-assistant-${timestamp}`,
+                role: 'assistant' as const,
+                content: assistantMessage,
+              },
+
+              /* Continuation instructions for LLM */
+              {
+                id: `template-user-${timestamp}`,
+                role: 'user' as const,
+                content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
+                annotations: ['hidden'],
+              },
+            ];
+
+            logger.info('[TEMPLATE INJECTION] Injecting template messages (truncated history)', {
+              previousMessagesCount: messages.length,
+              newMessagesCount: newMessages.length,
+              assistantMessageLength: assistantMessage.length,
+              tokenSavingsEstimate: `~${Math.round(messages.reduce((acc, m) => acc + (m.content?.length || 0), 0) / 4)} tokens removed`,
+            });
+
+            setMessages(newMessages);
+
+            // Trigger reload to continue processing with the template
+            setTimeout(() => {
+              logger.info('[TEMPLATE INJECTION] Triggering reload to process template');
+              reload();
+            }, 100);
+          }
+        }
+      }
+    }, [chatData, isLoading, messages, model, provider.name, setMessages, reload, stop]);
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
@@ -416,6 +543,61 @@ export const ChatImpl = memo(
 
       if (!chatStarted) {
         setFakeLoading(true);
+
+        /*
+         * Check if this is a website generation request that needs info collection first
+         */
+        const { isWebsiteGen, gateResult } = await shouldRunInfoCollection(finalMessageContent);
+
+        if (isWebsiteGen && gateResult.shouldCollectInfo) {
+          /*
+           * Website generation intent detected but info collection not complete
+           * Skip template selection and let API handle info collection flow
+           */
+          logger.info('[INFO COLLECTION] Website generation detected, routing to info collection flow');
+
+          /* Update store with active session if exists */
+          if (gateResult.activeSession) {
+            setActiveSession(gateResult.activeSession);
+          }
+
+          // Proceed directly to normal message flow - API will use info collection tools
+          const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
+          const attachments = uploadedFiles.length > 0 ? await filesToAttachments(uploadedFiles) : undefined;
+
+          setMessages([
+            {
+              id: `${new Date().getTime()}`,
+              role: 'user',
+              content: userMessageText,
+              parts: createMessageParts(userMessageText, imageDataList),
+              experimental_attachments: attachments,
+            },
+          ]);
+          reload(attachments ? { experimental_attachments: attachments } : undefined);
+          setFakeLoading(false);
+          setInput('');
+          Cookies.remove(PROMPT_COOKIE_KEY);
+
+          setUploadedFiles([]);
+          setImageDataList([]);
+
+          resetEnhancer();
+
+          textareaRef.current?.blur();
+
+          return;
+        }
+
+        /*
+         * If we have a completed info collection session, we could use its data here
+         * For now, just proceed with normal template selection
+         */
+        if (gateResult.completedSession) {
+          logger.info(
+            `[INFO COLLECTION] Completed session found (${gateResult.completedSession.id}), proceeding to template selection`,
+          );
+        }
 
         if (autoSelectTemplate) {
           const { template, title } = await selectStarterTemplate({
