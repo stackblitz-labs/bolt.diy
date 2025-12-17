@@ -16,9 +16,9 @@ import { RadiusSelector, SpacingSelector, BorderWidthSelector } from '~/componen
 import { sansSerifFonts, CUSTOM_THEME_NAME } from '~/lib/theme/config';
 import {
   getIframe,
-  sendVariablesToIframe,
-  sendThemeToIframe,
-  sendThemeModeToIframe,
+  sendVariablesToAllIframes,
+  sendThemeToAllIframes,
+  sendThemeModeToAllIframes,
   extractColorsFromVariables,
   getThemeColors,
   diffAndMarkThemeChanges,
@@ -42,6 +42,7 @@ export const DesignSystemPanel = () => {
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
   const [hoveredTheme, setHoveredTheme] = useState<string | null>(null);
   const [isCustomTheme, setIsCustomTheme] = useState(false);
+  const isHoveringRef = useRef(false);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -162,12 +163,66 @@ export const DesignSystemPanel = () => {
     }, 5000);
   }, [availableThemes]);
 
+  // Re-inject unsaved changes into all iframes
+  const reinjectUnsavedChanges = useCallback(() => {
+    // Don't re-inject if currently hovering over a theme (to prevent jitter)
+    if (isHoveringRef.current) {
+      return;
+    }
+    if (!themeChanges.hasChanges) {
+      return;
+    }
+
+    const variablesToInject: Record<string, string> = {};
+
+    // Collect all light theme changes
+    Object.entries(themeChanges.lightThemeChanges).forEach(([key, change]) => {
+      const trimmedValue = change.newValue?.trim() || '';
+      if (trimmedValue !== '') {
+        variablesToInject[key] = trimmedValue;
+      }
+    });
+
+    // Collect dark theme changes (combine with light if exists)
+    Object.entries(themeChanges.darkThemeChanges).forEach(([key, change]) => {
+      const trimmedDarkValue = change.newValue?.trim() || '';
+      if (trimmedDarkValue !== '') {
+        const lightChange = themeChanges.lightThemeChanges[key];
+        const trimmedLightValue = lightChange?.newValue?.trim() || '';
+        if (trimmedLightValue !== '') {
+          variablesToInject[key] = `${trimmedLightValue} .dark: ${trimmedDarkValue}`;
+        } else {
+          variablesToInject[`${key}-dark`] = trimmedDarkValue;
+        }
+      }
+    });
+
+    // Collect app settings changes
+    Object.entries(themeChanges.appSettingsChanges).forEach(([key, change]) => {
+      const trimmedValue = change.newValue?.trim() || '';
+      if (trimmedValue !== '') {
+        variablesToInject[key] = trimmedValue;
+      }
+    });
+
+    // Send to all iframes
+    if (Object.keys(variablesToInject).length > 0) {
+      sendVariablesToAllIframes(variablesToInject);
+      console.log('[DesignSystemPanel] Re-injected', Object.keys(variablesToInject).length, 'unsaved changes');
+    }
+  }, [themeChanges]);
+
   // Load theme when panel becomes visible
   useEffect(() => {
     if (isVisible) {
       if (!hasLoadedThemeRef.current || selectedTheme === null) {
         hasLoadedThemeRef.current = true;
         loadThemeFromIframe();
+      } else {
+        // Re-inject unsaved changes if panel is already loaded (but not during hover)
+        if (!isHoveringRef.current) {
+          reinjectUnsavedChanges();
+        }
       }
     } else {
       hasLoadedThemeRef.current = false;
@@ -175,8 +230,22 @@ export const DesignSystemPanel = () => {
       setIsCustomTheme(false);
       setIsLoading(false);
       setCurrentView('overview');
+      isHoveringRef.current = false; // Reset hover state when panel closes
     }
-  }, [isVisible, loadThemeFromIframe, selectedTheme]);
+  }, [isVisible, loadThemeFromIframe, selectedTheme, reinjectUnsavedChanges]);
+
+  // Re-inject unsaved changes on mount if they exist
+  useEffect(() => {
+    if (themeChanges.hasChanges && !isHoveringRef.current) {
+      // Small delay to ensure iframes are ready
+      const timeoutId = setTimeout(() => {
+        if (!isHoveringRef.current) {
+          reinjectUnsavedChanges();
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, []); // Only run on mount
 
   // Listen for theme mode changes
   useEffect(() => {
@@ -202,7 +271,7 @@ export const DesignSystemPanel = () => {
   const handleThemeModeToggle = () => {
     const newMode = themeMode === 'light' ? 'dark' : 'light';
     setThemeMode(newMode);
-    sendThemeModeToIframe(newMode);
+    sendThemeModeToAllIframes(newMode);
   };
 
   // Handle theme change
@@ -221,7 +290,7 @@ export const DesignSystemPanel = () => {
     setIsCustomTheme(false);
     setHoveredTheme(null);
     originalThemeRef.current = null;
-    sendThemeToIframe(themeName);
+    sendThemeToAllIframes(themeName);
 
     // Update colors preview
     const themeColors = getThemeColors(themeName);
@@ -272,17 +341,24 @@ export const DesignSystemPanel = () => {
 
   // Handle theme hover
   const handleThemeHover = (themeName: string) => {
+    isHoveringRef.current = true;
     setHoveredTheme(themeName);
-    sendThemeToIframe(themeName);
+    sendThemeToAllIframes(themeName);
   };
 
   // Handle theme picker hover end - reset to selected theme
   const handleThemePickerHoverEnd = () => {
+    isHoveringRef.current = false;
     setHoveredTheme(null);
     if (selectedTheme && !isCustomTheme) {
-      sendThemeToIframe(selectedTheme);
+      sendThemeToAllIframes(selectedTheme);
     } else if (customTheme && Object.keys(customTheme).length > 0) {
-      sendVariablesToIframe(customTheme);
+      sendVariablesToAllIframes(customTheme);
+    } else if (themeChanges.hasChanges) {
+      // Re-inject unsaved changes after hover ends
+      setTimeout(() => {
+        reinjectUnsavedChanges();
+      }, 100);
     }
   };
 
@@ -292,18 +368,26 @@ export const DesignSystemPanel = () => {
     markThemeChanged('--font-sans', originalValue, fonts.join(', '), 'app-settings');
     setCurrentFont(fonts);
     setCustomTheme((prev) => ({ ...prev, '--font-sans': fonts.join(', ') }));
-    sendVariablesToIframe({ '--font-sans': fonts.join(', ') });
+    sendVariablesToAllIframes({ '--font-sans': fonts.join(', ') });
   };
 
   // Handle font hover - preview the font
   const handleFontHover = (fontName: string) => {
+    isHoveringRef.current = true;
     const previewFonts = [fontName, ...currentFont.filter((f) => f !== fontName)];
-    sendVariablesToIframe({ '--font-sans': previewFonts.join(', ') });
+    sendVariablesToAllIframes({ '--font-sans': previewFonts.join(', ') });
   };
 
   // Handle font hover end - reset to current selection
   const handleFontHoverEnd = () => {
-    sendVariablesToIframe({ '--font-sans': currentFont.join(', ') });
+    isHoveringRef.current = false;
+    sendVariablesToAllIframes({ '--font-sans': currentFont.join(', ') });
+    // Re-inject unsaved changes after hover ends if needed
+    if (themeChanges.hasChanges) {
+      setTimeout(() => {
+        reinjectUnsavedChanges();
+      }, 100);
+    }
   };
 
   // Handle radius change
@@ -312,7 +396,7 @@ export const DesignSystemPanel = () => {
     markThemeChanged('--radius', `${originalValue}rem`, `${value}rem`, 'app-settings');
     setRadius(value);
     setCustomTheme((prev) => ({ ...prev, '--radius': `${value}rem` }));
-    sendVariablesToIframe({ '--radius': `${value}rem` });
+    sendVariablesToAllIframes({ '--radius': `${value}rem` });
   };
 
   // Handle spacing unit change
@@ -321,7 +405,7 @@ export const DesignSystemPanel = () => {
     markThemeChanged('--spacing-unit', `${originalValue}px`, `${value}px`, 'app-settings');
     setSpacingUnit(value);
     setCustomTheme((prev) => ({ ...prev, '--spacing-unit': `${value}px` }));
-    sendVariablesToIframe({ '--spacing-unit': `${value}px` });
+    sendVariablesToAllIframes({ '--spacing-unit': `${value}px` });
   };
 
   // Handle border width change
@@ -330,7 +414,7 @@ export const DesignSystemPanel = () => {
     markThemeChanged('--border-width', `${originalValue}px`, `${value}px`, 'app-settings');
     setBorderWidth(value);
     setCustomTheme((prev) => ({ ...prev, '--border-width': `${value}px` }));
-    sendVariablesToIframe({ '--border-width': `${value}px` });
+    sendVariablesToAllIframes({ '--border-width': `${value}px` });
   };
 
   // Handle save
@@ -349,7 +433,7 @@ export const DesignSystemPanel = () => {
         setIsCustomTheme(false);
         setCustomTheme({});
         originalThemeNameRef.current = matchingTheme;
-        sendThemeToIframe(matchingTheme);
+        sendThemeToAllIframes(matchingTheme);
         const themeColors = getThemeColors(matchingTheme);
         if (themeColors.length > 0) {
           setCurrentColors(themeColors);
@@ -412,7 +496,7 @@ export const DesignSystemPanel = () => {
       setSelectedTheme(originalThemeName);
       setIsCustomTheme(false);
       setCustomTheme({});
-      sendThemeToIframe(originalThemeName);
+      sendThemeToAllIframes(originalThemeName);
       const themeColors = getThemeColors(originalThemeName);
       if (themeColors.length > 0) {
         setCurrentColors(themeColors);
@@ -421,28 +505,28 @@ export const DesignSystemPanel = () => {
       setSelectedTheme(CUSTOM_THEME_NAME);
       setIsCustomTheme(true);
       setCustomTheme(originalVariablesRef.current);
-      sendVariablesToIframe(originalVariablesRef.current);
+      sendVariablesToAllIframes(originalVariablesRef.current);
       if (originalFontRef.current) {
         setCurrentFont(originalFontRef.current);
-        sendVariablesToIframe({ '--font-sans': originalFontRef.current.join(', ') });
+        sendVariablesToAllIframes({ '--font-sans': originalFontRef.current.join(', ') });
       }
       if (originalRadiusRef.current !== null) {
         setRadius(originalRadiusRef.current);
-        sendVariablesToIframe({ '--radius': `${originalRadiusRef.current}rem` });
+        sendVariablesToAllIframes({ '--radius': `${originalRadiusRef.current}rem` });
       }
       if (originalSpacingUnitRef.current !== null) {
         setSpacingUnit(originalSpacingUnitRef.current);
-        sendVariablesToIframe({ '--spacing-unit': `${originalSpacingUnitRef.current}px` });
+        sendVariablesToAllIframes({ '--spacing-unit': `${originalSpacingUnitRef.current}px` });
       } else {
         setSpacingUnit(4);
-        sendVariablesToIframe({ '--spacing-unit': '4px' });
+        sendVariablesToAllIframes({ '--spacing-unit': '4px' });
       }
       if (originalBorderWidthRef.current !== null) {
         setBorderWidth(originalBorderWidthRef.current);
-        sendVariablesToIframe({ '--border-width': `${originalBorderWidthRef.current}px` });
+        sendVariablesToAllIframes({ '--border-width': `${originalBorderWidthRef.current}px` });
       } else {
         setBorderWidth(1);
-        sendVariablesToIframe({ '--border-width': '1px' });
+        sendVariablesToAllIframes({ '--border-width': '1px' });
       }
       setCurrentColors(extractColorsFromVariables(originalVariablesRef.current));
     }
@@ -583,7 +667,7 @@ export const DesignSystemPanel = () => {
           hoveredTheme={hoveredTheme}
           originalVariables={originalVariablesRef.current}
           onThemeChange={handleThemeChange}
-          onThemeModeChange={sendThemeModeToIframe}
+          onThemeModeChange={sendThemeModeToAllIframes}
           activeTabOverride={
             currentView === 'colors' ? 'colors' : currentView === 'typography' ? 'typography' : undefined
           }

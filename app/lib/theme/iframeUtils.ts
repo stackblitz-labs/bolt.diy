@@ -6,6 +6,11 @@ export const getIframe = (): HTMLIFrameElement | null => {
   return document.querySelector('iframe');
 };
 
+// Get all iframes (for multi-device preview)
+export const getAllIframes = (): HTMLIFrameElement[] => {
+  return Array.from(document.querySelectorAll('iframe'));
+};
+
 // Send CSS variables to iframe
 export const sendVariablesToIframe = (variables: Record<string, string>): void => {
   const iframe = getIframe();
@@ -20,6 +25,23 @@ export const sendVariablesToIframe = (variables: Record<string, string>): void =
     },
     '*',
   );
+};
+
+// Send CSS variables to all iframes (for multi-device preview)
+export const sendVariablesToAllIframes = (variables: Record<string, string>): void => {
+  const iframes = getAllIframes();
+  iframes.forEach((iframe) => {
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage(
+        {
+          type: 'UPDATE_CSS_VARIABLES',
+          variables,
+          source: 'nut-preview',
+        },
+        '*',
+      );
+    }
+  });
 };
 
 // Send theme to iframe
@@ -49,6 +71,37 @@ export const sendThemeToIframe = (themeName: string): void => {
   );
 };
 
+// Send theme to all iframes (for multi-device preview)
+export const sendThemeToAllIframes = (themeName: string): void => {
+  const iframes = getAllIframes();
+  if (iframes.length === 0) {
+    console.warn('[ThemeUtils] No iframes found to send theme');
+    return;
+  }
+
+  const cssVars = getThemeCSSVariables(themeName);
+  if (!cssVars) {
+    console.warn('[ThemeUtils] Theme not found:', themeName);
+    return;
+  }
+
+  const allVars = flattenThemeVariablesWithModes(cssVars);
+  console.log('[ThemeUtils] Sending theme update to', iframes.length, 'iframes:', themeName, 'with', Object.keys(allVars).length, 'variables');
+
+  iframes.forEach((iframe) => {
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage(
+        {
+          type: 'UPDATE_CSS_VARIABLES',
+          variables: allVars,
+          source: 'nut-preview',
+        },
+        '*',
+      );
+    }
+  });
+};
+
 // Send theme mode to iframe
 export const sendThemeModeToIframe = (mode: 'light' | 'dark'): void => {
   const iframe = getIframe();
@@ -62,6 +115,23 @@ export const sendThemeModeToIframe = (mode: 'light' | 'dark'): void => {
       '*',
     );
   }
+};
+
+// Send theme mode to all iframes (for multi-device preview)
+export const sendThemeModeToAllIframes = (mode: 'light' | 'dark'): void => {
+  const iframes = getAllIframes();
+  iframes.forEach((iframe) => {
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage(
+        {
+          type: 'SET_THEME',
+          theme: mode,
+          source: 'nut-preview',
+        },
+        '*',
+      );
+    }
+  });
 };
 
 // Request current variables from iframe

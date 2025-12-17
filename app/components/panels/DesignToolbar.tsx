@@ -23,13 +23,7 @@ export const DesignToolbar = () => {
   };
 
   return (
-    <div className="bg-bolt-elements-background-depth-1 px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-bolt-elements-textSecondary">
-          {hasChanges ? 'You have unsaved theme changes' : 'No theme changes'}
-        </span>
-      </div>
-
+    <div className="bg-bolt-elements-background-depth-1 px-4 py-3 flex items-center justify-end">
       <div className="flex items-center gap-2">
         {hasChanges && (
           <button
