@@ -22,7 +22,6 @@ export const Preview = memo(() => {
   const multiDevicePreviewRef = useRef<MultiDevicePreviewRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { isMobile } = useIsMobile();
   const isMouseOverPreviewRef = useRef(false);
 
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
