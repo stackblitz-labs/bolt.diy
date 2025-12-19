@@ -7,9 +7,16 @@ import AppView, { type ResizeSide } from './components/AppView';
 import MultiDevicePreview, { type MultiDevicePreviewRef } from './components/InfiniteCanvas/MultiDevicePreview';
 import useViewport from '~/lib/hooks';
 import { useVibeAppAuthPopup } from '~/lib/hooks/useVibeAppAuth';
-import { RotateCw, MonitorSmartphone, Maximize2, Minimize2 } from '~/components/ui/Icon';
+import { RotateCw, MonitorSmartphone, Maximize2, Minimize2, ChevronDown } from '~/components/ui/Icon';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
+import { chatStore } from '~/lib/stores/chat';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
 
 let gCurrentIFrameRef: React.RefObject<HTMLIFrameElement> | undefined;
 
@@ -31,6 +38,7 @@ export const Preview = memo(() => {
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
 
   const previewURL = useStore(workbenchStore.previewURL);
+  const appSummary = useStore(chatStore.appSummary);
 
   const isSmallViewport = useViewport(800);
   // Toggle between responsive mode and device mode
@@ -60,24 +68,6 @@ export const Preview = memo(() => {
     }
     setIsElementPickerReady(false);
     setIsElementPickerEnabled(false);
-  };
-
-  // Send postMessage to control element picker in iframe(s)
-  const toggleElementPicker = (enabled: boolean) => {
-    const message = {
-      type: 'ELEMENT_PICKER_CONTROL',
-      enabled,
-    };
-
-    if (isDeviceModeOn && multiDevicePreviewRef.current) {
-      // Send to all iframes in device mode
-      multiDevicePreviewRef.current.postMessageToAll(message);
-    } else if (iframeRef.current?.contentWindow) {
-      // Send to single iframe in responsive mode
-      iframeRef.current.contentWindow.postMessage(message, '*');
-    } else {
-      console.warn('[Preview] Cannot send message - iframe not ready');
-    }
   };
 
   // Listen for messages from iframe
@@ -280,6 +270,47 @@ export const Preview = memo(() => {
     isMouseOverPreviewRef.current = false;
   };
 
+  // Navigate to a specific page path
+  const navigateToPage = (pagePath: string) => {
+    if (!previewURL) {
+      return;
+    }
+
+    let newUrl: string;
+
+    try {
+      const baseUrl = new URL(previewURL);
+      // Handle paths that might have wildcards like /users/:id
+      const cleanPath = pagePath.replace(/:[^/]+/g, '1').replace(/\*/g, '');
+      baseUrl.pathname = cleanPath;
+      newUrl = baseUrl.toString();
+    } catch {
+      // If URL parsing fails, just append the path
+      newUrl = previewURL.replace(/\/$/, '') + pagePath;
+    }
+
+    setUrl(newUrl);
+    setIframeUrl(newUrl);
+
+    // Directly navigate the iframe since state update is async
+    if (isDeviceModeOn && multiDevicePreviewRef.current) {
+      multiDevicePreviewRef.current.reloadAll();
+    } else if (iframeRef.current) {
+      iframeRef.current.src = newUrl;
+    }
+
+    setIsElementPickerReady(false);
+    setIsElementPickerEnabled(false);
+  };
+
+  // Get available pages from app summary, filtering out wildcard routes
+  const availablePages = appSummary?.pages?.filter((page) => {
+    // Include pages that don't have wildcards, or have simple parameter patterns
+    return page.path && !page.path.includes('*');
+  });
+
+  const hasPages = availablePages && availablePages.length > 0;
+
   return (
     <div ref={containerRef} className="w-full h-full flex flex-col relative bg-bolt-elements-background-depth-1">
       {isPortDropdownOpen && (
@@ -318,6 +349,30 @@ export const Preview = memo(() => {
               }
             }}
           />
+          {hasPages && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-bolt-elements-background-depth-3 transition-colors text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                  title="Switch page"
+                >
+                  <ChevronDown size={16} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[200px] max-h-[300px] overflow-y-auto">
+                {availablePages?.map((page, index) => (
+                  <DropdownMenuItem
+                    key={index}
+                    onClick={() => navigateToPage(page.path)}
+                    className="flex flex-col items-start gap-0.5 cursor-pointer"
+                  >
+                    <span className="font-medium">{page.name || page.path}</span>
+                    <span className="text-xs text-bolt-elements-textSecondary">{page.path}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {!isSmallViewport && (
