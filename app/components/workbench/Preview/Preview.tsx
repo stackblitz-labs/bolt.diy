@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { designPanelStore } from '~/lib/stores/designSystemStore';
@@ -7,16 +7,10 @@ import AppView, { type ResizeSide } from './components/AppView';
 import MultiDevicePreview, { type MultiDevicePreviewRef } from './components/InfiniteCanvas/MultiDevicePreview';
 import useViewport from '~/lib/hooks';
 import { useVibeAppAuthPopup } from '~/lib/hooks/useVibeAppAuth';
-import { RotateCw, MonitorSmartphone, Maximize2, Minimize2, ChevronDown } from '~/components/ui/Icon';
-import { classNames } from '~/utils/classNames';
+import { RotateCw, MonitorSmartphone, Maximize2, Minimize2 } from '~/components/ui/Icon';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '~/components/ui/dropdown-menu';
+import { UrlCombobox } from './components/UrlCombobox';
 
 let gCurrentIFrameRef: React.RefObject<HTMLIFrameElement> | undefined;
 
@@ -28,7 +22,6 @@ export const Preview = memo(() => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const multiDevicePreviewRef = useRef<MultiDevicePreviewRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const isMouseOverPreviewRef = useRef(false);
 
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
@@ -270,6 +263,18 @@ export const Preview = memo(() => {
     isMouseOverPreviewRef.current = false;
   };
 
+  // Handle URL submission from the combobox
+  const handleUrlSubmit = useCallback(
+    (newUrl: string) => {
+      if (newUrl !== iframeUrl) {
+        setIframeUrl(newUrl);
+      } else {
+        reloadPreview();
+      }
+    },
+    [iframeUrl],
+  );
+
   // Navigate to a specific page path
   const navigateToPage = (pagePath: string) => {
     if (!previewURL) {
@@ -309,8 +314,6 @@ export const Preview = memo(() => {
     return page.path && !page.path.includes('*');
   });
 
-  const hasPages = availablePages && availablePages.length > 0;
-
   return (
     <div ref={containerRef} className="w-full h-full flex flex-col relative bg-bolt-elements-background-depth-1">
       {isPortDropdownOpen && (
@@ -318,62 +321,14 @@ export const Preview = memo(() => {
       )}
       <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 p-3 flex items-center gap-2 shadow-sm">
         <IconButton icon={<RotateCw size={20} />} onClick={() => reloadPreview()} />
-        <div
-          className={classNames(
-            'flex items-center gap-2 flex-grow bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textSecondary px-4 py-2 text-sm hover:bg-bolt-elements-background-depth-3 hover:border-bolt-elements-borderColor focus-within:bg-bolt-elements-background-depth-3 focus-within:border-blue-500/50 focus-within:text-bolt-elements-textPrimary transition-all duration-200 shadow-sm hover:shadow-md',
-            {
-              'rounded-xl': !isSmallViewport,
-            },
-          )}
-        >
-          <input
-            title="URL"
-            ref={inputRef}
-            className="w-full bg-transparent border-none outline-none focus:ring-0 focus:ring-offset-0 p-0"
-            type="text"
-            value={url}
-            onChange={(event) => {
-              setUrl(event.target.value);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                if (url !== iframeUrl) {
-                  setIframeUrl(url);
-                } else {
-                  reloadPreview();
-                }
-
-                if (inputRef.current) {
-                  inputRef.current.blur();
-                }
-              }
-            }}
-          />
-          {hasPages && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-bolt-elements-background-depth-3 transition-colors text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-                  title="Switch page"
-                >
-                  <ChevronDown size={16} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[200px] max-h-[300px] overflow-y-auto">
-                {availablePages?.map((page, index) => (
-                  <DropdownMenuItem
-                    key={index}
-                    onClick={() => navigateToPage(page.path)}
-                    className="flex flex-col items-start gap-0.5 cursor-pointer"
-                  >
-                    <span className="font-medium">{page.name || page.path}</span>
-                    <span className="text-xs text-bolt-elements-textSecondary">{page.path}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+        <UrlCombobox
+          url={url}
+          onUrlChange={setUrl}
+          onUrlSubmit={handleUrlSubmit}
+          onPageSelect={navigateToPage}
+          pages={availablePages}
+          isSmallViewport={isSmallViewport}
+        />
 
         {!isSmallViewport && (
           <IconButton
