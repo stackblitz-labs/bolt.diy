@@ -99,7 +99,7 @@ export function CreateProjectDialog({
 
   const nameError = touched.name && !formData.name.trim() ? 'Project name is required' : null;
 
-  const isValid = !nameError && formData.name.trim().length > 0;
+  const isValid = !nameError;
 
   return (
     <DialogRoot open={isOpen} onOpenChange={onClose}>

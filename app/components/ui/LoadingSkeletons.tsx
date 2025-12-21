@@ -225,10 +225,10 @@ export function LoadingOverlay({
 /**
  * Button skeleton component
  */
-export function ButtonSkeleton({ className, ...props }: React.HTMLAttributes<HTMLButtonElement>) {
+export function ButtonSkeleton({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   // Filter out button-specific props that aren't valid on div elements
-  const { disabled, type, value, ...divProps } = props as any;
-  return <Skeleton className={classNames('h-10 px-4 py-2 inline-flex items-center', className)} {...divProps} />;
+  const { disabled, type, value, ...divProps } = props;
+  return <Skeleton className={classNames('h-10 px-4 py-2 inline-flex items-center', className)} {...(divProps as React.HTMLAttributes<HTMLDivElement>)} />;
 }
 
 /**
@@ -250,11 +250,11 @@ export function InputSkeleton({ className, ...props }: React.HTMLAttributes<HTML
     max,
     step,
     ...divProps
-  } = props as any;
+  } = props;
   return (
     <Skeleton
       className={classNames('h-10 px-3 py-2 border border-bolt-elements-borderColor rounded-md', className)}
-      {...divProps}
+      {...(divProps as React.HTMLAttributes<HTMLDivElement>)}
     />
   );
 }

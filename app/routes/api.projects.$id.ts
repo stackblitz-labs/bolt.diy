@@ -9,7 +9,7 @@
 import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from '@remix-run/node';
 import { getSession } from '~/lib/auth/session.server';
 import { getProjectById, updateProject, deleteProject } from '~/lib/services/projects.server';
-import { PROJECT_ERROR_CODES } from '~/types/project';
+import { PROJECT_ERROR_CODES, PROJECT_STATUS_VALUES } from '~/types/project';
 import type { UpdateProjectInput, ProjectStatus } from '~/types/project';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -144,7 +144,7 @@ async function handlePatch(projectId: string, userId: string, request: Request) 
   }
 
   if (body.status !== undefined) {
-    if (!['draft', 'published', 'archived'].includes(body.status as string)) {
+    if (!PROJECT_STATUS_VALUES.includes(body.status as ProjectStatus)) {
       return json(
         { error: { code: PROJECT_ERROR_CODES.INVALID_INPUT, message: 'Invalid status value' } },
         { status: 400 },

@@ -5,8 +5,11 @@
 
 // Import FileMap type for snapshots
 import type { FileMap } from '~/lib/stores/files';
+import type { JSONValue } from 'ai';
 
 export type ProjectStatus = 'draft' | 'published' | 'archived';
+
+export const PROJECT_STATUS_VALUES = ['draft', 'published', 'archived'] as const satisfies ProjectStatus[];
 
 export interface Project {
   id: string;
@@ -27,7 +30,7 @@ export interface ProjectMessage {
   sequence_num: number;
   role: 'user' | 'assistant' | 'system';
   content: unknown; // JSON content matching Vercel AI SDK Message format
-  annotations: unknown[] | null;
+  annotations: JSONValue[] | null;
   created_at: string;
 }
 
@@ -115,6 +118,10 @@ export const PROJECT_ERROR_CODES = {
   INVALID_INPUT: 'PROJECT_INVALID_INPUT',
   SNAPSHOT_TOO_LARGE: 'SNAPSHOT_TOO_LARGE',
   SAVE_FAILED: 'SAVE_FAILED',
+  // RLS and authentication-related error codes
+  RLS_CONTEXT_FAILED: 'RLS_CONTEXT_FAILED',
+  DATABASE_UNAUTHORIZED: 'DATABASE_UNAUTHORIZED',
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
 } as const;
 
 // Pagination params
@@ -128,8 +135,3 @@ export interface SaveMessagesInput {
   messages: Omit<ProjectMessage, 'id' | 'created_at'>[];
 }
 
-// Input for saving snapshot
-export interface SaveSnapshotInput {
-  files: FileMap;
-  summary?: string;
-}

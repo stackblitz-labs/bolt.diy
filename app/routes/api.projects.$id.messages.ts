@@ -62,8 +62,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Parse query parameters
     const url = new URL(request.url);
-    const limit = Math.min(Number(url.searchParams.get('limit') || '50'), 100);
-    const offset = Number(url.searchParams.get('offset') || '0');
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 100);
+    const offset = parseInt(url.searchParams.get('offset') || '0', 10) || 0;
     const order = (url.searchParams.get('order') || 'asc') as 'asc' | 'desc';
 
     logger.info('Fetching messages', { projectId, userId, limit, offset, order });
@@ -72,7 +72,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       limit,
       offset,
       order,
-    });
+    }, userId);
 
     logger.info('Messages retrieved', {
       projectId,
@@ -158,7 +158,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     logger.info('Saving messages', { projectId, userId, count: messages.length });
 
-    const result = await saveMessages(projectId, messages);
+    const result = await saveMessages(projectId, messages, userId);
 
     logger.info('Messages saved', {
       projectId,

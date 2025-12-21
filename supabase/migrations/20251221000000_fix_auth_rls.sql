@@ -18,7 +18,7 @@ ALTER TABLE "user" ALTER COLUMN tenant_id DROP NOT NULL;
 
 -- Keep RLS enabled on business data tables
 -- These tables will continue to enforce tenant isolation when tenant context is set
--- Tables with RLS enabled: tenants, business_profiles, projects, messages
+-- Tables with RLS enabled: tenants, business_profiles, projects, project_messages
 
 -- Note: Authentication can now proceed without tenant context,
 -- while business data remains protected by tenant isolation when applicable

@@ -119,7 +119,7 @@ export function useProjects(initialOptions: UseProjectsOptions = {}): UseProject
         const newProject = (await response.json()) as Project;
 
         // Refresh the projects list
-        await fetchProjects();
+        await fetchProjects(currentOptions);
 
         return newProject;
       } catch (err) {
@@ -249,7 +249,7 @@ export function useProjects(initialOptions: UseProjectsOptions = {}): UseProject
   // Initial fetch
   useEffect(() => {
     fetchProjects(initialOptions);
-  }, []);
+  }, [fetchProjects, initialOptions]);
 
   return {
     // Data

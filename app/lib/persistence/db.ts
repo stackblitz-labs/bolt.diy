@@ -569,10 +569,13 @@ export async function setServerSnapshot(projectId: string, snapshot: Snapshot): 
     const snapshotSize = JSON.stringify(snapshot.files).length;
     const sizeInMB = snapshotSize / (1024 * 1024);
 
-    if (sizeInMB > 45) {
+    const SNAPSHOT_SIZE_LIMIT_MB = 45;
+
+    if (sizeInMB > SNAPSHOT_SIZE_LIMIT_MB) {
       logger.warn('Snapshot approaching size limit', {
         projectId,
         sizeMB: sizeInMB.toFixed(2),
+        limitMB: SNAPSHOT_SIZE_LIMIT_MB,
       });
     }
 

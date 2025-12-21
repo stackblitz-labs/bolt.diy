@@ -40,7 +40,9 @@ export async function loader(args: LoaderFunctionArgs) {
       projectId: project.id, // Use the actual project ID
       error: null,
     });
-  } catch {
+  } catch (error) {
+    // Log authentication/database errors for debugging while falling back gracefully
+    console.error('Chat authentication error:', error);
     // If there's an authentication error or other issue, fall back to regular chat
     return json({
       id: urlId,

@@ -14,9 +14,24 @@ import { z } from 'zod';
 
 const logger = createScopedLogger('ProjectSnapshotAPI');
 
+// File and Folder schemas for proper validation
+const fileSchema = z.object({
+  type: z.literal('file'),
+  content: z.string(),
+  isBinary: z.boolean(),
+  isLocked: z.boolean().optional(),
+  lockedByFolder: z.string().optional(),
+});
+
+const folderSchema = z.object({
+  type: z.literal('folder'),
+  isLocked: z.boolean().optional(),
+  lockedByFolder: z.string().optional(),
+});
+
 // Request validation schemas
 const saveSnapshotSchema = z.object({
-  files: z.record(z.any()), // FileMap structure
+  files: z.record(z.union([fileSchema, folderSchema])), // FileMap structure
   summary: z.string().optional(),
 });
 
@@ -49,7 +64,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     logger.info('Fetching snapshot', { projectId, userId });
 
-    const snapshot = await getSnapshotByProjectId(projectId);
+    const snapshot = await getSnapshotByProjectId(projectId, userId);
 
     if (!snapshot) {
       // Return 404 when no snapshot exists
@@ -164,7 +179,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       hasSummary: !!summary,
     });
 
-    const result = await saveSnapshot(projectId, { files, summary });
+    const result = await saveSnapshot(projectId, { files, summary }, userId);
 
     logger.info('Snapshot saved', {
       projectId,

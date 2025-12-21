@@ -8,11 +8,64 @@
 import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from '@remix-run/node';
 import { getSession } from '~/lib/auth/session.server';
 import { createProject, getProjectsByUserId } from '~/lib/services/projects.server';
+import { SupabaseRlsError } from '~/lib/errors/supabase-error';
 import { PROJECT_ERROR_CODES } from '~/types/project';
-import type { CreateProjectInput } from '~/types/project';
+import type { CreateProjectInput, ProjectStatus } from '~/types/project';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.projects');
+
+/**
+ * Map error codes to HTTP status codes
+ */
+function getErrorStatus(errorCode: string): number {
+  switch (errorCode) {
+    case PROJECT_ERROR_CODES.NOT_FOUND:
+      return 404;
+    case PROJECT_ERROR_CODES.UNAUTHORIZED:
+    case PROJECT_ERROR_CODES.RLS_CONTEXT_FAILED:
+    case PROJECT_ERROR_CODES.DATABASE_UNAUTHORIZED:
+      return 401;
+    case PROJECT_ERROR_CODES.LIMIT_REACHED:
+      return 403;
+    case PROJECT_ERROR_CODES.INVALID_INPUT:
+      return 400;
+    case PROJECT_ERROR_CODES.SERVICE_UNAVAILABLE:
+      return 503;
+    case PROJECT_ERROR_CODES.SAVE_FAILED:
+    case PROJECT_ERROR_CODES.SNAPSHOT_TOO_LARGE:
+    default:
+      return 500;
+  }
+}
+
+/**
+ * Parse error code from error message
+ */
+function parseErrorCode(error: unknown): { code: string; message: string } {
+  if (error instanceof SupabaseRlsError) {
+    return {
+      code: PROJECT_ERROR_CODES.RLS_CONTEXT_FAILED,
+      message: 'Authentication failed. Please sign in again.'
+    };
+  }
+
+  const errorMessage = error instanceof Error ? error.message : String(error);
+
+  // Check if message contains error code
+  const codeMatch = errorMessage.match(/^([^:]+):\s*(.+)$/);
+  if (codeMatch) {
+    return {
+      code: codeMatch[1],
+      message: codeMatch[2]
+    };
+  }
+
+  return {
+    code: PROJECT_ERROR_CODES.SAVE_FAILED,
+    message: errorMessage || 'An unexpected error occurred'
+  };
+}
 
 /**
  * GET /api/projects
@@ -31,7 +84,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     const url = new URL(request.url);
-    const status = url.searchParams.get('status') as any;
+    const status = url.searchParams.get('status') as ProjectStatus | null;
     const limit = parseInt(url.searchParams.get('limit') || '10');
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
@@ -68,13 +121,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
       offset,
     });
   } catch (error) {
-    logger.error('Failed to list projects', { error });
+    const { code, message } = parseErrorCode(error);
+    const status = getErrorStatus(code);
 
-    if (error instanceof Error && error.message.includes('Project limit reached')) {
-      return json({ error: { code: PROJECT_ERROR_CODES.LIMIT_REACHED, message: error.message } }, { status: 403 });
-    }
+    logger.error('API route error', {
+      route: 'api.projects.loader',
+      code,
+      message,
+      error
+    });
 
-    return json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to list projects' } }, { status: 500 });
+    return json(
+      { error: { code, message } },
+      { status }
+    );
   }
 }
 
@@ -114,7 +174,7 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    if (body.name.length > 255) {
+    if (body.name.trim().length > 255) {
       return json(
         { error: { code: PROJECT_ERROR_CODES.INVALID_INPUT, message: 'Project name must be 255 characters or less' } },
         { status: 400 },
@@ -144,16 +204,19 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return json(project, { status: 201 });
   } catch (error) {
-    logger.error('Failed to create project', { error });
+    const { code, message } = parseErrorCode(error);
+    const status = getErrorStatus(code);
 
-    if (error instanceof Error && error.message.includes('Project limit reached')) {
-      return json({ error: { code: PROJECT_ERROR_CODES.LIMIT_REACHED, message: error.message } }, { status: 403 });
-    }
+    logger.error('API route error', {
+      route: 'api.projects.action',
+      code,
+      message,
+      error
+    });
 
-    if (error instanceof Error && error.message.includes('Failed to create project')) {
-      return json({ error: { code: PROJECT_ERROR_CODES.SAVE_FAILED, message: error.message } }, { status: 400 });
-    }
-
-    return json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to create project' } }, { status: 500 });
+    return json(
+      { error: { code, message } },
+      { status }
+    );
   }
 }

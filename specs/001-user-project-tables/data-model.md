@@ -279,7 +279,7 @@ export interface ProjectMessage {
   sequence_num: number;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  annotations: unknown[];
+  annotations: JSONValue[];
   created_at: string;
 }
 
@@ -294,5 +294,8 @@ export interface ProjectSnapshot {
 
 // Re-export existing FileMap type
 export type { FileMap } from '~/lib/stores/files';
+
+// Note: JSONValue type should be imported from 'ai' package:
+// import type { JSONValue } from 'ai';
 ```
 

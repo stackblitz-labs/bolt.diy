@@ -198,7 +198,7 @@ function DefaultProjectErrorFallback({
         </div>
 
         {/* Show technical error details in development */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <div className="rounded-md bg-yellow-50 border border-yellow-200 p-4">
             <p className="text-sm text-yellow-800">
               <strong>Development Error:</strong> {error.message || 'Unknown error'}

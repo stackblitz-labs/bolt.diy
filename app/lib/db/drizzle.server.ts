@@ -108,7 +108,7 @@ export function getDb() {
         // Handle connection errors gracefully
         onnotice: (notice) => {
           // Ignore RLS notices during auth operations
-          if (notice.message.includes('row level security')) {
+          if (notice.code === '03000' || notice.code === '28000') {
             return;
           }
 

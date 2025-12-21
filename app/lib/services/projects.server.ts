@@ -19,9 +19,55 @@ import type {
   SaveMessagesResponse,
 } from '~/types/project';
 import { createScopedLogger } from '~/utils/logger';
-import { createUserSupabaseClient } from '~/lib/db/supabase.server';
+import { createUserSupabaseClient, createAdminSupabaseClient } from '~/lib/db/supabase.server';
+import { SupabaseRlsError } from '~/lib/errors/supabase-error';
+import { PROJECT_ERROR_CODES } from '~/types/project';
 
 const logger = createScopedLogger('ProjectsService');
+
+/**
+ * Wrapper to handle Supabase and RLS errors consistently across service functions
+ */
+function handleSupabaseError(error: unknown, context: string, userId?: string): never {
+  logger.error(`${context} failed`, { userId, error });
+
+  if (error instanceof SupabaseRlsError) {
+    // Map SupabaseRlsError to project error codes
+    switch (error.code) {
+      case 'RLS_CONTEXT_SET_FAILED':
+      case 'RLS_CONTEXT_NOT_SET':
+      case 'RLS_CONTEXT_VERIFICATION_FAILED':
+        throw new Error(`${PROJECT_ERROR_CODES.RLS_CONTEXT_FAILED}: Authentication context failed. Please try again.`);
+      case 'INVALID_USER_ID':
+        throw new Error(`${PROJECT_ERROR_CODES.INVALID_INPUT}: Invalid user authentication.`);
+      default:
+        throw new Error(`${PROJECT_ERROR_CODES.DATABASE_UNAUTHORIZED}: Database access denied.`);
+    }
+  }
+
+  // Handle other Supabase errors
+  if (error && typeof error === 'object' && 'code' in error) {
+    const supabaseError = error as any;
+    switch (supabaseError.code) {
+      case 'PGRST301':
+      case '42501':
+        throw new Error(`${PROJECT_ERROR_CODES.DATABASE_UNAUTHORIZED}: Permission denied.`);
+      case '08006':
+      case '08001':
+        throw new Error(`${PROJECT_ERROR_CODES.SERVICE_UNAVAILABLE}: Database connection failed.`);
+      default:
+        throw new Error(`${PROJECT_ERROR_CODES.SAVE_FAILED}: Database operation failed.`);
+    }
+  }
+
+  // Generic error - re-throw as-is if it already has our error code format
+  if (error instanceof Error && error.message.includes(':')) {
+    throw error;
+  }
+
+  // Wrap unknown errors
+  throw new Error(`${PROJECT_ERROR_CODES.SAVE_FAILED}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+}
 
 /*
  * ============================================================================
@@ -35,39 +81,42 @@ const logger = createScopedLogger('ProjectsService');
 export async function createProject(userId: string, input: CreateProjectInput): Promise<Project> {
   logger.info('Creating project', { userId, name: input.name });
 
-  const supabase = await createUserSupabaseClient(userId);
+  try {
+    const supabase = await createUserSupabaseClient(userId);
 
-  // Check project count limit (soft limit of 10)
-  const { count: existingCount } = await supabase.from('projects').select('*', { count: 'exact', head: true });
+    // Check project count limit (soft limit of 10)
+    const { count: existingCount } = await supabase.from('projects').select('*', { count: 'exact', head: true });
 
-  if (existingCount && existingCount >= 10) {
-    throw new Error('Project limit reached. Maximum 10 projects allowed per user.');
+    if (existingCount && existingCount >= 10) {
+      throw new Error(`${PROJECT_ERROR_CODES.LIMIT_REACHED}: Project limit reached. Maximum 10 projects allowed per user.`);
+    }
+
+    // Generate unique URL-friendly identifier
+    const urlId = await generateUniqueUrlId(supabase, input.name);
+
+    // Prepare project data
+    const projectData = {
+      user_id: userId,
+      name: input.name,
+      description: input.description || null,
+      status: 'draft' as const,
+      url_id: urlId,
+    };
+
+    // Insert project
+    const { data: project, error } = await supabase.from('projects').insert(projectData).select().single();
+
+    if (error) {
+      logger.error('Failed to create project', { error, userId, input });
+      throw new Error(`${PROJECT_ERROR_CODES.SAVE_FAILED}: Failed to create project: ${error.message}`);
+    }
+
+    logger.info('Project created successfully', { projectId: project.id, userId, urlId });
+
+    return project;
+  } catch (error) {
+    handleSupabaseError(error, 'createProject', userId);
   }
-
-  // Generate unique URL-friendly identifier
-  const supabaseClient = await supabase;
-  const urlId = await generateUniqueUrlId(supabaseClient, input.name);
-
-  // Prepare project data
-  const projectData = {
-    user_id: userId,
-    name: input.name,
-    description: input.description || null,
-    status: 'draft' as const,
-    url_id: urlId,
-  };
-
-  // Insert project
-  const { data: project, error } = await supabase.from('projects').insert(projectData).select().single();
-
-  if (error) {
-    logger.error('Failed to create project', { error, userId, input });
-    throw new Error(`Failed to create project: ${error.message}`);
-  }
-
-  logger.info('Project created successfully', { projectId: project.id, userId, urlId });
-
-  return project;
 }
 
 /**
@@ -84,14 +133,13 @@ async function generateUniqueUrlId(
     .replace(/^-+|-+$/g, '')
     .substring(0, 50); // Limit length
 
-  let urlId = baseSlug;
   let attempts = 0;
   const maxAttempts = 100;
 
   // Add random suffix if base exists, otherwise try base first
   while (attempts < maxAttempts) {
     const suffix = attempts > 0 ? `-${Math.random().toString(36).substring(2, 8)}` : '';
-    const candidate = `${urlId}${suffix}`;
+    const candidate = `${baseSlug}${suffix}`;
 
     const { data: existing } = await supabase.from('projects').select('id').eq('url_id', candidate).single();
 
@@ -99,7 +147,6 @@ async function generateUniqueUrlId(
       return candidate;
     }
 
-    urlId = candidate;
     attempts++;
   }
 
@@ -113,21 +160,25 @@ async function generateUniqueUrlId(
 export async function getProjectByUrlId(urlId: string, userId: string): Promise<Project | null> {
   logger.info('Getting project by URL ID', { urlId, userId });
 
-  const supabase = await createUserSupabaseClient(userId);
+  try {
+    const supabase = await createUserSupabaseClient(userId);
 
-  const { data: project, error } = await supabase.from('projects').select('*').eq('url_id', urlId).single();
+    const { data: project, error } = await supabase.from('projects').select('*').eq('url_id', urlId).single();
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      // Project not found
-      return null;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Project not found
+        return null;
+      }
+
+      logger.error('Failed to get project by URL ID', { error, urlId, userId });
+      throw new Error(`${PROJECT_ERROR_CODES.SAVE_FAILED}: Failed to get project: ${error.message}`);
     }
 
-    logger.error('Failed to get project by URL ID', { error, urlId, userId });
-    throw new Error(`Failed to get project: ${error.message}`);
+    return project;
+  } catch (error) {
+    handleSupabaseError(error, 'getProjectByUrlId', userId);
   }
-
-  return project;
 }
 
 /**
@@ -160,12 +211,17 @@ export async function getProjectsByUserId(
     query = query.eq('status', options.status);
   }
 
-  // Get total count
-  const { count: total } = await supabase
+  // Get total count with matching filter logic
+  let countQuery = supabase
     .from('projects')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq(options.status ? 'status' : 'user_id', options.status || userId);
+    .eq('user_id', userId);
+
+  if (options.status) {
+    countQuery = countQuery.eq('status', options.status);
+  }
+
+  const { count: total } = await countQuery;
 
   // Apply pagination and ordering
   query = query
@@ -179,34 +235,40 @@ export async function getProjectsByUserId(
     throw new Error(`Failed to get projects: ${error.message}`);
   }
 
-  // Get additional summary data (message counts, snapshot status)
-  const projectsWithSummary: ProjectSummary[] = await Promise.all(
-    (projects || []).map(async (project) => {
-      // Get message count
-      const { count: messageCount } = await supabase
-        .from('project_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('project_id', project.id);
+  // Batch query: Get all message counts at once
+  const projectIds = (projects || []).map(p => p.id);
+  const { data: messageCounts } = await supabase
+    .from('project_messages')
+    .select('project_id', { count: 'exact' })
+    .in('project_id', projectIds);
 
-      // Check if snapshot exists
-      const { data: snapshot } = await supabase
-        .from('project_snapshots')
-        .select('id')
-        .eq('project_id', project.id)
-        .single();
+  const { data: snapshots } = await supabase
+    .from('project_snapshots')
+    .select('project_id')
+    .in('project_id', projectIds);
 
-      return {
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        status: project.status,
-        url_id: project.url_id,
-        updated_at: project.updated_at,
-        message_count: messageCount || 0,
-        has_snapshot: !!snapshot,
-      };
-    }),
+  // Create efficient lookup structures
+  const messageCountMap = new Map(
+    (messageCounts || []).reduce((acc: [string, number][], msg) => {
+      const count = acc.find(([id]) => id === msg.project_id)?.[1] || 0;
+      acc.push([msg.project_id, count + 1]);
+      return acc;
+    }, [])
   );
+
+  const snapshotMap = new Set((snapshots || []).map(s => s.project_id));
+
+  // Combine data without additional queries
+  const projectsWithSummary: ProjectSummary[] = (projects || []).map(project => ({
+    id: project.id,
+    name: project.name,
+    description: project.description,
+    status: project.status,
+    url_id: project.url_id,
+    updated_at: project.updated_at,
+    message_count: messageCountMap.get(project.id) || 0,
+    has_snapshot: snapshotMap.has(project.id),
+  }));
 
   return {
     projects: projectsWithSummary,
@@ -268,31 +330,35 @@ export async function getProjectById(projectId: string, userId: string): Promise
 export async function updateProject(projectId: string, userId: string, updates: UpdateProjectInput): Promise<Project> {
   logger.info('Updating project', { projectId, userId, ...updates });
 
-  const supabase = await createUserSupabaseClient(userId);
+  try {
+    const supabase = await createUserSupabaseClient(userId);
 
-  // Add updated_at timestamp
-  const updateData = {
-    ...updates,
-    updated_at: new Date().toISOString(),
-  };
+    // Add updated_at timestamp
+    const updateData = {
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
 
-  const { data: project, error } = await supabase
-    .from('projects')
-    .update(updateData)
-    .eq('id', projectId)
-    .select()
-    .single();
+    const { data: project, error } = await supabase
+      .from('projects')
+      .update(updateData)
+      .eq('id', projectId)
+      .select()
+      .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      throw new Error('Project not found');
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new Error(`${PROJECT_ERROR_CODES.NOT_FOUND}: Project not found`);
+      }
+
+      logger.error('Failed to update project', { error, projectId, userId, updates });
+      throw new Error(`${PROJECT_ERROR_CODES.SAVE_FAILED}: Failed to update project: ${error.message}`);
     }
 
-    logger.error('Failed to update project', { error, projectId, userId, updates });
-    throw new Error(`Failed to update project: ${error.message}`);
+    return project;
+  } catch (error) {
+    handleSupabaseError(error, 'updateProject', userId);
   }
-
-  return project;
 }
 
 /**
@@ -333,10 +399,15 @@ export async function getMessagesByProjectId(
     offset?: number;
     order?: 'asc' | 'desc';
   } = {},
+  userId?: string,
 ): Promise<MessagesListResponse> {
-  logger.info('Getting messages', { projectId, ...options });
+  logger.info('Getting messages', { projectId, ...options, userId });
 
-  const supabase = await createUserSupabaseClient(''); // No userId needed for messages with RLS
+  if (!userId) {
+    throw SupabaseRlsError.invalidUserId();
+  }
+
+  const supabase = await createUserSupabaseClient(userId); // Set userId for RLS context
 
   // Get total count first
   const { count: total } = await supabase
@@ -374,10 +445,15 @@ export async function getMessagesByProjectId(
 export async function saveMessages(
   projectId: string,
   messages: Partial<ProjectMessage>[],
+  userId?: string,
 ): Promise<SaveMessagesResponse> {
-  logger.info('Saving messages', { projectId, count: messages.length });
+  logger.info('Saving messages', { projectId, count: messages.length, userId });
 
-  const supabase = await createUserSupabaseClient(''); // No userId needed for messages with RLS
+  if (!userId) {
+    throw SupabaseRlsError.invalidUserId();
+  }
+
+  const supabase = await createUserSupabaseClient(userId); // Set userId for RLS context
 
   // Prepare messages for upsert
   const messagesToUpsert = messages.map((message) => ({
@@ -421,16 +497,31 @@ export async function saveMessages(
 /**
  * Get file snapshot for a project
  */
-export async function getSnapshotByProjectId(projectId: string): Promise<ProjectSnapshot | null> {
-  logger.info('Getting snapshot', { projectId });
+export async function getSnapshotByProjectId(projectId: string, userId?: string): Promise<ProjectSnapshot | null> {
+  logger.info('Getting snapshot', { projectId, userId });
 
-  const supabase = await createUserSupabaseClient(''); // No userId needed for snapshots with RLS
+  if (!userId) {
+    throw SupabaseRlsError.invalidUserId();
+  }
 
-  const { data: snapshot, error } = await supabase
+  const supabase = await createUserSupabaseClient(userId);
+
+  // If userId provided, verify project ownership through JOIN
+  let query = supabase
     .from('project_snapshots')
     .select('*')
-    .eq('project_id', projectId)
-    .single();
+    .eq('project_id', projectId);
+
+  if (userId) {
+    // Add ownership check by joining with projects table
+    query = supabase
+      .from('project_snapshots')
+      .select('project_snapshots.*, projects!inner(user_id)')
+      .eq('project_id', projectId)
+      .eq('projects.user_id', userId);
+  }
+
+  const { data: snapshot, error } = await query.single();
 
   if (error) {
     if (error.code === 'PGRST116') {
@@ -448,10 +539,28 @@ export async function getSnapshotByProjectId(projectId: string): Promise<Project
 /**
  * Save file snapshot for a project
  */
-export async function saveSnapshot(projectId: string, input: SaveSnapshotRequest): Promise<SaveSnapshotResponse> {
-  logger.info('Saving snapshot', { projectId, filesCount: Object.keys(input.files).length });
+export async function saveSnapshot(projectId: string, input: SaveSnapshotRequest, userId?: string): Promise<SaveSnapshotResponse> {
+  logger.info('Saving snapshot', { projectId, userId, filesCount: Object.keys(input.files).length });
 
-  const supabase = await createUserSupabaseClient(''); // No userId needed for snapshots with RLS
+  if (!userId) {
+    throw SupabaseRlsError.invalidUserId();
+  }
+
+  const supabase = await createUserSupabaseClient(userId);
+
+  // Verify project ownership if userId provided
+  if (userId) {
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .eq('user_id', userId)
+      .single();
+
+    if (projectError || !project) {
+      throw new Error('Project not found or access denied');
+    }
+  }
 
   // Validate snapshot size (50MB limit, warn at 45MB)
   const snapshotSize = JSON.stringify(input.files).length;
@@ -509,7 +618,7 @@ export async function saveSnapshot(projectId: string, input: SaveSnapshotRequest
 export async function generateDeploymentPackage(projectId: string): Promise<Buffer> {
   logger.info('Generating deployment package', { projectId });
 
-  const supabase = await createUserSupabaseClient(''); // No userId needed for snapshots with RLS
+  const supabase = await createAdminSupabaseClient(); // Admin client for deployment package generation
 
   // Get the project snapshot
   const { data: snapshot, error } = await supabase
