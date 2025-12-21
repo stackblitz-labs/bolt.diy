@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, useCallback } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { designPanelStore } from '~/lib/stores/designSystemStore';
@@ -8,9 +8,8 @@ import MultiDevicePreview, { type MultiDevicePreviewRef } from './components/Inf
 import useViewport from '~/lib/hooks';
 import { useVibeAppAuthPopup } from '~/lib/hooks/useVibeAppAuth';
 import { RotateCw, MonitorSmartphone, Maximize2, Minimize2 } from '~/components/ui/Icon';
+import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
-import { chatStore } from '~/lib/stores/chat';
-import { UrlCombobox } from './components/UrlCombobox';
 
 let gCurrentIFrameRef: React.RefObject<HTMLIFrameElement> | undefined;
 
@@ -22,6 +21,7 @@ export const Preview = memo(() => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const multiDevicePreviewRef = useRef<MultiDevicePreviewRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const isMouseOverPreviewRef = useRef(false);
 
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
@@ -31,7 +31,6 @@ export const Preview = memo(() => {
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
 
   const previewURL = useStore(workbenchStore.previewURL);
-  const appSummary = useStore(chatStore.appSummary);
 
   const isSmallViewport = useViewport(800);
   // Toggle between responsive mode and device mode
@@ -61,6 +60,24 @@ export const Preview = memo(() => {
     }
     setIsElementPickerReady(false);
     setIsElementPickerEnabled(false);
+  };
+
+  // Send postMessage to control element picker in iframe(s)
+  const toggleElementPicker = (enabled: boolean) => {
+    const message = {
+      type: 'ELEMENT_PICKER_CONTROL',
+      enabled,
+    };
+
+    if (isDeviceModeOn && multiDevicePreviewRef.current) {
+      // Send to all iframes in device mode
+      multiDevicePreviewRef.current.postMessageToAll(message);
+    } else if (iframeRef.current?.contentWindow) {
+      // Send to single iframe in responsive mode
+      iframeRef.current.contentWindow.postMessage(message, '*');
+    } else {
+      console.warn('[Preview] Cannot send message - iframe not ready');
+    }
   };
 
   // Listen for messages from iframe
@@ -263,57 +280,6 @@ export const Preview = memo(() => {
     isMouseOverPreviewRef.current = false;
   };
 
-  // Handle URL submission from the combobox
-  const handleUrlSubmit = useCallback(
-    (newUrl: string) => {
-      if (newUrl !== iframeUrl) {
-        setIframeUrl(newUrl);
-      } else {
-        reloadPreview();
-      }
-    },
-    [iframeUrl],
-  );
-
-  // Navigate to a specific page path
-  const navigateToPage = (pagePath: string) => {
-    if (!previewURL) {
-      return;
-    }
-
-    let newUrl: string;
-
-    try {
-      const baseUrl = new URL(previewURL);
-      // Handle paths that might have wildcards like /users/:id
-      const cleanPath = pagePath.replace(/:[^/]+/g, '1').replace(/\*/g, '');
-      baseUrl.pathname = cleanPath;
-      newUrl = baseUrl.toString();
-    } catch {
-      // If URL parsing fails, just append the path
-      newUrl = previewURL.replace(/\/$/, '') + pagePath;
-    }
-
-    setUrl(newUrl);
-    setIframeUrl(newUrl);
-
-    // Directly navigate the iframe since state update is async
-    if (isDeviceModeOn && multiDevicePreviewRef.current) {
-      multiDevicePreviewRef.current.reloadAll();
-    } else if (iframeRef.current) {
-      iframeRef.current.src = newUrl;
-    }
-
-    setIsElementPickerReady(false);
-    setIsElementPickerEnabled(false);
-  };
-
-  // Get available pages from app summary, filtering out wildcard routes
-  const availablePages = appSummary?.pages?.filter((page) => {
-    // Include pages that don't have wildcards, or have simple parameter patterns
-    return page.path && !page.path.includes('*');
-  });
-
   return (
     <div ref={containerRef} className="w-full h-full flex flex-col relative bg-bolt-elements-background-depth-1">
       {isPortDropdownOpen && (
@@ -321,14 +287,38 @@ export const Preview = memo(() => {
       )}
       <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 p-3 flex items-center gap-2 shadow-sm">
         <IconButton icon={<RotateCw size={20} />} onClick={() => reloadPreview()} />
-        <UrlCombobox
-          url={url}
-          onUrlChange={setUrl}
-          onUrlSubmit={handleUrlSubmit}
-          onPageSelect={navigateToPage}
-          pages={availablePages}
-          isSmallViewport={isSmallViewport}
-        />
+        <div
+          className={classNames(
+            'flex items-center gap-2 flex-grow bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textSecondary px-4 py-2 text-sm hover:bg-bolt-elements-background-depth-3 hover:border-bolt-elements-borderColor focus-within:bg-bolt-elements-background-depth-3 focus-within:border-blue-500/50 focus-within:text-bolt-elements-textPrimary transition-all duration-200 shadow-sm hover:shadow-md',
+            {
+              'rounded-xl': !isSmallViewport,
+            },
+          )}
+        >
+          <input
+            title="URL"
+            ref={inputRef}
+            className="w-full bg-transparent border-none outline-none focus:ring-0 focus:ring-offset-0 p-0"
+            type="text"
+            value={url}
+            onChange={(event) => {
+              setUrl(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                if (url !== iframeUrl) {
+                  setIframeUrl(url);
+                } else {
+                  reloadPreview();
+                }
+
+                if (inputRef.current) {
+                  inputRef.current.blur();
+                }
+              }
+            }}
+          />
+        </div>
 
         {!isSmallViewport && (
           <IconButton

@@ -86,6 +86,7 @@ export const sendThemeToAllIframes = (themeName: string): void => {
   }
 
   const allVars = flattenThemeVariablesWithModes(cssVars);
+  console.log('[ThemeUtils] Sending theme update to', iframes.length, 'iframes:', themeName, 'with', Object.keys(allVars).length, 'variables');
 
   iframes.forEach((iframe) => {
     if (iframe?.contentWindow) {
