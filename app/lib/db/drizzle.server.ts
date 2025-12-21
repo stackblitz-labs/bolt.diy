@@ -101,6 +101,18 @@ export function getDb() {
           // Force TCP connection (Node.js mode) instead of Cloudflare Workers mode
           application_name: 'huskit-nodejs',
         },
+
+        // Transform to handle Supabase's RLS
+        transform: postgres.camel,
+
+        // Handle connection errors gracefully
+        onnotice: (notice) => {
+          // Ignore RLS notices during auth operations
+          if (notice.message.includes('row level security')) {
+            return;
+          }
+          console.debug('PostgreSQL notice:', notice);
+        },
       });
 
       dbInstance = drizzle(client);

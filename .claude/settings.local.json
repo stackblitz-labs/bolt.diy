@@ -15,7 +15,19 @@
       "Bash(bash:*)",
       "Bash(find:*)",
       "Bash(pnpm exec vitest run:*)",
-      "Bash(pnpm run dev)"
+      "Bash(pnpm run dev)",
+      "Bash(/.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(supabase status:*)",
+      "Bash(supabase:*)",
+      "Bash(mkdir:*)",
+      "Bash(./.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(ls:*)",
+      "Bash(mv:*)",
+      "Bash(psql:*)",
+      "Bash(export:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

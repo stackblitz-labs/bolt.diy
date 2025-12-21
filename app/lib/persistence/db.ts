@@ -2,6 +2,7 @@ import type { Message } from 'ai';
 import { createScopedLogger } from '~/utils/logger';
 import type { ChatHistoryItem } from './useChatHistory';
 import type { Snapshot } from './types'; // Import Snapshot type
+import { withRetry } from '~/lib/utils/retry';
 
 export interface IChatMetadata {
   gitUrl: string;
@@ -340,4 +341,299 @@ export async function deleteSnapshot(db: IDBDatabase, chatId: string): Promise<v
       }
     };
   });
+}
+
+/*
+ * ============================================================================
+ * Server API Functions (Client-side HTTP calls to API routes)
+ * ============================================================================
+ * These functions make HTTP requests to server API endpoints for syncing
+ * chat history with the server when the user is authenticated.
+ */
+
+/**
+ * Fetch chat messages from the server API
+ */
+export async function getServerMessages(projectId: string): Promise<ChatHistoryItem | null> {
+  try {
+    logger.info('Fetching messages from server', { projectId });
+
+    const response = await fetch(`/api/projects/${projectId}/messages`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        logger.info('No messages found for project', { projectId });
+        return null;
+      }
+
+      const errorData = await response.json().catch(() => ({}) as any);
+      throw new Error((errorData as any).message || `Failed to fetch messages: ${response.status}`);
+    }
+
+    const data = (await response.json()) as any;
+
+    // Convert API response to ChatHistoryItem format
+    const chatHistoryItem: ChatHistoryItem = {
+      id: projectId,
+      urlId: undefined, // Will be resolved by calling component
+      description: undefined, // Project description will be fetched separately
+      messages: data.messages.map((msg: any) => ({
+        id: msg.message_id,
+        role: msg.role,
+        content: msg.content,
+        createdAt: new Date(msg.created_at),
+
+        // Add any other AI SDK Message fields that might be needed
+      })) as Message[],
+      timestamp: data.messages.length > 0 ? data.messages[0].created_at : new Date().toISOString(),
+    };
+
+    logger.info('Messages fetched successfully', {
+      projectId,
+      messageCount: chatHistoryItem.messages.length,
+    });
+
+    return chatHistoryItem;
+  } catch (error) {
+    logger.error('Failed to fetch messages from server', {
+      error: String(error),
+      projectId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Save chat messages to the server API
+ */
+export async function setServerMessages(projectId: string, messages: Message[]): Promise<void> {
+  try {
+    logger.info('Saving messages to server', { projectId, messageCount: messages.length });
+
+    // Convert AI SDK Message format to API format
+    const apiMessages = messages.map((msg, index) => ({
+      message_id: msg.id,
+      sequence_num: index,
+      role: msg.role,
+      content: msg.content,
+      annotations: [], // TODO: Extract annotations from AI SDK Message if available
+      created_at: msg.createdAt?.toISOString() || new Date().toISOString(),
+    }));
+
+    const response = await fetch(`/api/projects/${projectId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: apiMessages,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}) as any);
+      throw new Error((errorData as any).message || `Failed to save messages: ${response.status}`);
+    }
+
+    const data = (await response.json()) as any;
+
+    logger.info('Messages saved successfully', {
+      projectId,
+      savedCount: data.saved_count,
+      requestCount: messages.length,
+    });
+  } catch (error) {
+    logger.error('Failed to save messages to server', {
+      error: String(error),
+      projectId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Utility function to check if the user is authenticated
+ * This can be used to determine whether to use server or client storage
+ */
+export function isUserAuthenticated(): boolean {
+  // Check if we're on the server side or if session cookies are present
+  if (typeof document === 'undefined') {
+    return false; // Server-side rendering - assume no auth
+  }
+
+  // Check for Better Auth session cookie
+  return document.cookie.includes('better-auth.session_token');
+}
+
+/*
+ * ============================================================================
+ * Server Snapshot Functions (Client-side HTTP calls to API routes)
+ * ============================================================================
+ * These functions make HTTP requests to server API endpoints for fetching
+ * and saving file snapshots when the user is authenticated.
+ */
+
+/**
+ * Fetch file snapshot from the server API
+ */
+export async function getServerSnapshot(projectId: string): Promise<Snapshot | null> {
+  try {
+    logger.info('Fetching snapshot from server', { projectId });
+
+    const snapshotData = await withRetry(
+      async () => {
+        const response = await fetch(`/api/projects/${projectId}/snapshot`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            logger.info('No snapshot found on server', { projectId });
+            return null;
+          }
+
+          const errorData = (await response.json().catch(() => ({}))) as any;
+          throw new Error(errorData.message || `Failed to fetch snapshot: ${response.status}`);
+        }
+
+        return response.json();
+      },
+      {
+        maxRetries: 2, // Fewer retries for snapshot loads
+        baseDelay: 500,
+        onRetry: (error, attempt) => {
+          logger.warn(`Snapshot fetch retry ${attempt} for ${projectId}:`, error.message);
+        },
+      }
+    );
+
+    // If we got null from 404, return null
+    if (snapshotData === null) {
+      return null;
+    }
+
+    // Transform server response to match Snapshot interface
+    const snapshot: Snapshot = {
+      chatIndex: '', // Server snapshots don't have chatIndex, set to empty
+      files: snapshotData.files || {},
+      summary: snapshotData.summary,
+      created_at: snapshotData.created_at,
+      updated_at: snapshotData.updated_at,
+    };
+
+    logger.info('Snapshot fetched from server', {
+      projectId,
+      filesCount: Object.keys(snapshot.files).length,
+      createdAt: snapshot.created_at,
+    });
+
+    return snapshot;
+  } catch (error) {
+    logger.error('Failed to fetch snapshot from server', {
+      error: String(error),
+      projectId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Save file snapshot to the server API
+ */
+export async function setServerSnapshot(projectId: string, snapshot: Snapshot): Promise<void> {
+  try {
+    logger.info('Saving snapshot to server', {
+      projectId,
+      filesCount: Object.keys(snapshot.files).length,
+      hasSummary: !!snapshot.summary,
+    });
+
+    // Estimate snapshot size before sending
+    const snapshotSize = JSON.stringify(snapshot.files).length;
+    const sizeInMB = snapshotSize / (1024 * 1024);
+
+    if (sizeInMB > 45) {
+      logger.warn('Snapshot approaching size limit', {
+        projectId,
+        sizeMB: sizeInMB.toFixed(2),
+      });
+    }
+
+    const result = await withRetry(
+      async () => {
+        const response = await fetch(`/api/projects/${projectId}/snapshot`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            files: snapshot.files,
+            summary: snapshot.summary,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = (await response.json().catch(() => ({}))) as any;
+
+          if (response.status === 413) {
+            // Don't retry on payload too large
+            throw new Error(errorData.message || 'Snapshot too large. Consider removing large binary files.');
+          }
+
+          // Don't retry on client errors (4xx except 429 and 5xx)
+          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+            throw new Error(errorData.message || `Failed to save snapshot: ${response.status}`);
+          }
+
+          // Retry on server errors and rate limiting
+          throw new Error(errorData.message || `Failed to save snapshot: ${response.status}`);
+        }
+
+        return response.json();
+      },
+      {
+        maxRetries: 2,
+        baseDelay: 1000,
+        retryCondition: (error) => {
+          const message = error.message.toLowerCase();
+
+          // Don't retry on size limit errors
+          if (message.includes('too large') || message.includes('413')) {
+            return false;
+          }
+
+          // Don't retry on client errors except rate limiting
+          if (message.includes('400') || message.includes('401') || message.includes('403') || message.includes('404') || message.includes('422')) {
+            return false;
+          }
+
+          // Retry on server errors and network issues
+          return true;
+        },
+        onRetry: (error, attempt) => {
+          logger.warn(`Snapshot save retry ${attempt} for ${projectId}:`, error.message);
+        },
+      }
+    );
+
+    logger.info('Snapshot saved to server', {
+      projectId,
+      updatedAt: result.updated_at,
+      filesCount: Object.keys(snapshot.files).length,
+    });
+  } catch (error) {
+    logger.error('Failed to save snapshot to server', {
+      error: String(error),
+      projectId,
+    });
+    throw error;
+  }
 }

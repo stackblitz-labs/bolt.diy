@@ -5,7 +5,7 @@
 
 import { type ActionFunctionArgs, type LoaderFunctionArgs, json } from '@remix-run/cloudflare';
 import { requireSessionOrError } from '~/lib/auth/guards.server';
-import { infoCollectionService } from '~/lib/services/infoCollectionService';
+import { infoCollectionService } from '~/lib/services/infoCollectionService.server';
 import type { InfoCollectionResponse, SessionListResponse } from '~/types/info-collection';
 
 /**

@@ -3,7 +3,7 @@
  * Database operations for website information collection sessions
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseClient } from '~/lib/db/supabase.server';
 import type {
   InfoCollectionSession,
   InfoCollectionSessionRow,
@@ -20,16 +20,7 @@ const logger = createScopedLogger('InfoCollectionService');
  * ============================================================================
  */
 
-const getSupabaseClient = () => {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY;
-
-  if (!url || !key) {
-    throw new Error('Missing Supabase configuration');
-  }
-
-  return createClient(url, key);
-};
+const getSupabaseClient = createSupabaseClient;
 
 /*
  * ============================================================================

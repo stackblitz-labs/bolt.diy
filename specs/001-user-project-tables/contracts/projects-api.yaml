@@ -1,0 +1,543 @@
+openapi: 3.0.3
+info:
+  title: Projects API
+  description: API for managing user website projects, chat messages, and file snapshots
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: Remix API routes
+
+security:
+  - BetterAuth: []
+
+paths:
+  /projects:
+    get:
+      summary: List user's projects
+      description: Returns paginated list of projects owned by the authenticated user
+      operationId: listProjects
+      tags: [Projects]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published, archived]
+          description: Filter by project status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+          description: Number of projects to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of projects to skip
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProjectSummary'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create a new project
+      description: Creates a new project for the authenticated user
+      operationId: createProject
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Project limit reached (soft limit of 10)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /projects/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Project ID
+
+    get:
+      summary: Get project details
+      description: Returns full project details including tenant/business profile data
+      operationId: getProject
+      tags: [Projects]
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectWithDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update project
+      description: Updates project name, description, or status
+      operationId: updateProject
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: Project updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete project
+      description: Permanently deletes project and all associated data (messages, snapshot)
+      operationId: deleteProject
+      tags: [Projects]
+      responses:
+        '204':
+          description: Project deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /projects/{id}/messages:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Project ID
+
+    get:
+      summary: Get chat messages
+      description: Returns paginated chat messages for a project
+      operationId: getMessages
+      tags: [Messages]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Number of messages to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of messages to skip
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: Sort order by sequence number
+      responses:
+        '200':
+          description: Chat messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      summary: Save chat messages
+      description: Saves or updates chat messages for a project (upsert by sequence_num)
+      operationId: saveMessages
+      tags: [Messages]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveMessagesRequest'
+      responses:
+        '200':
+          description: Messages saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saved_count:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /projects/{id}/snapshot:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Project ID
+
+    get:
+      summary: Get file snapshot
+      description: Returns the current file snapshot (FileMap) for a project
+      operationId: getSnapshot
+      tags: [Snapshots]
+      responses:
+        '200':
+          description: File snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Save file snapshot
+      description: Saves or updates the file snapshot for a project (replaces existing)
+      operationId: saveSnapshot
+      tags: [Snapshots]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveSnapshotRequest'
+      responses:
+        '200':
+          description: Snapshot saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated_at:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: Snapshot too large (exceeds ~50MB limit)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    BetterAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+      description: Better Auth session cookie
+
+  schemas:
+    Project:
+      type: object
+      required: [id, user_id, name, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [draft, published, archived]
+        url_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProjectSummary:
+      type: object
+      required: [id, name, status, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [draft, published, archived]
+        url_id:
+          type: string
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+        message_count:
+          type: integer
+          description: Number of chat messages
+        has_snapshot:
+          type: boolean
+          description: Whether project has saved files
+
+    ProjectWithDetails:
+      allOf:
+        - $ref: '#/components/schemas/Project'
+        - type: object
+          properties:
+            business_profile:
+              type: object
+              nullable: true
+              properties:
+                gmaps_url:
+                  type: string
+                address:
+                  type: object
+                contact_info:
+                  type: object
+
+    CreateProjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 1
+        description:
+          type: string
+        gmaps_url:
+          type: string
+          description: Google Maps URL (creates tenant/business_profile if provided)
+        address:
+          type: object
+          description: Business address
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 1
+        description:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, archived]
+
+    Message:
+      type: object
+      required: [id, message_id, sequence_num, role, content, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        message_id:
+          type: string
+          description: Original AI SDK message ID
+        sequence_num:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+        annotations:
+          type: array
+          items:
+            type: object
+        created_at:
+          type: string
+          format: date-time
+
+    SaveMessagesRequest:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items:
+            type: object
+            required: [message_id, sequence_num, role, content]
+            properties:
+              message_id:
+                type: string
+              sequence_num:
+                type: integer
+              role:
+                type: string
+                enum: [user, assistant, system]
+              content:
+                type: string
+              annotations:
+                type: array
+                items:
+                  type: object
+
+    Snapshot:
+      type: object
+      required: [project_id, files, updated_at]
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        files:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [file, folder]
+              content:
+                type: string
+              isBinary:
+                type: boolean
+          description: FileMap structure
+        summary:
+          type: string
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+
+    SaveSnapshotRequest:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: object
+          additionalProperties:
+            type: object
+          description: FileMap structure
+        summary:
+          type: string
+
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Projects
+    description: Project management endpoints
+  - name: Messages
+    description: Chat message endpoints
+  - name: Snapshots
+    description: File snapshot endpoints
+

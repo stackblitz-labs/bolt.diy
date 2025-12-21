@@ -58,6 +58,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - **Voice Prompting** - Audio input for prompts
 - **Bulk Chat Operations** - Delete multiple chats at once
 - **Project Snapshot Restoration** - Restore projects from snapshots on reload
+- **Server-Side Project Persistence** - Cross-device project sync with PostgreSQL backend
 
 ### 🔄 In Progress / Planned
 - **File Locking & Diff Improvements** - Enhanced conflict prevention
@@ -453,7 +454,7 @@ If you encounter issues:
 2. **Reset Local Changes**:
    ```bash
    # Discard all local changes
-   git reset --hard origin/main
+   git reset --hard origin/main        
    ```
 
 Remember to always commit your local changes or stash them before pulling updates to avoid conflicts.
@@ -495,6 +496,25 @@ Remember to always commit your local changes or stash them before pulling update
 ## Contributing
 
 We welcome contributions! Check out our [Contributing Guide](CONTRIBUTING.md) to get started.
+
+---
+
+## Documentation
+
+### Project Persistence
+For detailed information about server-side project persistence, including:
+- API endpoints and usage
+- Database schema and architecture
+- Error handling and retry logic
+- Migration instructions
+- Performance considerations
+
+See the [Project Persistence Documentation](docs/project-persistence.md).
+
+### Additional Documentation
+- [Architecture Overview](docs/system-overview.md) - System design and components
+- [FAQ](FAQ.md) - Common questions and troubleshooting
+- [Contributing Guide](CONTRIBUTING.md) - Development guidelines
 
 ---
 

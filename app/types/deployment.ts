@@ -16,6 +16,7 @@ export interface DeploymentConfig {
   files: Record<string, string>; // path -> content
   projectName: string;
   chatId: string;
+  projectInternalId?: string; // New project system ID
   framework?: string;
 }
 
@@ -91,6 +92,7 @@ export interface DeploymentRecord {
   id: string;
   userId?: string;
   chatId: string;
+  projectInternalId?: string; // New project system ID
   platform: DeploymentPlatform;
   authMode: AuthMode;
   externalId?: string; // Platform's deployment/job ID
@@ -138,6 +140,7 @@ export interface DeployRequestBody {
   sourceFiles?: Record<string, string>; // Full source code for framework detection
   chatId: string;
   projectId?: string; // For existing deployments
+  projectInternalId?: string; // New project system ID
   authMode?: AuthMode;
 
   // User-token mode fields
