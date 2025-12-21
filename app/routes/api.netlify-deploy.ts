@@ -1,16 +1,24 @@
 import { type ActionFunctionArgs, json } from '@remix-run/cloudflare';
 import crypto from 'crypto';
 import type { NetlifySiteInfo } from '~/types/netlify';
+import { getProjectByUrlId, updateProject } from '~/lib/services/projects.server';
+import { getSession } from '~/lib/auth/session.server';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('api.netlify-deploy');
 
 interface DeployRequestBody {
   siteId?: string;
+  projectInternalId?: string; // New project system ID
   files: Record<string, string>;
   chatId: string;
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
-    const { siteId, files, token, chatId } = (await request.json()) as DeployRequestBody & { token: string };
+    const { siteId, projectInternalId, files, token, chatId } = (await request.json()) as DeployRequestBody & {
+      token: string;
+    };
 
     if (!token) {
       return json({ error: 'Not connected to Netlify' }, { status: 401 });
@@ -211,6 +219,46 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (retryCount >= maxRetries) {
       return json({ error: 'Deploy preparation timed out' }, { status: 500 });
+    }
+
+    // Update project status to 'published' if projectInternalId is provided
+    if (projectInternalId) {
+      try {
+        const session = await getSession(request);
+
+        if (session?.user) {
+          await updateProject(projectInternalId, session.user.id, { status: 'published' });
+          logger.info('Project status updated to published', { projectId: projectInternalId });
+        }
+      } catch (statusError) {
+        logger.error('Failed to update project status', {
+          projectId: projectInternalId,
+          error: statusError instanceof Error ? statusError.message : 'Unknown error',
+        });
+
+        // Continue with deployment response even if status update fails
+      }
+    } else if (chatId) {
+      // Legacy support: try to find project by chatId (url_id) and update status
+      try {
+        const session = await getSession(request);
+
+        if (session?.user) {
+          const project = await getProjectByUrlId(chatId, session.user.id);
+
+          if (project) {
+            await updateProject(project.id, session.user.id, { status: 'published' });
+            logger.info('Project status updated to published (legacy)', { urlId: chatId, projectId: project.id });
+          }
+        }
+      } catch (statusError) {
+        logger.error('Failed to update project status (legacy)', {
+          urlId: chatId,
+          error: statusError instanceof Error ? statusError.message : 'Unknown error',
+        });
+
+        // Continue with deployment response even if status update fails
+      }
     }
 
     // Make sure we're returning the deploy ID and site info

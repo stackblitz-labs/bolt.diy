@@ -1,5 +1,10 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, json } from '@remix-run/cloudflare';
 import type { VercelProjectInfo } from '~/types/vercel';
+import { getProjectByUrlId, updateProject } from '~/lib/services/projects.server';
+import { getSession } from '~/lib/auth/session.server';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('api.vercel-deploy');
 
 // Function to detect framework from project files
 const detectFramework = (files: Record<string, string>): string => {
@@ -233,6 +238,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 interface DeployRequestBody {
   projectId?: string;
+  projectInternalId?: string; // New project system ID
   files: Record<string, string>;
   sourceFiles?: Record<string, string>;
   chatId: string;
@@ -242,9 +248,10 @@ interface DeployRequestBody {
 // Existing action function for POST requests
 export async function action({ request }: ActionFunctionArgs) {
   try {
-    const { projectId, files, sourceFiles, token, chatId, framework } = (await request.json()) as DeployRequestBody & {
-      token: string;
-    };
+    const { projectId, projectInternalId, files, sourceFiles, token, chatId, framework } =
+      (await request.json()) as DeployRequestBody & {
+        token: string;
+      };
 
     if (!token) {
       return json({ error: 'Not connected to Vercel' }, { status: 401 });
@@ -466,6 +473,46 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (retryCount >= maxRetries) {
       return json({ error: 'Deployment timed out' }, { status: 500 });
+    }
+
+    // Update project status to 'published' if projectInternalId is provided
+    if (projectInternalId) {
+      try {
+        const session = await getSession(request);
+
+        if (session?.user) {
+          await updateProject(projectInternalId, session.user.id, { status: 'published' });
+          logger.info('Project status updated to published', { projectId: projectInternalId });
+        }
+      } catch (statusError) {
+        logger.error('Failed to update project status', {
+          projectId: projectInternalId,
+          error: statusError instanceof Error ? statusError.message : 'Unknown error',
+        });
+
+        // Continue with deployment response even if status update fails
+      }
+    } else if (chatId) {
+      // Legacy support: try to find project by chatId (url_id) and update status
+      try {
+        const session = await getSession(request);
+
+        if (session?.user) {
+          const project = await getProjectByUrlId(chatId, session.user.id);
+
+          if (project) {
+            await updateProject(project.id, session.user.id, { status: 'published' });
+            logger.info('Project status updated to published (legacy)', { urlId: chatId, projectId: project.id });
+          }
+        }
+      } catch (statusError) {
+        logger.error('Failed to update project status (legacy)', {
+          urlId: chatId,
+          error: statusError instanceof Error ? statusError.message : 'Unknown error',
+        });
+
+        // Continue with deployment response even if status update fails
+      }
     }
 
     return json({

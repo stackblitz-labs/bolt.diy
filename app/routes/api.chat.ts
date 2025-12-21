@@ -18,7 +18,7 @@ import { requireSessionOrError } from '~/lib/auth/guards.server';
 import type { RestaurantThemeId } from '~/types/restaurant-theme';
 import { createInfoCollectionTools, retrievePendingGenerationResult } from '~/lib/tools/infoCollectionTools';
 import { INFO_COLLECTION_SYSTEM_PROMPT } from '~/lib/prompts/infoCollectionPrompt';
-import { infoCollectionService } from '~/lib/services/infoCollectionService';
+import { infoCollectionService } from '~/lib/services/infoCollectionService.server';
 import { PROVIDER_LIST } from '~/utils/constants';
 
 export async function action(args: ActionFunctionArgs) {

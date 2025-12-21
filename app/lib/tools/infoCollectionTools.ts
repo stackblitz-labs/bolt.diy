@@ -5,7 +5,7 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
-import { infoCollectionService } from '~/lib/services/infoCollectionService';
+import { infoCollectionService } from '~/lib/services/infoCollectionService.server';
 import { generateWebsite } from '~/lib/services/websiteGenerationService';
 import { validateWebsiteUrl, validateGoogleMapsUrl } from '~/utils/urlValidation';
 import { createScopedLogger } from '~/utils/logger';
