@@ -68,11 +68,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     logger.info('Fetching messages', { projectId, userId, limit, offset, order });
 
-    const result = await getMessagesByProjectId(projectId, {
-      limit,
-      offset,
-      order,
-    }, userId);
+    const result = await getMessagesByProjectId(
+      projectId,
+      {
+        limit,
+        offset,
+        order,
+      },
+      userId,
+    );
 
     logger.info('Messages retrieved', {
       projectId,

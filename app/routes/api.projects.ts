@@ -46,7 +46,7 @@ function parseErrorCode(error: unknown): { code: string; message: string } {
   if (error instanceof SupabaseRlsError) {
     return {
       code: PROJECT_ERROR_CODES.RLS_CONTEXT_FAILED,
-      message: 'Authentication failed. Please sign in again.'
+      message: 'Authentication failed. Please sign in again.',
     };
   }
 
@@ -54,16 +54,17 @@ function parseErrorCode(error: unknown): { code: string; message: string } {
 
   // Check if message contains error code
   const codeMatch = errorMessage.match(/^([^:]+):\s*(.+)$/);
+
   if (codeMatch) {
     return {
       code: codeMatch[1],
-      message: codeMatch[2]
+      message: codeMatch[2],
     };
   }
 
   return {
     code: PROJECT_ERROR_CODES.SAVE_FAILED,
-    message: errorMessage || 'An unexpected error occurred'
+    message: errorMessage || 'An unexpected error occurred',
   };
 }
 
@@ -110,7 +111,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       );
     }
 
-    const result = await getProjectsByUserId(session.user.id, { status, limit, offset });
+    const result = await getProjectsByUserId(session.user.id, { status: status || undefined, limit, offset });
 
     logger.info('Projects listed', { userId: session.user.id, count: result.projects.length, total: result.total });
 
@@ -128,13 +129,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
       route: 'api.projects.loader',
       code,
       message,
-      error
+      error,
     });
 
-    return json(
-      { error: { code, message } },
-      { status }
-    );
+    return json({ error: { code, message } }, { status });
   }
 }
 
@@ -211,12 +209,9 @@ export async function action({ request }: ActionFunctionArgs) {
       route: 'api.projects.action',
       code,
       message,
-      error
+      error,
     });
 
-    return json(
-      { error: { code, message } },
-      { status }
-    );
+    return json({ error: { code, message } }, { status });
   }
 }

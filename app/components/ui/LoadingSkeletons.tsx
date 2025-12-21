@@ -228,7 +228,12 @@ export function LoadingOverlay({
 export function ButtonSkeleton({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   // Filter out button-specific props that aren't valid on div elements
   const { disabled, type, value, ...divProps } = props;
-  return <Skeleton className={classNames('h-10 px-4 py-2 inline-flex items-center', className)} {...(divProps as React.HTMLAttributes<HTMLDivElement>)} />;
+  return (
+    <Skeleton
+      className={classNames('h-10 px-4 py-2 inline-flex items-center', className)}
+      {...(divProps as React.HTMLAttributes<HTMLDivElement>)}
+    />
+  );
 }
 
 /**
@@ -237,24 +242,24 @@ export function ButtonSkeleton({ className, ...props }: React.ButtonHTMLAttribut
 export function InputSkeleton({ className, ...props }: React.HTMLAttributes<HTMLInputElement>) {
   // Filter out input-specific props that aren't valid on div elements
   const {
-    type,
-    value,
-    placeholder,
-    disabled,
-    readOnly,
-    required,
-    maxLength,
-    minLength,
-    pattern,
-    min,
-    max,
-    step,
+    type: _type,
+    value: _value,
+    placeholder: _placeholder,
+    disabled: _disabled,
+    readOnly: _readOnly,
+    required: _required,
+    maxLength: _maxLength,
+    minLength: _minLength,
+    pattern: _pattern,
+    min: _min,
+    max: _max,
+    step: _step,
     ...divProps
-  } = props;
+  } = props as any;
   return (
     <Skeleton
       className={classNames('h-10 px-3 py-2 border border-bolt-elements-borderColor rounded-md', className)}
-      {...(divProps as React.HTMLAttributes<HTMLDivElement>)}
+      {...divProps}
     />
   );
 }

@@ -118,6 +118,7 @@ export const PROJECT_ERROR_CODES = {
   INVALID_INPUT: 'PROJECT_INVALID_INPUT',
   SNAPSHOT_TOO_LARGE: 'SNAPSHOT_TOO_LARGE',
   SAVE_FAILED: 'SAVE_FAILED',
+
   // RLS and authentication-related error codes
   RLS_CONTEXT_FAILED: 'RLS_CONTEXT_FAILED',
   DATABASE_UNAUTHORIZED: 'DATABASE_UNAUTHORIZED',
@@ -134,4 +135,3 @@ export interface PaginationParams {
 export interface SaveMessagesInput {
   messages: Omit<ProjectMessage, 'id' | 'created_at'>[];
 }
-

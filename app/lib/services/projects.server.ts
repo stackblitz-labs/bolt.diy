@@ -48,6 +48,7 @@ function handleSupabaseError(error: unknown, context: string, userId?: string): 
   // Handle other Supabase errors
   if (error && typeof error === 'object' && 'code' in error) {
     const supabaseError = error as any;
+
     switch (supabaseError.code) {
       case 'PGRST301':
       case '42501':
@@ -88,7 +89,9 @@ export async function createProject(userId: string, input: CreateProjectInput): 
     const { count: existingCount } = await supabase.from('projects').select('*', { count: 'exact', head: true });
 
     if (existingCount && existingCount >= 10) {
-      throw new Error(`${PROJECT_ERROR_CODES.LIMIT_REACHED}: Project limit reached. Maximum 10 projects allowed per user.`);
+      throw new Error(
+        `${PROJECT_ERROR_CODES.LIMIT_REACHED}: Project limit reached. Maximum 10 projects allowed per user.`,
+      );
     }
 
     // Generate unique URL-friendly identifier
@@ -117,6 +120,9 @@ export async function createProject(userId: string, input: CreateProjectInput): 
   } catch (error) {
     handleSupabaseError(error, 'createProject', userId);
   }
+
+  // This line is unreachable but satisfies the linter
+  throw new Error('Unreachable');
 }
 
 /**
@@ -179,6 +185,9 @@ export async function getProjectByUrlId(urlId: string, userId: string): Promise<
   } catch (error) {
     handleSupabaseError(error, 'getProjectByUrlId', userId);
   }
+
+  // This line is unreachable but satisfies the linter
+  throw new Error('Unreachable');
 }
 
 /**
@@ -212,10 +221,7 @@ export async function getProjectsByUserId(
   }
 
   // Get total count with matching filter logic
-  let countQuery = supabase
-    .from('projects')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
+  let countQuery = supabase.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', userId);
 
   if (options.status) {
     countQuery = countQuery.eq('status', options.status);
@@ -236,7 +242,7 @@ export async function getProjectsByUserId(
   }
 
   // Batch query: Get all message counts at once
-  const projectIds = (projects || []).map(p => p.id);
+  const projectIds = (projects || []).map((p) => p.id);
   const { data: messageCounts } = await supabase
     .from('project_messages')
     .select('project_id', { count: 'exact' })
@@ -252,14 +258,15 @@ export async function getProjectsByUserId(
     (messageCounts || []).reduce((acc: [string, number][], msg) => {
       const count = acc.find(([id]) => id === msg.project_id)?.[1] || 0;
       acc.push([msg.project_id, count + 1]);
+
       return acc;
-    }, [])
+    }, []),
   );
 
-  const snapshotMap = new Set((snapshots || []).map(s => s.project_id));
+  const snapshotMap = new Set((snapshots || []).map((s) => s.project_id));
 
   // Combine data without additional queries
-  const projectsWithSummary: ProjectSummary[] = (projects || []).map(project => ({
+  const projectsWithSummary: ProjectSummary[] = (projects || []).map((project) => ({
     id: project.id,
     name: project.name,
     description: project.description,
@@ -359,6 +366,9 @@ export async function updateProject(projectId: string, userId: string, updates: 
   } catch (error) {
     handleSupabaseError(error, 'updateProject', userId);
   }
+
+  // This line is unreachable but satisfies the linter
+  throw new Error('Unreachable');
 }
 
 /**
@@ -507,10 +517,7 @@ export async function getSnapshotByProjectId(projectId: string, userId?: string)
   const supabase = await createUserSupabaseClient(userId);
 
   // If userId provided, verify project ownership through JOIN
-  let query = supabase
-    .from('project_snapshots')
-    .select('*')
-    .eq('project_id', projectId);
+  let query = supabase.from('project_snapshots').select('*').eq('project_id', projectId);
 
   if (userId) {
     // Add ownership check by joining with projects table
@@ -539,7 +546,11 @@ export async function getSnapshotByProjectId(projectId: string, userId?: string)
 /**
  * Save file snapshot for a project
  */
-export async function saveSnapshot(projectId: string, input: SaveSnapshotRequest, userId?: string): Promise<SaveSnapshotResponse> {
+export async function saveSnapshot(
+  projectId: string,
+  input: SaveSnapshotRequest,
+  userId?: string,
+): Promise<SaveSnapshotResponse> {
   logger.info('Saving snapshot', { projectId, userId, filesCount: Object.keys(input.files).length });
 
   if (!userId) {

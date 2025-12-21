@@ -4,9 +4,9 @@
  */
 
 export class SupabaseRlsError extends Error {
-  public readonly code: string;
-  public readonly userId?: string;
-  public readonly originalError?: unknown;
+  readonly code: string;
+  readonly userId?: string;
+  readonly originalError?: unknown;
 
   constructor(code: string, message: string, userId?: string, originalError?: unknown) {
     super(message);
@@ -24,50 +24,47 @@ export class SupabaseRlsError extends Error {
   /**
    * Creates an error when RLS context setting fails
    */
-  public static contextSetFailed(userId: string, originalError?: unknown): SupabaseRlsError {
+  static contextSetFailed(userId: string, originalError?: unknown): SupabaseRlsError {
     return new SupabaseRlsError(
       'RLS_CONTEXT_SET_FAILED',
       `Failed to set RLS user context for user: ${userId || 'anonymous'}`,
       userId,
-      originalError
+      originalError,
     );
   }
 
   /**
    * Creates an error when RLS context is not initialized
    */
-  public static contextNotSet(): SupabaseRlsError {
+  static contextNotSet(): SupabaseRlsError {
     return new SupabaseRlsError(
       'RLS_CONTEXT_NOT_SET',
-      'RLS user context is not initialized. Cannot proceed with database operations.'
+      'RLS user context is not initialized. Cannot proceed with database operations.',
     );
   }
 
   /**
    * Creates an error when an invalid user ID is provided
    */
-  public static invalidUserId(): SupabaseRlsError {
-    return new SupabaseRlsError(
-      'INVALID_USER_ID',
-      'Invalid user ID provided for RLS context'
-    );
+  static invalidUserId(): SupabaseRlsError {
+    return new SupabaseRlsError('INVALID_USER_ID', 'Invalid user ID provided for RLS context');
   }
 
   /**
    * Creates an error when RLS context verification fails
    */
-  public static contextVerificationFailed(userId: string, expected: string, actual: string): SupabaseRlsError {
+  static contextVerificationFailed(userId: string, expected: string, actual: string): SupabaseRlsError {
     return new SupabaseRlsError(
       'RLS_CONTEXT_VERIFICATION_FAILED',
       `RLS context verification failed. Expected: ${expected}, Actual: ${actual}`,
-      userId
+      userId,
     );
   }
 
   /**
    * Converts the error to a JSON-serializable format
    */
-  public toJSON(): Record<string, unknown> {
+  toJSON(): Record<string, unknown> {
     return {
       name: this.name,
       code: this.code,

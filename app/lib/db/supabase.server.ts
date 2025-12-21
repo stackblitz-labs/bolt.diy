@@ -59,7 +59,7 @@ export async function createUserSupabaseClient(userId: string) {
         userId,
         error: error.message,
         code: error.code,
-        details: error.details
+        details: error.details,
       });
       throw SupabaseRlsError.contextSetFailed(userId, error);
     }
@@ -68,7 +68,7 @@ export async function createUserSupabaseClient(userId: string) {
 
     // Verify the context was set correctly
     const { data: verifyData, error: verifyError } = await client.rpc('current_setting', {
-      setting_name: 'app.current_user_id'
+      setting_name: 'app.current_user_id',
     });
 
     if (verifyError || verifyData !== userId) {
@@ -76,7 +76,7 @@ export async function createUserSupabaseClient(userId: string) {
         userId,
         expected: userId,
         actual: verifyData,
-        error: verifyError?.message
+        error: verifyError?.message,
       });
       throw SupabaseRlsError.contextVerificationFailed(userId, userId, verifyData || 'null');
     }
