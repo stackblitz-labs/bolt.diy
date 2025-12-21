@@ -533,8 +533,8 @@ export async function generateDeploymentPackage(projectId: string): Promise<Buff
 
   try {
     // Dynamic import of JSZip to avoid bundling issues
-    const JSZipClass = (await import('jszip')).default;
-    const zip = new JSZipClass();
+    const jsZip = (await import('jszip')).default;
+    const zip = new jsZip();
 
     // Add files to ZIP
     const files = snapshot.files;

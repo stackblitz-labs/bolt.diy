@@ -126,7 +126,7 @@ function ProjectsDashboard() {
                 'inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-ring transition-colors',
                 total >= 10
                   ? 'border-bolt-elements-borderColor text-bolt-elements-textTertiary bg-bolt-elements-background-depth-2 cursor-not-allowed'
-                  : 'border-transparent text-white bg-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-button-primary-backgroundHover'
+                  : 'border-transparent text-white bg-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-button-primary-backgroundHover',
               )}
               title={total >= 10 ? 'Maximum project limit reached (10 projects)' : 'Create a new project'}
             >
@@ -167,26 +167,23 @@ function ProjectsDashboard() {
               <div
                 className={classNames(
                   'h-2 rounded-full transition-all duration-300',
-                  total >= 10
-                    ? 'bg-red-500'
-                    : total >= 8
-                    ? 'bg-yellow-500'
-                    : 'bg-bolt-elements-item-backgroundAccent'
+                  total >= 10 ? 'bg-red-500' : total >= 8 ? 'bg-yellow-500' : 'bg-bolt-elements-item-backgroundAccent',
                 )}
                 style={{ width: `${Math.min((total / 10) * 100, 100)}%` }}
               />
             </div>
             {total >= 8 && (
-              <div className={classNames(
-                'text-xs p-2 rounded-md',
-                total >= 10
-                  ? 'bg-red-50 text-red-700 border border-red-200'
-                  : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-              )}>
+              <div
+                className={classNames(
+                  'text-xs p-2 rounded-md',
+                  total >= 10
+                    ? 'bg-red-50 text-red-700 border border-red-200'
+                    : 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+                )}
+              >
                 {total >= 10
-                  ? 'You\'ve reached the maximum number of projects. Delete some projects to create new ones.'
-                  : `You have ${10 - total} project${10 - total === 1 ? '' : 's'} remaining. Consider upgrading your plan for more projects.`
-                }
+                  ? "You've reached the maximum number of projects. Delete some projects to create new ones."
+                  : `You have ${10 - total} project${10 - total === 1 ? '' : 's'} remaining. Consider upgrading your plan for more projects.`}
               </div>
             )}
           </div>

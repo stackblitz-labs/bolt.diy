@@ -13,19 +13,9 @@ import { classNames } from '~/utils/classNames';
 /**
  * Base skeleton component with pulse animation
  */
-export function Skeleton({
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+export function Skeleton({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={classNames(
-        'animate-pulse rounded-md bg-bolt-elements-borderColor',
-        className
-      )}
-      {...props}
-    >
+    <div className={classNames('animate-pulse rounded-md bg-bolt-elements-borderColor', className)} {...props}>
       {children}
     </div>
   );
@@ -131,12 +121,7 @@ export function FileTreeSkeleton({ fileCount = 5 }: { fileCount?: number }) {
       {Array.from({ length: fileCount }).map((_, index) => (
         <div key={index} className="flex items-center space-x-2 py-1">
           <Skeleton className="h-4 w-4" />
-          <Skeleton
-            className={classNames(
-              'h-4',
-              index % 3 === 0 ? 'w-32' : index % 3 === 1 ? 'w-24' : 'w-40'
-            )}
-          />
+          <Skeleton className={classNames('h-4', index % 3 === 0 ? 'w-32' : index % 3 === 1 ? 'w-24' : 'w-40')} />
         </div>
       ))}
     </div>
@@ -172,9 +157,7 @@ export function WorkbenchSkeleton() {
                 key={index}
                 className={classNames(
                   'h-4',
-                  index % 4 === 0 ? 'w-full' :
-                  index % 4 === 1 ? 'w-11/12' :
-                  index % 4 === 2 ? 'w-10/12' : 'w-9/12'
+                  index % 4 === 0 ? 'w-full' : index % 4 === 1 ? 'w-11/12' : index % 4 === 2 ? 'w-10/12' : 'w-9/12',
                 )}
               />
             ))}
@@ -203,7 +186,7 @@ export function WorkbenchSkeleton() {
 export function LoadingOverlay({
   isLoading,
   children,
-  message = 'Loading...'
+  message = 'Loading...',
 }: {
   isLoading: boolean;
   children: React.ReactNode;
@@ -234,9 +217,7 @@ export function LoadingOverlay({
       </div>
 
       {/* Content underneath (dimmed) */}
-      <div className="opacity-50">
-        {children}
-      </div>
+      <div className="opacity-50">{children}</div>
     </div>
   );
 }
@@ -245,30 +226,35 @@ export function LoadingOverlay({
  * Button skeleton component
  */
 export function ButtonSkeleton({ className, ...props }: React.HTMLAttributes<HTMLButtonElement>) {
-  return (
-    <Skeleton
-      className={classNames(
-        'h-10 px-4 py-2 inline-flex items-center',
-        className
-      )}
-      {...props}
-      as="button"
-    />
-  );
+  // Filter out button-specific props that aren't valid on div elements
+  const { disabled, type, value, ...divProps } = props as any;
+  return <Skeleton className={classNames('h-10 px-4 py-2 inline-flex items-center', className)} {...divProps} />;
 }
 
 /**
  * Input skeleton component
  */
 export function InputSkeleton({ className, ...props }: React.HTMLAttributes<HTMLInputElement>) {
+  // Filter out input-specific props that aren't valid on div elements
+  const {
+    type,
+    value,
+    placeholder,
+    disabled,
+    readOnly,
+    required,
+    maxLength,
+    minLength,
+    pattern,
+    min,
+    max,
+    step,
+    ...divProps
+  } = props as any;
   return (
     <Skeleton
-      className={classNames(
-        'h-10 px-3 py-2 border border-bolt-elements-borderColor rounded-md',
-        className
-      )}
-      {...props}
-      as="input"
+      className={classNames('h-10 px-3 py-2 border border-bolt-elements-borderColor rounded-md', className)}
+      {...divProps}
     />
   );
 }
@@ -281,7 +267,7 @@ export function CardSkeleton({ className, ...props }: React.HTMLAttributes<HTMLD
     <div
       className={classNames(
         'bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-lg p-6',
-        className
+        className,
       )}
       {...props}
     >
@@ -299,7 +285,7 @@ export function CardSkeleton({ className, ...props }: React.HTMLAttributes<HTMLD
 export function ListSkeleton({
   itemCount = 3,
   itemHeight = 'h-12',
-  showAvatars = false
+  showAvatars = false,
 }: {
   itemCount?: number;
   itemHeight?: string;

@@ -2,6 +2,7 @@ import type { Message } from 'ai';
 import { createScopedLogger } from '~/utils/logger';
 import type { ChatHistoryItem } from './useChatHistory';
 import type { Snapshot } from './types'; // Import Snapshot type
+import type { FileMap } from '~/lib/stores/files';
 import { withRetry } from '~/lib/utils/retry';
 
 export interface IChatMetadata {
@@ -512,7 +513,7 @@ export async function getServerSnapshot(projectId: string): Promise<Snapshot | n
         onRetry: (error, attempt) => {
           logger.warn(`Snapshot fetch retry ${attempt} for ${projectId}:`, error.message);
         },
-      }
+      },
     );
 
     // If we got null from 404, return null
@@ -520,13 +521,21 @@ export async function getServerSnapshot(projectId: string): Promise<Snapshot | n
       return null;
     }
 
+    // Type guard for snapshot data
+    const serverSnapshot = snapshotData as {
+      files?: Record<string, unknown>;
+      summary?: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+
     // Transform server response to match Snapshot interface
     const snapshot: Snapshot = {
       chatIndex: '', // Server snapshots don't have chatIndex, set to empty
-      files: snapshotData.files || {},
-      summary: snapshotData.summary,
-      created_at: snapshotData.created_at,
-      updated_at: snapshotData.updated_at,
+      files: (serverSnapshot.files as FileMap) || {},
+      summary: serverSnapshot.summary,
+      created_at: serverSnapshot.created_at,
+      updated_at: serverSnapshot.updated_at,
     };
 
     logger.info('Snapshot fetched from server', {
@@ -611,7 +620,13 @@ export async function setServerSnapshot(projectId: string, snapshot: Snapshot): 
           }
 
           // Don't retry on client errors except rate limiting
-          if (message.includes('400') || message.includes('401') || message.includes('403') || message.includes('404') || message.includes('422')) {
+          if (
+            message.includes('400') ||
+            message.includes('401') ||
+            message.includes('403') ||
+            message.includes('404') ||
+            message.includes('422')
+          ) {
             return false;
           }
 
@@ -621,12 +636,12 @@ export async function setServerSnapshot(projectId: string, snapshot: Snapshot): 
         onRetry: (error, attempt) => {
           logger.warn(`Snapshot save retry ${attempt} for ${projectId}:`, error.message);
         },
-      }
+      },
     );
 
     logger.info('Snapshot saved to server', {
       projectId,
-      updatedAt: result.updated_at,
+      updatedAt: (result as any)?.updated_at,
       filesCount: Object.keys(snapshot.files).length,
     });
   } catch (error) {

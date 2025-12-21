@@ -98,7 +98,9 @@ export class ProjectErrorBoundary extends React.Component<ProjectErrorBoundaryPr
   render() {
     if (this.state.hasError && this.state.error) {
       const FallbackComponent = this.props.fallback || DefaultProjectErrorFallback;
-      return <FallbackComponent error={this.state.error} resetError={this.resetError} errorType={this.state.errorType} />;
+      return (
+        <FallbackComponent error={this.state.error} resetError={this.resetError} errorType={this.state.errorType} />
+      );
     }
 
     return this.props.children;
@@ -111,7 +113,7 @@ export class ProjectErrorBoundary extends React.Component<ProjectErrorBoundaryPr
 function DefaultProjectErrorFallback({
   error,
   resetError,
-  errorType
+  errorType,
 }: {
   error: Error;
   resetError: () => void;
@@ -146,7 +148,8 @@ function DefaultProjectErrorFallback({
       case '403':
         return {
           title: 'Project Limit Reached',
-          description: 'You\'ve reached the maximum number of projects (10). Upgrade your plan or delete existing projects to create new ones.',
+          description:
+            "You've reached the maximum number of projects (10). Upgrade your plan or delete existing projects to create new ones.",
           icon: '📊',
           primaryAction: { label: 'Manage Projects', handler: handleGoHome },
           secondaryAction: { label: 'Retry', handler: handleRetry },
@@ -203,9 +206,7 @@ function DefaultProjectErrorFallback({
             {error.stack && (
               <details className="mt-2">
                 <summary className="cursor-pointer text-xs text-yellow-700">Stack trace</summary>
-                <pre className="mt-1 text-xs text-yellow-600 whitespace-pre-wrap">
-                  {error.stack}
-                </pre>
+                <pre className="mt-1 text-xs text-yellow-600 whitespace-pre-wrap">{error.stack}</pre>
               </details>
             )}
           </div>

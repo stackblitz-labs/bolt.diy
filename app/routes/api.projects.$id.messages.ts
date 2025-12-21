@@ -15,7 +15,7 @@ import { z } from 'zod';
 const logger = createScopedLogger('ProjectMessagesAPI');
 
 // Request validation schemas
-const SaveMessagesSchema = z.object({
+const saveMessagesSchema = z.object({
   messages: z.array(
     z.object({
       message_id: z.string(),
@@ -138,7 +138,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // Parse and validate request body
     const body = await request.json();
-    const validationResult = SaveMessagesSchema.safeParse(body);
+    const validationResult = saveMessagesSchema.safeParse(body);
 
     if (!validationResult.success) {
       return json(

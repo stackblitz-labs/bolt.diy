@@ -242,9 +242,7 @@ function ProjectActions({
             </button>
 
             {/* Divider */}
-            {onStatusChange && (
-              <div className="h-px bg-bolt-elements-borderColor my-1" />
-            )}
+            {onStatusChange && <div className="h-px bg-bolt-elements-borderColor my-1" />}
 
             {/* Status change options */}
             {onStatusChange && project.status !== 'published' && (
@@ -499,7 +497,6 @@ function ProjectCard({
   );
 }
 
-
 /**
  * Status filter component
  */
@@ -519,7 +516,7 @@ function StatusFilter({
     { value: 'archived', label: 'Archived', icon: 'i-ph-archive' },
   ] as const;
 
-  const selectedOption = statusOptions.find(option => option.value === currentStatus) || statusOptions[0];
+  const selectedOption = statusOptions.find((option) => option.value === currentStatus) || statusOptions[0];
 
   return (
     <div className="relative">
@@ -528,18 +525,13 @@ function StatusFilter({
         className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-md hover:bg-bolt-elements-item-backgroundActive transition-colors"
       >
         <div className={classNames('w-4 h-4', selectedOption.icon)} />
-        <span className="text-sm font-medium text-bolt-elements-textPrimary">
-          {selectedOption.label}
-        </span>
+        <span className="text-sm font-medium text-bolt-elements-textPrimary">{selectedOption.label}</span>
         <div className={classNames('w-4 h-4 transition-transform', isOpen ? 'rotate-180' : '', 'i-ph-caret-down')} />
       </button>
 
       {isOpen && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-md shadow-lg z-20">
             {statusOptions.map((option) => (
               <button
@@ -552,7 +544,7 @@ function StatusFilter({
                   'w-full px-3 py-2 text-left text-sm flex items-center space-x-2 hover:bg-bolt-elements-item-backgroundActive transition-colors',
                   currentStatus === option.value
                     ? 'bg-bolt-elements-item-backgroundActive text-bolt-elements-textPrimary'
-                    : 'text-bolt-elements-textPrimary'
+                    : 'text-bolt-elements-textPrimary',
                 )}
               >
                 <div className={classNames('w-4 h-4', option.icon)} />
@@ -630,29 +622,26 @@ export function ProjectList({
 
     return (
       <div className="text-center py-12">
-        <div className={classNames(
-          isFilterActive
-            ? 'i-ph-funnel text-bolt-elements-textTertiary text-5xl mx-auto mb-4'
-            : 'i-ph-folder-open text-bolt-elements-textTertiary text-5xl mx-auto mb-4'
-        )} />
+        <div
+          className={classNames(
+            isFilterActive
+              ? 'i-ph-funnel text-bolt-elements-textTertiary text-5xl mx-auto mb-4'
+              : 'i-ph-folder-open text-bolt-elements-textTertiary text-5xl mx-auto mb-4',
+          )}
+        />
         <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">
           {isFilterActive ? `No ${currentStatusFilter} projects` : 'No projects yet'}
         </h3>
         <p className="text-bolt-elements-textSecondary mb-4">
           {isFilterActive
             ? `No projects with status "${currentStatusFilter}" found. Try changing the filter or create a new project.`
-            : 'Create your first project to get started with your website.'
-          }
+            : 'Create your first project to get started with your website.'}
         </p>
         {!isFilterActive && (
           <p className="text-sm text-bolt-elements-textTertiary">You can create up to 10 projects.</p>
         )}
         {isFilterActive && onStatusFilterChange && (
-          <Button
-            onClick={() => onStatusFilterChange('all')}
-            variant="outline"
-            className="mt-4"
-          >
+          <Button onClick={() => onStatusFilterChange('all')} variant="outline" className="mt-4">
             Show All Projects
           </Button>
         )}
@@ -666,10 +655,7 @@ export function ProjectList({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {/* Status filter */}
-          <StatusFilter
-            currentStatus={currentStatusFilter}
-            onStatusChange={onStatusFilterChange}
-          />
+          <StatusFilter currentStatus={currentStatusFilter} onStatusChange={onStatusFilterChange} />
 
           {/* Project count info */}
           {(total > 0 || !isFirstPage || hasNextPage) && (

@@ -47,6 +47,7 @@ export function useProjects(initialOptions: UseProjectsOptions = {}): UseProject
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentOptions, setCurrentOptions] = useState<UseProjectsOptions>(initialOptions);
+
   /**
    * Fetch projects from API
    */
@@ -198,9 +199,11 @@ export function useProjects(initialOptions: UseProjectsOptions = {}): UseProject
     setError(null);
 
     try {
-      // Use retry fetch for resilience (throws on non-OK responses)
-      // Note: DELETE returns 204, which retryFetch handles correctly
-      const response = await retryProjectFetch(`/api/projects/${projectId}`, {
+      /*
+       * Use retry fetch for resilience (throws on non-OK responses)
+       * Note: DELETE returns 204, which retryFetch handles correctly
+       */
+      await retryProjectFetch(`/api/projects/${projectId}`, {
         method: 'DELETE',
       });
 
@@ -246,7 +249,7 @@ export function useProjects(initialOptions: UseProjectsOptions = {}): UseProject
   // Initial fetch
   useEffect(() => {
     fetchProjects(initialOptions);
-  }, []); // eslint-disable-line @typescript-eslint/no-unnecessary-condition
+  }, []);
 
   return {
     // Data

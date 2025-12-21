@@ -248,9 +248,10 @@ interface DeployRequestBody {
 // Existing action function for POST requests
 export async function action({ request }: ActionFunctionArgs) {
   try {
-    const { projectId, projectInternalId, files, sourceFiles, token, chatId, framework } = (await request.json()) as DeployRequestBody & {
-      token: string;
-    };
+    const { projectId, projectInternalId, files, sourceFiles, token, chatId, framework } =
+      (await request.json()) as DeployRequestBody & {
+        token: string;
+      };
 
     if (!token) {
       return json({ error: 'Not connected to Vercel' }, { status: 401 });
@@ -478,6 +479,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (projectInternalId) {
       try {
         const session = await getSession(request);
+
         if (session?.user) {
           await updateProject(projectInternalId, session.user.id, { status: 'published' });
           logger.info('Project status updated to published', { projectId: projectInternalId });
@@ -485,16 +487,19 @@ export async function action({ request }: ActionFunctionArgs) {
       } catch (statusError) {
         logger.error('Failed to update project status', {
           projectId: projectInternalId,
-          error: statusError instanceof Error ? statusError.message : 'Unknown error'
+          error: statusError instanceof Error ? statusError.message : 'Unknown error',
         });
+
         // Continue with deployment response even if status update fails
       }
     } else if (chatId) {
       // Legacy support: try to find project by chatId (url_id) and update status
       try {
         const session = await getSession(request);
+
         if (session?.user) {
           const project = await getProjectByUrlId(chatId, session.user.id);
+
           if (project) {
             await updateProject(project.id, session.user.id, { status: 'published' });
             logger.info('Project status updated to published (legacy)', { urlId: chatId, projectId: project.id });
@@ -503,8 +508,9 @@ export async function action({ request }: ActionFunctionArgs) {
       } catch (statusError) {
         logger.error('Failed to update project status (legacy)', {
           urlId: chatId,
-          error: statusError instanceof Error ? statusError.message : 'Unknown error'
+          error: statusError instanceof Error ? statusError.message : 'Unknown error',
         });
+
         // Continue with deployment response even if status update fails
       }
     }

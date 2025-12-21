@@ -110,10 +110,7 @@ function sleep(ms: number): Promise<void> {
  * @param options - Retry configuration options
  * @returns Promise that resolves with the function result or rejects with the last error
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const mergedOptions = { ...DEFAULT_RETRY_OPTIONS, ...options };
 
   let lastError: Error;
@@ -153,20 +150,17 @@ export async function withRetry<T>(
  */
 export function createRetryFetch(options: RetryOptions = {}) {
   return async function retryFetch(url: string, fetchOptions?: RequestInit): Promise<Response> {
-    return withRetry(
-      async () => {
-        const response = await fetch(url, fetchOptions);
+    return withRetry(async () => {
+      const response = await fetch(url, fetchOptions);
 
-        // Throw on HTTP errors to trigger retry logic
-        if (!response.ok) {
-          const errorText = await response.text().catch(() => 'Unknown error');
-          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-        }
+      // Throw on HTTP errors to trigger retry logic
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
 
-        return response;
-      },
-      options
-    );
+      return response;
+    }, options);
   };
 }
 

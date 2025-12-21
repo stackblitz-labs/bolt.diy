@@ -11,12 +11,11 @@ import { auth } from '~/lib/auth/auth.server';
 import { getSnapshotByProjectId, saveSnapshot } from '~/lib/services/projects.server';
 import { createScopedLogger } from '~/utils/logger';
 import { z } from 'zod';
-import type { SaveSnapshotRequest } from '~/types/project';
 
 const logger = createScopedLogger('ProjectSnapshotAPI');
 
 // Request validation schemas
-const SaveSnapshotSchema = z.object({
+const saveSnapshotSchema = z.object({
   files: z.record(z.any()), // FileMap structure
   summary: z.string().optional(),
 });
@@ -124,7 +123,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // Parse and validate request body
     const body = await request.json();
-    const validationResult = SaveSnapshotSchema.safeParse(body);
+    const validationResult = saveSnapshotSchema.safeParse(body);
 
     if (!validationResult.success) {
       return json(

@@ -6,7 +6,6 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { getEnvConfig } from '~/lib/config/env.server';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('SupabaseClient');

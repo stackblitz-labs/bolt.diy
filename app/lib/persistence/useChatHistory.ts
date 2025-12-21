@@ -58,7 +58,6 @@ export function useChatHistory(projectId?: string) {
     const loadMessages = async () => {
       let storedMessages: ChatHistoryItem | null = null;
       let snapshot: Snapshot | null = null;
-      let isServerStorage = false;
 
       // Try server storage first if projectId is provided and user is authenticated
       if (projectId && isUserAuthenticated()) {
@@ -69,7 +68,6 @@ export function useChatHistory(projectId?: string) {
           ]);
           storedMessages = serverMessages;
           snapshot = serverSnapshot;
-          isServerStorage = true;
           console.log('Loaded messages and snapshot from server', { projectId });
         } catch (error) {
           console.warn('Failed to load from server, falling back to client storage', {
@@ -90,7 +88,6 @@ export function useChatHistory(projectId?: string) {
           ]);
           storedMessages = clientMessages;
           snapshot = clientSnapshot || null;
-          isServerStorage = false;
         } catch (error) {
           console.error('Failed to load from client storage', { error: String(error) });
         }

@@ -111,6 +111,7 @@ export function getDb() {
           if (notice.message.includes('row level security')) {
             return;
           }
+
           console.debug('PostgreSQL notice:', notice);
         },
       });
