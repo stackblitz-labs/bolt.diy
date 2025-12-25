@@ -62,24 +62,6 @@ export const Preview = memo(() => {
     setIsElementPickerEnabled(false);
   };
 
-  // Send postMessage to control element picker in iframe(s)
-  const toggleElementPicker = (enabled: boolean) => {
-    const message = {
-      type: 'ELEMENT_PICKER_CONTROL',
-      enabled,
-    };
-
-    if (isDeviceModeOn && multiDevicePreviewRef.current) {
-      // Send to all iframes in device mode
-      multiDevicePreviewRef.current.postMessageToAll(message);
-    } else if (iframeRef.current?.contentWindow) {
-      // Send to single iframe in responsive mode
-      iframeRef.current.contentWindow.postMessage(message, '*');
-    } else {
-      console.warn('[Preview] Cannot send message - iframe not ready');
-    }
-  };
-
   // Listen for messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {

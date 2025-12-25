@@ -1,18 +1,15 @@
 import React from 'react';
-import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
-import { ChatMode } from '~/lib/replay/SendChatMessage';
+import { REFERENCE_APP_PLACEHOLDER_PHOTO } from '~/lib/replay/ReferenceApps';
 import { classNames } from '~/utils/classNames';
-import { assert } from '~/utils/nut';
 
 interface ReferenceAppCardProps {
   appName: string;
   description: string;
   bulletPoints?: string[];
   photo?: string;
-  appPath?: string;
   photoOnLeft?: boolean;
-  sendMessage: (params: ChatMessageParams) => void;
   className?: string;
+  onClick?: () => void;
 }
 
 export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
@@ -20,27 +17,18 @@ export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
   description,
   bulletPoints = [],
   photo,
-  appPath,
-  sendMessage,
   className,
+  onClick,
 }) => {
-  const handleCustomize = async () => {
-    assert(appPath, 'App path is required');
-
-    sendMessage({
-      messageInput: `Build me a new app based on '${appName}'`,
-      chatMode: ChatMode.UserMessage,
-      referenceAppPath: appPath,
-    });
-  };
-
-  const displayPhoto = photo || 'https://placehold.co/800x450/1e293b/94a3b8?text=Coming+Soon';
-  const isClickable = !!appPath;
+  const displayPhoto = photo || REFERENCE_APP_PLACEHOLDER_PHOTO;
 
   return (
     <div
+      onClick={onClick}
+      data-card-clickable={onClick ? 'true' : undefined}
       className={classNames(
         'group relative overflow-hidden rounded-lg flex flex-col justify-end items-start gap-4 p-4 border block w-full h-[369px] aspect-video border-[var(--base-border,#E5E5E5)] transition-all duration-300',
+        onClick ? 'cursor-pointer hover:border-rose-500 hover:shadow-lg' : '',
         className,
       )}
     >
@@ -119,19 +107,6 @@ export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
           </div>
         )}
       </div>
-
-      {/* Hover state: Buttons - centered */}
-      {isClickable && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
-          {/* Customize it button */}
-          <button
-            onClick={handleCustomize}
-            className="px-6 py-3 bg-rose-500 text-white font-semibold rounded-full hover:bg-rose-600 transition-colors duration-200 whitespace-nowrap"
-          >
-            Customize it
-          </button>
-        </div>
-      )}
     </div>
   );
 };
