@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { LandingPageIndexEntry, LandingPageContent } from '~/lib/replay/ReferenceApps';
 import { REFERENCE_APP_PLACEHOLDER_PHOTO, fetchReferenceAppLandingPage } from '~/lib/replay/ReferenceApps';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import { assert } from '~/utils/nut';
+import { database } from '~/lib/persistence/apps';
+import { getRepositoryURL } from '~/lib/replay/DevelopmentServer';
+import AppView, { type ResizeSide } from '~/components/workbench/Preview/components/AppView';
 
 interface ReferenceAppLandingPageProps {
   app: LandingPageIndexEntry;
@@ -15,6 +18,8 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
   const [landingPageContent, setLandingPageContent] = useState<LandingPageContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [appPreviewURL, setAppPreviewURL] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const loadLandingPageContent = async () => {
@@ -38,6 +43,12 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
     };
 
     loadLandingPageContent();
+
+    const createLandingPageReferenceApp = async () => {
+      const repositoryId = await database.createLandingPageReferenceApp(app.referenceAppPath);
+      setAppPreviewURL(getRepositoryURL(repositoryId));
+    };
+    createLandingPageReferenceApp();
   }, [app.landingPageURL]);
 
   const handleCustomize = async () => {
@@ -244,6 +255,26 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
               {displayData.stage}
             </span>
           </div>
+
+          {/* App Preview */}
+          {appPreviewURL && (
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-bolt-elements-textHeading mb-4">Live Preview</h3>
+              <div
+                className="border border-bolt-elements-borderColor rounded-lg overflow-hidden"
+                style={{ height: '600px' }}
+              >
+                <AppView
+                  isDeviceModeOn={false}
+                  widthPercent={100}
+                  previewURL={appPreviewURL}
+                  iframeRef={iframeRef}
+                  iframeUrl={appPreviewURL}
+                  startResizing={(_e: React.MouseEvent, _side: ResizeSide) => {}}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-4 pt-6 border-t border-bolt-elements-borderColor">

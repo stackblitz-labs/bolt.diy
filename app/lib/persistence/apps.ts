@@ -108,6 +108,12 @@ async function createApp(referenceAppPath: string | undefined): Promise<string> 
   return appId;
 }
 
+async function createLandingPageReferenceApp(referenceAppPath: string): Promise<string> {
+  const { appId, repositoryId } = await callNutAPI('create-landing-page-app', { referenceAppPath });
+  console.log('createLandingPageReferenceApp', appId, repositoryId);
+  return repositoryId;
+}
+
 async function getAppTitle(appId: string): Promise<string> {
   const { entry } = await callNutAPI('get-app-entry', { appId });
   return entry.title;
@@ -160,6 +166,7 @@ export const database = {
   getAllAppEntries,
   deleteApp,
   createApp,
+  createLandingPageReferenceApp,
   getAppTitle,
   updateAppTitle,
   getAppDeploySettings,
