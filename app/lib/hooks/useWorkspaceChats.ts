@@ -1,0 +1,166 @@
+import { useEffect, useState } from 'react';
+import { useWorkspace } from './useWorkspace';
+import { useAuth } from './useAuth';
+import { getSupabaseAuthClient } from '~/lib/api/supabase-auth-client';
+import type { ChatHistoryItem } from '~/lib/persistence/useChatHistory';
+import type { Message } from 'ai';
+
+export interface WorkspaceChat extends ChatHistoryItem {
+  workspace_id: string;
+  created_by: string;
+}
+
+export function useWorkspaceChats() {
+  const { currentWorkspace } = useWorkspace();
+  const { isAuthenticated: authAuthenticated } = useAuth();
+  const [chats, setChats] = useState<WorkspaceChat[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadChats = async () => {
+    if (!currentWorkspace || !authAuthenticated) {
+      setChats([]);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const supabase = getSupabaseAuthClient();
+      const { data, error: fetchError } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('workspace_id', currentWorkspace.id)
+        .order('updated_at', { ascending: false });
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      // Transform Supabase chats to ChatHistoryItem format
+      const transformedChats: WorkspaceChat[] = (data || []).map((chat) => ({
+        id: chat.id,
+        urlId: chat.id,
+        description: chat.title || chat.description || chat.id,
+        messages: (chat.messages as Message[]) || [],
+        timestamp: chat.created_at,
+        metadata: chat.metadata || {},
+        workspace_id: chat.workspace_id,
+        created_by: chat.created_by,
+      }));
+
+      setChats(transformedChats);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load chats';
+      setError(errorMessage);
+      console.error('Failed to load workspace chats:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentWorkspace && authAuthenticated) {
+      loadChats();
+    } else {
+      setChats([]);
+    }
+  }, [currentWorkspace?.id, authAuthenticated]);
+
+  const saveChat = async (chat: ChatHistoryItem) => {
+    if (!currentWorkspace || !authAuthenticated) {
+      throw new Error('Workspace and authentication required');
+    }
+
+    try {
+      const supabase = getSupabaseAuthClient();
+      const { data: user } = await supabase.auth.getUser();
+
+      if (!user.user) {
+        throw new Error('Not authenticated');
+      }
+
+      // Check if chat exists
+      const { data: existingChat } = await supabase.from('chats').select('id').eq('id', chat.id).single();
+
+      if (existingChat) {
+        // Update existing chat
+        const { error: updateError } = await supabase
+          .from('chats')
+          .update({
+            workspace_id: currentWorkspace.id,
+            title: chat.description || chat.id,
+            description: chat.description,
+            messages: chat.messages || [],
+            metadata: chat.metadata || {},
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', chat.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+      } else {
+        // Create new chat
+        const { error: insertError } = await supabase.from('chats').insert({
+          id: chat.id,
+          workspace_id: currentWorkspace.id,
+          created_by: user.user.id,
+          title: chat.description || chat.id,
+          description: chat.description,
+          messages: chat.messages || [],
+          metadata: chat.metadata || {},
+          created_at: chat.timestamp || new Date().toISOString(),
+          updated_at: chat.timestamp || new Date().toISOString(),
+        });
+
+        if (insertError) {
+          throw insertError;
+        }
+      }
+
+      // Reload chats
+      await loadChats();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save chat';
+      console.error('Failed to save chat:', err);
+      throw new Error(errorMessage);
+    }
+  };
+
+  const deleteChat = async (chatId: string) => {
+    if (!currentWorkspace || !authAuthenticated) {
+      throw new Error('Workspace and authentication required');
+    }
+
+    try {
+      const supabase = getSupabaseAuthClient();
+      const { error: deleteError } = await supabase
+        .from('chats')
+        .delete()
+        .eq('id', chatId)
+        .eq('workspace_id', currentWorkspace.id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      // Reload chats
+      await loadChats();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete chat';
+      console.error('Failed to delete chat:', err);
+      throw new Error(errorMessage);
+    }
+  };
+
+  return {
+    chats,
+    isLoading,
+    error,
+    loadChats,
+    saveChat,
+    deleteChat,
+  };
+}

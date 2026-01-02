@@ -4,6 +4,8 @@ import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
+import { UserMenu } from '~/components/auth/UserMenu';
+import { WorkspaceSelector } from '~/components/workspace/WorkspaceSelector';
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -30,12 +32,24 @@ export function Header() {
           </span>
           <ClientOnly>
             {() => (
-              <div className="">
+              <div className="flex items-center gap-2">
                 <HeaderActionButtons chatStarted={chat.started} />
+                <WorkspaceSelector />
+                <UserMenu />
               </div>
             )}
           </ClientOnly>
         </>
+      )}
+      {!chat.started && (
+        <ClientOnly>
+          {() => (
+            <div className="flex items-center gap-2 ml-auto">
+              <WorkspaceSelector />
+              <UserMenu />
+            </div>
+          )}
+        </ClientOnly>
       )}
     </header>
   );

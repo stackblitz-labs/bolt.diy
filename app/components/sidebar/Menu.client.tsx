@@ -14,6 +14,7 @@ import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 const menuVariants = {
   closed: {
@@ -71,8 +72,13 @@ export const Menu = () => {
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const profile = useStore(profileStore);
+  const { user, isAuthenticated } = useAuth();
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+
+  // Use auth user data if available, otherwise fall back to profile
+  const displayName = user?.display_name || user?.username || profile?.username || 'Guest User';
+  const email = user?.email || '';
 
   const { filteredItems: filteredList, handleSearchChange } = useSearchFilter({
     items: list,
@@ -341,18 +347,27 @@ export const Menu = () => {
           <div className="text-gray-900 dark:text-white font-medium"></div>
           <div className="flex items-center gap-3">
             <HelpButton onClick={() => window.open('https://stackblitz-labs.github.io/bolt.diy/', '_blank')} />
-            <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
-              {profile?.username || 'Guest User'}
-            </span>
+            <div className="flex flex-col items-end min-w-0 flex-1">
+              <span className="font-medium text-sm text-gray-900 dark:text-white truncate w-full text-right">
+                {displayName}
+              </span>
+              {email && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 truncate w-full text-right">{email}</span>
+              )}
+            </div>
             <div className="flex items-center justify-center w-[32px] h-[32px] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0">
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}
-                  alt={profile?.username || 'User'}
+                  alt={displayName}
                   className="w-full h-full object-cover"
                   loading="eager"
                   decoding="sync"
                 />
+              ) : isAuthenticated && user ? (
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  {displayName[0]?.toUpperCase() || 'U'}
+                </span>
               ) : (
                 <div className="i-ph:user-fill text-lg" />
               )}

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
 import { profileStore } from '~/lib/stores/profile';
+import { useAuth } from '~/lib/hooks/useAuth';
 import type { TabType, Profile } from './types';
 
 interface AvatarDropdownProps {
@@ -11,6 +12,11 @@ interface AvatarDropdownProps {
 
 export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
   const profile = useStore(profileStore) as Profile;
+  const { user, isAuthenticated } = useAuth();
+
+  // Use auth user data if available, otherwise fall back to profile
+  const displayName = user?.display_name || user?.username || profile?.username || 'Guest User';
+  const email = user?.email || '';
 
   return (
     <DropdownMenu.Root>
@@ -59,22 +65,29 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}
-                  alt={profile?.username || 'Profile'}
+                  alt={displayName}
                   className={classNames('w-full h-full', 'object-cover', 'transform-gpu', 'image-rendering-crisp')}
                   loading="eager"
                   decoding="sync"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 font-medium text-lg">
-                  <div className="i-ph:user w-6 h-6" />
+                  {isAuthenticated && user ? (
+                    <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                      {displayName[0]?.toUpperCase() || 'U'}
+                    </span>
+                  ) : (
+                    <div className="i-ph:user w-6 h-6" />
+                  )}
                 </div>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                {profile?.username || 'Guest User'}
-              </div>
-              {profile?.bio && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{profile.bio}</div>}
+              <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{displayName}</div>
+              {email && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{email}</div>}
+              {!email && profile?.bio && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{profile.bio}</div>
+              )}
             </div>
           </div>
 
