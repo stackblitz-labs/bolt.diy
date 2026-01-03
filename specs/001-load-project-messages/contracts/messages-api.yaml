@@ -1,0 +1,252 @@
+# Messages API Contract
+# Note: This documents the EXISTING API - no changes required for this feature
+
+openapi: 3.0.3
+info:
+  title: Project Messages API
+  version: 1.0.0
+  description: |
+    API for managing chat messages within a project.
+    This endpoint already supports pagination - the feature implementation
+    will use it to fetch all messages.
+
+servers:
+  - url: /api
+    description: Remix API routes
+
+paths:
+  /projects/{projectId}/messages:
+    get:
+      operationId: getProjectMessages
+      summary: Get paginated chat messages for a project
+      description: |
+        Retrieves chat messages belonging to a project with pagination support.
+        The `total` field in the response enables the client to determine
+        how many pages need to be fetched to load all messages.
+      tags:
+        - Messages
+      security:
+        - BetterAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Project ID (UUID)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Number of messages to return per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of messages to skip
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: Sort order by sequence_num
+      responses:
+        '200':
+          description: Paginated messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagesListResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limited
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retrying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      operationId: saveProjectMessages
+      summary: Save or update chat messages
+      description: |
+        Bulk upsert messages for a project. Uses (project_id, sequence_num)
+        as the unique constraint for conflict resolution.
+      tags:
+        - Messages
+      security:
+        - BetterAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveMessagesRequest'
+      responses:
+        '200':
+          description: Messages saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveMessagesResponse'
+        '400':
+          description: Invalid request body
+        '401':
+          description: Authentication required
+        '404':
+          description: Project not found
+
+components:
+  securitySchemes:
+    BetterAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+
+  schemas:
+    ProjectMessage:
+      type: object
+      required:
+        - id
+        - project_id
+        - message_id
+        - sequence_num
+        - role
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Database-generated UUID
+        project_id:
+          type: string
+          format: uuid
+        message_id:
+          type: string
+          description: Client-generated UUID (unique identifier for deduplication)
+        sequence_num:
+          type: integer
+          description: Display order (0-based)
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+          description: Message content (may be JSON-stringified)
+        annotations:
+          type: array
+          items:
+            type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    MessagesListResponse:
+      type: object
+      required:
+        - messages
+        - total
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectMessage'
+        total:
+          type: integer
+          description: Total number of messages for this project (for pagination)
+
+    SaveMessagesRequest:
+      type: object
+      required:
+        - messages
+      properties:
+        messages:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - message_id
+              - sequence_num
+              - role
+              - content
+            properties:
+              message_id:
+                type: string
+              sequence_num:
+                type: integer
+              role:
+                type: string
+                enum: [user, assistant, system]
+              content:
+                type: string
+              annotations:
+                type: array
+                items:
+                  type: object
+              created_at:
+                type: string
+                format: date-time
+
+    SaveMessagesResponse:
+      type: object
+      required:
+        - saved_count
+      properties:
+        saved_count:
+          type: integer
+          description: Number of messages saved/updated
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+# Usage Notes for Implementation:
+# 
+# 1. To fetch ALL messages, loop until offset >= total:
+#    - First request: GET /api/projects/{id}/messages?limit=100&offset=0
+#    - Response includes { total: 500, messages: [...100 items...] }
+#    - Continue: offset=100, offset=200, offset=300, offset=400
+#    - Stop when offset >= total
+#
+# 2. Handle 429 rate limiting with exponential backoff
+#
+# 3. Display partial results while fetching remaining pages
+

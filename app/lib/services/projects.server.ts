@@ -451,6 +451,20 @@ export async function getMessagesByProjectId(
 
 /**
  * Save chat messages for a project
+ *
+ * ⚠️ IMPORTANT: This function uses bulk upsert with `onConflict: 'project_id,sequence_num'`.
+ * This can cause silent overwrites if two concurrent sessions generate the same sequence_num
+ * for different message_id values.
+ *
+ * For safe concurrent writes, prefer the append-only endpoint (POST /api/projects/:id/messages/append)
+ * which is implemented in Phase 3 of the project-chat-sync feature.
+ *
+ * This function preserves message_id uniqueness when messages are deduplicated by the caller,
+ * but does NOT enforce it during upsert. The database has a unique constraint on
+ * (project_id, message_id) which will cause an error if violated, but the sequence_num
+ * conflict resolution happens first and can overwrite different messages.
+ *
+ * @see specs/001-project-chat-sync/research.md for details on concurrent write issues
  */
 export async function saveMessages(
   projectId: string,
@@ -498,6 +512,191 @@ export async function saveMessages(
   };
 }
 
+/**
+ * Append new chat messages for a project using server-side sequence allocation
+ *
+ * This is the recommended method for writing messages as it:
+ * - Prevents concurrent session conflicts by allocating sequence_num on the server
+ * - Deduplicates by message_id to prevent duplicate inserts
+ * - Never overwrites existing messages (append-only)
+ *
+ * Uses the database function `append_project_messages` which employs advisory locks
+ * to serialize sequence allocation per project.
+ *
+ * @param projectId - UUID of the project
+ * @param messages - Array of messages WITHOUT sequence_num (server will allocate)
+ * @param userId - User ID for authentication/authorization
+ * @returns Object with inserted_count (number of messages actually inserted)
+ *
+ * @see specs/001-project-chat-sync/data-model.md for detailed behavior
+ */
+export async function appendMessages(
+  projectId: string,
+  messages: Array<{
+    message_id: string;
+    role: 'user' | 'assistant' | 'system';
+    content: any;
+    annotations?: any[];
+    created_at?: string;
+  }>,
+  userId?: string,
+): Promise<{ inserted_count: number }> {
+  logger.info('Appending messages', { projectId, count: messages.length, userId });
+
+  if (!userId) {
+    throw SupabaseRlsError.invalidUserId();
+  }
+
+  const supabase = await createUserSupabaseClient(userId);
+
+  // Verify project ownership via RLS (will fail if user doesn't own project)
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .single();
+
+  if (!project) {
+    throw new Error(`${PROJECT_ERROR_CODES.NOT_FOUND}: Project not found or access denied`);
+  }
+
+  // Call the database function to append messages with server-side sequence allocation
+  const { data, error } = await supabase.rpc('append_project_messages', {
+    p_project_id: projectId,
+    p_messages: messages,
+  });
+
+  if (error) {
+    logger.error('Failed to append messages', { error, projectId, count: messages.length });
+    throw new Error(`Failed to append messages: ${error.message}`);
+  }
+
+  const insertedCount = data?.inserted_count || 0;
+  logger.info('Messages appended successfully', { projectId, insertedCount, requestCount: messages.length });
+
+  return {
+    inserted_count: insertedCount,
+  };
+}
+
+/**
+ * Get recent chat messages for a project (newest first)
+ *
+ * This is optimized for the "reopen project" use case where we want to show
+ * the most recent conversation first, then allow loading older messages on demand.
+ *
+ * @param projectId - UUID of the project
+ * @param options - Pagination options (limit defaults to MESSAGE_PAGE_SIZE from constants)
+ * @param userId - User ID for authentication/authorization
+ * @returns Recent messages in descending sequence order + total count
+ *
+ * @see specs/001-project-chat-sync/plan.md for load strategy details
+ */
+export async function getRecentMessages(
+  projectId: string,
+  options: {
+    limit?: number;
+    offset?: number;
+  } = {},
+  userId?: string,
+): Promise<MessagesListResponse> {
+  logger.info('Getting recent messages', { projectId, ...options, userId });
+
+  if (!userId) {
+    throw SupabaseRlsError.invalidUserId();
+  }
+
+  const supabase = await createUserSupabaseClient(userId);
+
+  // Get total count first
+  const { count: total } = await supabase
+    .from('project_messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('project_id', projectId);
+
+  // Build query with pagination - order by sequence_num DESC (newest first)
+  const limit = options.limit || 50; // Use MESSAGE_PAGE_SIZE constant in actual usage
+  const offset = options.offset || 0;
+
+  const { data: messages, error } = await supabase
+    .from('project_messages')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('sequence_num', { ascending: false }) // DESC for recent-first
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    logger.error('Failed to get recent messages', { error, projectId, options });
+    throw new Error(`Failed to get recent messages: ${error.message}`);
+  }
+
+  logger.info('Recent messages retrieved', {
+    projectId,
+    count: messages?.length || 0,
+    total: total || 0,
+  });
+
+  return {
+    messages: messages || [],
+    total: total || 0,
+  };
+}
+
+/**
+ * Delete all chat messages for a project
+ *
+ * Permanently removes all messages associated with a project.
+ * This action is irreversible and should be used with caution.
+ *
+ * @param projectId - UUID of the project
+ * @param userId - User ID for authentication/authorization
+ * @returns Object with deleted_count (number of messages deleted)
+ *
+ * @see specs/001-project-chat-sync/tasks.md (T056)
+ */
+export async function deleteMessages(
+  projectId: string,
+  userId?: string,
+): Promise<{ deleted_count: number }> {
+  logger.info('Deleting messages', { projectId, userId });
+
+  if (!userId) {
+    throw SupabaseRlsError.invalidUserId();
+  }
+
+  const supabase = await createUserSupabaseClient(userId);
+
+  // Verify project ownership via RLS (will fail if user doesn't own project)
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .single();
+
+  if (!project) {
+    throw new Error(`${PROJECT_ERROR_CODES.NOT_FOUND}: Project not found or access denied`);
+  }
+
+  // Delete all messages for the project
+  const { data: deletedMessages, error } = await supabase
+    .from('project_messages')
+    .delete()
+    .eq('project_id', projectId)
+    .select('id');
+
+  if (error) {
+    logger.error('Failed to delete messages', { error, projectId });
+    throw new Error(`Failed to delete messages: ${error.message}`);
+  }
+
+  const deletedCount = deletedMessages?.length || 0;
+  logger.info('Messages deleted successfully', { projectId, deletedCount });
+
+  return {
+    deleted_count: deletedCount,
+  };
+}
+
 /*
  * ============================================================================
  * File Snapshot Operations
@@ -516,19 +715,13 @@ export async function getSnapshotByProjectId(projectId: string, userId?: string)
 
   const supabase = await createUserSupabaseClient(userId);
 
-  // If userId provided, verify project ownership through JOIN
-  let query = supabase.from('project_snapshots').select('*').eq('project_id', projectId);
-
-  if (userId) {
-    // Add ownership check by joining with projects table
-    query = supabase
-      .from('project_snapshots')
-      .select('project_snapshots.*, projects!inner(user_id)')
-      .eq('project_id', projectId)
-      .eq('projects.user_id', userId);
-  }
-
-  const { data: snapshot, error } = await query.single();
+  // RLS policies enforce ownership - no manual JOIN needed
+  // The createUserSupabaseClient() sets app.current_user_id which RLS uses
+  const { data: snapshot, error } = await supabase
+    .from('project_snapshots')
+    .select('*')
+    .eq('project_id', projectId)
+    .single();
 
   if (error) {
     if (error.code === 'PGRST116') {

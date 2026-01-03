@@ -46,24 +46,7 @@ docs/instructions/Roadmap.md
 .cursorrules
 .qodo
 
-.agents/commands/speckit.analyze.md
-.agents/commands/speckit.checklist.md
-.agents/commands/speckit.clarify.md
-.agents/commands/speckit.constitution.md
-.agents/commands/speckit.implement.md
-.agents/commands/speckit.plan.md
-.agents/commands/speckit.specify.md
-.agents/commands/speckit.tasks.md
-.agents/commands/speckit.taskstoissues.md
-.cursor/commands/speckit.analyze.md
-.cursor/commands/speckit.checklist.md
-.cursor/commands/speckit.clarify.md
-.cursor/commands/speckit.constitution.md
-.cursor/commands/speckit.implement.md
-.cursor/commands/speckit.plan.md
-.cursor/commands/speckit.specify.md
-.cursor/commands/speckit.tasks.md
-.cursor/commands/speckit.taskstoissues.md
+
 .cursor/rules/specify-rules.mdc
 
 supabase/.temp/cli-latest
@@ -74,3 +57,13 @@ supabase/.temp/project-ref
 supabase/.temp/rest-version
 supabase/.temp/storage-migration
 supabase/.temp/storage-version
+
+.cursor/commands/speckit.analyze.md
+.cursor/commands/speckit.checklist.md
+.cursor/commands/speckit.clarify.md
+.cursor/commands/speckit.constitution.md
+.cursor/commands/speckit.implement.md
+.cursor/commands/speckit.plan.md
+.cursor/commands/speckit.specify.md
+.cursor/commands/speckit.tasks.md
+.cursor/commands/speckit.taskstoissues.md

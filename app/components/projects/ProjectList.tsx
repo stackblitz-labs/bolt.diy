@@ -416,18 +416,22 @@ function ProjectActions({
 /**
  * Project card component
  */
+type ProjectCardVariant = 'featured' | 'carousel';
+
 function ProjectCard({
   project,
   onClick,
   onRename,
   onDelete,
   onStatusChange,
+  variant = 'carousel',
 }: {
   project: ProjectSummary;
   onClick: () => void;
   onRename?: (projectId: string, newName: string) => Promise<void>;
   onDelete?: (projectId: string) => Promise<void>;
   onStatusChange?: (projectId: string, status: ProjectStatus) => Promise<void>;
+  variant?: ProjectCardVariant;
 }) {
   const formatDate = (dateString: string) => {
     try {
@@ -457,40 +461,97 @@ function ProjectCard({
     }
   };
 
-  return (
-    <div
-      className="bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-lg p-4 hover:border-bolt-elements-item-backgroundAccent transition-colors cursor-pointer"
-      onClick={onClick}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-medium text-bolt-elements-textPrimary truncate">{project.name}</h3>
-          {project.description && (
-            <p className="text-sm text-bolt-elements-textSecondary mt-1 line-clamp-2">{project.description}</p>
-          )}
-        </div>
-        <div className="flex items-center space-x-2">
-          <StatusBadge status={project.status} />
-          <ProjectActions project={project} onRename={onRename} onDelete={onDelete} onStatusChange={onStatusChange} />
-        </div>
-      </div>
+  const cardClassName =
+    variant === 'featured'
+      ? 'group relative bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-3xl p-6 shadow-soft hover:shadow-xl transition-all duration-300 cursor-pointer'
+      : 'group flex-none w-[340px] bg-white dark:bg-gray-950 rounded-2xl shadow-soft hover:shadow-lg transition-all duration-300 border border-bolt-elements-borderColor hover:border-bolt-elements-item-backgroundAccent overflow-hidden cursor-pointer';
 
-      <div className="flex items-center justify-between text-xs text-bolt-elements-textTertiary">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center">
-            <div className="i-ph-chat-text w-4 h-4 mr-1" />
-            {project.message_count} message{project.message_count !== 1 ? 's' : ''}
+  return (
+    <div className={cardClassName} onClick={onClick}>
+      <div className={variant === 'featured' ? 'flex items-start justify-between gap-4' : 'p-6'}>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3
+                className={classNames(
+                  'font-bold text-bolt-elements-textPrimary truncate',
+                  variant === 'featured' ? 'text-4xl lg:text-5xl leading-tight' : 'text-xl',
+                )}
+              >
+                {project.name}
+              </h3>
+              {project.description && (
+                <p
+                  className={classNames(
+                    'mt-2 text-bolt-elements-textSecondary',
+                    variant === 'featured' ? 'text-lg' : 'text-sm',
+                  )}
+                >
+                  {project.description}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <StatusBadge status={project.status} />
+              <ProjectActions
+                project={project}
+                onRename={onRename}
+                onDelete={onDelete}
+                onStatusChange={onStatusChange}
+              />
+            </div>
           </div>
-          {project.has_snapshot && (
+
+          <div
+            className={classNames(
+              'mt-6 flex items-center justify-between text-xs text-bolt-elements-textTertiary',
+              variant === 'featured' ? 'pt-6 border-t border-bolt-elements-borderColor' : '',
+            )}
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex items-center">
+                <div className="i-ph-chat-text w-4 h-4 mr-1" />
+                {project.message_count} message{project.message_count !== 1 ? 's' : ''}
+              </div>
+              {project.has_snapshot && (
+                <div className="flex items-center">
+                  <div className="i-ph-code w-4 h-4 mr-1" />
+                  Has code
+                </div>
+              )}
+            </div>
             <div className="flex items-center">
-              <div className="i-ph-code w-4 h-4 mr-1" />
-              Has code
+              <div className="i-ph-clock w-4 h-4 mr-1" />
+              {formatDate(project.updated_at)}
+            </div>
+          </div>
+
+          {variant === 'featured' && (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick();
+                }}
+                className="px-6 py-3 rounded-xl"
+              >
+                <div className="i-ph-eye w-4 h-4 mr-2" />
+                Open Project
+              </Button>
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick();
+                }}
+                variant="outline"
+                className="px-6 py-3 rounded-xl"
+              >
+                <div className="i-ph-pencil-simple w-4 h-4 mr-2" />
+                Edit Content
+              </Button>
             </div>
           )}
-        </div>
-        <div className="flex items-center">
-          <div className="i-ph-clock w-4 h-4 mr-1" />
-          {formatDate(project.updated_at)}
         </div>
       </div>
     </div>
@@ -581,10 +642,11 @@ export function ProjectList({
   const navigate = useNavigate();
 
   const handleProjectClick = (project: ProjectSummary) => {
+    console.log('project', project);
     if (project.url_id) {
       navigate(`/chat/${project.url_id}`);
     } else {
-      navigate(`/chat/${project.id}`);
+      navigate(`/chat/${project.id}`);  
     }
   };
 
@@ -649,52 +711,106 @@ export function ProjectList({
     );
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Header with status filter and pagination */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          {/* Status filter */}
-          <StatusFilter currentStatus={currentStatusFilter} onStatusChange={onStatusFilterChange} />
+  const featuredProject = (() => {
+    if (projects.length === 0) {
+      return null;
+    }
 
-          {/* Project count info */}
-          {(total > 0 || !isFirstPage || hasNextPage) && (
-            <div className="text-sm text-bolt-elements-textTertiary">
-              {total > 0 && (
-                <span>
-                  Showing {offset + 1} to {Math.min(offset + projects.length, total)} of {total} projects
-                </span>
-              )}
-            </div>
-          )}
+    return projects.slice().sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+  })();
+
+  const carouselProjects = (() => {
+    if (!featuredProject) {
+      return projects;
+    }
+
+    return projects.filter((p) => p.id !== featuredProject.id);
+  })();
+
+  const showingText = (() => {
+    if (total <= 0) {
+      return null;
+    }
+
+    return `Showing ${offset + 1} to ${Math.min(offset + projects.length, total)} of ${total} projects`;
+  })();
+
+  return (
+    <div className="space-y-10">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="i-ph-dashboard w-5 h-5 text-bolt-elements-textTertiary" />
+          <h2 className="text-xl font-bold text-bolt-elements-textPrimary">All Projects</h2>
         </div>
 
-        {/* Pagination controls */}
-        <div className="flex items-center space-x-2">
-          <Button onClick={onPrevPage} disabled={isFirstPage || isLoading} variant="outline" size="sm">
-            <div className="i-ph-caret-left w-4 h-4" />
-          </Button>
-          <Button onClick={onNextPage} disabled={!hasNextPage || isLoading} variant="outline" size="sm">
-            <div className="i-ph-caret-right w-4 h-4" />
-          </Button>
+        <div className="flex items-center gap-3">
+          <StatusFilter currentStatus={currentStatusFilter} onStatusChange={onStatusFilterChange} />
+
+          <div className="flex items-center gap-2">
+            <Button onClick={onPrevPage} disabled={isFirstPage || isLoading} variant="outline" size="sm">
+              <div className="i-ph-caret-left w-4 h-4" />
+            </Button>
+            <Button onClick={onNextPage} disabled={!hasNextPage || isLoading} variant="outline" size="sm">
+              <div className="i-ph-caret-right w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Projects list */}
-      <div className="space-y-4">
-        {projects.map((project) => (
+      {showingText && <div className="text-sm text-bolt-elements-textTertiary">{showingText}</div>}
+
+      {featuredProject && (
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="i-ph-star w-5 h-5 text-bolt-elements-item-backgroundAccent" />
+            <h3 className="text-xl font-bold text-bolt-elements-textPrimary">Featured Project</h3>
+          </div>
           <ProjectCard
-            key={project.id}
-            project={project}
-            onClick={() => handleProjectClick(project)}
+            project={featuredProject}
+            onClick={() => handleProjectClick(featuredProject)}
             onRename={onRenameProject}
             onDelete={onDeleteProject}
             onStatusChange={onStatusChangeProject}
+            variant="featured"
           />
-        ))}
-      </div>
+        </section>
+      )}
 
-      {/* Loading more indicator */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="i-ph-layout w-5 h-5 text-bolt-elements-textTertiary" />
+            <h3 className="text-xl font-bold text-bolt-elements-textPrimary">All Projects</h3>
+          </div>
+        </div>
+
+        <div
+          className={classNames(
+            'flex overflow-x-auto gap-6 pb-6 -mx-2 px-2 scroll-smooth',
+            'sm:scrollbar-none',
+            '[&::-webkit-scrollbar]:h-2',
+            '[&::-webkit-scrollbar-thumb]:bg-bolt-elements-borderColor',
+            '[&::-webkit-scrollbar-thumb]:hover:bg-bolt-elements-borderColorHover',
+            '[&::-webkit-scrollbar-thumb]:rounded-full',
+            '[&::-webkit-scrollbar-track]:bg-transparent',
+          )}
+        >
+          {carouselProjects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onClick={() => handleProjectClick(project)}
+              onRename={onRenameProject}
+              onDelete={onDeleteProject}
+              onStatusChange={onStatusChangeProject}
+              variant="carousel"
+            />
+          ))}
+
+          <div className="w-2 flex-none" />
+        </div>
+      </section>
+
       {isLoading && projects.length > 0 && (
         <div className="text-center py-4">
           <div className="i-ph-spinner-gap-bold animate-spin text-bolt-elements-textTertiary text-2xl mx-auto" />
@@ -702,7 +818,6 @@ export function ProjectList({
         </div>
       )}
 
-      {/* Retry button on error with existing projects */}
       {error && projects.length > 0 && onRefresh && (
         <div className="text-center py-4">
           <p className="text-sm text-red-500 mb-2">{error}</p>
@@ -712,6 +827,62 @@ export function ProjectList({
           </Button>
         </div>
       )}
+
+      <section className="border-t border-bolt-elements-borderColor pt-10">
+        <h3 className="text-xl font-bold text-bolt-elements-textPrimary mb-6">Resources for You</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <a
+            className="flex items-start gap-4 p-5 rounded-2xl bg-white dark:bg-gray-950 border border-bolt-elements-borderColor hover:border-bolt-elements-item-backgroundAccent/50 hover:shadow-soft transition-all group"
+            href="/docs"
+          >
+            <div className="w-12 h-12 rounded-xl bg-bolt-elements-item-backgroundAccent/10 flex items-center justify-center flex-shrink-0 text-bolt-elements-item-backgroundAccent group-hover:scale-110 transition-transform">
+              <div className="i-ph-graduation-cap w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-bold text-bolt-elements-textPrimary text-base mb-1 group-hover:text-bolt-elements-item-backgroundAccent transition-colors">
+                Tutorials
+              </h4>
+              <p className="text-sm text-bolt-elements-textSecondary leading-snug">
+                Learn how to customize your site efficiently.
+              </p>
+            </div>
+          </a>
+
+          <a
+            className="flex items-start gap-4 p-5 rounded-2xl bg-white dark:bg-gray-950 border border-bolt-elements-borderColor hover:border-bolt-elements-item-backgroundAccent/50 hover:shadow-soft transition-all group"
+            href="/docs/seo"
+          >
+            <div className="w-12 h-12 rounded-xl bg-purple-100/70 dark:bg-purple-950/40 flex items-center justify-center flex-shrink-0 text-purple-600 dark:text-purple-300 group-hover:scale-110 transition-transform">
+              <div className="i-ph-trend-up w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-bold text-bolt-elements-textPrimary text-base mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                SEO Guide
+              </h4>
+              <p className="text-sm text-bolt-elements-textSecondary leading-snug">
+                Tips to rank higher on Google Search.
+              </p>
+            </div>
+          </a>
+
+          <a
+            className="flex items-start gap-4 p-5 rounded-2xl bg-white dark:bg-gray-950 border border-bolt-elements-borderColor hover:border-bolt-elements-item-backgroundAccent/50 hover:shadow-soft transition-all group"
+            href="/docs/domains"
+          >
+            <div className="w-12 h-12 rounded-xl bg-yellow-100/70 dark:bg-yellow-950/40 flex items-center justify-center flex-shrink-0 text-yellow-700 dark:text-yellow-300 group-hover:scale-110 transition-transform">
+              <div className="i-ph-globe-hemisphere-west w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-bold text-bolt-elements-textPrimary text-base mb-1 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors">
+                Domain Setup
+              </h4>
+              <p className="text-sm text-bolt-elements-textSecondary leading-snug">
+                Connect your custom domain name easily.
+              </p>
+            </div>
+          </a>
+        </div>
+      </section>
     </div>
   );
 }

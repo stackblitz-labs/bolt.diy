@@ -5,7 +5,7 @@
  * with proper loading states and error handling.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Project, ProjectSummary, CreateProjectInput, UpdateProjectInput, ProjectStatus } from '~/types/project';
 import { retryProjectFetch } from '~/lib/utils/retry';
 
@@ -38,6 +38,10 @@ interface UseProjectsReturn {
   hasPrevPage: boolean;
 }
 
+function areOptionsEqual(a: UseProjectsOptions, b: UseProjectsOptions): boolean {
+  return a.status === b.status && a.limit === b.limit && a.offset === b.offset;
+}
+
 /**
  * Hook for managing projects with API integration
  */
@@ -46,57 +50,66 @@ export function useProjects(initialOptions: UseProjectsOptions = {}): UseProject
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentOptions, setCurrentOptions] = useState<UseProjectsOptions>(initialOptions);
+
+  const [currentOptions, setCurrentOptions] = useState<UseProjectsOptions>(() => initialOptions);
+
+  const currentOptionsRef = useRef<UseProjectsOptions>(currentOptions);
+  useEffect(() => {
+    currentOptionsRef.current = currentOptions;
+  }, [currentOptions]);
+
+  const initialOptionsRef = useRef<UseProjectsOptions>(initialOptions);
 
   /**
    * Fetch projects from API
    */
-  const fetchProjects = useCallback(
-    async (options: UseProjectsOptions = {}) => {
-      const mergedOptions = { ...currentOptions, ...options };
+  const fetchProjects = useCallback(async (options: UseProjectsOptions = {}) => {
+    const mergedOptions = { ...currentOptionsRef.current, ...options };
+
+    if (!areOptionsEqual(currentOptionsRef.current, mergedOptions)) {
+      currentOptionsRef.current = mergedOptions;
       setCurrentOptions(mergedOptions);
+    }
 
-      setIsLoading(true);
-      setError(null);
+    setIsLoading(true);
+    setError(null);
 
-      try {
-        const searchParams = new URLSearchParams();
+    try {
+      const searchParams = new URLSearchParams();
 
-        if (mergedOptions.status) {
-          searchParams.set('status', mergedOptions.status);
-        }
-
-        if (mergedOptions.limit) {
-          searchParams.set('limit', mergedOptions.limit.toString());
-        }
-
-        if (mergedOptions.offset) {
-          searchParams.set('offset', mergedOptions.offset.toString());
-        }
-
-        const url = `/api/projects${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-
-        // Use retry fetch for resilience (throws on non-OK responses)
-        const response = await retryProjectFetch(url, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const data = (await response.json()) as { projects?: ProjectSummary[]; total?: number };
-
-        setProjects(data.projects || []);
-        setTotal(data.total || 0);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        setError(errorMessage);
-        console.error('Failed to fetch projects:', err);
-      } finally {
-        setIsLoading(false);
+      if (mergedOptions.status) {
+        searchParams.set('status', mergedOptions.status);
       }
-    },
-    [currentOptions],
-  );
+
+      if (mergedOptions.limit) {
+        searchParams.set('limit', mergedOptions.limit.toString());
+      }
+
+      if (mergedOptions.offset) {
+        searchParams.set('offset', mergedOptions.offset.toString());
+      }
+
+      const url = `/api/projects${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+
+      // Use retry fetch for resilience (throws on non-OK responses)
+      const response = await retryProjectFetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = (await response.json()) as { projects?: ProjectSummary[]; total?: number };
+
+      setProjects(data.projects || []);
+      setTotal(data.total || 0);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Failed to fetch projects:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   /**
    * Create a new project
@@ -119,7 +132,7 @@ export function useProjects(initialOptions: UseProjectsOptions = {}): UseProject
         const newProject = (await response.json()) as Project;
 
         // Refresh the projects list
-        await fetchProjects(currentOptions);
+        await fetchProjects(currentOptionsRef.current);
 
         return newProject;
       } catch (err) {
@@ -227,29 +240,29 @@ export function useProjects(initialOptions: UseProjectsOptions = {}): UseProject
    * Refresh current projects list
    */
   const refetch = useCallback(async () => {
-    await fetchProjects(currentOptions);
-  }, [fetchProjects, currentOptions]);
+    await fetchProjects(currentOptionsRef.current);
+  }, [fetchProjects]);
 
   /**
    * Pagination helpers
    */
   const nextPage = useCallback(async () => {
-    const newOffset = (currentOptions.offset || 0) + (currentOptions.limit || 10);
-    await fetchProjects({ ...currentOptions, offset: newOffset });
-  }, [fetchProjects, currentOptions]);
+    const { offset = 0, limit = 10 } = currentOptionsRef.current;
+    await fetchProjects({ offset: offset + limit });
+  }, [fetchProjects]);
 
   const prevPage = useCallback(async () => {
-    const newOffset = Math.max(0, (currentOptions.offset || 0) - (currentOptions.limit || 10));
-    await fetchProjects({ ...currentOptions, offset: newOffset });
-  }, [fetchProjects, currentOptions]);
+    const { offset = 0, limit = 10 } = currentOptionsRef.current;
+    await fetchProjects({ offset: Math.max(0, offset - limit) });
+  }, [fetchProjects]);
 
   const hasNextPage = (currentOptions.offset || 0) + (currentOptions.limit || 10) < total;
   const hasPrevPage = (currentOptions.offset || 0) > 0;
 
-  // Initial fetch
+  // Initial fetch (run once; avoid object-literal dependency loops)
   useEffect(() => {
-    fetchProjects(initialOptions);
-  }, [fetchProjects, initialOptions]);
+    void fetchProjects(initialOptionsRef.current);
+  }, [fetchProjects]);
 
   return {
     // Data

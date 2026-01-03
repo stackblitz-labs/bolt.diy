@@ -17,6 +17,7 @@ import styles from './BaseChat.module.scss';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 import GitCloneButton from './GitCloneButton';
+import { ClearChatHistoryButton } from './ClearChatHistoryButton';
 import type { ProviderInfo } from '~/types/model';
 import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
@@ -62,6 +63,11 @@ interface BaseChatProps {
   enhancePrompt?: () => void;
   importChat?: (description: string, messages: Message[]) => Promise<void>;
   exportChat?: () => void;
+  clearChatHistory?: () => Promise<void>;
+  hasOlderMessages?: boolean;
+  loadingOlder?: boolean;
+  loadingOlderError?: string | null;
+  onLoadOlderMessages?: () => void;
   uploadedFiles?: File[];
   setUploadedFiles?: (files: File[]) => void;
   imageDataList?: string[];
@@ -108,6 +114,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       handleStop,
       importChat,
       exportChat,
+      clearChatHistory,
+      hasOlderMessages,
+      loadingOlder,
+      loadingOlderError,
+      onLoadOlderMessages,
       uploadedFiles = [],
       setUploadedFiles,
       imageDataList = [],
@@ -382,6 +393,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         provider={provider}
                         model={model}
                         addToolResult={addToolResult}
+                        hasOlderMessages={hasOlderMessages}
+                        loadingOlder={loadingOlder}
+                        loadingOlderError={loadingOlderError}
+                        onLoadOlderMessages={onLoadOlderMessages}
                       />
                     ) : null;
                   }}
@@ -478,6 +493,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <div className="flex justify-center gap-2">
                   {ImportButtons(importChat)}
                   <GitCloneButton importChat={importChat} />
+                </div>
+              )}
+              {chatStarted && (
+                <div className="flex justify-center gap-2 pb-4">
+                  <ClearChatHistoryButton clearChatHistory={clearChatHistory} />
                 </div>
               )}
               <div className="flex flex-col gap-5">

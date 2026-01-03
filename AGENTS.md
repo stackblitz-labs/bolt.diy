@@ -1,23 +1,23 @@
 # AI Agent Guide
 
-## Build & Test
-- **Build**: `pnpm run build` (Remix + Vite)
-- **Lint**: `pnpm run lint` (ESLint) or `pnpm run lint:fix`
-- **Typecheck**: `pnpm run typecheck`
-- **Test**: `pnpm run test` (Vitest)
-- **Single Test**: `pnpm exec vitest run <path/to/test>`
-- **Dev**: `pnpm run dev` (Remix) or `pnpm run electron:dev`
+## Commands
+- **Build**: `pnpm run build` | **Dev**: `pnpm run dev` | **Typecheck**: `pnpm run typecheck`
+- **Lint**: `pnpm run lint` or `pnpm run lint:fix` (ESLint + Prettier)
+- **Test**: `pnpm run test` | **Single test**: `pnpm exec vitest run <path/to/test.test.ts>`
+- **Electron**: `pnpm electron:dev` | **Deploy**: `pnpm run deploy` (Cloudflare Pages)
 
 ## Architecture
-- **Stack**: Remix (Vite), Cloudflare Pages, UnoCSS, TypeScript.
-- **Core**: `app/` contains Remix source. `~/*` maps to `app/*`.
-- **State**: Uses `nanostores` and `zustand`.
-- **Electron**: `electron/` folder for desktop wrapper.
-- **AI**: Uses Vercel AI SDK (`ai`) and various provider SDKs.
+- **Stack**: Remix 2.15 + Vite, TypeScript strict, Cloudflare Pages (30s edge timeout)
+- **Paths**: `app/` = Remix source, `~/*` alias → `app/*`. Server-only: `.server` suffix
+- **State**: `nanostores` (reactive), `zustand` (complex), IndexedDB (persistence)
+- **AI**: Vercel AI SDK (`ai`), 19+ LLM providers in `app/lib/modules/llm/providers/`
+- **Runtime**: WebContainer API for in-browser Node.js; `app/lib/runtime/action-runner.ts`
+- **Database**: Supabase/PostgreSQL (users/tenants), R2/S3 (workspace archives)
 
 ## Code Style
-- **Conventions**: TypeScript strict mode. Functional components.
-- **Styling**: Use UnoCSS utility classes.
-- **Imports**: Use absolute paths `~/...` for `app/` imports.
-- **Formatting**: Prettier is enforced. Run `pnpm run lint:fix`.
-- **Naming**: CamelCase for variables/functions, PascalCase for components.
+- **Imports**: Always use `~/...` absolute paths for `app/` imports
+- **Types**: Strict TypeScript, Zod schemas for API contracts, no `any` or `@ts-expect-error`
+- **UI**: UnoCSS utilities, shadcn/ui components, Radix primitives, design tokens in `app/styles/`
+- **Naming**: camelCase (vars/functions), PascalCase (components), kebab-case (files)
+- **Errors**: Never silence errors. Use toast notifications via react-toastify
+- **Secrets**: Never commit to repo. Use `.env.local` (gitignored) or Cloudflare env vars

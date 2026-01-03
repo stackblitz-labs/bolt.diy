@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Business Details - AI Site Builder</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cyan: "#21C6FF",
+                            yellow: "#FFC000",
+                        },
+                        neutral: {
+                            900: "#212121", // Dark Grey/Black
+                            700: "#525252", // Mid-Grey
+                            400: "#9E9E9E", // Light Grey
+                            50: "#F9FAFB",
+                        },
+                        cta: {
+                            DEFAULT: "#1A1A2E", // Dark Blue/Black
+                            hover: "#25253E"
+                        }
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        full: "9999px"
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 0 0 1px rgba(0,0,0,0.03), 0 10px 30px -5px rgba(0,0,0,0.05)',
+                        'glow': '0 0 20px rgba(33, 198, 255, 0.15)'
+                    }
+                }
+            }
+        };
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 }
+        .bg-gradient-page {
+            background: linear-gradient(135deg, #F0F8FF 0%, #F3E5F5 100%);
+        }
+    </style>
+</head>
+<body class="bg-gradient-page text-neutral-900 min-h-screen flex flex-col antialiased selection:bg-brand-cyan/20">
+<header class="flex items-center justify-between px-6 lg:px-12 py-5 bg-white/60 backdrop-blur-md border-b border-white/40 sticky top-0 z-50">
+<div class="flex items-center gap-3">
+<div class="bg-brand-cyan/10 p-2 rounded-lg text-brand-cyan ring-1 ring-brand-cyan/20">
+<span class="material-symbols-outlined text-2xl">auto_awesome</span>
+</div>
+<h2 class="text-lg font-bold tracking-tight text-neutral-900">AI Site Builder</h2>
+</div>
+<div class="flex items-center gap-6">
+<button class="text-sm font-bold text-neutral-400 hover:text-neutral-900 transition-colors">
+                Save &amp; Exit
+            </button>
+</div>
+</header>
+<main class="flex-1 w-full max-w-xl mx-auto px-4 py-12 sm:py-20 flex flex-col gap-8">
+<div class="text-center space-y-4">
+<h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-neutral-900">
+                Welcome! <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-blue-600">Let's get started</span>
+</h1>
+<p class="text-lg text-neutral-700 font-light leading-relaxed max-w-md mx-auto">
+                Enter your business details below so we can start building your website.
+            </p>
+</div>
+<div class="bg-white rounded-3xl shadow-card border border-white/60 p-6 sm:p-10 space-y-8 relative overflow-hidden">
+<div class="absolute -top-20 -right-20 w-64 h-64 bg-brand-cyan/5 rounded-full blur-3xl pointer-events-none"></div>
+<div class="space-y-6 relative z-10">
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-wide text-neutral-400 pl-1" for="business-details">
+                        Type your business name and address <span class="text-brand-yellow ml-0.5 text-base align-middle" title="Required">*</span>
+</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-brand-cyan text-[22px] transition-transform group-focus-within:scale-110">search</span>
+</div>
+<textarea class="w-full min-h-[5.5rem] py-4 pl-12 pr-4 rounded-xl border border-neutral-400/30 bg-gray-50/50 text-neutral-900 text-base font-medium focus:ring-4 focus:ring-brand-cyan/15 focus:border-brand-cyan transition-all placeholder:text-neutral-400 hover:border-neutral-400/50 resize-none leading-relaxed" id="business-details" placeholder="e.g. Bloom &amp; Grow Studio, 123 Main St, New York" required=""></textarea>
+</div>
+<p class="text-xs text-neutral-400 pl-1 mt-1 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-brand-cyan">info</span>
+                        We'll analyze this to find your business.
+                    </p>
+</div>
+<div class="flex flex-col gap-3 pt-4 relative z-10">
+<button class="w-full py-4 bg-cta hover:bg-cta-hover text-white text-lg font-bold rounded-xl shadow-lg shadow-cta/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 group">
+                    Continue
+                    <span class="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+</div></main>
+</body></html>

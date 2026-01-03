@@ -1,6 +1,6 @@
 import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { default as IndexRoute } from './_index';
-import { getProjectByUrlId } from '~/lib/services/projects.server';
+import { getProjectByUrlId, getProjectById } from '~/lib/services/projects.server';
 import { auth } from '~/lib/auth/auth.server';
 
 export async function loader(args: LoaderFunctionArgs) {
@@ -23,8 +23,13 @@ export async function loader(args: LoaderFunctionArgs) {
 
     const user = session.user;
 
-    // Try to resolve the URL ID to a project
-    const project = await getProjectByUrlId(urlId, user.id);
+    // Try to resolve the URL ID to a project (first by url_id, then by id)
+    let project = await getProjectByUrlId(urlId, user.id);
+
+    // If not found by url_id, try by project id (for projects without url_id set)
+    if (!project) {
+      project = await getProjectById(urlId, user.id);
+    }
 
     if (!project) {
       // Project not found, could be a regular chat or invalid URL

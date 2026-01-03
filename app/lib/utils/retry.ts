@@ -151,7 +151,10 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
 export function createRetryFetch(options: RetryOptions = {}) {
   return async function retryFetch(url: string, fetchOptions?: RequestInit): Promise<Response> {
     return withRetry(async () => {
-      const response = await fetch(url, fetchOptions);
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        ...fetchOptions,
+      });
 
       // Throw on HTTP errors to trigger retry logic
       if (!response.ok) {

@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import { forwardRef } from 'react';
 import type { ForwardedRef } from 'react';
 import type { ProviderInfo } from '~/types/model';
+import { LoadOlderMessagesButton } from './LoadOlderMessagesButton';
 
 interface MessagesProps {
   id?: string;
@@ -22,11 +23,23 @@ interface MessagesProps {
   model?: string;
   provider?: ProviderInfo;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  hasOlderMessages?: boolean;
+  loadingOlder?: boolean;
+  loadingOlderError?: string | null;
+  onLoadOlderMessages?: () => void;
 }
 
 export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
   (props: MessagesProps, ref: ForwardedRef<HTMLDivElement> | undefined) => {
-    const { id, isStreaming = false, messages = [] } = props;
+    const {
+      id,
+      isStreaming = false,
+      messages = [],
+      hasOlderMessages,
+      loadingOlder,
+      loadingOlderError,
+      onLoadOlderMessages,
+    } = props;
     const location = useLocation();
 
     const handleRewind = (messageId: string) => {
@@ -51,6 +64,14 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
 
     return (
       <div id={id} className={props.className} ref={ref}>
+        {hasOlderMessages && (
+          <LoadOlderMessagesButton
+            onLoadOlder={onLoadOlderMessages}
+            loading={loadingOlder}
+            error={loadingOlderError || undefined}
+            disabled={isStreaming}
+          />
+        )}
         {messages.length > 0
           ? messages.map((message, index) => {
               const { role, content, id: messageId, annotations, parts } = message;
