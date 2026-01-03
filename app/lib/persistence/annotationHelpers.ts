@@ -46,10 +46,12 @@ export function normalizeAnnotationsForServer(annotations: JSONValue[] | undefin
     // Filter out local-only annotation types
     if (annotation && typeof annotation === 'object' && 'type' in annotation) {
       const type = (annotation as { type: unknown }).type;
+
       if (typeof type === 'string' && LOCAL_ONLY_ANNOTATION_TYPES.has(type)) {
         return false;
       }
     }
+
     return true;
   });
 }
@@ -63,10 +65,7 @@ export function normalizeAnnotationsForServer(annotations: JSONValue[] | undefin
  */
 export function extractMessageAnnotations(message: Message): JSONValue[] {
   // AI SDK supports both `annotations` and `experimental_annotations`
-  const rawAnnotations =
-    (message as any).annotations ||
-    (message as any).experimental_annotations ||
-    [];
+  const rawAnnotations = (message as any).annotations || (message as any).experimental_annotations || [];
 
   return Array.isArray(rawAnnotations) ? rawAnnotations : [];
 }
@@ -81,11 +80,7 @@ export function extractMessageAnnotations(message: Message): JSONValue[] {
 export function isMessagePendingSync(message: Message): boolean {
   const annotations = extractMessageAnnotations(message);
   return annotations.some(
-    (ann) =>
-      ann &&
-      typeof ann === 'object' &&
-      'type' in ann &&
-      ann.type === PENDING_SYNC_ANNOTATION
+    (ann) => ann && typeof ann === 'object' && 'type' in ann && ann.type === PENDING_SYNC_ANNOTATION,
   );
 }
 
@@ -103,8 +98,12 @@ export function addPendingSyncAnnotation(message: Message, errorMessage?: string
   // Remove any existing pending-sync or sync-error annotations
   const filteredAnnotations = existingAnnotations.filter(
     (ann) =>
-      !(ann && typeof ann === 'object' && 'type' in ann &&
-        (ann.type === PENDING_SYNC_ANNOTATION || ann.type === SYNC_ERROR_ANNOTATION))
+      !(
+        ann &&
+        typeof ann === 'object' &&
+        'type' in ann &&
+        (ann.type === PENDING_SYNC_ANNOTATION || ann.type === SYNC_ERROR_ANNOTATION)
+      ),
   );
 
   const pendingAnnotation: JSONValue = {
@@ -129,8 +128,7 @@ export function clearPendingSyncAnnotation(message: Message): Message {
   const existingAnnotations = extractMessageAnnotations(message);
 
   const clearedAnnotations = existingAnnotations.filter(
-    (ann) =>
-      !(ann && typeof ann === 'object' && 'type' in ann && ann.type === PENDING_SYNC_ANNOTATION)
+    (ann) => !(ann && typeof ann === 'object' && 'type' in ann && ann.type === PENDING_SYNC_ANNOTATION),
   );
 
   return {

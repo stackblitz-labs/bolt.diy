@@ -382,8 +382,17 @@ export async function getServerMessages(
       return null;
     }
 
-    // Convert result to ChatHistoryItem format (reverse to chronological display)
-    const messages = result.messages.slice().reverse();
+    // Convert ProjectMessage[] to Message[] format and reverse to chronological display
+    const messages: Message[] = result.messages
+      .slice()
+      .reverse()
+      .map((msg) => ({
+        id: msg.message_id,
+        role: msg.role,
+        content: msg.content as Message['content'],
+        createdAt: new Date(msg.created_at),
+        annotations: (msg.annotations as Message['annotations']) || undefined,
+      }));
     const chatHistoryItem: ChatHistoryItem = {
       id: projectId,
       urlId: undefined, // Will be resolved by calling component
@@ -423,6 +432,7 @@ export async function getServerMessagesPage(
   limit: number,
 ): Promise<{ messages: Message[]; total: number }> {
   logger.info('Fetching older messages page', { projectId, offset, limit });
+
   const response = await loadOlderMessagesPage(projectId, offset, limit);
   const messages = response.messages.map((msg) => ({
     id: msg.message_id,
@@ -431,6 +441,7 @@ export async function getServerMessagesPage(
     createdAt: new Date(msg.created_at),
     annotations: msg.annotations as Message['annotations'],
   }));
+
   return {
     messages,
     total: response.total,
@@ -450,6 +461,7 @@ export async function setServerMessages(projectId: string, messages: Message[]):
       sequence_num: index,
       role: msg.role,
       content: msg.content,
+
       // Extract and normalize annotations (filtering out local-only markers like pending-sync)
       annotations: normalizeAnnotationsForServer(extractMessageAnnotations(msg)),
       created_at: msg.createdAt?.toISOString() || new Date().toISOString(),
@@ -489,7 +501,10 @@ export async function setServerMessages(projectId: string, messages: Message[]):
 /**
  * Append new chat messages to the server using the append-only endpoint.
  */
-export async function appendServerMessages(projectId: string, messages: Message[]): Promise<{ inserted_count: number }> {
+export async function appendServerMessages(
+  projectId: string,
+  messages: Message[],
+): Promise<{ inserted_count: number }> {
   try {
     logger.info('Appending messages to server', { projectId, messageCount: messages.length });
 
@@ -682,12 +697,16 @@ export async function getServerSnapshot(projectId: string): Promise<Snapshot | n
  * Sanitize FileMap for server API by ensuring all required fields are present
  * and removing undefined entries that would be stripped by JSON.stringify
  */
-function sanitizeFilesForServer(files: FileMap): Record<string, { type: 'file' | 'folder'; content?: string; isBinary?: boolean }> {
+function sanitizeFilesForServer(
+  files: FileMap,
+): Record<string, { type: 'file' | 'folder'; content?: string; isBinary?: boolean }> {
   const sanitized: Record<string, any> = {};
-  
+
   for (const [path, entry] of Object.entries(files)) {
-    if (!entry) continue; // Skip undefined entries
-    
+    if (!entry) {
+      continue;
+    } // Skip undefined entries
+
     if (entry.type === 'file') {
       sanitized[path] = {
         type: 'file',
@@ -704,7 +723,7 @@ function sanitizeFilesForServer(files: FileMap): Record<string, { type: 'file' |
       };
     }
   }
-  
+
   return sanitized;
 }
 
@@ -761,7 +780,8 @@ export async function setServerSnapshot(projectId: string, snapshot: Snapshot): 
 
           if (response.status === 413) {
             // Don't retry on payload too large
-            const errorMessage = errorData.message || errorData.error || 'Snapshot too large. Consider removing large binary files.';
+            const errorMessage =
+              errorData.message || errorData.error || 'Snapshot too large. Consider removing large binary files.';
             throw new Error(errorMessage);
           }
 

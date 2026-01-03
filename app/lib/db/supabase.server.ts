@@ -72,8 +72,10 @@ export async function createUserSupabaseClient(userId: string) {
 
   const client = createSupabaseClient();
 
-  // Set user context for RLS policies with atomic verification
-  // The RPC returns the value it set, preventing connection pooling race conditions
+  /*
+   * Set user context for RLS policies with atomic verification
+   * The RPC returns the value it set, preventing connection pooling race conditions
+   */
   try {
     const { data: returnedUserId, error } = await client.rpc('set_current_user', {
       user_id: userId,

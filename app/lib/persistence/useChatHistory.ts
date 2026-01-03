@@ -2,7 +2,7 @@ import { useLoaderData, useNavigate, useSearchParams } from '@remix-run/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { atom } from 'nanostores';
 import { generateId, type JSONValue, type Message } from 'ai';
-import { extractMessageAnnotations, addPendingSyncAnnotation, clearPendingSyncAnnotation } from './annotationHelpers';
+import { extractMessageAnnotations } from './annotationHelpers';
 import { toast } from 'react-toastify';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
@@ -152,6 +152,7 @@ export function useChatHistory(projectId?: string) {
 
           if (storedMessages) {
             setLoadedServerMessages(storedMessages.messages.length);
+
             // Initialize pending message tracking from loaded messages
             if (projectId) {
               initializePendingMessagesFromStore(projectId, storedMessages.messages);
@@ -229,8 +230,10 @@ export function useChatHistory(projectId?: string) {
         }
       }
 
-      // If server storage failed or not available, try client storage
-      // Only fall back to local storage if server was NOT successfully queried
+      /*
+       * If server storage failed or not available, try client storage
+       * Only fall back to local storage if server was NOT successfully queried
+       */
       if (!storedMessages && db && mixedId && !serverLoadAttempted) {
         try {
           const [clientMessages, clientSnapshot] = await Promise.all([
@@ -418,7 +421,7 @@ ${value.content}
   useEffect(() => {
     // Only run if we have a project and user is authenticated
     if (!projectId || !isUserAuthenticated()) {
-      return;
+      return undefined;
     }
 
     // Check if there are pending messages
@@ -428,7 +431,7 @@ ${value.content}
         const pendingIds = getPendingMessageIds(projectId);
 
         if (pendingIds.size === 0) {
-          return; // No pending messages
+          return undefined; // No pending messages
         }
 
         logger.info('Background sync: Found pending messages', { projectId, count: pendingIds.size });
@@ -440,7 +443,8 @@ ${value.content}
           // Clear stale pending state
           const { clearPendingMessages } = await import('./messageSyncState');
           clearPendingMessages(projectId);
-          return;
+
+          return undefined;
         }
 
         // Try to sync without showing UI toasts (background operation)
@@ -451,6 +455,7 @@ ${value.content}
 
           // Clear pending markers after successful sync
           const { markMessageAsSynced, clearSyncError } = await import('./messageSyncState');
+
           for (const msg of pendingMessages) {
             markMessageAsSynced(projectId, msg.id);
           }
@@ -469,6 +474,8 @@ ${value.content}
       } catch (error) {
         logger.error('Background sync check failed', { projectId, error: String(error) });
       }
+
+      return undefined;
     };
 
     // Delay slightly to avoid interfering with initial load
@@ -480,7 +487,7 @@ ${value.content}
   // Re-run background sync when auth state changes
   useEffect(() => {
     if (!projectId) {
-      return;
+      return undefined;
     }
 
     const isAuthenticated = isUserAuthenticated();
@@ -491,6 +498,7 @@ ${value.content}
 
       if (pendingIds.size > 0) {
         logger.info('Auth state changed: User signed in, triggering background sync');
+
         const timeoutId = setTimeout(async () => {
           // Trigger the retry sync logic
           try {
@@ -501,6 +509,7 @@ ${value.content}
               await appendServerMessages(projectId, pendingMessages);
 
               const { markMessageAsSynced, clearSyncError } = await import('./messageSyncState');
+
               for (const msg of pendingMessages) {
                 markMessageAsSynced(projectId, msg.id);
               }
@@ -518,6 +527,8 @@ ${value.content}
         return () => clearTimeout(timeoutId);
       }
     }
+
+    return undefined;
   }, [projectId]); // Only depends on projectId (auth check happens inside)
 
   const takeSnapshot = useCallback(
@@ -624,7 +635,9 @@ ${value.content}
       const currentPages = Math.ceil(loadedServerMessages / MESSAGE_PAGE_SIZE);
 
       if (currentPages >= MAX_MESSAGE_PAGES) {
-        toast.info(`You've loaded the maximum number of messages (${MAX_MESSAGE_PAGES * MESSAGE_PAGE_SIZE}). For very large chat histories, consider exporting and starting a new chat.`);
+        toast.info(
+          `You've loaded the maximum number of messages (${MAX_MESSAGE_PAGES * MESSAGE_PAGE_SIZE}). For very large chat histories, consider exporting and starting a new chat.`,
+        );
         return;
       }
 
@@ -635,6 +648,7 @@ ${value.content}
 
       try {
         const { messages, total } = await getServerMessagesPage(projectId, offset, MESSAGE_PAGE_SIZE);
+
         if (messages.length === 0) {
           setTotalServerMessages(total);
           return;
@@ -649,14 +663,24 @@ ${value.content}
           const persistedMessages = [...archivedMessages, ...normalizedMessages, ...initialMessages];
           const persistedId = chatId.get() || projectId;
           const persistedUrlId = urlId || (persistedId !== projectId ? persistedId : undefined);
-          await setMessages(db, persistedId, persistedMessages, persistedUrlId, description.get(), undefined, chatMetadata.get());
+          await setMessages(
+            db,
+            persistedId,
+            persistedMessages,
+            persistedUrlId,
+            description.get(),
+            undefined,
+            chatMetadata.get(),
+          );
         }
 
         // Show warning if approaching limit
         const newPages = Math.ceil((loadedServerMessages + normalizedMessages.length) / MESSAGE_PAGE_SIZE);
 
         if (newPages >= MAX_MESSAGE_PAGES) {
-          toast.info(`You've reached the maximum number of messages that can be loaded (${MAX_MESSAGE_PAGES * MESSAGE_PAGE_SIZE}). Older messages are still saved but not displayed for performance.`);
+          toast.info(
+            `You've reached the maximum number of messages that can be loaded (${MAX_MESSAGE_PAGES * MESSAGE_PAGE_SIZE}). Older messages are still saved but not displayed for performance.`,
+          );
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to load older messages';
@@ -691,6 +715,7 @@ ${value.content}
           // Clear stale pending state
           const { clearPendingMessages } = await import('./messageSyncState');
           clearPendingMessages(projectId);
+
           return;
         }
 
@@ -701,6 +726,7 @@ ${value.content}
 
         // Clear pending markers after successful sync
         const { markMessageAsSynced, clearSyncError } = await import('./messageSyncState');
+
         for (const msg of pendingMessages) {
           markMessageAsSynced(projectId, msg.id);
         }

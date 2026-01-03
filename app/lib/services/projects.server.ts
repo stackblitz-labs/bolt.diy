@@ -550,11 +550,7 @@ export async function appendMessages(
   const supabase = await createUserSupabaseClient(userId);
 
   // Verify project ownership via RLS (will fail if user doesn't own project)
-  const { data: project } = await supabase
-    .from('projects')
-    .select('id')
-    .eq('id', projectId)
-    .single();
+  const { data: project } = await supabase.from('projects').select('id').eq('id', projectId).single();
 
   if (!project) {
     throw new Error(`${PROJECT_ERROR_CODES.NOT_FOUND}: Project not found or access denied`);
@@ -654,10 +650,7 @@ export async function getRecentMessages(
  *
  * @see specs/001-project-chat-sync/tasks.md (T056)
  */
-export async function deleteMessages(
-  projectId: string,
-  userId?: string,
-): Promise<{ deleted_count: number }> {
+export async function deleteMessages(projectId: string, userId?: string): Promise<{ deleted_count: number }> {
   logger.info('Deleting messages', { projectId, userId });
 
   if (!userId) {
@@ -667,11 +660,7 @@ export async function deleteMessages(
   const supabase = await createUserSupabaseClient(userId);
 
   // Verify project ownership via RLS (will fail if user doesn't own project)
-  const { data: project } = await supabase
-    .from('projects')
-    .select('id')
-    .eq('id', projectId)
-    .single();
+  const { data: project } = await supabase.from('projects').select('id').eq('id', projectId).single();
 
   if (!project) {
     throw new Error(`${PROJECT_ERROR_CODES.NOT_FOUND}: Project not found or access denied`);
@@ -715,8 +704,10 @@ export async function getSnapshotByProjectId(projectId: string, userId?: string)
 
   const supabase = await createUserSupabaseClient(userId);
 
-  // RLS policies enforce ownership - no manual JOIN needed
-  // The createUserSupabaseClient() sets app.current_user_id which RLS uses
+  /*
+   * RLS policies enforce ownership - no manual JOIN needed
+   * The createUserSupabaseClient() sets app.current_user_id which RLS uses
+   */
   const { data: snapshot, error } = await supabase
     .from('project_snapshots')
     .select('*')

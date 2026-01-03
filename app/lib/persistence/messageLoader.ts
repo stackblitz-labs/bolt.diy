@@ -43,15 +43,12 @@ export async function fetchMessagePage(
 ): Promise<MessagePageResponse> {
   logger.debug('Fetching message page', { projectId, offset, limit, order });
 
-  const response = await fetch(
-    `/api/projects/${projectId}/messages?limit=${limit}&offset=${offset}&order=${order}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+  const response = await fetch(`/api/projects/${projectId}/messages?limit=${limit}&offset=${offset}&order=${order}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
     },
-  );
+  });
 
   // Handle 404 - no messages found
   if (response.status === 404) {

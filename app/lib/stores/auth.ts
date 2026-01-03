@@ -22,4 +22,3 @@ export const authStore = atom<AuthState>({
 export function setAuthState(isAuthenticated: boolean, userId: string | null) {
   authStore.set({ isAuthenticated, userId });
 }
-

@@ -17,10 +17,7 @@ interface EmptyProjectStateProps {
 export function EmptyProjectState({ description, className }: EmptyProjectStateProps) {
   return (
     <div
-      className={classNames(
-        'flex flex-col items-center justify-center gap-6 py-16 px-4 w-full h-full',
-        className,
-      )}
+      className={classNames('flex flex-col items-center justify-center gap-6 py-16 px-4 w-full h-full', className)}
       data-empty-state="true"
     >
       {/* Icon/Illustration */}
@@ -42,9 +39,7 @@ export function EmptyProjectState({ description, className }: EmptyProjectStateP
 
       {/* Text content */}
       <div className="flex flex-col items-center gap-2 text-center max-w-md">
-        <h3 className="text-lg font-medium text-bolt-elements-textPrimary">
-          No messages yet
-        </h3>
+        <h3 className="text-lg font-medium text-bolt-elements-textPrimary">No messages yet</h3>
         <p className="text-sm text-bolt-elements-textSecondary">
           {description
             ? `Start a conversation for "${description}"`
@@ -54,9 +49,7 @@ export function EmptyProjectState({ description, className }: EmptyProjectStateP
 
       {/* Prompt hint */}
       <div className="flex flex-col items-center gap-2 text-center">
-        <p className="text-xs text-bolt-elements-textTertiary">
-          Type a message below to get started
-        </p>
+        <p className="text-xs text-bolt-elements-textTertiary">Type a message below to get started</p>
         {/* Visual indicator pointing to input */}
         <div className="flex flex-col items-center gap-1 mt-2 animate-bounce">
           <svg
@@ -65,12 +58,7 @@ export function EmptyProjectState({ description, className }: EmptyProjectStateP
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 14l-7 7m0 0l-7-7m7 7V3"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
         </div>
       </div>

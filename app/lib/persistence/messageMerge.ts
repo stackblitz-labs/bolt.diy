@@ -48,10 +48,7 @@ const logger = createScopedLogger('MessageMerge');
  * // result.duplicatesRemoved = 1
  * ```
  */
-export function mergeMessages(
-  serverMessages: Message[],
-  localMessages: Message[],
-): MergeResult {
+export function mergeMessages(serverMessages: Message[], localMessages: Message[]): MergeResult {
   logger.debug('Merging messages', {
     serverCount: serverMessages.length,
     localCount: localMessages.length,

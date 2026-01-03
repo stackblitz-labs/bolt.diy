@@ -9,11 +9,11 @@
  * Sync state for a project's chat history.
  */
 export type ChatSyncState =
-  | 'synced'       // All messages successfully synced to server
-  | 'syncing'      // Background sync in progress
-  | 'pending'      // Messages waiting to be synced
-  | 'error'        // Sync failed, retry available
-  | 'signed-out';  // User not authenticated, local-only mode
+  | 'synced' // All messages successfully synced to server
+  | 'syncing' // Background sync in progress
+  | 'pending' // Messages waiting to be synced
+  | 'error' // Sync failed, retry available
+  | 'signed-out'; // User not authenticated, local-only mode
 
 /**
  * Pending sync annotation for individual messages.
@@ -48,10 +48,10 @@ export interface MessageWithPendingSync {
  * Pagination metadata for message loading.
  */
 export interface MessagePaginationMeta {
-  total: number;           // Total messages available on server
-  loaded: number;          // Number of messages currently loaded
-  hasOlder: boolean;       // Whether older messages are available to load
-  hasNewer?: boolean;      // Whether newer messages are available (for future use)
+  total: number; // Total messages available on server
+  loaded: number; // Number of messages currently loaded
+  hasOlder: boolean; // Whether older messages are available to load
+  hasNewer?: boolean; // Whether newer messages are available (for future use)
 }
 
 /**
@@ -59,7 +59,7 @@ export interface MessagePaginationMeta {
  */
 export interface MessagePageResult {
   messages: any[]; // AI SDK message array
-  total: number;   // Total messages available
+  total: number; // Total messages available
 }
 
 /**
@@ -67,8 +67,8 @@ export interface MessagePageResult {
  */
 export interface SyncStatus {
   state: ChatSyncState;
-  pendingCount: number;       // Number of messages pending sync
-  lastSyncAt?: string;        // ISO 8601 timestamp of last successful sync
-  lastErrorAt?: string;       // ISO 8601 timestamp of last sync error
-  lastError?: string;         // Last error message
+  pendingCount: number; // Number of messages pending sync
+  lastSyncAt?: string; // ISO 8601 timestamp of last successful sync
+  lastErrorAt?: string; // ISO 8601 timestamp of last sync error
+  lastError?: string; // Last error message
 }

@@ -20,4 +20,3 @@ export function AuthStateSync() {
 
   return null; // This component only syncs state
 }
-

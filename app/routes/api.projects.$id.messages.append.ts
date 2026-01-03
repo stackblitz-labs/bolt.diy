@@ -16,16 +16,20 @@ import { z } from 'zod';
 
 const logger = createScopedLogger('ProjectMessagesAppendAPI');
 
-// Request validation schema for append endpoint
-// Note: NO sequence_num - server allocates it
+/*
+ * Request validation schema for append endpoint
+ * Note: NO sequence_num - server allocates it
+ */
 const appendMessagesSchema = z.object({
   messages: z
     .array(
       z.object({
         message_id: z.string().min(1, 'message_id is required'),
         role: z.enum(['user', 'assistant', 'system']),
+
         // Content can be string (legacy) or structured JSON (AI SDK format)
         content: z.union([z.string(), z.array(z.unknown()), z.record(z.unknown())]),
+
         // Annotations are optional (client should strip local-only markers before sending)
         annotations: z.array(z.unknown()).optional().nullable(),
         created_at: z.string().datetime().optional(),
@@ -92,7 +96,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     logger.info('Appending messages via API', { projectId, userId, count: messages.length });
 
-    const result = await appendMessages(projectId, messages, userId);
+    // Convert null annotations to undefined for appendMessages function
+    const messagesToAppend = messages.map((msg) => ({
+      ...msg,
+      annotations: msg.annotations ?? undefined,
+    }));
+
+    const result = await appendMessages(projectId, messagesToAppend, userId);
 
     logger.info('Messages appended via API', {
       projectId,

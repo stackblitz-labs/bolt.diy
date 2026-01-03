@@ -40,34 +40,28 @@ export function MessageSkeleton({ count = 6 }: MessageSkeletonProps) {
 
             {/* Message bubble placeholder */}
             <div
-              className={classNames(
-                'flex flex-col gap-2 max-w-[85%] w-full animate-pulse',
-                {
-                  'items-end': isUserMessage,
-                  'items-start': !isUserMessage,
-                },
-              )}
+              className={classNames('flex flex-col gap-2 max-w-[85%] w-full animate-pulse', {
+                'items-end': isUserMessage,
+                'items-start': !isUserMessage,
+              })}
             >
               {/* Name placeholder (assistant only) */}
-              {!isUserMessage && (
-                <div className="h-4 w-24 bg-bolt-elements-bordersmile-tertiary rounded" />
-              )}
+              {!isUserMessage && <div className="h-4 w-24 bg-bolt-elements-bordersmile-tertiary rounded" />}
 
               {/* Content bubble placeholder */}
               <div
-                className={classNames(
-                  'rounded-lg p-4 w-full',
-                  {
-                    'bg-bolt-elements-bordersmile-tertiary': isUserMessage,
-                    'bg-bolt-elements-bordersmile-quaternary': !isUserMessage,
-                  },
-                )}
+                className={classNames('rounded-lg p-4 w-full', {
+                  'bg-bolt-elements-bordersmile-tertiary': isUserMessage,
+                  'bg-bolt-elements-bordersmile-quaternary': !isUserMessage,
+                })}
               >
                 {/* Text line placeholders */}
                 <div className="space-y-2">
                   <div className="h-3 bg-bolt-elements-bordersmile-deepseconary/50 rounded w-3/4" />
                   <div className="h-3 bg-bolt-elements-bordersmile-deepseconary/50 rounded w-full" />
-                  {index % 3 === 0 && <div className="h-3 bg-bolt-elements-bordersmile-deepseconary/50 rounded w-1/2" />}
+                  {index % 3 === 0 && (
+                    <div className="h-3 bg-bolt-elements-bordersmile-deepseconary/50 rounded w-1/2" />
+                  )}
                 </div>
               </div>
             </div>

@@ -14,9 +14,6 @@ import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } fro
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
-import { MessageSkeleton } from './MessageSkeleton';
-import { LoadingProgress } from './LoadingProgress';
-import { EmptyProjectState } from './EmptyProjectState';
 import { extractMessageAnnotations } from '~/lib/persistence/annotationHelpers';
 import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
@@ -125,7 +122,7 @@ export const ChatImpl = memo(
   ({
     description,
     initialMessages,
-    loadingState,
+    loadingState: _loadingState,
     hasOlderMessages,
     loadingOlder,
     loadingOlderError,

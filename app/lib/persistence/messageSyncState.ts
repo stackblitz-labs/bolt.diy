@@ -7,8 +7,7 @@
 
 import type { ChatSyncState, SyncStatus } from './messageSyncTypes';
 import type { Message } from 'ai';
-import { extractMessageAnnotations, isMessagePendingSync } from './annotationHelpers';
-import { PENDING_SYNC_ANNOTATION } from './chatSyncConstants';
+import { isMessagePendingSync } from './annotationHelpers';
 
 /**
  * In-memory store for pending message IDs per project.
@@ -28,6 +27,7 @@ export function getPendingMessageIds(projectId: string): Set<string> {
   if (!pendingMessageIdsStore.has(projectId)) {
     pendingMessageIdsStore.set(projectId, new Set());
   }
+
   return pendingMessageIdsStore.get(projectId)!;
 }
 
@@ -116,12 +116,14 @@ export function computeSyncState(
 
   // If there are pending messages, state is pending
   const pendingCount = getPendingMessageCount(projectId);
+
   if (pendingCount > 0) {
     return 'pending';
   }
 
   // If there's a sync error, state is error
   const syncError = getSyncError(projectId);
+
   if (syncError) {
     return 'error';
   }

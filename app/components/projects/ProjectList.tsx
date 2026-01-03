@@ -643,10 +643,11 @@ export function ProjectList({
 
   const handleProjectClick = (project: ProjectSummary) => {
     console.log('project', project);
+
     if (project.url_id) {
       navigate(`/chat/${project.url_id}`);
     } else {
-      navigate(`/chat/${project.id}`);  
+      navigate(`/chat/${project.id}`);
     }
   };
 

@@ -12,23 +12,29 @@ import { auth } from '~/lib/auth/auth.server';
 import { getMessagesByProjectId, saveMessages, deleteMessages } from '~/lib/services/projects.server';
 import { createScopedLogger } from '~/utils/logger';
 import { z } from 'zod';
+import type { ProjectMessage } from '~/types/project';
+import type { JSONValue } from 'ai';
 
 const logger = createScopedLogger('ProjectMessagesAPI');
 
 // Request validation schemas
 const saveMessagesSchema = z.object({
-  messages: z.array(
-    z.object({
-      message_id: z.string().min(1, 'message_id is required'),
-      sequence_num: z.number().int().nonnegative(),
-      role: z.enum(['user', 'assistant', 'system']),
-      // Content can be string (legacy) or structured JSON (AI SDK format)
-      content: z.union([z.string(), z.array(z.unknown()), z.record(z.unknown())]),
-      // Annotations are optional and can be any JSON array (includes pending-sync markers)
-      annotations: z.array(z.unknown()).optional().nullable(),
-      created_at: z.string().datetime().optional(),
-    }),
-  ).min(1, 'At least one message is required'),
+  messages: z
+    .array(
+      z.object({
+        message_id: z.string().min(1, 'message_id is required'),
+        sequence_num: z.number().int().nonnegative(),
+        role: z.enum(['user', 'assistant', 'system']),
+
+        // Content can be string (legacy) or structured JSON (AI SDK format)
+        content: z.union([z.string(), z.array(z.unknown()), z.record(z.unknown())]),
+
+        // Annotations are optional and can be any JSON array (includes pending-sync markers)
+        annotations: z.array(z.unknown()).optional().nullable(),
+        created_at: z.string().datetime().optional(),
+      }),
+    )
+    .min(1, 'At least one message is required'),
 });
 
 /**
@@ -175,7 +181,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     logger.info('Saving messages', { projectId, userId, count: messages.length });
 
-    const result = await saveMessages(projectId, messages, userId);
+    // Convert messages to ProjectMessage format, handling annotations type
+    const messagesToSave: Partial<ProjectMessage>[] = messages.map((msg) => ({
+      message_id: msg.message_id,
+      sequence_num: msg.sequence_num,
+      role: msg.role,
+      content: msg.content,
+      annotations: (msg.annotations as JSONValue[]) ?? null,
+      created_at: msg.created_at,
+    }));
+
+    const result = await saveMessages(projectId, messagesToSave, userId);
 
     logger.info('Messages saved', {
       projectId,
@@ -185,7 +201,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     return json(result);
   } catch (error) {
-    logger.error('Failed to process messages request', { error: String(error), projectId: params.id, method: request.method });
+    logger.error('Failed to process messages request', {
+      error: String(error),
+      projectId: params.id,
+      method: request.method,
+    });
 
     if (error instanceof Error) {
       if (error.message.includes('not found')) {
