@@ -52,6 +52,14 @@ BEGIN
   -- Lock is released automatically at transaction end
   PERFORM pg_advisory_xact_lock(hashtext(p_project_id::text));
 
+  -- Verify that the calling user owns this project (SECURITY DEFINER bypasses RLS)
+  IF NOT EXISTS (
+    SELECT 1 FROM projects
+    WHERE id = p_project_id AND user_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Project not found or access denied' USING ERRCODE = '42501';
+  END IF;
+
   -- Get current max sequence_num for this project (NULL if no messages exist)
   SELECT COALESCE(MAX(sequence_num), -1)
   INTO v_max_seq
@@ -104,7 +112,7 @@ END;
 $$;
 
 -- Grant execute permission to authenticated users
--- RLS policies on project_messages will still enforce ownership checks
+-- Ownership check is enforced inside the function (above)
 GRANT EXECUTE ON FUNCTION append_project_messages(uuid, jsonb) TO authenticated;
 
 -- Add comment for documentation
