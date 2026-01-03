@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { LandingPageIndexEntry, LandingPageContent } from '~/lib/replay/ReferenceApps';
-import { REFERENCE_APP_PLACEHOLDER_PHOTO, fetchReferenceAppLandingPage } from '~/lib/replay/ReferenceApps';
+import { REFERENCE_APP_PLACEHOLDER_PHOTO, getLandingPageContent } from '~/lib/replay/ReferenceApps';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import { assert } from '~/utils/nut';
@@ -23,16 +23,10 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
 
   useEffect(() => {
     const loadLandingPageContent = async () => {
-      if (!app.landingPageURL) {
-        setError('No landing page URL available');
-        setIsLoading(false);
-        return;
-      }
-
       try {
         setIsLoading(true);
         setError(null);
-        const content = await fetchReferenceAppLandingPage(app.landingPageURL);
+        const content = await getLandingPageContent(app.referenceAppPath);
         setLandingPageContent(content);
       } catch (err) {
         console.error('Failed to fetch landing page content:', err);
@@ -49,7 +43,7 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
       setAppPreviewURL(getRepositoryURL(repositoryId));
     };
     createLandingPageReferenceApp();
-  }, [app.landingPageURL]);
+  }, [app.referenceAppPath]);
 
   const handleCustomize = async () => {
     const appPath = landingPageContent?.referenceAppPath || app.referenceAppPath;

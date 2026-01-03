@@ -239,7 +239,6 @@ export function parseAppSummaryMessage(message: Message): AppSummary | undefined
     assert(message.category === APP_SUMMARY_CATEGORY, 'Message is not an app summary message');
     const appSummary = JSON.parse(message.content) as AppSummary;
     assert(typeof appSummary.description === 'string', 'Missing app description');
-    assert(Array.isArray(appSummary.pages), 'Missing app pages');
     return appSummary;
   } catch (e) {
     console.error('Failed to parse app summary message', e);

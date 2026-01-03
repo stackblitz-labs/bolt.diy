@@ -3,7 +3,7 @@ import { useSearchParams } from '@remix-run/react';
 import { CategorySelector, type IntroSectionCategory } from './CategorySelector';
 import { ReferenceAppCard } from './ReferenceAppCard';
 import { ReferenceAppLandingPage } from './ReferenceAppLandingPage';
-import { fetchReferenceApps, type LandingPageIndexEntry, ReferenceAppStage } from '~/lib/replay/ReferenceApps';
+import { getLandingPageIndex, type LandingPageIndexEntry, ReferenceAppStage } from '~/lib/replay/ReferenceApps';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 
@@ -30,7 +30,7 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
     const loadReferenceApps = async () => {
       try {
         setIsLoading(true);
-        const apps = await fetchReferenceApps();
+        const apps = await getLandingPageIndex();
         // Transform the API response to match the component's expected format
         setReferenceApps(apps);
       } catch (error) {

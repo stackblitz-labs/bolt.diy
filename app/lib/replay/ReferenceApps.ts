@@ -1,6 +1,8 @@
 // Describes all the reference apps that can be used for customization
 // during app building.
 
+import { callNutAPI } from './NutAPI';
+
 // Placeholder image URL for reference apps without a screenshot
 export const REFERENCE_APP_PLACEHOLDER_PHOTO = 'https://placehold.co/800x450/1e293b/94a3b8?text=No+Photo';
 
@@ -26,7 +28,6 @@ export interface LandingPageIndexEntry {
   name: string;
   shortDescription: string;
   bulletPoints: string[];
-  landingPageURL: string;
   screenshotURL: string | undefined;
 }
 
@@ -87,12 +88,12 @@ export interface LandingPageContent {
   mainArtifactName: string;
 }
 
-export async function fetchReferenceApps(): Promise<LandingPageIndexEntry[]> {
-  const response = await fetch('https://static.replay.io/test-artifacts/LandingPageIndex.json');
-  return response.json();
+export async function getLandingPageIndex(): Promise<LandingPageIndexEntry[]> {
+  const { landingPages } = await callNutAPI('get-landing-page-index', {});
+  return landingPages;
 }
 
-export async function fetchReferenceAppLandingPage(landingPageURL: string): Promise<LandingPageContent> {
-  const response = await fetch(landingPageURL);
-  return response.json();
+export async function getLandingPageContent(referenceAppPath: string): Promise<LandingPageContent> {
+  const { landingPage } = await callNutAPI('get-landing-page', { referenceAppPath });
+  return landingPage;
 }
