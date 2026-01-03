@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Building Your Themed Website</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#21C6FF",        // Blue/Cyan
+                        "primary-hover": "#00B0E8",
+                        "accent-yellow": "#FFC000",  // Yellow/Orange
+                        "accent-purple": "#8B5CF6",  // Light Purple for gradients
+                        "background-light": "#ffffff", // Pure White
+                        "background-dark": "#212121", 
+                        "surface-dark": "#1A1A2E",    // Dark Blue/Black (Interactive/Surface)
+                        "text-main": "#212121",       // Dark Grey/Black for high contrast
+                        "text-muted": "#525252",      // Mid-Grey for readability
+                        "text-light": "#757575",      // Adjusted for better visibility on white
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "3xl": "1.5rem", "full": "9999px" },
+                    boxShadow: {
+                        'glow': '0 0 20px rgba(33, 198, 255, 0.25)',
+                        'glow-purple': '0 0 20px rgba(139, 92, 246, 0.15)',
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card-hover': '0 10px 40px -10px rgba(139, 92, 246, 0.15)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .huskit-gradient-text {
+            background: linear-gradient(135deg, #21C6FF, #8B5CF6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .huskit-gradient-bg {
+            background: linear-gradient(135deg, #21C6FF 0%, #8B5CF6 100%);
+        }
+        .tips-card-gradient {
+            background: linear-gradient(135deg, rgba(33, 198, 255, 0.05) 0%, rgba(139, 92, 246, 0.12) 100%);
+        }
+    </style>
+</head>
+<body class="bg-white font-body text-text-main h-screen flex flex-col overflow-hidden selection:bg-primary/30">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-gray-100 bg-surface-dark px-6 py-4 z-50 shrink-0 shadow-md">
+<div class="flex items-center gap-3">
+<img alt="huskIT Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtsfWZurkLQ6gwzA-c2mVI5Apt4mY6dLPcgrB1gCLGxuitlaSiTeM4iEI3l_R381sprGdWq7uneD-HjiyVqheKBu7L6hS74z8uPxocc7LbtyZBSxkyH1egO1KNlm-8OUABzl3aIo_o-EsJ7kQqlBMYz6t2-KedE3gvXWT7li-oq3G3IG4_P7zSTGLoPSJwMfR5mV4HoHIg3ZvnTfcfZWPTmH2oyQ-eP682MycyGf62C9ddRZ9PUs39OsX9sBfEfH3r825xIBjD5g"/>
+<div class="h-5 w-px bg-white/20 mx-1"></div>
+<span class="text-white font-display font-bold text-lg tracking-tight">AI Site Builder</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex flex-col items-end mr-2">
+<span class="text-sm font-semibold text-white">Alex Morgan</span>
+<span class="text-xs text-white/60">Free Plan</span>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/20 shadow-glow" data-alt="User profile picture placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCVIQ4dQty1KqzsFD4978lBrqpSnxXgddaGKzHkmUGQ8nXN2bo4VElDpIWkz2CJ0WnYEGo4A0CDsuY2t-GQCGIqyZ7AtnBRyNELb4sjVAY5JQJoxOLSktHa8MTxFIXQT4MeAt3laxky_mbOAdAOahQi2f4v_JntPfLsrWVAf4fG3lubtmxPHboZYIouRgIu7KgXc5lykJDUSt_B6SCsf2QEZdyml8OxNTPeRpq7QVDVPkuqPK4Nlj3BuoNjSaSo_JuSgTNrsn0glbk");'></div>
+</div>
+</header>
+<main class="flex-1 w-full relative overflow-y-auto bg-white scroll-smooth font-body">
+<div class="relative z-10 w-full max-w-3xl mx-auto px-6 py-12 flex flex-col gap-10">
+<div class="flex flex-col">
+<div class="mb-8 lg:mb-10">
+<div class="flex justify-between items-center mb-4">
+<div class="flex items-center gap-3">
+<span class="flex items-center justify-center size-7 rounded-full bg-primary text-white text-xs font-bold shadow-md">4</span>
+<span class="text-text-main text-sm font-bold uppercase tracking-wider font-display">Building Website</span>
+</div>
+</div>
+<div class="rounded-full bg-gray-100 h-2 w-full overflow-hidden border border-gray-200">
+<div class="h-full huskit-gradient-bg rounded-full shadow-glow animate-pulse" style="width: 100%;"></div>
+</div>
+</div>
+<div class="flex flex-col items-center text-center mb-8">
+<div class="relative size-36 mb-10">
+<div class="absolute inset-0 rounded-full border-[6px] border-gray-50 shadow-inner"></div>
+<div class="absolute inset-0 rounded-full border-[6px] border-t-primary border-r-accent-yellow border-b-transparent border-l-transparent animate-spin"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-5xl text-text-main animate-pulse">auto_awesome</span>
+</div>
+</div>
+<h1 class="text-4xl lg:text-5xl font-display font-bold text-text-main mb-6 leading-tight tracking-tight">
+                        Building your <span class="huskit-gradient-text">dream website</span>
+</h1>
+<p class="text-text-muted text-base lg:text-lg leading-relaxed max-w-lg mx-auto font-normal">
+                        Sit tight! Our AI is designing your layout, writing your content, and optimizing everything for your customers.
+                    </p>
+</div>
+<div class="space-y-4 max-w-lg mx-auto w-full mb-8">
+<div class="flex items-center gap-4 p-5 rounded-xl bg-white border border-gray-200 shadow-sm transition-all">
+<div class="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</div>
+<span class="text-text-muted line-through decoration-primary/50 text-sm font-medium">Analyzing business details</span>
+</div>
+<div class="flex items-center gap-4 p-5 rounded-xl bg-white border-2 border-primary/40 shadow-glow relative overflow-hidden group transform scale-[1.02]">
+<div class="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent animate-pulse"></div>
+<div class="size-6 rounded-full bg-transparent border-2 border-primary border-t-transparent animate-spin shrink-0 z-10"></div>
+<span class="text-text-main text-base font-bold z-10 tracking-wide">Generating layout &amp; copy...</span>
+</div>
+<div class="flex items-center gap-4 p-5 rounded-xl bg-gray-50 border border-gray-200 opacity-70">
+<div class="size-6 rounded-full border-2 border-gray-300 shrink-0"></div>
+<span class="text-gray-500 text-sm font-medium">Final polish &amp; SEO check</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col pt-4">
+<div class="grid grid-cols-1 gap-6">
+<div class="tips-card-gradient border border-primary/20 rounded-3xl p-8 lg:p-10 relative overflow-hidden group hover:border-primary/40 transition-all duration-300 shadow-soft hover:shadow-card-hover">
+<div class="absolute -right-6 -top-6 text-accent-purple/5 group-hover:text-accent-purple/10 transition-colors duration-500 transform rotate-12">
+<span class="material-symbols-outlined text-[200px]">rocket_launch</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-6">
+<div class="bg-white rounded-full px-4 py-1.5 shadow-sm border border-gray-100 flex items-center gap-2">
+<span class="size-2 rounded-full bg-accent-yellow animate-pulse"></span>
+<span class="text-xs font-bold uppercase tracking-wider text-text-main">While you wait</span>
+</div>
+</div>
+<div class="flex gap-6 lg:gap-8 flex-col sm:flex-row items-start">
+<div class="shrink-0 size-20 rounded-2xl bg-white text-accent-yellow flex items-center justify-center border border-accent-yellow/20 shadow-md transform -rotate-3 group-hover:rotate-0 transition-transform duration-300">
+<span class="material-symbols-outlined text-5xl">lightbulb</span>
+</div>
+<div>
+<h3 class="text-text-main font-bold mb-3 text-2xl lg:text-3xl font-display tracking-tight">Did you know?</h3>
+<p class="text-text-muted text-lg lg:text-xl leading-relaxed font-medium">
+                                        Websites with authentic, high-quality photos of your space and products see <span class="text-text-main font-extrabold bg-accent-yellow/20 px-2 rounded-md mx-1">40% more engagement</span>.
+                                    </p>
+<div class="mt-6 flex items-start gap-3 p-4 bg-white/60 rounded-xl border border-white/50 backdrop-blur-sm">
+<span class="material-symbols-outlined text-primary mt-0.5">auto_fix_high</span>
+<p class="text-sm text-text-muted font-medium">
+<strong class="text-text-main">Pro Tip:</strong> Once your site is ready, try using our "AI Enhancer" tool to make your smartphone photos look professional instantly.
+                                        </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -4,28 +4,37 @@
  * Handles chat messages CRUD operations for a specific project.
  * GET /api/projects/:id/messages - Retrieve paginated chat messages
  * POST /api/projects/:id/messages - Save or update chat messages
+ * DELETE /api/projects/:id/messages - Clear all chat messages for a project
  */
 
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/node';
 import { auth } from '~/lib/auth/auth.server';
-import { getMessagesByProjectId, saveMessages } from '~/lib/services/projects.server';
+import { getMessagesByProjectId, saveMessages, deleteMessages } from '~/lib/services/projects.server';
 import { createScopedLogger } from '~/utils/logger';
 import { z } from 'zod';
+import type { ProjectMessage } from '~/types/project';
+import type { JSONValue } from 'ai';
 
 const logger = createScopedLogger('ProjectMessagesAPI');
 
 // Request validation schemas
 const saveMessagesSchema = z.object({
-  messages: z.array(
-    z.object({
-      message_id: z.string(),
-      sequence_num: z.number(),
-      role: z.enum(['user', 'assistant', 'system']),
-      content: z.string(),
-      annotations: z.array(z.any()).optional(),
-      created_at: z.string().optional(),
-    }),
-  ),
+  messages: z
+    .array(
+      z.object({
+        message_id: z.string().min(1, 'message_id is required'),
+        sequence_num: z.number().int().nonnegative(),
+        role: z.enum(['user', 'assistant', 'system']),
+
+        // Content can be string (legacy) or structured JSON (AI SDK format)
+        content: z.union([z.string(), z.array(z.unknown()), z.record(z.unknown())]),
+
+        // Annotations are optional and can be any JSON array (includes pending-sync markers)
+        annotations: z.array(z.unknown()).optional().nullable(),
+        created_at: z.string().datetime().optional(),
+      }),
+    )
+    .min(1, 'At least one message is required'),
 });
 
 /**
@@ -136,6 +145,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
       return json({ error: 'Project ID is required' }, { status: 400 });
     }
 
+    // Handle DELETE method for clearing messages
+    if (request.method === 'DELETE') {
+      logger.info('Clearing messages', { projectId, userId });
+
+      const result = await deleteMessages(projectId, userId);
+
+      logger.info('Messages cleared', {
+        projectId,
+        deletedCount: result.deleted_count,
+      });
+
+      return json(result);
+    }
+
     if (request.method !== 'POST') {
       return json({ error: 'Method not allowed' }, { status: 405 });
     }
@@ -156,13 +179,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     const { messages } = validationResult.data;
 
-    if (messages.length === 0) {
-      return json({ error: 'At least one message is required' }, { status: 400 });
-    }
-
     logger.info('Saving messages', { projectId, userId, count: messages.length });
 
-    const result = await saveMessages(projectId, messages, userId);
+    // Convert messages to ProjectMessage format, handling annotations type
+    const messagesToSave: Partial<ProjectMessage>[] = messages.map((msg) => ({
+      message_id: msg.message_id,
+      sequence_num: msg.sequence_num,
+      role: msg.role,
+      content: msg.content,
+      annotations: (msg.annotations as JSONValue[]) ?? null,
+      created_at: msg.created_at,
+    }));
+
+    const result = await saveMessages(projectId, messagesToSave, userId);
 
     logger.info('Messages saved', {
       projectId,
@@ -172,7 +201,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     return json(result);
   } catch (error) {
-    logger.error('Failed to save messages', { error: String(error), projectId: params.id });
+    logger.error('Failed to process messages request', {
+      error: String(error),
+      projectId: params.id,
+      method: request.method,
+    });
 
     if (error instanceof Error) {
       if (error.message.includes('not found')) {
@@ -182,7 +215,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     return json(
       {
-        error: 'Failed to save messages',
+        error: `Failed to process ${request.method.toLowerCase()} request`,
         message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 },

@@ -4,6 +4,11 @@ import type { ChatHistoryItem } from './useChatHistory';
 import type { Snapshot } from './types'; // Import Snapshot type
 import type { FileMap } from '~/lib/stores/files';
 import { withRetry } from '~/lib/utils/retry';
+import { loadOlderMessagesPage, loadRecentMessages } from './messageLoader';
+import type { MessageLoadProgress } from '~/types/message-loading';
+import { extractMessageAnnotations, normalizeAnnotationsForServer } from './annotationHelpers';
+import { MESSAGE_PAGE_SIZE } from './chatSyncConstants';
+import { authStore } from '~/lib/stores/auth';
 
 export interface IChatMetadata {
   gitUrl: string;
@@ -353,50 +358,62 @@ export async function deleteSnapshot(db: IDBDatabase, chatId: string): Promise<v
  */
 
 /**
- * Fetch chat messages from the server API
+ * Fetch recent chat messages from the server API.
+ *
+ * Loads only the most recent page to keep project open fast. Use
+ * getServerMessagesPage for older pages.
+ *
+ * @param projectId - The project ID to fetch messages for
+ * @param onProgress - Optional callback for loading progress updates
+ * @returns Promise resolving to ChatHistoryItem or null if no messages
  */
-export async function getServerMessages(projectId: string): Promise<ChatHistoryItem | null> {
+export async function getServerMessages(
+  projectId: string,
+  onProgress?: (progress: MessageLoadProgress) => void,
+): Promise<ChatHistoryItem | null> {
   try {
-    logger.info('Fetching messages from server', { projectId });
+    logger.info('Fetching recent messages from server', { projectId });
 
-    const response = await fetch(`/api/projects/${projectId}/messages`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const result = await loadRecentMessages(projectId, MESSAGE_PAGE_SIZE);
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        logger.info('No messages found for project', { projectId });
-        return null;
-      }
-
-      const errorData = await response.json().catch(() => ({}) as any);
-      throw new Error((errorData as any).message || `Failed to fetch messages: ${response.status}`);
+    // Return null if no messages
+    if (result.messages.length === 0) {
+      logger.info('No messages found for project', { projectId });
+      return null;
     }
 
-    const data = (await response.json()) as any;
-
-    // Convert API response to ChatHistoryItem format
+    // Convert ProjectMessage[] to Message[] format and reverse to chronological display
+    const messages: Message[] = result.messages
+      .slice()
+      .reverse()
+      .map((msg) => ({
+        id: msg.message_id,
+        role: msg.role,
+        content: msg.content as Message['content'],
+        createdAt: new Date(msg.created_at),
+        annotations: (msg.annotations as Message['annotations']) || undefined,
+      }));
     const chatHistoryItem: ChatHistoryItem = {
       id: projectId,
       urlId: undefined, // Will be resolved by calling component
       description: undefined, // Project description will be fetched separately
-      messages: data.messages.map((msg: any) => ({
-        id: msg.message_id,
-        role: msg.role,
-        content: msg.content,
-        createdAt: new Date(msg.created_at),
-
-        // Add any other AI SDK Message fields that might be needed
-      })) as Message[],
-      timestamp: data.messages.length > 0 ? data.messages[0].created_at : new Date().toISOString(),
+      messages,
+      timestamp: messages[0]?.createdAt?.toISOString() || new Date().toISOString(),
     };
 
-    logger.info('Messages fetched successfully', {
+    // Emit progress snapshot for recent load
+    onProgress?.({
+      loaded: messages.length,
+      total: result.total,
+      page: 1,
+      isComplete: messages.length >= result.total,
+      isRateLimited: false,
+    });
+
+    logger.info('Recent messages fetched successfully', {
       projectId,
-      messageCount: chatHistoryItem.messages.length,
+      messageCount: messages.length,
+      total: result.total,
     });
 
     return chatHistoryItem;
@@ -407,6 +424,28 @@ export async function getServerMessages(projectId: string): Promise<ChatHistoryI
     });
     throw error;
   }
+}
+
+export async function getServerMessagesPage(
+  projectId: string,
+  offset: number,
+  limit: number,
+): Promise<{ messages: Message[]; total: number }> {
+  logger.info('Fetching older messages page', { projectId, offset, limit });
+
+  const response = await loadOlderMessagesPage(projectId, offset, limit);
+  const messages = response.messages.map((msg) => ({
+    id: msg.message_id,
+    role: msg.role,
+    content: msg.content as Message['content'],
+    createdAt: new Date(msg.created_at),
+    annotations: msg.annotations as Message['annotations'],
+  }));
+
+  return {
+    messages,
+    total: response.total,
+  };
 }
 
 /**
@@ -422,7 +461,9 @@ export async function setServerMessages(projectId: string, messages: Message[]):
       sequence_num: index,
       role: msg.role,
       content: msg.content,
-      annotations: [], // TODO: Extract annotations from AI SDK Message if available
+
+      // Extract and normalize annotations (filtering out local-only markers like pending-sync)
+      annotations: normalizeAnnotationsForServer(extractMessageAnnotations(msg)),
       created_at: msg.createdAt?.toISOString() || new Date().toISOString(),
     }));
 
@@ -458,17 +499,115 @@ export async function setServerMessages(projectId: string, messages: Message[]):
 }
 
 /**
+ * Append new chat messages to the server using the append-only endpoint.
+ */
+export async function appendServerMessages(
+  projectId: string,
+  messages: Message[],
+): Promise<{ inserted_count: number }> {
+  try {
+    logger.info('Appending messages to server', { projectId, messageCount: messages.length });
+
+    const apiMessages = messages.map((msg) => ({
+      message_id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      annotations: normalizeAnnotationsForServer(extractMessageAnnotations(msg)),
+      created_at: msg.createdAt?.toISOString() || new Date().toISOString(),
+    }));
+
+    const response = await fetch(`/api/projects/${projectId}/messages/append`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: apiMessages,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}) as any);
+      throw new Error((errorData as any).message || `Failed to append messages: ${response.status}`);
+    }
+
+    const data = (await response.json()) as { inserted_count: number };
+
+    logger.info('Messages appended successfully', {
+      projectId,
+      insertedCount: data.inserted_count,
+      requestCount: messages.length,
+    });
+
+    return data;
+  } catch (error) {
+    logger.error('Failed to append messages to server', {
+      error: String(error),
+      projectId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Clear all chat messages for a project from the server
+ *
+ * Permanently deletes all messages associated with a project from the server.
+ * This action is irreversible and should be used with caution.
+ *
+ * @param projectId - The project ID to clear messages for
+ * @returns Promise resolving to deleted_count
+ *
+ * @see specs/001-project-chat-sync/tasks.md (T057)
+ */
+export async function clearServerMessages(projectId: string): Promise<{ deleted_count: number }> {
+  try {
+    logger.info('Clearing messages from server', { projectId });
+
+    const response = await fetch(`/api/projects/${projectId}/messages`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}) as any);
+      throw new Error((errorData as any).message || `Failed to clear messages: ${response.status}`);
+    }
+
+    const data = (await response.json()) as { deleted_count: number };
+
+    logger.info('Messages cleared successfully from server', {
+      projectId,
+      deletedCount: data.deleted_count,
+    });
+
+    return data;
+  } catch (error) {
+    logger.error('Failed to clear messages from server', {
+      error: String(error),
+      projectId,
+    });
+    throw error;
+  }
+}
+
+/**
  * Utility function to check if the user is authenticated
  * This can be used to determine whether to use server or client storage
+ *
+ * Note: Reads from authStore which is updated by AuthStateSync component
+ * using Better Auth's useSession hook. Cannot read HttpOnly cookies directly.
  */
 export function isUserAuthenticated(): boolean {
-  // Check if we're on the server side or if session cookies are present
-  if (typeof document === 'undefined') {
+  // Check if we're on the server side
+  if (typeof window === 'undefined') {
     return false; // Server-side rendering - assume no auth
   }
 
-  // Check for Better Auth session cookie
-  return document.cookie.includes('better-auth.session_token');
+  // Read from auth store (updated by AuthStateSync component)
+  return authStore.get().isAuthenticated;
 }
 
 /*
@@ -555,18 +694,62 @@ export async function getServerSnapshot(projectId: string): Promise<Snapshot | n
 }
 
 /**
+ * Sanitize FileMap for server API by ensuring all required fields are present
+ * and removing undefined entries that would be stripped by JSON.stringify
+ */
+function sanitizeFilesForServer(
+  files: FileMap,
+): Record<string, { type: 'file' | 'folder'; content?: string; isBinary?: boolean }> {
+  const sanitized: Record<string, any> = {};
+
+  for (const [path, entry] of Object.entries(files)) {
+    if (!entry) {
+      continue;
+    } // Skip undefined entries
+
+    if (entry.type === 'file') {
+      sanitized[path] = {
+        type: 'file',
+        content: entry.content ?? '',
+        isBinary: entry.isBinary ?? false,
+        ...(entry.isLocked !== undefined && { isLocked: entry.isLocked }),
+        ...(entry.lockedByFolder && { lockedByFolder: entry.lockedByFolder }),
+      };
+    } else if (entry.type === 'folder') {
+      sanitized[path] = {
+        type: 'folder',
+        ...(entry.isLocked !== undefined && { isLocked: entry.isLocked }),
+        ...(entry.lockedByFolder && { lockedByFolder: entry.lockedByFolder }),
+      };
+    }
+  }
+
+  return sanitized;
+}
+
+/**
  * Save file snapshot to the server API
  */
 export async function setServerSnapshot(projectId: string, snapshot: Snapshot): Promise<void> {
   try {
+    // Sanitize files first to get accurate count
+    const sanitizedFiles = sanitizeFilesForServer(snapshot.files);
+    const filesCount = Object.keys(sanitizedFiles).length;
+
+    // Skip server save if no valid files to save
+    if (filesCount === 0) {
+      logger.info('Skipping server snapshot save - no files to save', { projectId });
+      return;
+    }
+
     logger.info('Saving snapshot to server', {
       projectId,
-      filesCount: Object.keys(snapshot.files).length,
+      filesCount,
       hasSummary: !!snapshot.summary,
     });
 
     // Estimate snapshot size before sending
-    const snapshotSize = JSON.stringify(snapshot.files).length;
+    const snapshotSize = JSON.stringify(sanitizedFiles).length;
     const sizeInMB = snapshotSize / (1024 * 1024);
 
     const SNAPSHOT_SIZE_LIMIT_MB = 45;
@@ -587,7 +770,7 @@ export async function setServerSnapshot(projectId: string, snapshot: Snapshot): 
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            files: snapshot.files,
+            files: sanitizedFiles,
             summary: snapshot.summary,
           }),
         });
@@ -597,16 +780,21 @@ export async function setServerSnapshot(projectId: string, snapshot: Snapshot): 
 
           if (response.status === 413) {
             // Don't retry on payload too large
-            throw new Error(errorData.message || 'Snapshot too large. Consider removing large binary files.');
+            const errorMessage =
+              errorData.message || errorData.error || 'Snapshot too large. Consider removing large binary files.';
+            throw new Error(errorMessage);
           }
 
           // Don't retry on client errors (4xx except 429 and 5xx)
           if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-            throw new Error(errorData.message || `Failed to save snapshot: ${response.status}`);
+            const errorMessage = errorData.message || errorData.error || `Failed to save snapshot: ${response.status}`;
+            const errorDetails = errorData.details ? JSON.stringify(errorData.details) : '';
+            throw new Error(errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage);
           }
 
           // Retry on server errors and rate limiting
-          throw new Error(errorData.message || `Failed to save snapshot: ${response.status}`);
+          const errorMessage = errorData.message || errorData.error || `Failed to save snapshot: ${response.status}`;
+          throw new Error(errorMessage);
         }
 
         return response.json();
@@ -645,7 +833,7 @@ export async function setServerSnapshot(projectId: string, snapshot: Snapshot): 
     logger.info('Snapshot saved to server', {
       projectId,
       updatedAt: (result as any)?.updated_at,
-      filesCount: Object.keys(snapshot.files).length,
+      filesCount,
     });
   } catch (error) {
     logger.error('Failed to save snapshot to server', {

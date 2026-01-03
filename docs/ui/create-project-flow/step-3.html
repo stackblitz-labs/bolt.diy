@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Business Info - Confirm/Correct Map - Refined</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    accent: {
+                        cyan: "#21C6FF",
+                        yellow: "#FFC000",
+                    },
+                    neutral: {
+                        900: "#212121", // Dark Grey/Black - Main Headings
+                        700: "#525252", // Mid-Grey - Subheadings/Body
+                        400: "#9E9E9E", // Light Grey
+                        50:  "#F9FAFB",
+                    },
+                    cta: {
+                        DEFAULT: "#1A1A2E", // Dark Blue/Black
+                        hover: "#262645"
+                    },
+                    surface: "#FFFFFF",
+                },
+                fontFamily: {
+                    "sans": ["Inter", "sans-serif"],
+                },
+                borderRadius: {
+                    "xl": "12px",
+                    "2xl": "16px",
+                    "3xl": "24px",
+                },
+                boxShadow: {
+                    'glow': '0 0 20px -5px rgba(33, 198, 255, 0.4)',
+                    'soft': '0 20px 40px -10px rgba(0,0,0,0.08)',
+                    'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                    'button-glow': '0 4px 15px -3px rgba(26, 26, 46, 0.3)',
+                },
+                backgroundImage: {
+                    'map-gradient': 'linear-gradient(135deg, #f0f9ff 0%, #f3e8ff 100%)',
+                }
+            },
+        },
+    }
+</script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 }
+    .bg-gradient-brand { background: linear-gradient(135deg, #f0f9ff 0%, #f5f3ff 100%); }
+</style>
+</head>
+<body class="bg-gradient-brand text-neutral-900 min-h-screen flex flex-col antialiased relative selection:bg-accent-cyan/20 selection:text-neutral-900">
+<div aria-labelledby="modal-title" aria-modal="true" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" role="dialog">
+<div class="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity"></div>
+<div class="relative w-full max-w-[500px] bg-white rounded-3xl shadow-soft overflow-hidden border border-white/60 flex flex-col transform transition-all animate-in fade-in zoom-in-95 duration-200">
+<div class="h-44 bg-map-gradient relative w-full overflow-hidden flex items-center justify-center border-b border-gray-100 group">
+<div class="absolute inset-0 opacity-[0.4]" style="background-image: linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px); background-size: 24px 24px;"></div>
+<div class="absolute w-[120%] h-12 bg-white rotate-12 top-10 border-y-[6px] border-gray-200/40 shadow-sm"></div>
+<div class="absolute h-[120%] w-10 bg-white -rotate-12 left-1/2 border-x-[6px] border-gray-200/40 shadow-sm"></div>
+<div class="relative z-10 -mt-2 flex flex-col items-center group-hover:-translate-y-1 transition-transform duration-300">
+<span class="material-symbols-outlined text-accent-cyan text-[56px] drop-shadow-xl" style="font-variation-settings: 'FILL' 1, 'wght' 600">location_on</span>
+<div class="w-10 h-2.5 bg-accent-cyan/40 blur-[4px] rounded-full mt-[-10px]"></div>
+</div>
+<div class="absolute bottom-4 right-4 flex flex-col gap-1.5 shadow-sm">
+<div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-neutral-700 hover:bg-gray-50 hover:text-accent-cyan transition-colors border border-gray-100 cursor-pointer shadow-sm">
+<span class="material-symbols-outlined text-xl">add</span>
+</div>
+<div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-neutral-700 hover:bg-gray-50 hover:text-accent-cyan transition-colors border border-gray-100 cursor-pointer shadow-sm">
+<span class="material-symbols-outlined text-xl">remove</span>
+</div>
+</div>
+</div>
+<div class="p-8 flex flex-col gap-7">
+<div class="text-center space-y-3">
+<h3 class="text-2xl font-bold text-neutral-900 tracking-tight" id="modal-title">Is this your company?</h3>
+<p class="text-neutral-700 font-normal text-sm sm:text-base leading-relaxed">
+                    We found a match on Google Maps based on your details.
+                </p>
+</div>
+<div class="bg-neutral-50 p-4 rounded-2xl border border-gray-200 flex items-start gap-4 hover:border-accent-cyan/40 hover:bg-blue-50/30 transition-all cursor-default group shadow-sm">
+<div class="bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 flex-shrink-0 flex items-center justify-center h-14 w-14">
+<span class="material-symbols-outlined text-accent-cyan text-[28px]">storefront</span>
+</div>
+<div class="flex-1 min-w-0 py-0.5">
+<h4 class="font-bold text-lg text-neutral-900 truncate tracking-tight">Bloom &amp; Grow Studio</h4>
+<p class="text-neutral-700 text-sm mt-1 font-normal leading-snug">123 Main St, New York, NY</p>
+<div class="flex items-center gap-2 mt-2.5">
+<span class="flex h-2 w-2 rounded-full bg-accent-cyan shadow-[0_0_8px_rgba(33,198,255,0.6)] animate-pulse"></span>
+<span class="text-[10px] font-bold text-neutral-400 tracking-wider uppercase">Google Maps Found</span>
+</div>
+</div>
+</div>
+<div class="space-y-3.5 pt-1">
+<button class="w-full py-4 bg-cta hover:bg-cta-hover text-white font-bold text-base sm:text-lg rounded-xl shadow-button-glow transition-all active:scale-[0.98] flex items-center justify-center gap-3 group relative overflow-hidden">
+<span class="relative z-10">Yes, this is my business</span>
+<span class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform relative z-10">check_circle</span>
+</button>
+<button class="w-full py-4 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-neutral-700 hover:text-neutral-900 font-bold text-base rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm">
+                    No, provide a Google Maps link
+                </button>
+</div>
+</div>
+</div>
+</div>
+<div class="opacity-20 blur-[2px] pointer-events-none transition-all h-full flex flex-col">
+<header class="flex items-center justify-between border-b border-gray-100 px-6 lg:px-12 py-5 bg-white/60 backdrop-blur-md sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<div class="bg-accent-cyan/10 p-2.5 rounded-xl text-accent-cyan">
+<span class="material-symbols-outlined text-2xl">auto_awesome</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight text-neutral-900">AI Site Builder</h2>
+</div>
+<div class="flex items-center gap-8">
+<div class="hidden sm:flex flex-col items-end">
+<span class="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">Step 1 of 4</span>
+<div class="w-32 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+<div class="h-full bg-accent-cyan w-1/4 rounded-full shadow-[0_0_8px_rgba(33,198,255,0.4)]"></div>
+</div>
+</div>
+<button class="text-sm font-bold text-neutral-400 hover:text-neutral-900 transition-colors">
+                Save &amp; Exit
+            </button>
+</div>
+</header>
+<main class="flex-1 w-full max-w-xl mx-auto px-4 py-12 sm:py-20 flex flex-col gap-10">
+<div class="text-center space-y-4">
+<h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-neutral-900">
+                Welcome! Let's get started
+            </h1>
+<p class="text-lg text-neutral-700 font-light leading-relaxed">
+                Enter your business details below so we can start building your website.
+            </p>
+</div>
+<div class="bg-surface rounded-3xl shadow-card border border-white/50 p-8 sm:p-10 space-y-8">
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-neutral-400" for="business-name">
+                    Business Name <span class="text-accent-cyan ml-0.5" title="Required">*</span>
+</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-accent-cyan/70 group-focus-within:text-accent-cyan transition-colors text-[22px]">storefront</span>
+</div>
+<input class="w-full h-14 pl-12 pr-4 rounded-xl border border-gray-200 bg-gray-50 text-neutral-900 text-lg font-medium focus:ring-2 focus:ring-accent-cyan focus:border-transparent transition-all placeholder:text-gray-300" id="business-name" required="" type="text" value="Bloom &amp; Grow Studio"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-neutral-400" for="business-address">
+                    Business Address <span class="text-accent-cyan ml-0.5" title="Required">*</span>
+</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-accent-cyan/70 group-focus-within:text-accent-cyan transition-colors text-[22px]">location_on</span>
+</div>
+<input class="w-full h-14 pl-12 pr-4 rounded-xl border border-gray-200 bg-gray-50 text-neutral-900 text-lg font-medium focus:ring-2 focus:ring-accent-cyan focus:border-transparent transition-all placeholder:text-gray-300" id="business-address" required="" type="text" value="123 Main St, New York, NY"/>
+</div>
+<p class="text-sm text-neutral-700 mt-2 font-light">
+                    We'll use this to find your location on maps.
+                </p>
+</div>
+</div>
+<div class="flex flex-col gap-3 pt-2">
+<button class="w-full py-5 bg-cta hover:bg-cta-hover text-white text-xl font-bold rounded-2xl shadow-xl shadow-cta/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-3">
+                Continue
+                <span class="material-symbols-outlined text-[24px]">arrow_forward</span>
+</button>
+</div>
+</main>
+</div>
+</body></html>

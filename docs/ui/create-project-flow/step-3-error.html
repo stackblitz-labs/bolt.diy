@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Google Maps Link - Invalid Business Error</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    "text-main": "#212121",
+                    "text-sub": "#525252",
+                    "text-secure": "#9E9E9E",
+                    "btn-dark": "#1A1A2E",
+                    "accent-cyan": "#21C6FF",
+                    "accent-orange": "#FFC000",
+                },
+                fontFamily: {
+                    "sans": ["Inter", "sans-serif"],
+                },
+                borderRadius: {
+                    "xl": "0.75rem",
+                    "2xl": "1rem",
+                    "3xl": "1.5rem",
+                },
+                boxShadow: {
+                    'soft': '0 10px 40px -10px rgba(0, 0, 0, 0.08)',
+                    'glow': '0 0 20px rgba(33, 198, 255, 0.15)',
+                    'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                }
+            },
+        },
+    }
+</script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24 }
+</style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-text-main min-h-screen flex flex-col antialiased relative">
+<header class="flex items-center justify-between px-6 lg:px-12 py-5 bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100">
+<div class="flex items-center gap-3">
+<div class="bg-btn-dark p-2 rounded-lg text-white shadow-lg shadow-gray-900/10">
+<span class="material-symbols-outlined text-2xl">auto_awesome</span>
+</div>
+<h2 class="text-lg font-bold tracking-tight text-text-main">AI Site Builder</h2>
+</div>
+<div class="flex items-center gap-6">
+<button class="text-sm font-semibold text-text-sub hover:text-text-main transition-colors">
+            Save &amp; Exit
+        </button>
+</div>
+</header>
+<main class="flex-1 w-full max-w-xl mx-auto px-4 py-10 sm:py-16 flex flex-col gap-8">
+<div class="text-center space-y-3">
+<h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-[#212121]">
+            Find your business on Maps
+        </h1>
+<p class="text-lg text-[#525252] font-normal leading-relaxed">
+            Paste your Google Maps link below so we can verify your location and pull your business details automatically.
+        </p>
+</div>
+<form class="bg-white rounded-3xl shadow-soft border border-white/50 p-6 sm:p-10 space-y-8">
+<div class="space-y-4">
+<label class="block text-sm font-bold uppercase tracking-wide text-[#525252]" for="maps-link">
+                Google Maps Link <span class="text-red-500 ml-0.5" title="Required">*</span>
+</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-red-500 transition-colors text-[22px]">link</span>
+</div>
+<input class="w-full h-14 pl-12 pr-12 rounded-2xl border border-red-500 bg-white text-[#212121] text-base font-medium focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all placeholder:text-gray-400 shadow-sm" id="maps-link" required="" type="url" value="https://maps.google.com/search/invalid-business-link"/>
+<div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-red-500 text-[24px]">error</span>
+</div>
+</div>
+<div class="rounded-2xl bg-white border border-gray-100 p-5 shadow-lg shadow-red-100/40 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+<div class="flex gap-3 items-start sm:items-center">
+<span class="material-symbols-outlined text-red-500 shrink-0 mt-0.5 sm:mt-0">warning</span>
+<p class="text-sm font-medium text-[#525252] leading-relaxed">
+                        Oops! We couldn't find a suitable business with that link.
+                    </p>
+</div>
+<button class="shrink-0 w-full sm:w-auto px-5 py-2.5 bg-[#1A1A2E] text-white font-semibold text-sm rounded-xl shadow-lg shadow-gray-900/10 hover:shadow-gray-900/20 hover:-translate-y-0.5 transition-all" type="button">
+                    Return to Dashboard
+                </button>
+</div>
+</div>
+<div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-card flex gap-4 items-start">
+<div class="bg-blue-50 rounded-full p-2 text-blue-600 flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">lightbulb</span>
+</div>
+<div class="space-y-1">
+<h4 class="text-sm font-bold text-[#212121]">Where to find your link?</h4>
+<p class="text-sm text-[#525252] leading-relaxed">
+                    Go to <a class="underline font-semibold text-[#21C6FF] hover:text-[#1aa3d6] transition-colors" href="#">Google Maps</a>, search for your business, click the <strong>Share</strong> icon, and copy the link provided.
+                </p>
+</div>
+</div>
+<div class="pt-2 flex flex-col sm:flex-row-reverse gap-3">
+<button class="w-full py-3.5 bg-gradient-to-r from-[#21C6FF] to-blue-500 text-white text-lg font-bold rounded-xl shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:-translate-y-0.5 transition-all active:scale-[0.99] flex items-center justify-center gap-2" type="button">
+                Retry Submission
+                <span class="material-symbols-outlined text-[22px]">refresh</span>
+</button>
+<button class="w-full py-3.5 bg-[#1A1A2E] text-white text-lg font-semibold rounded-xl shadow-lg shadow-gray-900/10 hover:shadow-gray-900/20 hover:-translate-y-0.5 transition-all active:scale-[0.98]" type="button">
+                Go Back
+            </button>
+</div>
+</form>
+<div class="flex items-center justify-center gap-2 text-sm text-[#9E9E9E]">
+<span class="material-symbols-outlined text-lg">lock</span>
+<span>Your information is secure and private.</span>
+</div>
+</main>
+
+</body></html>

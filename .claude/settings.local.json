@@ -30,7 +30,9 @@
       "Bash(curl:*)",
       "Bash(npx tsc:*)",
       "Bash(gtimeout:*)",
-      "Bash(pnpm exec tsc:*)"
+      "Bash(pnpm exec tsc:*)",
+      "Skill(speckit.implement)",
+      "Bash(/Users/khoitran/Documents/Projects/huskit/website-agent/.specify/scripts/bash/check-prerequisites.sh:*)"
     ],
     "deny": [],
     "ask": []

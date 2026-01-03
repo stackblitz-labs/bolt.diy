@@ -1,0 +1,234 @@
+openapi: 3.0.3
+info:
+  title: Project Messages API (Chat Sync)
+  version: 1.0.0
+  description: |
+    API contract for syncing per-user, per-project chat history.
+
+    Key behaviors:
+    - Recent-first loading on project open (use order=desc + limit)
+    - “Load older messages” via pagination (offset increases)
+    - Append-only writes for new messages (no overwrites)
+servers:
+  - url: /
+paths:
+  /api/projects/{projectId}/messages:
+    get:
+      summary: List project chat messages (paginated)
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Project UUID (server-side identifier).
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: Sort order. Use desc to fetch most-recent first.
+      responses:
+        "200":
+          description: Messages page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [messages, total]
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProjectMessage"
+                  total:
+                    type: integer
+        "401":
+          description: Authentication required
+        "404":
+          description: Project not found
+    post:
+      summary: Save or update messages in bulk (legacy / full-sync)
+      description: |
+        Existing endpoint used by the app today. In the chat-sync feature we prefer append-only writes
+        for new messages to avoid overwrites, but this endpoint remains for full-sync and migration paths.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/ProjectMessageInput"
+      responses:
+        "200":
+          description: Save result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [saved_count]
+                properties:
+                  saved_count:
+                    type: integer
+        "400":
+          description: Invalid request body
+        "401":
+          description: Authentication required
+        "404":
+          description: Project not found
+    delete:
+      summary: Clear all chat messages for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Clear result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted_count]
+                properties:
+                  deleted_count:
+                    type: integer
+        "401":
+          description: Authentication required
+        "404":
+          description: Project not found
+
+  /api/projects/{projectId}/messages/append:
+    post:
+      summary: Append new messages (no overwrites, concurrency-safe)
+      description: |
+        Inserts only messages that do not already exist (dedupe by message_id).
+        Server allocates ordering index (sequence_num) under a per-project lock.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/ProjectMessageAppendInput"
+      responses:
+        "200":
+          description: Append result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [inserted_count]
+                properties:
+                  inserted_count:
+                    type: integer
+        "400":
+          description: Invalid request body
+        "401":
+          description: Authentication required
+        "404":
+          description: Project not found
+
+components:
+  schemas:
+    ProjectMessage:
+      type: object
+      required: [message_id, sequence_num, role, content, created_at]
+      properties:
+        message_id:
+          type: string
+        sequence_num:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          description: AI message content payload (JSON-serializable)
+          type: object
+          additionalProperties: true
+        annotations:
+          type: array
+          items: {}
+        created_at:
+          type: string
+          format: date-time
+    ProjectMessageInput:
+      type: object
+      required: [message_id, sequence_num, role, content]
+      properties:
+        message_id:
+          type: string
+        sequence_num:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: object
+          additionalProperties: true
+        annotations:
+          type: array
+          items: {}
+        created_at:
+          type: string
+          format: date-time
+    ProjectMessageAppendInput:
+      type: object
+      required: [message_id, role, content]
+      properties:
+        message_id:
+          type: string
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: object
+          additionalProperties: true
+        annotations:
+          type: array
+          items: {}
+        created_at:
+          type: string
+          format: date-time
+

@@ -14,6 +14,7 @@ import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } fro
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
+import { extractMessageAnnotations } from '~/lib/persistence/annotationHelpers';
 import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
 import { useSettings } from '~/lib/hooks/useSettings';
@@ -40,9 +41,19 @@ export function Chat() {
   renderLogger.trace('Chat');
 
   const { projectId } = useLoaderData<{ id?: string; projectId?: string | null; error?: string | null }>();
-  const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory(
-    projectId || undefined,
-  );
+  const {
+    ready,
+    initialMessages,
+    loadingState,
+    hasOlderMessages,
+    loadingOlder,
+    loadingOlderError,
+    loadOlderMessages,
+    storeMessageHistory,
+    importChat,
+    exportChat,
+    clearChatHistory,
+  } = useChatHistory(projectId || undefined);
   const title = useStore(description);
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
@@ -54,9 +65,15 @@ export function Chat() {
         <ChatImpl
           description={title}
           initialMessages={initialMessages}
+          loadingState={loadingState}
+          hasOlderMessages={hasOlderMessages}
+          loadingOlder={loadingOlder}
+          loadingOlderError={loadingOlderError}
+          loadOlderMessages={loadOlderMessages}
           exportChat={exportChat}
           storeMessageHistory={storeMessageHistory}
           importChat={importChat}
+          clearChatHistory={clearChatHistory}
         />
       )}
     </>
@@ -74,8 +91,14 @@ const processSampledMessages = createSampler(
     const { messages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
     parseMessages(messages, isLoading);
 
-    if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages).catch((error) => toast.error(error.message));
+    // Only sync messages after streaming completes to avoid syncing empty content
+    if (!isLoading && messages.length > initialMessages.length) {
+      const unsyncedMessages = messages.filter((message) => {
+        const annotations = extractMessageAnnotations(message);
+        return !annotations.includes('hidden') && !annotations.includes('no-store');
+      });
+
+      storeMessageHistory(unsyncedMessages).catch((error) => toast.error(error.message));
     }
   },
   50,
@@ -83,14 +106,32 @@ const processSampledMessages = createSampler(
 
 interface ChatProps {
   initialMessages: Message[];
+  loadingState?: import('~/types/message-loading').MessageLoadingState;
+  hasOlderMessages: boolean;
+  loadingOlder: boolean;
+  loadingOlderError: string | null;
+  loadOlderMessages: () => Promise<void>;
   storeMessageHistory: (messages: Message[]) => Promise<void>;
   importChat: (description: string, messages: Message[]) => Promise<void>;
   exportChat: () => void;
+  clearChatHistory: () => Promise<void>;
   description?: string;
 }
 
 export const ChatImpl = memo(
-  ({ description, initialMessages, storeMessageHistory, importChat, exportChat }: ChatProps) => {
+  ({
+    description,
+    initialMessages,
+    loadingState: _loadingState,
+    hasOlderMessages,
+    loadingOlder,
+    loadingOlderError,
+    loadOlderMessages,
+    storeMessageHistory,
+    importChat,
+    exportChat,
+    clearChatHistory,
+  }: ChatProps) => {
     useShortcuts();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -343,7 +384,7 @@ export const ChatImpl = memo(
         parseMessages,
         storeMessageHistory,
       });
-    }, [messages, isLoading, parseMessages]);
+    }, [messages, initialMessages, isLoading, parseMessages, storeMessageHistory]);
 
     const scrollTextArea = () => {
       const textarea = textareaRef.current;
@@ -831,6 +872,18 @@ export const ChatImpl = memo(
         description={description}
         importChat={importChat}
         exportChat={exportChat}
+        clearChatHistory={clearChatHistory}
+        hasOlderMessages={hasOlderMessages}
+        loadingOlder={loadingOlder}
+        loadingOlderError={loadingOlderError}
+        onLoadOlderMessages={async () => {
+          try {
+            await loadOlderMessages();
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to load older messages';
+            toast.error(message);
+          }
+        }}
         messages={messages.map((message, i) => {
           if (message.role === 'user') {
             return message;

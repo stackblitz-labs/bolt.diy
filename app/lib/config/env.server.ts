@@ -62,6 +62,15 @@ const envSchema = z.object({
 
   /*
    * ============================================================================
+   * Supabase Configuration
+   * ============================================================================
+   */
+  SUPABASE_URL: z.string().url('SUPABASE_URL must be a valid URL').optional(),
+  VITE_SUPABASE_URL: z.string().url('VITE_SUPABASE_URL must be a valid URL').optional(),
+  SUPABASE_SERVICE_KEY: z.string().min(1, 'SUPABASE_SERVICE_KEY is required').optional(),
+
+  /*
+   * ============================================================================
    * OpenAI API Configuration
    * ============================================================================
    */
