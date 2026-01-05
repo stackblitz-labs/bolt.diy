@@ -336,8 +336,10 @@ export async function getProjectById(projectId: string, userId: string): Promise
     throw new Error(`Failed to get project: ${error.message}`);
   }
 
-  // Prefer projects.business_profile (crawler payload) if present,
-  // otherwise fall back to tenant business_profiles join
+  /*
+   * Prefer projects.business_profile (crawler payload) if present,
+   * otherwise fall back to tenant business_profiles join
+   */
   const projectWithDetails: ProjectWithDetails = {
     ...project,
     business_profile: project.business_profile || project.tenant?.business_profiles?.[0] || null,
