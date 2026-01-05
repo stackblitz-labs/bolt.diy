@@ -243,6 +243,8 @@ export function CreateProjectDialog({
     }
 
     // Call AI generation if we have crawled data
+    let finalGeneratedContent: GeneratedContent | null = generatedContent;
+
     if (crawledData && !generatedContent) {
       setIsGenerating(true);
 
@@ -261,6 +263,7 @@ export function CreateProjectDialog({
           await response.json();
 
         if (response.ok && result.success && result.data) {
+          finalGeneratedContent = result.data;
           setGeneratedContent(result.data);
           setIsGenerating(false);
         } else {
@@ -279,14 +282,14 @@ export function CreateProjectDialog({
       }
     }
 
-    // Construct business profile
+    // Construct business profile with the generated content from API response
     const businessProfile =
-      crawledData || generatedContent
+      crawledData || finalGeneratedContent
         ? {
             session_id: sessionId,
             gmaps_url: mapsUrl.trim() || undefined,
             crawled_data: crawledData || undefined,
-            generated_content: generatedContent || undefined,
+            generated_content: finalGeneratedContent || undefined,
             crawled_at: new Date().toISOString(),
           }
         : undefined;
