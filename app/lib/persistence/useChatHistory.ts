@@ -211,6 +211,26 @@ export function useChatHistory() {
             const snapshotIndex = hasValidSnapshot
               ? storedMessages.messages.findIndex((m) => m.id === validSnapshot.chatIndex)
               : -1;
+            fetch('http://127.0.0.1:7242/ingest/86eca0d5-12b4-4cad-9248-516c38548b58', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                location: 'useChatHistory.ts:210',
+                message: 'Snapshot and rewind logic',
+                data: {
+                  hasValidSnapshot,
+                  snapshotIndex,
+                  rewindId,
+                  endingIdx,
+                  totalMessages: storedMessages.messages.length,
+                },
+                timestamp: Date.now(),
+                sessionId: 'debug-session',
+                runId: 'run1',
+                hypothesisId: 'A',
+              }),
+            }).catch(() => {});
+            // #endregion
 
             if (snapshotIndex >= 0 && snapshotIndex < endingIdx) {
               startingIdx = snapshotIndex;
@@ -226,6 +246,28 @@ export function useChatHistory() {
             if (startingIdx >= 0) {
               archivedMessages = storedMessages.messages.slice(0, startingIdx + 1);
             }
+
+            fetch('http://127.0.0.1:7242/ingest/86eca0d5-12b4-4cad-9248-516c38548b58', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                location: 'useChatHistory.ts:223',
+                message: 'After filtering messages',
+                data: {
+                  startingIdx,
+                  endingIdx,
+                  filteredCount: filteredMessages.length,
+                  archivedCount: archivedMessages.length,
+                  totalCount: storedMessages.messages.length,
+                  willShowSnapshot: hasValidSnapshot && startingIdx > 0 && snapshotIndex >= 0,
+                },
+                timestamp: Date.now(),
+                sessionId: 'debug-session',
+                runId: 'run1',
+                hypothesisId: 'A',
+              }),
+            }).catch(() => {});
+            // #endregion
 
             setArchivedMessages(archivedMessages);
 
@@ -292,6 +334,26 @@ export function useChatHistory() {
               ];
               restoreSnapshot(mixedId);
             }
+
+            fetch('http://127.0.0.1:7242/ingest/86eca0d5-12b4-4cad-9248-516c38548b58', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                location: 'useChatHistory.ts:296',
+                message: 'Setting initial messages',
+                data: {
+                  filteredMessagesCount: filteredMessages.length,
+                  messageRoles: filteredMessages.map((m) => m.role),
+                  urlId: storedMessages.urlId,
+                  chatId: storedMessages.id,
+                },
+                timestamp: Date.now(),
+                sessionId: 'debug-session',
+                runId: 'run1',
+                hypothesisId: 'A',
+              }),
+            }).catch(() => {});
+            // #endregion
 
             // Set the messages and state
             setInitialMessages(filteredMessages);
