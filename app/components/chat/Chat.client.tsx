@@ -62,13 +62,20 @@ const processSampledMessages = createSampler(
     messages: Message[];
     initialMessages: Message[];
     isLoading: boolean;
+    streamingJustCompleted: boolean;
     parseMessages: (messages: Message[], isLoading: boolean) => void;
     storeMessageHistory: (messages: Message[]) => Promise<void>;
   }) => {
-    const { messages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
+    const { messages, initialMessages, isLoading, streamingJustCompleted, parseMessages, storeMessageHistory } =
+      options;
     parseMessages(messages, isLoading);
 
-    if (messages.length > initialMessages.length) {
+    /*
+     * Save when:
+     * 1. New messages are added (count increases)
+     * 2. Streaming just completed (to capture final assistant message content)
+     */
+    if (messages.length > initialMessages.length || streamingJustCompleted) {
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
     }
   },
@@ -196,6 +203,7 @@ export const ChatImpl = memo(
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
+    const prevIsLoadingRef = useRef<boolean>(false);
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
@@ -204,10 +212,15 @@ export const ChatImpl = memo(
     }, []);
 
     useEffect(() => {
+      // Track when streaming completes (isLoading goes from true to false)
+      const streamingJustCompleted = prevIsLoadingRef.current && !isLoading;
+      prevIsLoadingRef.current = isLoading;
+
       processSampledMessages({
         messages,
         initialMessages,
         isLoading,
+        streamingJustCompleted,
         parseMessages,
         storeMessageHistory,
       });
