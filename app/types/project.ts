@@ -6,6 +6,7 @@
 // Import FileMap type for snapshots
 import type { FileMap } from '~/lib/stores/files';
 import type { JSONValue } from 'ai';
+import type { BusinessData, GeneratedContent } from './crawler';
 
 export type ProjectStatus = 'draft' | 'published' | 'archived';
 
@@ -19,6 +20,7 @@ export interface Project {
   description: string | null;
   status: ProjectStatus;
   url_id: string | null;
+  business_profile?: BusinessProfile | null; // Crawler data stored directly on projects table
   created_at: string;
   updated_at: string;
 }
@@ -49,6 +51,17 @@ export interface CreateProjectInput {
   description?: string;
   gmaps_url?: string;
   address?: Record<string, unknown>;
+  session_id?: string; // Crawler session ID (1:1 with project)
+  businessProfile?: BusinessProfile; // Crawler data and generated content
+}
+
+// Business profile data from crawler API
+export interface BusinessProfile {
+  session_id?: string;
+  gmaps_url?: string;
+  crawled_data?: BusinessData;
+  generated_content?: GeneratedContent;
+  crawled_at?: string;
 }
 
 export interface UpdateProjectInput {
@@ -69,11 +82,7 @@ export interface ProjectSummary {
 }
 
 export interface ProjectWithDetails extends Project {
-  business_profile?: {
-    gmaps_url?: string;
-    address?: Record<string, unknown>;
-    contact_info?: Record<string, unknown>;
-  } | null;
+  business_profile?: BusinessProfile | null;
 }
 
 export interface ProjectsListResponse {
