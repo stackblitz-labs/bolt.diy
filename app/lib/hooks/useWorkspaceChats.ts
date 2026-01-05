@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useWorkspace } from './useWorkspace';
 import { useAuth } from './useAuth';
 import { getSupabaseAuthClient } from '~/lib/api/supabase-auth-client';
 import type { ChatHistoryItem } from '~/lib/persistence/useChatHistory';
 import type { Message } from 'ai';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface WorkspaceChat extends ChatHistoryItem {
   workspace_id: string;
@@ -17,7 +18,7 @@ export function useWorkspaceChats() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadChats = async () => {
+  const loadChats = useCallback(async () => {
     if (!currentWorkspace || !authAuthenticated) {
       setChats([]);
       return;
@@ -58,16 +59,24 @@ export function useWorkspaceChats() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentWorkspace?.id, authAuthenticated]);
+
+  // Use ref to track if subscription is active to prevent duplicate subscriptions
+  const subscriptionRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    console.log('🔔 useEffect loadChats', currentWorkspace, authAuthenticated);
+    console.log('🔔 useEffect loadChats', currentWorkspace?.id, authAuthenticated);
 
     if (!currentWorkspace || !authAuthenticated) {
+      // Clean up subscription if workspace/auth is not available
+      if (subscriptionRef.current) {
+        const supabase = getSupabaseAuthClient();
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
+
       return;
     }
-
-    console.log('🔔 useEffect loadChats', session);
 
     const supabase = getSupabaseAuthClient();
 
@@ -76,37 +85,46 @@ export function useWorkspaceChats() {
       return;
     }
 
+    // Load chats initially
     loadChats();
 
     // Set auth token for realtime
     supabase.realtime.setAuth(session.access_token);
 
-    const channel = supabase
-      .channel(`workspace-chats:${currentWorkspace.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'chats',
-          filter: `workspace_id=eq.${currentWorkspace.id}`,
-        },
-        (payload) => {
-          console.log('🔔 Workspace chat realtime event:', payload);
+    // Only create subscription if one doesn't exist
+    if (!subscriptionRef.current) {
+      const channel = supabase
+        .channel(`workspace-chats:${currentWorkspace.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // INSERT, UPDATE, DELETE
+            schema: 'public',
+            table: 'chats',
+            filter: `workspace_id=eq.${currentWorkspace.id}`,
+          },
+          (payload) => {
+            console.log('🔔 Workspace chat realtime event:', payload);
 
-          // Reload chats when changes occur
-          loadChats();
-        },
-      )
-      .subscribe((status) => {
-        console.log('Workspace chats realtime subscription status:', status);
-      });
+            // Reload chats when changes occur
+            loadChats();
+          },
+        )
+        .subscribe((status) => {
+          console.log('Workspace chats realtime subscription status:', status);
+        });
+
+      subscriptionRef.current = channel;
+    }
 
     // eslint-disable-next-line
     return () => {
-      supabase.removeChannel(channel);
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
-  }, [currentWorkspace?.id, authAuthenticated]);
+  }, [currentWorkspace?.id, authAuthenticated, session?.access_token, loadChats]);
 
   const saveChat = async (chat: ChatHistoryItem) => {
     if (!currentWorkspace || !authAuthenticated) {

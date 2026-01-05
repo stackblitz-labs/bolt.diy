@@ -1,6 +1,7 @@
+import { getSupabaseAuthClient } from '~/lib/api/supabase-auth-client';
+import { authState } from '~/lib/stores/auth';
 import { useWorkspace } from '~/lib/hooks/useWorkspace';
 import { useAuth } from '~/lib/hooks/useAuth';
-import { getSupabaseAuthClient } from '~/lib/api/supabase-auth-client';
 import { useLoaderData, useNavigate, useSearchParams } from '@remix-run/react';
 import { useState, useEffect, useCallback } from 'react';
 import { atom } from 'nanostores';
@@ -67,17 +68,95 @@ export function useChatHistory() {
     }
 
     if (mixedId) {
-      Promise.all([
-        getMessages(db, mixedId),
-        getSnapshot(db, mixedId), // Fetch snapshot from DB
-      ])
-        .then(async ([storedMessages, snapshot]) => {
-          if (storedMessages && storedMessages.messages.length > 0) {
-            /*
-             * const snapshotStr = localStorage.getItem(`snapshot:${mixedId}`); // Remove localStorage usage
-             * const snapshot: Snapshot = snapshotStr ? JSON.parse(snapshotStr) : { chatIndex: 0, files: {} }; // Use snapshot from DB
-             */
-            const validSnapshot = snapshot || { chatIndex: '', files: {} }; // Ensure snapshot is not undefined
+      const loadChat = async () => {
+        try {
+          // First, try to load from IndexedDB
+          let storedMessages: ChatHistoryItem | undefined = await getMessages(db, mixedId);
+          let snapshot = await getSnapshot(db, mixedId);
+
+          // Check if chat was found in IndexedDB
+          const foundInIndexedDB = storedMessages && storedMessages.messages && storedMessages.messages.length > 0;
+
+          // If not found in IndexedDB and authenticated, try Supabase
+          if (!foundInIndexedDB && isAuthenticated && currentWorkspace) {
+            try {
+              const supabase = getSupabaseAuthClient();
+
+              // Get the session from authState
+              const auth = authState.get();
+
+              if (auth.session?.access_token) {
+                // Set the session on the Supabase client
+                const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+                  access_token: auth.session.access_token,
+                  refresh_token: auth.session.refresh_token,
+                });
+
+                if (!sessionError && sessionData.session) {
+                  // Convert string ID to number for Supabase
+                  const numericChatId = parseInt(mixedId, 10);
+
+                  if (!isNaN(numericChatId)) {
+                    console.log('Loading chat from Supabase:', numericChatId, 'workspace:', currentWorkspace.id);
+
+                    // Fetch chat from Supabase
+                    const { data: supabaseChat, error: fetchError } = await supabase
+                      .from('chats')
+                      .select('*')
+                      .eq('id', numericChatId)
+                      .eq('workspace_id', currentWorkspace.id)
+                      .maybeSingle();
+
+                    if (!fetchError && supabaseChat) {
+                      console.log('Chat found in Supabase:', supabaseChat.id);
+
+                      // Transform Supabase chat to ChatHistoryItem format
+                      const chatHistoryItem: ChatHistoryItem = {
+                        id: String(supabaseChat.id),
+                        urlId: String(supabaseChat.id),
+                        description: supabaseChat.title || supabaseChat.description || String(supabaseChat.id),
+                        messages: (supabaseChat.messages as Message[]) || [],
+                        timestamp: supabaseChat.created_at,
+                        metadata: supabaseChat.metadata || {},
+                      };
+
+                      // Save to IndexedDB for future use
+                      await setMessages(
+                        db,
+                        chatHistoryItem.id,
+                        chatHistoryItem.messages,
+                        chatHistoryItem.urlId,
+                        chatHistoryItem.description,
+                        undefined,
+                        chatHistoryItem.metadata,
+                      );
+
+                      storedMessages = chatHistoryItem;
+
+                      // Note: Snapshots are not stored in Supabase, so we'll use null
+                      snapshot = undefined;
+                    } else {
+                      console.warn('Chat not found in Supabase:', fetchError || 'No data returned');
+                    }
+                  } else {
+                    console.warn('Invalid chat ID format:', mixedId);
+                  }
+                } else {
+                  console.warn('Failed to set Supabase session:', sessionError);
+                }
+              } else {
+                console.warn('No session token available for Supabase');
+              }
+            } catch (error) {
+              console.error('Failed to load chat from Supabase:', error);
+
+              // Continue with IndexedDB result (which might be null)
+            }
+          }
+
+          // Process the loaded messages (existing logic)
+          if (storedMessages && storedMessages.messages && storedMessages.messages.length > 0) {
+            const validSnapshot = snapshot || { chatIndex: '', files: {} };
             const summary = validSnapshot.summary;
 
             const rewindId = searchParams.get('rewindTo');
@@ -116,42 +195,39 @@ export function useChatHistory() {
                     path: key,
                   };
                 })
-                .filter((x): x is { content: string; path: string } => !!x); // Type assertion
+                .filter((x): x is { content: string; path: string } => !!x);
               const projectCommands = await detectProjectCommands(files);
 
-              // Call the modified function to get only the command actions string
               const commandActionsString = createCommandActionsString(projectCommands);
 
               filteredMessages = [
                 {
                   id: generateId(),
                   role: 'user',
-                  content: `Restore project from snapshot`, // Removed newline
+                  content: `Restore project from snapshot`,
                   annotations: ['no-store', 'hidden'],
                 },
                 {
                   id: storedMessages.messages[snapshotIndex].id,
                   role: 'assistant',
-
-                  // Combine followup message and the artifact with files and command actions
                   content: `Bolt Restored your chat from a snapshot. You can revert this message to load the full chat history.
-                  <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
-                  ${Object.entries(snapshot?.files || {})
-                    .map(([key, value]) => {
-                      if (value?.type === 'file') {
-                        return `
-                      <boltAction type="file" filePath="${key}">
-${value.content}
-                      </boltAction>
-                      `;
-                      } else {
-                        return ``;
-                      }
-                    })
-                    .join('\n')}
-                  ${commandActionsString}
-                  </boltArtifact>
-                  `, // Added commandActionsString, followupMessage, updated id and title
+                    <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
+                    ${Object.entries(snapshot?.files || {})
+                      .map(([key, value]) => {
+                        if (value?.type === 'file') {
+                          return `
+                        <boltAction type="file" filePath="${key}">
+  ${value.content}
+                        </boltAction>
+                        `;
+                        } else {
+                          return ``;
+                        }
+                      })
+                      .join('\n')}
+                    ${commandActionsString}
+                    </boltArtifact>
+                    `,
                   annotations: [
                     'no-store',
                     ...(summary
@@ -165,41 +241,36 @@ ${value.content}
                       : []),
                   ],
                 },
-
-                // Remove the separate user and assistant messages for commands
-                /*
-                 *...(commands !== null // This block is no longer needed
-                 *  ? [ ... ]
-                 *  : []),
-                 */
                 ...filteredMessages,
               ];
               restoreSnapshot(mixedId);
             }
 
             setInitialMessages(filteredMessages);
-
             setUrlId(storedMessages.urlId);
             description.set(storedMessages.description);
             chatId.set(storedMessages.id);
             chatMetadata.set(storedMessages.metadata);
           } else {
+            console.warn('Chat not found in IndexedDB or Supabase, redirecting to home');
             navigate('/', { replace: true });
           }
 
           setReady(true);
-        })
-        .catch((error) => {
-          console.error(error);
+        } catch (error) {
+          console.error('Error loading chat:', error);
+          logStore.logError('Failed to load chat messages or snapshot', error);
+          toast.error('Failed to load chat: ' + (error instanceof Error ? error.message : 'Unknown error'));
+          setReady(true);
+        }
+      };
 
-          logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
-          toast.error('Failed to load chat: ' + error.message); // More specific error
-        });
+      loadChat();
     } else {
       // Handle case where there is no mixedId (e.g., new chat)
       setReady(true);
     }
-  }, [mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
+  }, [mixedId, db, navigate, searchParams, isAuthenticated, currentWorkspace]);
 
   const takeSnapshot = useCallback(
     async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {
