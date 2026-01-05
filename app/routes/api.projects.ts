@@ -10,7 +10,7 @@ import { getSession } from '~/lib/auth/session.server';
 import { createProject, getProjectsByUserId } from '~/lib/services/projects.server';
 import { SupabaseRlsError } from '~/lib/errors/supabase-error';
 import { PROJECT_ERROR_CODES } from '~/types/project';
-import type { CreateProjectInput, ProjectStatus } from '~/types/project';
+import type { CreateProjectInput, ProjectStatus, BusinessProfile } from '~/types/project';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.projects');
@@ -144,6 +144,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * - description?: string
  * - gmaps_url?: string
  * - address?: object
+ * - session_id?: string (crawler session)
+ * - businessProfile?: object (crawler data)
  */
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
@@ -162,6 +164,8 @@ export async function action({ request }: ActionFunctionArgs) {
       description?: unknown;
       gmaps_url?: unknown;
       address?: unknown;
+      session_id?: unknown;
+      businessProfile?: unknown;
     };
 
     // Validate required fields
@@ -193,6 +197,14 @@ export async function action({ request }: ActionFunctionArgs) {
       address:
         body.address && typeof body.address === 'object' && body.address !== null && !Array.isArray(body.address)
           ? (body.address as Record<string, unknown>)
+          : undefined,
+      session_id: typeof body.session_id === 'string' ? body.session_id : undefined,
+      businessProfile:
+        body.businessProfile &&
+        typeof body.businessProfile === 'object' &&
+        body.businessProfile !== null &&
+        !Array.isArray(body.businessProfile)
+          ? (body.businessProfile as BusinessProfile)
           : undefined,
     };
 

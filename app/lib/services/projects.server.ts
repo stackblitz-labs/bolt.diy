@@ -97,14 +97,31 @@ export async function createProject(userId: string, input: CreateProjectInput): 
     // Generate unique URL-friendly identifier
     const urlId = await generateUniqueUrlId(supabase, input.name);
 
-    // Prepare project data
-    const projectData = {
+    // Prepare project data with optional business_profile
+    const projectData: Record<string, unknown> = {
       user_id: userId,
       name: input.name,
       description: input.description || null,
       status: 'draft' as const,
       url_id: urlId,
     };
+
+    // Add business_profile if provided (from crawler integration)
+    if (input.businessProfile) {
+      logger.info('Including business profile in project creation', {
+        sessionId: input.session_id,
+        hasCrawledData: !!input.businessProfile.crawled_data,
+        hasGeneratedContent: !!input.businessProfile.generated_content,
+        mode: 'full-crawler',
+      });
+      projectData.business_profile = input.businessProfile;
+    } else {
+      // Manual fallback mode - project created with basic data only
+      logger.info('Creating project in manual fallback mode', {
+        sessionId: input.session_id,
+        mode: 'manual-fallback',
+      });
+    }
 
     // Insert project
     const { data: project, error } = await supabase.from('projects').insert(projectData).select().single();
@@ -319,10 +336,13 @@ export async function getProjectById(projectId: string, userId: string): Promise
     throw new Error(`Failed to get project: ${error.message}`);
   }
 
-  // Transform the nested business_profile data to match the expected format
+  /*
+   * Prefer projects.business_profile (crawler payload) if present,
+   * otherwise fall back to tenant business_profiles join
+   */
   const projectWithDetails: ProjectWithDetails = {
     ...project,
-    business_profile: project.tenant?.business_profiles?.[0] || null,
+    business_profile: project.business_profile || project.tenant?.business_profiles?.[0] || null,
   };
 
   // Remove the nested tenant data to avoid circular references

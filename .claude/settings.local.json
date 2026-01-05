@@ -32,7 +32,8 @@
       "Bash(gtimeout:*)",
       "Bash(pnpm exec tsc:*)",
       "Skill(speckit.implement)",
-      "Bash(/Users/khoitran/Documents/Projects/huskit/website-agent/.specify/scripts/bash/check-prerequisites.sh:*)"
+      "Bash(/Users/khoitran/Documents/Projects/huskit/website-agent/.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,612 @@
+openapi: 3.0.3
+info:
+  title: Crawler API Integration
+  description: |
+    API contract for HuskIT/crawler integration with website-agent project creation flow.
+    
+    This documents both:
+    1. External crawler API endpoints (consumed by website-agent)
+    2. Internal proxy routes (exposed by website-agent to frontend)
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:4999
+    description: Local crawler API (development)
+  - url: ${CRAWLER_API_URL}
+    description: Configured crawler API (production)
+
+tags:
+  - name: Crawler API
+    description: External crawler service endpoints
+  - name: Proxy Routes
+    description: Internal website-agent proxy routes
+
+paths:
+  # =============================================================================
+  # External Crawler API Endpoints
+  # =============================================================================
+  
+  /crawl:
+    post:
+      tags:
+        - Crawler API
+      summary: Extract business data from Google Maps
+      description: |
+        Crawls a Google Maps URL to extract business information including
+        name, address, phone, website, hours, reviews, menu, and photos.
+        
+        Results are cached by session_id - subsequent calls with same session_id
+        return cached data without re-crawling.
+      operationId: crawlGoogleMaps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrawlRequest'
+            example:
+              session_id: "proj-abc123-xyz789"
+              google_maps_url: "https://www.google.com/maps/place/Cham+Bistro/@10.7297489,106.7183338,17z"
+      responses:
+        '200':
+          description: Successful crawl or cached result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlResponse'
+        '400':
+          description: Invalid request (missing fields or invalid URL)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error during crawl
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /crawl-website:
+    post:
+      tags:
+        - Crawler API
+      summary: Crawl a website for content extraction
+      description: |
+        Crawls a website URL to extract structured content including
+        headings, sections, images, styling, and Instagram embeds.
+      operationId: crawlWebsite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrawlWebsiteRequest'
+            example:
+              url: "https://chambistro.garden/"
+              max_pages: 5
+              extract_instagram_metadata: "all"
+      responses:
+        '200':
+          description: Successful website crawl
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlWebsiteResponse'
+        '400':
+          description: Invalid URL or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Crawl failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /generate-website-content:
+    post:
+      tags:
+        - Crawler API
+      summary: Generate AI-powered website content
+      description: |
+        Uses collected Google Maps data and website content to generate
+        AI-powered website content including brand strategy, visual assets,
+        business identity, and ready-to-use content sections.
+        
+        Requires a prior /crawl call with the same session_id.
+        Results are cached - subsequent calls return cached content.
+      operationId: generateWebsiteContent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateContentRequest'
+            example:
+              session_id: "proj-abc123-xyz789"
+      responses:
+        '200':
+          description: Successfully generated or cached content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateContentResponse'
+        '400':
+          description: Session not found or data incomplete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: AI generation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # =============================================================================
+  # Internal Proxy Routes (website-agent)
+  # =============================================================================
+
+  /api/crawler/extract:
+    post:
+      tags:
+        - Proxy Routes
+      summary: Extract business data (proxied)
+      description: |
+        Frontend-facing endpoint that proxies to crawler /crawl endpoint.
+        Handles timeout, error transformation, and session tracking.
+      operationId: proxyExtractBusinessData
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - session_id
+                - google_maps_url
+              properties:
+                session_id:
+                  type: string
+                  description: UUID for this project creation session
+                google_maps_url:
+                  type: string
+                  description: Google Maps URL to crawl
+      responses:
+        '200':
+          description: Business data extracted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlResponse'
+        '401':
+          description: Authentication required
+        '408':
+          description: Request timeout (60 seconds exceeded)
+        '502':
+          description: Crawler API unavailable
+
+  /api/crawler/generate:
+    post:
+      tags:
+        - Proxy Routes
+      summary: Generate website content (proxied)
+      description: |
+        Frontend-facing endpoint that proxies to crawler /generate-website-content.
+        Handles timeout, error transformation, and content storage.
+      operationId: proxyGenerateContent
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - session_id
+              properties:
+                session_id:
+                  type: string
+                  description: Session ID from prior extract call
+      responses:
+        '200':
+          description: Website content generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateContentResponse'
+        '401':
+          description: Authentication required
+        '408':
+          description: Request timeout
+        '502':
+          description: Crawler API unavailable
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+      description: Better Auth session cookie
+
+  schemas:
+    CrawlRequest:
+      type: object
+      required:
+        - session_id
+        - google_maps_url
+      properties:
+        session_id:
+          type: string
+          description: Unique session identifier (UUID)
+          example: "proj-abc123-xyz789"
+        google_maps_url:
+          type: string
+          format: uri
+          description: Google Maps place URL
+          example: "https://www.google.com/maps/place/..."
+
+    CrawlResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/BusinessData'
+        error:
+          type: string
+
+    BusinessData:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        website:
+          type: string
+          format: uri
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+        reviews_count:
+          type: integer
+        hours:
+          type: object
+          additionalProperties:
+            type: string
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        menu:
+          $ref: '#/components/schemas/Menu'
+        photos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Photo'
+
+    Review:
+      type: object
+      required:
+        - author
+        - rating
+        - text
+        - date
+      properties:
+        author:
+          type: string
+        rating:
+          type: number
+        text:
+          type: string
+        date:
+          type: string
+
+    Menu:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/MenuCategory'
+
+    MenuCategory:
+      type: object
+      required:
+        - name
+        - items
+      properties:
+        name:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MenuItem'
+
+    MenuItem:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        price:
+          type: string
+        description:
+          type: string
+
+    Photo:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+        type:
+          type: string
+
+    CrawlWebsiteRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+        max_pages:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        extract_instagram_metadata:
+          type: string
+          enum: [all, posts, reels, none]
+          default: all
+
+    CrawlWebsiteResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/WebsiteContent'
+        error:
+          type: string
+
+    WebsiteContent:
+      type: object
+      properties:
+        url:
+          type: string
+        pages:
+          type: integer
+        crawledPages:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrawledPage'
+        allImages:
+          type: array
+          items:
+            type: string
+        paragraphs:
+          type: array
+          items:
+            type: string
+        styling:
+          $ref: '#/components/schemas/StylingInfo'
+        instagramPosts:
+          type: array
+          items:
+            type: object
+        businessInfo:
+          type: object
+
+    CrawledPage:
+      type: object
+      properties:
+        url:
+          type: string
+        pageNumber:
+          type: integer
+        headings:
+          type: object
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/PageSection'
+
+    PageSection:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [hero, about, services, products, testimonials, contact, gallery, team, other]
+        heading:
+          type: string
+        content:
+          type: string
+        images:
+          type: array
+          items:
+            type: object
+        keywords:
+          type: array
+          items:
+            type: string
+
+    StylingInfo:
+      type: object
+      properties:
+        fonts:
+          type: array
+          items:
+            type: string
+        backgroundColors:
+          type: array
+          items:
+            type: string
+        textColors:
+          type: array
+          items:
+            type: string
+
+    GenerateContentRequest:
+      type: object
+      required:
+        - session_id
+      properties:
+        session_id:
+          type: string
+
+    GenerateContentResponse:
+      type: object
+      required:
+        - success
+        - session_id
+      properties:
+        success:
+          type: boolean
+        session_id:
+          type: string
+        data:
+          $ref: '#/components/schemas/GeneratedContent'
+        error:
+          type: string
+
+    GeneratedContent:
+      type: object
+      properties:
+        brandStrategy:
+          $ref: '#/components/schemas/BrandStrategy'
+        visualAssets:
+          $ref: '#/components/schemas/VisualAssets'
+        businessIdentity:
+          $ref: '#/components/schemas/BusinessIdentity'
+        industryContext:
+          $ref: '#/components/schemas/IndustryContext'
+        reputationData:
+          $ref: '#/components/schemas/ReputationData'
+        contentSections:
+          type: object
+        extractedData:
+          type: object
+
+    BrandStrategy:
+      type: object
+      properties:
+        usp:
+          type: string
+        targetAudience:
+          type: string
+        toneOfVoice:
+          type: string
+        visualStyle:
+          type: string
+
+    VisualAssets:
+      type: object
+      properties:
+        colorPalette:
+          $ref: '#/components/schemas/ColorPalette'
+        typography:
+          $ref: '#/components/schemas/Typography'
+        logo:
+          type: object
+
+    ColorPalette:
+      type: object
+      properties:
+        primary:
+          type: string
+        secondary:
+          type: string
+        accent:
+          type: string
+        background:
+          type: array
+          items:
+            type: string
+        text:
+          type: array
+          items:
+            type: string
+
+    Typography:
+      type: object
+      properties:
+        headingFont:
+          type: string
+        bodyFont:
+          type: string
+        allFonts:
+          type: array
+          items:
+            type: string
+
+    BusinessIdentity:
+      type: object
+      properties:
+        legalName:
+          type: string
+        displayName:
+          type: string
+        tagline:
+          type: string
+        description:
+          type: string
+
+    IndustryContext:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            type: string
+        pricingTier:
+          type: string
+        operationalHighlights:
+          type: array
+          items:
+            type: string
+
+    ReputationData:
+      type: object
+      properties:
+        reviewsCount:
+          type: integer
+        averageRating:
+          type: number
+        trustBadges:
+          type: array
+          items:
+            type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: string
+
