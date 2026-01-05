@@ -12,7 +12,7 @@ export interface WorkspaceChat extends ChatHistoryItem {
 
 export function useWorkspaceChats() {
   const { currentWorkspace } = useWorkspace();
-  const { isAuthenticated: authAuthenticated } = useAuth();
+  const { isAuthenticated: authAuthenticated, session } = useAuth();
   const [chats, setChats] = useState<WorkspaceChat[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +40,9 @@ export function useWorkspaceChats() {
 
       // Transform Supabase chats to ChatHistoryItem format
       const transformedChats: WorkspaceChat[] = (data || []).map((chat) => ({
-        id: chat.id,
-        urlId: chat.id,
-        description: chat.title || chat.description || chat.id,
+        id: String(chat.id), // Convert bigint to string
+        urlId: String(chat.id),
+        description: chat.title || chat.description || String(chat.id),
         messages: (chat.messages as Message[]) || [],
         timestamp: chat.created_at,
         metadata: chat.metadata || {},
@@ -61,11 +61,51 @@ export function useWorkspaceChats() {
   };
 
   useEffect(() => {
-    if (currentWorkspace && authAuthenticated) {
-      loadChats();
-    } else {
-      setChats([]);
+    console.log('🔔 useEffect loadChats', currentWorkspace, authAuthenticated);
+
+    if (!currentWorkspace || !authAuthenticated) {
+      return;
     }
+
+    console.log('🔔 useEffect loadChats', session);
+
+    const supabase = getSupabaseAuthClient();
+
+    if (!session?.access_token) {
+      console.log('🔔 useEffect loadChats no session');
+      return;
+    }
+
+    loadChats();
+
+    // Set auth token for realtime
+    supabase.realtime.setAuth(session.access_token);
+
+    const channel = supabase
+      .channel(`workspace-chats:${currentWorkspace.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'chats',
+          filter: `workspace_id=eq.${currentWorkspace.id}`,
+        },
+        (payload) => {
+          console.log('🔔 Workspace chat realtime event:', payload);
+
+          // Reload chats when changes occur
+          loadChats();
+        },
+      )
+      .subscribe((status) => {
+        console.log('Workspace chats realtime subscription status:', status);
+      });
+
+    // eslint-disable-next-line
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentWorkspace?.id, authAuthenticated]);
 
   const saveChat = async (chat: ChatHistoryItem) => {
@@ -81,8 +121,14 @@ export function useWorkspaceChats() {
         throw new Error('Not authenticated');
       }
 
+      const numericChatId = parseInt(chat.id, 10);
+
+      if (isNaN(numericChatId)) {
+        throw new Error('Invalid chat ID format');
+      }
+
       // Check if chat exists
-      const { data: existingChat } = await supabase.from('chats').select('id').eq('id', chat.id).single();
+      const { data: existingChat } = await supabase.from('chats').select('id').eq('id', numericChatId).single();
 
       if (existingChat) {
         // Update existing chat
@@ -135,11 +181,17 @@ export function useWorkspaceChats() {
     }
 
     try {
+      const numericChatId = parseInt(chatId, 10);
+
+      if (isNaN(numericChatId)) {
+        throw new Error('Invalid chat ID format');
+      }
+
       const supabase = getSupabaseAuthClient();
       const { error: deleteError } = await supabase
         .from('chats')
         .delete()
-        .eq('id', chatId)
+        .eq('id', numericChatId)
         .eq('workspace_id', currentWorkspace.id);
 
       if (deleteError) {

@@ -166,18 +166,55 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
   });
 }
 
+// Update getNextId function (around line 169)
 export async function getNextId(db: IDBDatabase): Promise<string> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction('chats', 'readonly');
-    const store = transaction.objectStore('chats');
-    const request = store.getAllKeys();
+    try {
+      // First, check IndexedDB for highest ID
+      const transaction = db.transaction('chats', 'readonly');
+      const store = transaction.objectStore('chats');
+      const request = store.getAllKeys();
 
-    request.onsuccess = () => {
-      const highestId = request.result.reduce((cur, acc) => Math.max(+cur, +acc), 0);
-      resolve(String(+highestId + 1));
-    };
+      request.onsuccess = async () => {
+        const localHighestId = request.result.reduce((cur, acc) => Math.max(+cur, +acc), 0);
 
-    request.onerror = () => reject(request.error);
+        // Also check Supabase for the highest ID
+        let supabaseHighestId = 0;
+
+        try {
+          const { getSupabaseAuthClient } = await import('~/lib/api/supabase-auth-client');
+
+          // Get current workspace and auth state
+          const workspaceState = (await import('~/lib/stores/workspace')).workspaceState.get();
+          const authState = (await import('~/lib/stores/auth')).authState.get();
+
+          if (workspaceState.currentWorkspace && authState.isAuthenticated) {
+            const supabase = getSupabaseAuthClient();
+            const { data, error } = await supabase
+              .from('chats')
+              .select('id')
+              .eq('workspace_id', workspaceState.currentWorkspace.id)
+              .order('id', { ascending: false })
+              .limit(1);
+
+            if (!error && data && data.length > 0) {
+              // Convert bigint to number
+              supabaseHighestId = typeof data[0].id === 'number' ? data[0].id : parseInt(String(data[0].id), 10);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to check Supabase for highest ID, using local only:', error);
+        }
+
+        // Use the highest ID from both sources
+        const highestId = Math.max(+localHighestId, supabaseHighestId);
+        resolve(String(highestId + 1));
+      };
+
+      request.onerror = () => reject(request.error);
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 

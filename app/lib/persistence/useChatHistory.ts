@@ -1,3 +1,6 @@
+import { useWorkspace } from '~/lib/hooks/useWorkspace';
+import { useAuth } from '~/lib/hooks/useAuth';
+import { getSupabaseAuthClient } from '~/lib/api/supabase-auth-client';
 import { useLoaderData, useNavigate, useSearchParams } from '@remix-run/react';
 import { useState, useEffect, useCallback } from 'react';
 import { atom } from 'nanostores';
@@ -43,7 +46,8 @@ export function useChatHistory() {
   const navigate = useNavigate();
   const { id: mixedId } = useLoaderData<{ id?: string }>();
   const [searchParams] = useSearchParams();
-
+  const { currentWorkspace } = useWorkspace();
+  const { isAuthenticated } = useAuth();
   const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState<boolean>(false);
@@ -145,7 +149,7 @@ ${value.content}
                       }
                     })
                     .join('\n')}
-                  ${commandActionsString} 
+                  ${commandActionsString}
                   </boltArtifact>
                   `, // Added commandActionsString, followupMessage, updated id and title
                   annotations: [
@@ -254,6 +258,93 @@ ${value.content}
 
     // workbenchStore.files.setKey(snapshot?.files)
   }, []);
+  const saveChatToSupabase = useCallback(
+    async (
+      chatId: string,
+      messages: Message[],
+      description: string | undefined,
+      metadata: IChatMetadata | undefined,
+    ) => {
+      // Only save to Supabase if authenticated and workspace exists
+      if (!isAuthenticated || !currentWorkspace) {
+        return;
+      }
+
+      try {
+        const supabase = getSupabaseAuthClient();
+
+        const { data: user } = await supabase.auth.getUser();
+
+        console.log('user', user);
+
+        if (!user.user) {
+          console.warn('Not authenticated, skipping Supabase save');
+          return;
+        }
+
+        // Check if chat already exists in Supabase
+        const { data: existingChat } = await supabase
+          .from('chats')
+          .select('id, messages')
+          .eq('id', chatId)
+          .maybeSingle();
+
+        const chatData = {
+          workspace_id: currentWorkspace.id,
+          title: description || chatId,
+          description: description || chatId,
+          messages: messages || [],
+          metadata: metadata || {},
+          updated_at: new Date().toISOString(),
+        };
+
+        if (existingChat) {
+          // Check if messages actually changed to avoid unnecessary updates
+          const currentMessages = (existingChat.messages as Message[]) || [];
+          const messagesChanged =
+            currentMessages.length !== messages.length ||
+            JSON.stringify(currentMessages.map((m) => m.id)) !== JSON.stringify(messages.map((m) => m.id));
+
+          if (!messagesChanged) {
+            console.log('Messages unchanged, skipping Supabase update');
+            return;
+          }
+
+          // Update existing chat
+          const { error: updateError } = await supabase.from('chats').update(chatData).eq('id', chatId);
+
+          if (updateError) {
+            console.error('Failed to update chat in Supabase:', updateError);
+
+            // Don't throw - continue with IndexedDB only
+          } else {
+            console.log('Chat updated in Supabase:', chatId);
+          }
+        } else {
+          // Create new chat
+          const { error: insertError } = await supabase.from('chats').insert({
+            id: chatId,
+            ...chatData,
+            created_by: user.user.id,
+            created_at: new Date().toISOString(),
+          });
+
+          if (insertError) {
+            console.error('Failed to create chat in Supabase:', insertError);
+
+            // Don't throw - continue with IndexedDB only
+          } else {
+            console.log('Chat created in Supabase:', chatId);
+          }
+        }
+      } catch (error) {
+        console.error('Error saving chat to Supabase:', error);
+
+        // Don't throw - continue with IndexedDB only
+      }
+    },
+    [isAuthenticated, currentWorkspace],
+  );
 
   return {
     ready: !mixedId || ready,
@@ -268,6 +359,8 @@ ${value.content}
       try {
         await setMessages(db, id, initialMessages, urlId, description.get(), undefined, metadata);
         chatMetadata.set(metadata);
+
+        await saveChatToSupabase(id, initialMessages, description.get(), metadata);
       } catch (error) {
         toast.error('Failed to update chat metadata');
         console.error(error);
@@ -341,6 +434,8 @@ ${value.content}
         undefined,
         chatMetadata.get(),
       );
+
+      await saveChatToSupabase(finalChatId, [...archivedMessages, ...messages], description.get(), chatMetadata.get());
     },
     duplicateCurrentChat: async (listItemId: string) => {
       if (!db || (!mixedId && !listItemId)) {

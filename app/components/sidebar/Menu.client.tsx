@@ -1,3 +1,5 @@
+import { useWorkspaceChats } from '~/lib/hooks/useWorkspaceChats';
+import { useAuth } from '~/lib/hooks/useAuth';
 import { motion, type Variants } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -14,7 +16,6 @@ import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
-import { useAuth } from '~/lib/hooks/useAuth';
 
 const menuVariants = {
   closed: {
@@ -76,6 +77,8 @@ export const Menu = () => {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
+  const { chats: workspaceChats, isLoading: isLoadingWorkspaceChats } = useWorkspaceChats();
+
   // Use auth user data if available, otherwise fall back to profile
   const displayName = user?.display_name || user?.username || profile?.username || 'Guest User';
   const email = user?.email || '';
@@ -85,14 +88,68 @@ export const Menu = () => {
     searchFields: ['description'],
   });
 
-  const loadEntries = useCallback(() => {
+  const loadEntries = useCallback(async () => {
+    const allChats: ChatHistoryItem[] = [];
+
+    // Load from IndexedDB
     if (db) {
-      getAll(db)
-        .then((list) => list.filter((item) => item.urlId && item.description))
-        .then(setList)
-        .catch((error) => toast.error(error.message));
+      try {
+        const localChats = await getAll(db);
+        allChats.push(...localChats.filter((item) => item.urlId && item.description));
+      } catch (error) {
+        console.error('Failed to load chats from IndexedDB:', error);
+        toast.error('Failed to load local chats');
+      }
     }
-  }, []);
+
+    // Load from Supabase workspace chats (if authenticated)
+    if (isAuthenticated && workspaceChats.length > 0) {
+      /*
+       * Convert workspace chats to ChatHistoryItem format
+       * Note: chat.id is bigint from Supabase, convert to string
+       */
+      const supabaseChats: ChatHistoryItem[] = workspaceChats.map((chat) => ({
+        id: String(chat.id), // Convert bigint to string
+        urlId: String(chat.id),
+        description: chat.description,
+        messages: chat.messages,
+        timestamp: chat.timestamp,
+        metadata: chat.metadata,
+      }));
+
+      // Merge with local chats, avoiding duplicates
+      const existingIds = new Set(allChats.map((c) => c.id));
+      supabaseChats.forEach((chat) => {
+        if (!existingIds.has(chat.id)) {
+          allChats.push(chat);
+        } else {
+          // Update existing chat with Supabase data (more recent)
+          const index = allChats.findIndex((c) => c.id === chat.id);
+
+          if (index >= 0) {
+            allChats[index] = chat;
+          }
+        }
+      });
+    }
+
+    // Sort by timestamp (most recent first)
+    allChats.sort((a, b) => {
+      const timeA = new Date(a.timestamp).getTime();
+      const timeB = new Date(b.timestamp).getTime();
+
+      return timeB - timeA;
+    });
+
+    setList(allChats);
+  }, [db, isAuthenticated, workspaceChats]);
+
+  // Reload when workspace chats change
+  useEffect(() => {
+    if (!isLoadingWorkspaceChats) {
+      loadEntries();
+    }
+  }, [workspaceChats, isLoadingWorkspaceChats, loadEntries]);
 
   const deleteChat = useCallback(
     async (id: string): Promise<void> => {
