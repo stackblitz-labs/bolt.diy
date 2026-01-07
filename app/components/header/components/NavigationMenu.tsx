@@ -14,7 +14,7 @@ import { cn } from '~/lib/utils';
 //   {
 //     title: "Quick Start Guide",
 //     href: "/getting-started",
-//     description: "Learn the basics of building apps with Replay.Builder",
+//     description: "Learn the basics of building apps with Replay Builder",
 //   },
 //   {
 //     title: "Documentation",
@@ -58,7 +58,7 @@ export function NavigationMenuComponent() {
           </NavigationMenuLink>
         </NavigationMenuItem>
 
-        {/* Getting Started with Replay.Builder - Dropdown */}
+        {/* Getting Started with Replay Builder - Dropdown */}
         {/* <NavigationMenuItem>
           <NavigationMenuTrigger
             className={cn(
@@ -69,7 +69,7 @@ export function NavigationMenuComponent() {
               "px-4 py-2 text-sm font-medium"
             )}
           >
-            Getting Started with Replay.Builder
+            Getting Started with Replay Builder
           </NavigationMenuTrigger>
           <NavigationMenuContent>
             <div className="w-[400px] p-4 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-lg shadow-lg">

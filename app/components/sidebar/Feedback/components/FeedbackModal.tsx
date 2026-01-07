@@ -98,7 +98,7 @@ const GlobalFeedbackModal = () => {
               </div>
               <h2 className="text-3xl font-bold mb-4 text-bolt-elements-textHeading">Share Your Feedback</h2>
               <p className="text-bolt-elements-textSecondary text-lg">
-                Let us know how Replay.Builder is doing or report any issues you've encountered.
+                Let us know how Replay Builder is doing or report any issues you've encountered.
               </p>
             </div>
 

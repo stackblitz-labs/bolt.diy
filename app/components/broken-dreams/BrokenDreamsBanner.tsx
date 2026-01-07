@@ -24,8 +24,8 @@ const BrokenDreamsBanner = () => {
         <div>
           <p className="text-white font-medium text-sm sm:text-base">
             {!isSmallViewport
-              ? 'Rebuild your vibe-broken apps with Replay.Builder.'
-              : 'Rebuild your apps with Replay.Builder.'}
+              ? 'Rebuild your vibe-broken apps with Replay Builder.'
+              : 'Rebuild your apps with Replay Builder.'}
           </p>
         </div>
         <div className="ml-4">

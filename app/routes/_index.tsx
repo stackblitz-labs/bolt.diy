@@ -12,7 +12,7 @@ import { buildAccessStore } from '~/lib/stores/buildAccess';
 import { BaseChat } from '~/components/chat/BaseChat/BaseChat';
 
 export const meta: MetaFunction = () => {
-  return [{ title: 'Replay.Builder' }];
+  return [{ title: 'Replay Builder' }];
 };
 
 export const loader = () => json({});

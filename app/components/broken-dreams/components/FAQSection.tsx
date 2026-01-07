@@ -12,14 +12,14 @@ export const FaqSection = () => {
 
   const faqItems: FAQItem[] = [
     {
-      question: 'Do I need to create a Replay.Builder account before submitting my app?',
+      question: 'Do I need to create a Replay Builder account before submitting my app?',
       answer:
-        'Yes, it would make things easier if you create an account before filling out the submission form, and be sure to use the same email that is connected to your Replay.Builder account.',
+        'Yes, it would make things easier if you create an account before filling out the submission form, and be sure to use the same email that is connected to your Replay Builder account.',
     },
     {
-      question: 'What makes Replay.Builder different than other vibecoding tools out there?',
+      question: 'What makes Replay Builder different than other vibecoding tools out there?',
       answer:
-        "This is our favorite question to answer. Other vibecoding tools are simply wrappers on an LLM. This is why it's so common that people get into debugging death spirals. The LLMs are just not great at iterating and evolving code. They hallucinate, they lose context, and one small change can lead you down a path of frustration.\n\nReplay.Builder was built from the ground up with a different philosophy that, hey, AI (LLMs) writes buggy code. Accepting that fact, we built Replay.Builder around our already existing code debugging tools. Replay.Builder thoroughly tests your app from top to bottom, front-end to back-end, and instructs the LLM what went wrong and how to fix it.",
+        "This is our favorite question to answer. Other vibecoding tools are simply wrappers on an LLM. This is why it's so common that people get into debugging death spirals. The LLMs are just not great at iterating and evolving code. They hallucinate, they lose context, and one small change can lead you down a path of frustration.\n\nReplayBuilder was built from the ground up with a different philosophy that, hey, AI (LLMs) writes buggy code. Accepting that fact, we built Replay Builder around our already existing code debugging tools. Replay Builder thoroughly tests your app from top to bottom, front-end to back-end, and instructs the LLM what went wrong and how to fix it.",
     },
     {
       question: 'Am I required to become a paying customer?',
@@ -29,12 +29,12 @@ export const FaqSection = () => {
     {
       question: "What if you can't help me get my app working?",
       answer:
-        "Well, we hope that won't be the case, but there are one or two realists on the team that admit that this could be a possibility. The good news is that you wouldn't have wasted money (but I suppose we would have. hmmm).\n\nWe'll be honest though, Replay.Builder can't build everything under the sun. Right now, it's really quite good at building full-stack web apps (CRUD apps as they're called, for Create, Read, Update, Delete).\n\nSo if you want to build a slick iOS app, well, we're not there yet. Also, if you're trying to beat Zuck by building the next version of Facebook to support over a billion daily active users, then we can't help you with that either—yet!",
+        "Well, we hope that won't be the case, but there are one or two realists on the team that admit that this could be a possibility. The good news is that you wouldn't have wasted money (but I suppose we would have. hmmm).\n\nWe'll be honest though, Replay Builder can't build everything under the sun. Right now, it's really quite good at building full-stack web apps (CRUD apps as they're called, for Create, Read, Update, Delete).\n\nSo if you want to build a slick iOS app, well, we're not there yet. Also, if you're trying to beat Zuck by building the next version of Facebook to support over a billion daily active users, then we can't help you with that either—yet!",
     },
     {
       question: 'What makes the team confident they can rebuild my broken app, anyway?',
       answer:
-        "So glad you asked! Our team has been spending their careers creating code debugging software, and it turns out that vibecoding with AI writes a lot of buggy code (go figure!). We built Replay.Builder around our core deterministic debugging tools, which makes us very very different from all of the other vibecoder tools out there.\n\nWe are NOT just a wrapper on an LLM. Replay.Builder writes code, but it also writes automated tests to verify that the code it wrote actually works. When it doesn't work, we use our baked-in debugging software (Replay) to analyze what happened in your entire code base, and helps the AI fix it.",
+        "So glad you asked! Our team has been spending their careers creating code debugging software, and it turns out that vibecoding with AI writes a lot of buggy code (go figure!). We built Replay Builder around our core deterministic debugging tools, which makes us very very different from all of the other vibecoder tools out there.\n\nWe are NOT just a wrapper on an LLM. Replay Builder writes code, but it also writes automated tests to verify that the code it wrote actually works. When it doesn't work, we use our baked-in debugging software (Replay) to analyze what happened in your entire code base, and helps the AI fix it.",
     },
   ];
 

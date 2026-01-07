@@ -1,4 +1,4 @@
-// Client messages match the format used by the Replay.Builder protocol.
+// Client messages match the format used by the Replay Builder protocol.
 
 type MessageRole = 'user' | 'assistant';
 

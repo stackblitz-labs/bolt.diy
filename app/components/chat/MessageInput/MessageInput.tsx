@@ -513,7 +513,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               What would you like{' '}
             </span>
             <span className="text-rose-500 font-medium animate-pulse animation-delay-200">
-              Replay.Builder to build?
+              Replay Builder to build?
             </span>
           </div>
         )}
@@ -773,7 +773,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 function getPlaceholderText(chatStarted: boolean, hasAppSummary: boolean) {
   if (!chatStarted) {
     // There is no app and no messages have been sent yet.
-    return 'What would you like Replay.Builder to build? Click here';
+    return 'What would you like Replay Builder to build? Click here';
   }
 
   if (!hasAppSummary) {

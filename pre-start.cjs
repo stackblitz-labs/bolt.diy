@@ -16,7 +16,7 @@ let commitJson = {
 
 console.log(`
 ★═══════════════════════════════════════★
-            REPLAY.BUILDER
+            REPLAY BUILDER
          ⚡️  Welcome  ⚡️
 ★═══════════════════════════════════════★
 `);

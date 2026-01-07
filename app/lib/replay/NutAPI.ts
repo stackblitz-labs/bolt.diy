@@ -3,7 +3,7 @@ import type { VisitData } from '~/lib/replay/SendChatMessage';
 
 type ResponseCallback = (response: any) => void;
 
-// Call the Replay.Builder API with the specified method and params.
+// Call the Replay Builder API with the specified method and params.
 //
 // If a response callback is provided, responses are expected to be newline-delimited JSON
 // and the callback will be called with each entry.

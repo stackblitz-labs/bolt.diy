@@ -7,7 +7,7 @@ export const HeroSection = () => {
         </span>
         <br />
         <span className="bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
-          with Replay.Builder
+          with Replay Builder
         </span>
       </h1>
 
@@ -25,7 +25,7 @@ export const HeroSection = () => {
       </a>
 
       <p className="text-sm text-bolt-elements-textSecondary mt-6 max-w-2xl mx-auto">
-        Replay.Builder is focused on building web apps. So if you are looking to build native iOS/Android apps, desktop
+        Replay Builder is focused on building web apps. So if you are looking to build native iOS/Android apps, desktop
         apps or Chrome extensions, we're not ready for you...yet.
       </p>
     </div>

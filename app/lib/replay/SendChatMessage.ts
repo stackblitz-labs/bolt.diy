@@ -57,7 +57,7 @@ export function shouldDisplayMessage(message: Message) {
 const SHORT_POLL_INTERVAL = 10000;
 
 // We use a belt-and-suspenders approach to gathering responses where we both do
-// long polling while calling the Replay.Builder API and occasional short polling to see if
+// long polling while calling the Replay Builder API and occasional short polling to see if
 // there are other responses we haven't received yet for some reason. This covers
 // for cases where long polling does not return responses in a timely fashion.
 async function pollResponses(appId: string, onResponse: ChatResponseCallback, callback: () => Promise<void>) {

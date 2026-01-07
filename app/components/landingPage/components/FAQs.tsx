@@ -10,20 +10,20 @@ interface FAQ {
 export default function Faqs() {
   const faqs: FAQ[] = [
     {
-      question: 'What makes Replay.Builder so good at debugging code?',
+      question: 'What makes Replay Builder so good at debugging code?',
       answer: (
         <div className="flex flex-col gap-4 text-balance">
           <p>
-            Our secret sauce is Replay, our powerful code debugging tool. Before building Replay.Builder, the team at
+            Our secret sauce is Replay, our powerful code debugging tool. Before building Replay Builder, the team at
             Replay built an insanely good deterministic browser-based code debugger that recorded billions of activities
             as your code runs and makes sense of it all to then correct issues.
           </p>
-          <p>Replay.Builder was built with this core debugging engine inside it.</p>
+          <p>Replay Builder was built with this core debugging engine inside it.</p>
         </div>
       ),
     },
     {
-      question: 'Can I use Replay.Builder for free?',
+      question: 'Can I use Replay Builder for free?',
       answer: (
         <p className="text-balance">
           It's the age-old question. Short answer is, yes. All new customers start on the Free plan, where you can build
@@ -36,7 +36,7 @@ export default function Faqs() {
       answer: (
         <div className="flex flex-col gap-4 text-balance">
           <p>
-            Yes, you can. If you cancel your plan, you can continue using Replay.Builder to build your apps until you
+            Yes, you can. If you cancel your plan, you can continue using Replay Builder to build your apps until you
             reach the end of the current billing cycle.
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function Faqs() {
             <span className="text-rose-500 dark:text-rose-400">questions</span>
           </h1>
           <p className="text-lg md:text-xl text-bolt-elements-textSecondary max-w-3xl">
-            Everything you need to know about Replay.Builder
+            Everything you need to know about Replay Builder
           </p>
         </div>
 
