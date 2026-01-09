@@ -91,6 +91,7 @@ export default defineConfig((config) => {
         'saas-botegram.fly.dev',  // Tu dominio
         '.fly.dev'                // Cualquier subdominio .fly.dev
       ],
+      http2: false,  // Fuerza HTTP/1.1
       // Opcional: allowedHosts: true  // Para testing rápido (menos seguro)
     },
 
