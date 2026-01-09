@@ -1,12 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { LandingPageIndexEntry, LandingPageContent } from '~/lib/replay/ReferenceApps';
-import { REFERENCE_APP_PLACEHOLDER_PHOTO, getLandingPageContent } from '~/lib/replay/ReferenceApps';
+import {
+  // REFERENCE_APP_PLACEHOLDER_PHOTO,
+  getLandingPageContent,
+} from '~/lib/replay/ReferenceApps';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 import { assert } from '~/utils/nut';
 import { database } from '~/lib/persistence/apps';
 import { getRepositoryURL } from '~/lib/replay/DevelopmentServer';
 import AppView, { type ResizeSide } from '~/components/workbench/Preview/components/AppView';
+import { X, Sparkles, Check, ExternalLink, Monitor, ZoomIn } from 'lucide-react';
 
 interface ReferenceAppLandingPageProps {
   app: LandingPageIndexEntry;
@@ -14,12 +18,148 @@ interface ReferenceAppLandingPageProps {
   onClose: () => void;
 }
 
+// Stage badge component for consistent styling
+const StageBadge: React.FC<{ stage: string }> = ({ stage }) => {
+  const stageStyles = {
+    Release: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20',
+    Beta: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-blue-500/20',
+    Alpha: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-500/20',
+  };
+
+  const style = stageStyles[stage as keyof typeof stageStyles] || stageStyles.Alpha;
+
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ring-1 ring-inset ${style}`}
+    >
+      {stage}
+    </span>
+  );
+};
+
+// Feature card component
+const FeatureCard: React.FC<{
+  name: string;
+  description: string;
+  artifactURLs?: string[];
+  onImageClick?: (url: string) => void;
+}> = ({ name, description, artifactURLs, onImageClick }) => {
+  return (
+    <div className="group relative bg-gradient-to-br from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-1 rounded-xl p-5 border border-bolt-elements-borderColor hover:border-rose-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-rose-500/5">
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="text-base font-semibold text-bolt-elements-textPrimary mb-1.5 group-hover:text-rose-500 transition-colors">
+            {name}
+          </h4>
+          <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">{description}</p>
+        </div>
+      </div>
+
+      {artifactURLs && artifactURLs.length > 0 && (
+        <div className="mt-4 flex gap-3 flex-wrap">
+          {artifactURLs.map((url, urlIndex) => {
+            const isVideo =
+              url.toLowerCase().endsWith('.webm') ||
+              url.toLowerCase().endsWith('.mp4') ||
+              url.toLowerCase().endsWith('.mov');
+
+            return isVideo ? (
+              <div
+                key={urlIndex}
+                className="relative rounded-lg overflow-hidden border border-bolt-elements-borderColor shadow-sm"
+              >
+                <video src={url} controls playsInline preload="metadata" className="max-w-xs h-auto">
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            ) : (
+              <button
+                key={urlIndex}
+                type="button"
+                onClick={() => onImageClick?.(url)}
+                className="relative group/img rounded-lg overflow-hidden border border-bolt-elements-borderColor shadow-sm hover:shadow-lg hover:border-rose-500/50 transition-all cursor-zoom-in"
+              >
+                <img src={url} alt={`${name} preview ${urlIndex + 1}`} className="max-w-xs h-auto" />
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover/img:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg">
+                    <ZoomIn size={16} className="text-slate-700" />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Image lightbox component
+const ImageLightbox: React.FC<{
+  imageUrl: string | null;
+  onClose: () => void;
+}> = ({ imageUrl, onClose }) => {
+  if (!imageUrl) {
+    return null;
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+        aria-label="Close"
+      >
+        <X size={24} />
+      </button>
+      <img
+        src={imageUrl}
+        alt="Expanded preview"
+        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+};
+
+// Loading skeleton
+const LoadingSkeleton: React.FC = () => (
+  <div className="bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-2xl overflow-hidden shadow-xl animate-fade-in">
+    <div className="p-8">
+      <div className="flex flex-col items-center justify-center gap-6 py-16">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-full border-4 border-bolt-elements-borderColor border-t-rose-500 animate-spin" />
+          <div
+            className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-pink-500/30 animate-spin"
+            style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}
+          />
+        </div>
+        <div className="text-center">
+          <p className="text-bolt-elements-textPrimary font-medium mb-1">Loading template...</p>
+          <p className="text-sm text-bolt-elements-textSecondary">Preparing your preview</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = ({ app, sendMessage, onClose }) => {
   const [landingPageContent, setLandingPageContent] = useState<LandingPageContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [appPreviewURL, setAppPreviewURL] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(true);
+  const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Handle iframe load event
+  const handleIframeLoad = useCallback(() => {
+    setIsPreviewLoading(false);
+  }, []);
 
   useEffect(() => {
     const loadLandingPageContent = async () => {
@@ -30,7 +170,7 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
         setLandingPageContent(content);
       } catch (err) {
         console.error('Failed to fetch landing page content:', err);
-        setError('Failed to load landing page content');
+        setError('Failed to load template details');
       } finally {
         setIsLoading(false);
       }
@@ -39,11 +179,23 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
     loadLandingPageContent();
 
     const createLandingPageReferenceApp = async () => {
+      setIsPreviewLoading(true);
       const repositoryId = await database.createLandingPageReferenceApp(app.referenceAppPath);
       setAppPreviewURL(getRepositoryURL(repositoryId));
     };
     createLandingPageReferenceApp();
   }, [app.referenceAppPath]);
+
+  // Attach load listener to iframe
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (iframe) {
+      iframe.addEventListener('load', handleIframeLoad);
+      return () => {
+        iframe.removeEventListener('load', handleIframeLoad);
+      };
+    }
+  }, [handleIframeLoad, appPreviewURL]);
 
   const handleCustomize = async () => {
     const appPath = landingPageContent?.referenceAppPath || app.referenceAppPath;
@@ -59,111 +211,49 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
 
   // Use landing page content if available, otherwise fall back to index entry
   const displayData = landingPageContent || app;
-  const displayPhoto = app.screenshotURL || REFERENCE_APP_PLACEHOLDER_PHOTO;
 
   if (isLoading) {
-    return (
-      <div className="max-w-[1337px] mx-auto mt-8 mb-8 animate-fade-in">
-        <div className="bg-bolt-elements-background border border-bolt-elements-borderColor rounded-lg overflow-hidden shadow-lg p-12">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <div className="w-12 h-12 border-4 border-bolt-elements-borderColor border-t-rose-500 rounded-full animate-spin" />
-            <p className="text-bolt-elements-textSecondary">Loading landing page content...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
+  // Error or fallback state
   if (error || !landingPageContent) {
     return (
-      <div className="max-w-[1337px] mx-auto mt-8 mb-8 animate-fade-in">
-        <div className="bg-bolt-elements-background border border-bolt-elements-borderColor rounded-lg overflow-hidden shadow-lg p-6">
-          <div className="flex items-center justify-between p-6 border-b border-bolt-elements-borderColor">
-            <h2 className="text-3xl font-bold text-bolt-elements-textHeading">{app.name}</h2>
+      <div className="bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-2xl overflow-hidden shadow-xl animate-fade-in">
+        {/* Header */}
+        <div className="relative bg-gradient-to-r from-rose-500/10 via-pink-500/5 to-transparent p-6 border-b border-bolt-elements-borderColor">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-bolt-elements-textPrimary mb-2">{app.name}</h2>
+              <p className="text-bolt-elements-textSecondary">{app.shortDescription}</p>
+            </div>
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-bolt-elements-textSecondary hover:text-bolt-elements-textHeading hover:bg-bolt-elements-backgroundHover rounded-lg transition-colors"
+              className="flex-shrink-0 p-2 rounded-lg text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 transition-colors"
+              aria-label="Close"
             >
-              Close
+              <X size={20} />
             </button>
           </div>
-          <div className="p-6">
-            <p className="text-bolt-elements-textSecondary mb-6">
-              {error || 'Failed to load landing page content. Using basic information.'}
-            </p>
-            <div className="mb-6">
-              <p className="text-lg text-bolt-elements-textSecondary leading-relaxed">{app.shortDescription}</p>
-            </div>
-            {app.bulletPoints && app.bulletPoints.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-xl font-semibold text-bolt-elements-textHeading mb-4">Features</h3>
-                <ul className="space-y-2">
-                  {app.bulletPoints.map((point, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <span className="text-rose-500 mt-1">•</span>
-                      <span className="text-bolt-elements-textSecondary">{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <div className="flex gap-4 pt-6 border-t border-bolt-elements-borderColor">
-              <button
-                onClick={handleCustomize}
-                className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-lg transition-colors"
-              >
-                Build me a new app based on this
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-[1337px] mx-auto mt-8 mb-8 animate-fade-in">
-      <div className="bg-bolt-elements-background border border-bolt-elements-borderColor rounded-lg overflow-hidden shadow-lg">
-        {/* Header with close button */}
-        <div className="flex items-center justify-between p-6 border-b border-bolt-elements-borderColor">
-          <h2 className="text-3xl font-bold text-bolt-elements-textHeading">{displayData.name}</h2>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-bolt-elements-textSecondary hover:text-bolt-elements-textHeading hover:bg-bolt-elements-backgroundHover rounded-lg transition-colors"
-          >
-            Close
-          </button>
         </div>
 
         {/* Content */}
         <div className="p-6">
-          {/* Screenshot */}
-          <div className="mb-6 rounded-lg overflow-hidden">
-            <img src={displayPhoto} alt={displayData.name} className="w-full h-auto object-cover" />
-          </div>
-
-          {/* Short Description */}
-          <div className="mb-6">
-            <p className="text-lg text-bolt-elements-textSecondary leading-relaxed">{displayData.shortDescription}</p>
-          </div>
-
-          {/* Long Description (from landing page content) */}
-          {landingPageContent.longDescription && (
-            <div className="mb-6">
-              <p className="text-base text-bolt-elements-textSecondary leading-relaxed">
-                {landingPageContent.longDescription}
-              </p>
+          {error && (
+            <div className="mb-6 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-sm">
+              {error}. Showing basic information instead.
             </div>
           )}
 
-          {/* Bullet Points */}
-          {displayData.bulletPoints && displayData.bulletPoints.length > 0 && (
+          {app.bulletPoints && app.bulletPoints.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-xl font-semibold text-bolt-elements-textHeading mb-4">Key Features</h3>
-              <ul className="space-y-2">
-                {displayData.bulletPoints.map((point, index) => (
+              <h3 className="text-lg font-semibold text-bolt-elements-textPrimary mb-4">Features</h3>
+              <ul className="space-y-3">
+                {app.bulletPoints.map((point, index) => (
                   <li key={index} className="flex items-start gap-3">
-                    <span className="text-rose-500 mt-1">•</span>
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-rose-500/10 flex items-center justify-center mt-0.5">
+                      <Check size={12} className="text-rose-500" />
+                    </div>
                     <span className="text-bolt-elements-textSecondary">{point}</span>
                   </li>
                 ))}
@@ -171,116 +261,224 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
             </div>
           )}
 
-          {/* Features (from landing page content) */}
-          {landingPageContent.features && landingPageContent.features.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-bolt-elements-textHeading mb-4">Features</h3>
-              <div className="space-y-4">
-                {landingPageContent.features.map((feature, index) => (
-                  <div key={index} className="border-l-4 border-rose-500 pl-4">
-                    <h4 className="text-lg font-medium text-bolt-elements-textHeading mb-2">{feature.name}</h4>
-                    <p className="text-bolt-elements-textSecondary">{feature.description}</p>
-                    {feature.artifactURLs && feature.artifactURLs.length > 0 && (
-                      <div className="mt-2 flex gap-2 flex-wrap">
-                        {feature.artifactURLs.map((url, urlIndex) => {
-                          const isVideo =
-                            url.toLowerCase().endsWith('.webm') ||
-                            url.toLowerCase().endsWith('.mp4') ||
-                            url.toLowerCase().endsWith('.mov');
-
-                          return isVideo ? (
-                            <div key={urlIndex} className="relative max-w-xs">
-                              <video
-                                src={url}
-                                controls={true}
-                                playsInline
-                                preload="metadata"
-                                className="w-full rounded-lg border border-bolt-elements-borderColor"
-                                style={{ display: 'block', height: 'auto' }}
-                              >
-                                Your browser does not support the video tag.
-                              </video>
-                            </div>
-                          ) : (
-                            <img
-                              key={urlIndex}
-                              src={url}
-                              alt={feature.name}
-                              className="max-w-xs rounded-lg border border-bolt-elements-borderColor"
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tags */}
-          {displayData.tags && displayData.tags.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-bolt-elements-textHeading mb-4">Categories</h3>
-              <div className="flex flex-wrap gap-2">
-                {displayData.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="px-4 py-2 text-sm font-medium bg-purple-100/50 dark:bg-purple-500/10 text-bolt-elements-textHeading rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Stage Badge */}
-          <div className="mb-6">
-            <span
-              className={`inline-block px-4 py-2 text-sm font-medium rounded-full ${
-                displayData.stage === 'Release'
-                  ? 'bg-green-100/50 dark:bg-green-500/10 text-green-700 dark:text-green-400'
-                  : displayData.stage === 'Beta'
-                    ? 'bg-blue-100/50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400'
-                    : 'bg-yellow-100/50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400'
-              }`}
-            >
-              {displayData.stage}
-            </span>
-          </div>
-
-          {/* App Preview */}
-          {appPreviewURL && (
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold text-bolt-elements-textHeading mb-4">Live Preview</h3>
-              <div
-                className="border border-bolt-elements-borderColor rounded-lg overflow-hidden"
-                style={{ height: '600px' }}
-              >
-                <AppView
-                  isDeviceModeOn={false}
-                  widthPercent={100}
-                  previewURL={appPreviewURL}
-                  iframeRef={iframeRef}
-                  iframeUrl={appPreviewURL}
-                  startResizing={(_e: React.MouseEvent, _side: ResizeSide) => {}}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-4 pt-6 border-t border-bolt-elements-borderColor">
+          {/* CTA */}
+          <div className="pt-6 border-t border-bolt-elements-borderColor">
             <button
               onClick={handleCustomize}
-              className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-rose-500/25 hover:shadow-xl hover:shadow-rose-500/30 hover:scale-[1.02]"
             >
-              Build me a new app based on this
+              <Sparkles size={18} />
+              Build with this template
             </button>
           </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-2xl overflow-hidden shadow-xl animate-fade-in">
+      {/* Header */}
+      <div className="relative bg-gradient-to-r from-rose-500/10 via-pink-500/5 to-transparent p-6 border-b border-bolt-elements-borderColor">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-2xl font-bold text-bolt-elements-textPrimary">{displayData.name}</h2>
+              <StageBadge stage={displayData.stage} />
+            </div>
+            <p className="text-bolt-elements-textSecondary text-lg leading-relaxed">{displayData.shortDescription}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex-shrink-0 p-2 rounded-lg text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 transition-colors"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Tags */}
+        {displayData.tags && displayData.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {displayData.tags.map((tag, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 text-xs font-medium bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary rounded-full border border-bolt-elements-borderColor"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-6 space-y-8">
+        {/* Live Preview */}
+        {(appPreviewURL || isPreviewLoading) && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
+                <span className="w-1 h-5 bg-gradient-to-b from-rose-500 to-pink-500 rounded-full" />
+                Live Preview
+              </h3>
+              {appPreviewURL && (
+                <a
+                  href={appPreviewURL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-bolt-elements-textSecondary hover:text-rose-500 transition-colors"
+                >
+                  <ExternalLink size={14} />
+                  Open in new tab
+                </a>
+              )}
+            </div>
+            <div className="relative rounded-xl overflow-hidden border border-bolt-elements-borderColor shadow-lg bg-white">
+              {/* Preview Loading State */}
+              {isPreviewLoading && (
+                <div className="absolute inset-0 pt-8 bg-bolt-elements-background-depth-1 flex flex-col items-center justify-center z-[5]">
+                  <div className="flex flex-col items-center gap-4">
+                    {/* Animated monitor icon */}
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500/10 to-pink-500/10 border border-rose-500/20 flex items-center justify-center">
+                        <Monitor size={32} className="text-rose-500" />
+                      </div>
+                      {/* Pulsing ring */}
+                      <div
+                        className="absolute -inset-2 rounded-3xl border-2 border-rose-500/30 animate-ping"
+                        style={{ animationDuration: '1.5s' }}
+                      />
+                    </div>
+                    {/* Loading text */}
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-bolt-elements-textPrimary mb-1">Loading preview...</p>
+                      <p className="text-xs text-bolt-elements-textSecondary">Starting development server</p>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-48 h-1.5 bg-bolt-elements-background-depth-3 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full animate-pulse"
+                        style={{
+                          width: '60%',
+                          animation: 'previewLoadingBar 2s ease-in-out infinite',
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <style>{`
+                      @keyframes previewLoadingBar {
+                        0% { width: 10%; }
+                        50% { width: 80%; }
+                        100% { width: 10%; }
+                      }
+                    `}</style>
+                </div>
+              )}
+
+              {/* Actual Preview */}
+              <div
+                className={`pt-8 transition-opacity duration-300 ${isPreviewLoading ? 'opacity-0' : 'opacity-100'}`}
+                style={{ height: '500px' }}
+              >
+                {appPreviewURL && (
+                  <AppView
+                    isDeviceModeOn={false}
+                    widthPercent={100}
+                    previewURL={appPreviewURL}
+                    iframeRef={iframeRef}
+                    iframeUrl={appPreviewURL}
+                    startResizing={(_e: React.MouseEvent, _side: ResizeSide) => {}}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Screenshot Hero */}
+        {/* <div className="relative rounded-xl overflow-hidden border border-bolt-elements-borderColor shadow-lg">
+            <img
+              src={displayPhoto}
+              alt={displayData.name}
+              className="w-full h-auto object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+          </div> */}
+
+        {/* Long Description */}
+        {landingPageContent.longDescription && (
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <p className="text-bolt-elements-textSecondary leading-relaxed text-base">
+              {landingPageContent.longDescription}
+            </p>
+          </div>
+        )}
+
+        {/* Key Features - Bullet Points */}
+        {displayData.bulletPoints && displayData.bulletPoints.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold text-bolt-elements-textPrimary mb-4 flex items-center gap-2">
+              <span className="w-1 h-5 bg-gradient-to-b from-rose-500 to-pink-500 rounded-full" />
+              Key Features
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {displayData.bulletPoints.map((point, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-bolt-elements-background-depth-2/50 border border-bolt-elements-borderColor/50"
+                >
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center mt-0.5">
+                    <Check size={12} className="text-white" />
+                  </div>
+                  <span className="text-sm text-bolt-elements-textSecondary">{point}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Detailed Features */}
+        {landingPageContent.features && landingPageContent.features.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold text-bolt-elements-textPrimary mb-4 flex items-center gap-2">
+              <span className="w-1 h-5 bg-gradient-to-b from-rose-500 to-pink-500 rounded-full" />
+              What's Included
+            </h3>
+            <div className="grid grid-cols-1 gap-4">
+              {landingPageContent.features.map((feature, index) => (
+                <FeatureCard
+                  key={index}
+                  name={feature.name}
+                  description={feature.description}
+                  artifactURLs={feature.artifactURLs}
+                  onImageClick={setExpandedImageUrl}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CTA Section */}
+        <div className="relative pt-8 border-t border-bolt-elements-borderColor">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <p className="text-bolt-elements-textPrimary font-medium">Ready to get started?</p>
+              <p className="text-sm text-bolt-elements-textSecondary">Customize this template to fit your needs</p>
+            </div>
+            <button
+              onClick={handleCustomize}
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-rose-500/25 hover:shadow-xl hover:shadow-rose-500/30 hover:scale-[1.02] group"
+            >
+              <Sparkles size={18} className="group-hover:animate-pulse" />
+              Build with this template
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Image Lightbox */}
+      <ImageLightbox imageUrl={expandedImageUrl} onClose={() => setExpandedImageUrl(null)} />
     </div>
   );
 };

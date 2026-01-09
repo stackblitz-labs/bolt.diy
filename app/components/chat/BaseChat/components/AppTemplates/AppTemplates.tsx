@@ -1,8 +1,9 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from '@remix-run/react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CategorySelector, type IntroSectionCategory } from './CategorySelector';
 import { ReferenceAppCard } from './ReferenceAppCard';
-import { ReferenceAppLandingPage } from './ReferenceAppLandingPage';
+import { ReferenceAppModal } from './ReferenceAppModal';
 import { getLandingPageIndex, type LandingPageIndexEntry, ReferenceAppStage } from '~/lib/replay/ReferenceApps';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
@@ -23,7 +24,6 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
   const [referenceApps, setReferenceApps] = useState<LandingPageIndexEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState<LandingPageIndexEntry | null>(null);
-  const landingPageRef = useRef<HTMLDivElement>(null);
 
   // Fetch reference apps on mount
   useEffect(() => {
@@ -156,6 +156,25 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
     setIsDragging(false);
   };
 
+  // Navigation functions for mobile arrows
+  const scrollPrev = useCallback(() => {
+    if (!scrollContainerRef.current) {
+      return;
+    }
+    const container = scrollContainerRef.current;
+    const slideWidth = container.clientWidth;
+    container.scrollBy({ left: -slideWidth, behavior: 'smooth' });
+  }, []);
+
+  const scrollNext = useCallback(() => {
+    if (!scrollContainerRef.current) {
+      return;
+    }
+    const container = scrollContainerRef.current;
+    const slideWidth = container.clientWidth;
+    container.scrollBy({ left: slideWidth, behavior: 'smooth' });
+  }, []);
+
   return (
     <div id="showcase-gallery" className="w-full mx-auto mt-24 mb-4">
       <div className="max-w-[1337px] mx-auto flex flex-col mb-12 animate-fade-in animation-delay-100">
@@ -190,51 +209,67 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
 
           {/* Horizontal scrolling card container */}
           {filteredApps.length > 0 && (
-            <div
-              ref={scrollContainerRef}
-              className={`overflow-x-auto pb-4 px-2 animate-fade-in animation-delay-400 mb-8 ${
-                isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
-              }`}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
-              style={{
-                scrollbarWidth: 'thin',
-                scrollBehavior: isDragging ? 'auto' : 'smooth',
-              }}
-            >
-              <div className="flex gap-6" style={{ minWidth: 'min-content' }}>
-                {filteredApps.map((app) => (
-                  <ReferenceAppCard
-                    key={app.name}
-                    appName={app.name}
-                    description={app.shortDescription}
-                    bulletPoints={app.bulletPoints}
-                    photo={app.screenshotURL}
-                    onClick={() => {
-                      setSelectedApp(app);
-                      // Scroll to landing page after state update
-                      setTimeout(() => {
-                        landingPageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }, 100);
-                    }}
-                  />
-                ))}
+            <>
+              <div
+                ref={scrollContainerRef}
+                className={`overflow-x-auto pb-4 px-4 sm:px-6 animate-fade-in animation-delay-400 mb-4 sm:mb-8 snap-x snap-mandatory ${
+                  isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+                }`}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+                style={{
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  WebkitOverflowScrolling: 'touch',
+                  scrollBehavior: isDragging ? 'auto' : 'smooth',
+                }}
+              >
+                <div className="flex gap-4 sm:gap-6" style={{ minWidth: 'min-content' }}>
+                  {filteredApps.map((app) => (
+                    <div
+                      key={app.name}
+                      className="w-[calc(100vw-2rem)] sm:w-[520px] lg:w-[656px] flex-shrink-0 snap-start"
+                    >
+                      <ReferenceAppCard
+                        appName={app.name}
+                        description={app.shortDescription}
+                        bulletPoints={app.bulletPoints}
+                        photo={app.screenshotURL}
+                        appPath={app.referenceAppPath}
+                        sendMessage={sendMessage}
+                        onClick={() => setSelectedApp(app)}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+
+              {/* Mobile navigation arrows */}
+              <div className="flex items-center justify-between px-6 sm:hidden mb-8">
+                <button
+                  type="button"
+                  onClick={scrollPrev}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md border border-gray-200 text-rose-500 active:scale-95 transition-transform hover:bg-gray-50"
+                  aria-label="Previous app"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button
+                  type="button"
+                  onClick={scrollNext}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md border border-gray-200 text-rose-500 active:scale-95 transition-transform hover:bg-gray-50"
+                  aria-label="Next app"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </div>
+            </>
           )}
 
-          {/* Reference App Landing Page */}
-          {selectedApp && (
-            <div ref={landingPageRef}>
-              <ReferenceAppLandingPage
-                app={selectedApp}
-                sendMessage={sendMessage}
-                onClose={() => setSelectedApp(null)}
-              />
-            </div>
-          )}
+          {/* Reference App Modal */}
+          <ReferenceAppModal app={selectedApp} sendMessage={sendMessage} onClose={() => setSelectedApp(null)} />
         </>
       )}
     </div>
