@@ -4,7 +4,7 @@
 #
 
 app = 'saas-botegram'
-primary_region = 'iad'
+primary_region = 'cdg'
 
 [build]
 
@@ -13,11 +13,34 @@ primary_region = 'iad'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 1024
+  memory_mb = 2048
+
+[[services]]
+  internal_port = 5173
+  protocol = "tcp"
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[services.ports]]
+    port = 80
+    handlers = ["http"]
+[[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  # Health check para ruta raíz
+[[services.http_checks]]
+    grace_period = "30s"    # Da tiempo al boot
+    interval = "10s"
+    timeout = "10s"
+    method = "GET"
+    path = "/"
+    protocol = "http"
