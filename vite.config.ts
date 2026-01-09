@@ -19,6 +19,16 @@ export default defineConfig((config) => {
     build: {
       target: 'esnext',
     },
+    server: {
+    // Para desarrollo local (opcional, pero útil)
+    allowedHosts: ['localhost', '.fly.dev'], // permite todo bajo .fly.dev
+    // o allowedHosts: true  // permite TODO (menos seguro, solo para testing)
+  },
+  preview: {
+    // ¡Esto es clave para producción/preview en Fly.io!
+    allowedHosts: ['saas-botegram.fly.dev', '.fly.dev'],
+    // o allowedHosts: true  // permite cualquier host (más simple, pero menos seguro)
+  },
     plugins: [
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
