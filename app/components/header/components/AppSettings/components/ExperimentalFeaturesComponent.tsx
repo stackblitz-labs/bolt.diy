@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlaskConical, MessageCircle, Sparkles } from '~/components/ui/Icon';
 import { AppMessagesSecret, DisableAppBlockChangesSecret } from '~/lib/persistence/messageAppSummary';
 import type { AppSummary } from '~/lib/persistence/messageAppSummary';
-import { callNutAPI } from '~/lib/replay/NutAPI';
 import { toast } from 'react-toastify';
-import { chatStore, onChatResponse } from '~/lib/stores/chat';
+import { chatStore } from '~/lib/stores/chat';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { Switch } from '~/components/ui/Switch';
 import { AppCard } from '~/components/chat/Messages/components/AppCard';
+import { getAppSetSecrets, setAppSecrets } from '~/lib/replay/Secrets';
 
 interface ExperimentalFeaturesComponentProps {
   appSummary: AppSummary;
@@ -16,27 +16,29 @@ interface ExperimentalFeaturesComponentProps {
 
 export const ExperimentalFeaturesComponent: React.FC<ExperimentalFeaturesComponentProps> = ({ appSummary }) => {
   const [saving, setSaving] = useState(false);
-  const appMessagesEnabled = appSummary?.setSecrets?.includes(AppMessagesSecret);
-  const disableAppBlockChanges = appSummary?.setSecrets?.includes(DisableAppBlockChangesSecret);
+  const [setSecrets, setSetSecrets] = useState<string[]>([]);
+  const appMessagesEnabled = setSecrets.includes(AppMessagesSecret);
+  const disableAppBlockChanges = setSecrets.includes(DisableAppBlockChangesSecret);
   const appId = chatStore.currentAppId.get();
+
+  useEffect(() => {
+    const fetchSetSecrets = async () => {
+      const setSecrets = await getAppSetSecrets(appId!);
+      setSetSecrets(setSecrets);
+    };
+    fetchSetSecrets();
+  }, [appSummary]);
 
   const handleAppMessagesToggle = async () => {
     setSaving(true);
 
     try {
-      const { response } = await callNutAPI('set-app-secrets', {
-        appId,
-        secrets: [
-          {
-            key: AppMessagesSecret,
-            value: appMessagesEnabled ? undefined : 'true',
-          },
-        ],
-      });
-
-      if (response) {
-        onChatResponse(response, 'ToggleAppMessages');
-      }
+      await setAppSecrets(appId!, [
+        {
+          key: AppMessagesSecret,
+          value: appMessagesEnabled ? undefined : 'true',
+        },
+      ]);
 
       toast.success('In-app feedback settings updated successfully');
     } catch (error) {
@@ -51,19 +53,12 @@ export const ExperimentalFeaturesComponent: React.FC<ExperimentalFeaturesCompone
     setSaving(true);
 
     try {
-      const { response } = await callNutAPI('set-app-secrets', {
-        appId,
-        secrets: [
-          {
-            key: DisableAppBlockChangesSecret,
-            value: disableAppBlockChanges ? undefined : 'true',
-          },
-        ],
-      });
-
-      if (response) {
-        onChatResponse(response, 'ToggleAppMessages');
-      }
+      await setAppSecrets(appId!, [
+        {
+          key: DisableAppBlockChangesSecret,
+          value: disableAppBlockChanges ? undefined : 'true',
+        },
+      ]);
 
       toast.success('App block changes settings updated successfully');
     } catch (error) {

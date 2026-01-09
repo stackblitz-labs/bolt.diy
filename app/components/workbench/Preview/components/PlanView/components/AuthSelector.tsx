@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { classNames } from '~/utils/classNames';
-import { chatStore, onChatResponse } from '~/lib/stores/chat';
+import { chatStore } from '~/lib/stores/chat';
 import { useStore } from '@nanostores/react';
 import { assert } from '~/utils/nut';
-import { callNutAPI } from '~/lib/replay/NutAPI';
 import { toast } from 'react-toastify';
 import { AuthRequiredSecret } from '~/lib/persistence/messageAppSummary';
+import { getAppSetSecrets, setAppSecrets } from '~/lib/replay/Secrets';
 
 const AuthSelector = () => {
   const appSummary = useStore(chatStore.appSummary);
@@ -14,26 +14,26 @@ const AuthSelector = () => {
   assert(appId, 'App ID is required');
 
   const [saving, setSaving] = useState(false);
+  const [authRequired, setAuthRequired] = useState(false);
 
-  const authRequired = appSummary?.setSecrets?.includes(AuthRequiredSecret);
+  useEffect(() => {
+    const fetchAuthRequired = async () => {
+      const appSetSecrets = await getAppSetSecrets(appId);
+      setAuthRequired(appSetSecrets.includes(AuthRequiredSecret));
+    };
+    fetchAuthRequired();
+  }, [appSummary]);
 
   const handleChange = async () => {
     setSaving(true);
 
     try {
-      const { response } = await callNutAPI('set-app-secrets', {
-        appId,
-        secrets: [
-          {
-            key: AuthRequiredSecret,
-            value: authRequired ? undefined : 'true',
-          },
-        ],
-      });
-
-      if (response) {
-        onChatResponse(response, 'ToggleRequireAuth');
-      }
+      await setAppSecrets(appId, [
+        {
+          key: AuthRequiredSecret,
+          value: authRequired ? undefined : 'true',
+        },
+      ]);
 
       toast.success('Authentication settings updated successfully');
     } catch (error) {

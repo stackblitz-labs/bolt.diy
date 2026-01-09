@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppCard } from '~/components/chat/Messages/components/AppCard';
 import { type AppSummary } from '~/lib/persistence/messageAppSummary';
 import Secrets from '~/components/workbench/Preview/components/PlanView/components/Secrets';
 import { Key } from '~/components/ui/Icon';
+import { getAppSetSecrets } from '~/lib/replay/Secrets';
+import { chatStore } from '~/lib/stores/chat';
+import { assert } from '~/utils/nut';
 
 interface SecretsComponentProps {
   appSummary: AppSummary;
@@ -12,10 +15,21 @@ const BUILTIN_SECRET_NAMES = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY'];
 
 export const SecretsComponent: React.FC<SecretsComponentProps> = ({ appSummary }) => {
   const allSecrets = appSummary?.features?.flatMap((f) => f.secrets ?? []) ?? [];
-  const setSecrets = appSummary?.setSecrets || [];
+  const [setSecrets, setSetSecrets] = useState<string[]>([]);
 
   const requiredSecrets = allSecrets.filter((secret) => !BUILTIN_SECRET_NAMES.includes(secret.name));
   const setRequiredSecrets = requiredSecrets.filter((secret) => setSecrets.includes(secret.name));
+
+  const appId = chatStore.currentAppId.get();
+  assert(appId, 'App ID is required');
+
+  useEffect(() => {
+    const fetchSetSecrets = async () => {
+      const appSetSecrets = await getAppSetSecrets(appId);
+      setSetSecrets(appSetSecrets);
+    };
+    fetchSetSecrets();
+  }, [appSummary]);
 
   const getStatusInfo = () => {
     if (requiredSecrets.length === 0) {

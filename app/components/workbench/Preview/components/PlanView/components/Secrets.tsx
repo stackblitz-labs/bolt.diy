@@ -3,10 +3,10 @@ import { classNames } from '~/utils/classNames';
 import { CheckCircle, AlertTriangle } from '~/components/ui/Icon';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { chatStore, onChatResponse } from '~/lib/stores/chat';
+import { chatStore } from '~/lib/stores/chat';
 import { assert } from '~/utils/nut';
-import { callNutAPI } from '~/lib/replay/NutAPI';
 import { useStore } from '@nanostores/react';
+import { getAppSetSecrets, setAppSecrets } from '~/lib/replay/Secrets';
 
 // Secrets which values do not need to be provided for.
 const BUILTIN_SECRET_NAMES = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY'];
@@ -19,14 +19,14 @@ interface SecretInfo {
   saving: boolean;
 }
 
-function buildSecretInfo(appSummary: AppSummary): SecretInfo[] {
+function buildSecretInfo(appSummary: AppSummary, setSecrets: string[]): SecretInfo[] {
   const secrets = appSummary?.features?.flatMap((f) => f.secrets ?? []) ?? [];
 
   return secrets.map((s) => ({
     name: s.name,
     description: s.description,
     value: undefined,
-    set: appSummary.setSecrets?.includes(s.name) ?? false,
+    set: setSecrets.includes(s.name) ?? false,
     saving: false,
   }));
 }
@@ -37,12 +37,16 @@ const Secrets = () => {
 
   const [secrets, setSecrets] = useState<SecretInfo[]>([]);
 
-  useEffect(() => {
-    setSecrets(buildSecretInfo(appSummary));
-  }, [appSummary]);
-
   const appId = chatStore.currentAppId.get();
   assert(appId, 'App ID is required');
+
+  useEffect(() => {
+    async function updateSecrets() {
+      const appSetSecrets = await getAppSetSecrets(appId!);
+      setSecrets(buildSecretInfo(appSummary!, appSetSecrets));
+    }
+    updateSecrets();
+  }, [appSummary]);
 
   const handleSecretValueChange = (secretName: string, value: string) => {
     setSecrets((prev) => {
@@ -66,19 +70,12 @@ const Secrets = () => {
     try {
       const value = secrets.find((s) => s.name == secretName)?.value;
 
-      const { response } = await callNutAPI('set-app-secrets', {
-        appId,
-        secrets: [
-          {
-            key: secretName,
-            value,
-          },
-        ],
-      });
-
-      if (response) {
-        onChatResponse(response, 'SetAppSecrets');
-      }
+      await setAppSecrets(appId, [
+        {
+          key: secretName,
+          value,
+        },
+      ]);
 
       toast.success('Secret saved successfully');
     } catch (error) {

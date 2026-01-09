@@ -219,7 +219,6 @@ export interface AppSummary {
   bugReports?: BugReport[];
   schema?: DatabaseSchema;
   secrets?: AppDetail[];
-  setSecrets?: string[];
 
   // The repository being described, if available.
   repositoryId?: string;

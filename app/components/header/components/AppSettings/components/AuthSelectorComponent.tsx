@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppCard } from '~/components/chat/Messages/components/AppCard';
 import { Switch } from '~/components/ui/Switch';
 import { type AppSummary } from '~/lib/persistence/messageAppSummary';
-import { chatStore, onChatResponse } from '~/lib/stores/chat';
+import { chatStore } from '~/lib/stores/chat';
 import { callNutAPI } from '~/lib/replay/NutAPI';
 import { toast } from 'react-toastify';
 import { assert } from '~/utils/nut';
@@ -11,6 +11,7 @@ import WithTooltip from '~/components/ui/Tooltip';
 import { Skeleton } from '~/components/ui/Skeleton';
 import { Globe, Lock, Trash2, Plus, ShieldCheck, KeyRound, AlertCircle, Info } from '~/components/ui/Icon';
 import { AuthRequiredSecret } from '~/lib/persistence/messageAppSummary';
+import { getAppSetSecrets, setAppSecrets } from '~/lib/replay/Secrets';
 
 interface AuthSelectorComponentProps {
   appSummary: AppSummary;
@@ -37,25 +38,26 @@ export const AuthSelectorComponent: React.FC<AuthSelectorComponentProps> = ({ ap
   console.log('appSummary', appSummary);
 
   const [saving, setSaving] = useState(false);
-  const authRequired = appSummary?.setSecrets?.includes(AuthRequiredSecret);
+  const [authRequired, setAuthRequired] = useState(false);
+
+  useEffect(() => {
+    const fetchAuthRequired = async () => {
+      const appSetSecrets = await getAppSetSecrets(appId);
+      setAuthRequired(appSetSecrets.includes(AuthRequiredSecret));
+    };
+    fetchAuthRequired();
+  }, [appSummary]);
 
   const handleAuthToggle = async () => {
     setSaving(true);
 
     try {
-      const { response } = await callNutAPI('set-app-secrets', {
-        appId,
-        secrets: [
-          {
-            key: AuthRequiredSecret,
-            value: authRequired ? undefined : 'true',
-          },
-        ],
-      });
-
-      if (response) {
-        onChatResponse(response, 'ToggleRequireAuth');
-      }
+      await setAppSecrets(appId, [
+        {
+          key: AuthRequiredSecret,
+          value: authRequired ? undefined : 'true',
+        },
+      ]);
 
       toast.success('Authentication settings updated successfully');
     } catch (error) {

@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Switch } from '~/components/ui/Switch';
 import { type AppSummary } from '~/lib/persistence/messageAppSummary';
-import { chatStore, onChatResponse } from '~/lib/stores/chat';
-import { callNutAPI } from '~/lib/replay/NutAPI';
+import { chatStore } from '~/lib/stores/chat';
 import { toast } from 'react-toastify';
 import { assert } from '~/utils/nut';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
@@ -10,6 +9,7 @@ import WithTooltip from '~/components/ui/Tooltip';
 import AllowedDomainsDialog from '~/components/ui/AllowedDomainsDialog';
 import { Lock, Globe, ShieldCheck, Check } from '~/components/ui/Icon';
 import { AuthRequiredSecret } from '~/lib/persistence/messageAppSummary';
+import { getAppSetSecrets, setAppSecrets } from '~/lib/replay/Secrets';
 
 interface AuthSelectorCardProps {
   appSummary: AppSummary;
@@ -21,25 +21,26 @@ export const AuthSelectorCard: React.FC<AuthSelectorCardProps> = ({ appSummary }
 
   const [saving, setSaving] = useState(false);
   const [showDomains, setShowDomains] = useState(false);
-  const authRequired = appSummary?.setSecrets?.includes(AuthRequiredSecret);
+  const [authRequired, setAuthRequired] = useState(false);
+
+  useEffect(() => {
+    const fetchAuthRequired = async () => {
+      const appSetSecrets = await getAppSetSecrets(appId);
+      setAuthRequired(appSetSecrets.includes(AuthRequiredSecret));
+    };
+    fetchAuthRequired();
+  }, [appSummary]);
 
   const handleToggle = async () => {
     setSaving(true);
 
     try {
-      const { response } = await callNutAPI('set-app-secrets', {
-        appId,
-        secrets: [
-          {
-            key: AuthRequiredSecret,
-            value: authRequired ? undefined : 'true',
-          },
-        ],
-      });
-
-      if (response) {
-        onChatResponse(response, 'ToggleRequireAuth');
-      }
+      await setAppSecrets(appId, [
+        {
+          key: AuthRequiredSecret,
+          value: authRequired ? undefined : 'true',
+        },
+      ]);
 
       toast.success('Authentication settings updated successfully');
     } catch (error) {
