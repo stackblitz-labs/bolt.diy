@@ -83,18 +83,21 @@ export default defineConfig((config) => {
       ],
     },
 
-    // ¡Aquí está la corrección! Agrega esto para permitir tu host en producción/preview
+    // Configuración clave para producción en Fly.io
     preview: {
+      host: '0.0.0.0',  // ¡Obliga a escuchar en todas las interfaces (necesario para Fly)!
+      port: 5173,       // Fuerza el puerto exacto de tu fly.toml
       allowedHosts: [
-        'saas-botegram.fly.dev',        // Tu dominio exacto
-        '.fly.dev'                      // Opcional: permite cualquier subdominio .fly.dev
+        'saas-botegram.fly.dev',  // Tu dominio
+        '.fly.dev'                // Cualquier subdominio .fly.dev
       ],
-      // Si quieres permitir TODO (solo para testing, menos seguro):
-      // allowedHosts: true,
+      // Opcional: allowedHosts: true  // Para testing rápido (menos seguro)
     },
 
-    // Opcional: para desarrollo local, también permite .fly.dev si pruebas con ngrok o similar
+    // Para desarrollo local
     server: {
+      host: '0.0.0.0',
+      port: 5173,
       allowedHosts: ['localhost', '.fly.dev'],
     },
   };
