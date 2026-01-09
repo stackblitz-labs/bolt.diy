@@ -82,6 +82,21 @@ export default defineConfig((config) => {
         '**/tests/preview/**', // Exclude preview tests that require Playwright
       ],
     },
+
+    // ¡Aquí está la corrección! Agrega esto para permitir tu host en producción/preview
+    preview: {
+      allowedHosts: [
+        'saas-botegram.fly.dev',        // Tu dominio exacto
+        '.fly.dev'                      // Opcional: permite cualquier subdominio .fly.dev
+      ],
+      // Si quieres permitir TODO (solo para testing, menos seguro):
+      // allowedHosts: true,
+    },
+
+    // Opcional: para desarrollo local, también permite .fly.dev si pruebas con ngrok o similar
+    server: {
+      allowedHosts: ['localhost', '.fly.dev'],
+    },
   };
 });
 
