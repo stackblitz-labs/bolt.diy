@@ -38,9 +38,10 @@ primary_region = 'cdg'
 
   # Health check para ruta raíz
 [[services.http_checks]]
-    grace_period = "30s"    # Da tiempo al boot
-    interval = "10s"
-    timeout = "10s"
-    method = "GET"
-    path = "/"
-    protocol = "http"
+  grace_period = "60s"   # Da 1 min al boot (para que Vite arranque lento)
+  interval = "15s"
+  timeout = "15s"
+  method = "GET"
+  path = "/"             # Ruta raíz
+  protocol = "http"
+  http_version = "1.1"   # Fuerza HTTP/1.1 (para evitar HTTP/2 mismatch)
