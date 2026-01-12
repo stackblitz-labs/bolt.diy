@@ -69,7 +69,7 @@ export const ReferenceAppModal: React.FC<ReferenceAppModalProps> = ({ app, sendM
     <AnimatePresence>
       {app && (
         <motion.div
-          className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto"
+          className="fixed inset-0 z-[1000] flex items-center justify-center"
           variants={overlayVariants}
           initial="hidden"
           animate="visible"
@@ -86,7 +86,7 @@ export const ReferenceAppModal: React.FC<ReferenceAppModalProps> = ({ app, sendM
 
           {/* Modal Content */}
           <motion.div
-            className="relative w-full max-w-5xl my-8 mx-4"
+            className="relative w-full max-w-5xl mx-4 h-[95vh] overflow-y-auto rounded-xl"
             variants={modalVariants}
             initial="hidden"
             animate="visible"
