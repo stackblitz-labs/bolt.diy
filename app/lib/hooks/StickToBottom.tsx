@@ -133,6 +133,7 @@ function Content({ children, ...props }: StickToBottomContentProps) {
       <div {...props} ref={context.contentRef}>
         {typeof children === 'function' ? children(context) : children}
       </div>
+      {/* Blur effect overlay */}
     </div>
   );
 }

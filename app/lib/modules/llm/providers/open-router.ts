@@ -27,50 +27,24 @@ export default class OpenRouterProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
+    /*
+     * Essential fallback models - only the most stable/reliable ones
+     * Claude 3.5 Sonnet via OpenRouter: 200k context
+     */
     {
       name: 'anthropic/claude-3.5-sonnet',
-      label: 'Anthropic: Claude 3.5 Sonnet (OpenRouter)',
+      label: 'Claude 3.5 Sonnet',
       provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
+      maxTokenAllowed: 200000,
     },
+
+    // GPT-4o via OpenRouter: 128k context
     {
-      name: 'anthropic/claude-3-haiku',
-      label: 'Anthropic: Claude 3 Haiku (OpenRouter)',
+      name: 'openai/gpt-4o',
+      label: 'GPT-4o',
       provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
+      maxTokenAllowed: 128000,
     },
-    {
-      name: 'deepseek/deepseek-coder',
-      label: 'Deepseek-Coder V2 236B (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    {
-      name: 'google/gemini-flash-1.5',
-      label: 'Google Gemini Flash 1.5 (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    {
-      name: 'google/gemini-pro-1.5',
-      label: 'Google Gemini Pro 1.5 (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    { name: 'x-ai/grok-beta', label: 'xAI Grok Beta (OpenRouter)', provider: 'OpenRouter', maxTokenAllowed: 8000 },
-    {
-      name: 'mistralai/mistral-nemo',
-      label: 'OpenRouter Mistral Nemo (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    {
-      name: 'qwen/qwen-110b-chat',
-      label: 'OpenRouter Qwen 110b Chat (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    { name: 'cohere/command', label: 'Cohere Command (OpenRouter)', provider: 'OpenRouter', maxTokenAllowed: 4096 },
   ];
 
   async getDynamicModels(
@@ -89,12 +63,21 @@ export default class OpenRouterProvider extends BaseProvider {
 
       return data.data
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map((m) => ({
-          name: m.id,
-          label: `${m.name} - in:$${(m.pricing.prompt * 1_000_000).toFixed(2)} out:$${(m.pricing.completion * 1_000_000).toFixed(2)} - context ${Math.floor(m.context_length / 1000)}k`,
-          provider: this.name,
-          maxTokenAllowed: 8000,
-        }));
+        .map((m) => {
+          // Get accurate context window from OpenRouter API
+          const contextWindow = m.context_length || 32000; // Use API value or fallback
+
+          // Cap at reasonable limits to prevent issues (OpenRouter has some very large models)
+          const maxAllowed = 1000000; // 1M tokens max for safety
+          const finalContext = Math.min(contextWindow, maxAllowed);
+
+          return {
+            name: m.id,
+            label: `${m.name} - in:$${(m.pricing.prompt * 1_000_000).toFixed(2)} out:$${(m.pricing.completion * 1_000_000).toFixed(2)} - context ${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'}`,
+            provider: this.name,
+            maxTokenAllowed: finalContext,
+          };
+        });
     } catch (error) {
       console.error('Error getting OpenRouter models:', error);
       return [];

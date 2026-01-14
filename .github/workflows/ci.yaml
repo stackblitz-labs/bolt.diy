@@ -3,13 +3,20 @@ name: CI/CD
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
+
+# Cancel in-progress runs on the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,11 +24,67 @@ jobs:
       - name: Setup and Build
         uses: ./.github/actions/setup-and-build
 
+      - name: Cache TypeScript compilation
+        uses: actions/cache@v4
+        with:
+          path: |
+            .tsbuildinfo
+            node_modules/.cache
+          key: ${{ runner.os }}-typescript-${{ hashFiles('**/tsconfig.json', 'app/**/*.ts', 'app/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-typescript-
+
       - name: Run type check
         run: pnpm run typecheck
 
-      # - name: Run ESLint
-      #   run: pnpm run lint
+      - name: Cache ESLint
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/eslint
+          key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'app/**/*.ts', 'app/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-eslint-
+
+      - name: Run ESLint
+        run: pnpm run lint
 
       - name: Run tests
         run: pnpm run test
+
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  docker-validation:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker production build
+        run: |
+          echo "🐳 Testing Docker production target..."
+          docker build --target bolt-ai-production . --no-cache --progress=plain
+          echo "✅ Production target builds successfully"
+
+      - name: Validate Docker development build
+        run: |
+          echo "🐳 Testing Docker development target..."
+          docker build --target development . --no-cache --progress=plain
+          echo "✅ Development target builds successfully"
+
+      - name: Validate docker-compose configuration
+        run: |
+          echo "🐳 Validating docker-compose configuration..."
+          docker compose config --quiet
+          echo "✅ docker-compose configuration is valid"

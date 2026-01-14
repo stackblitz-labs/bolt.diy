@@ -13,17 +13,25 @@ export default class GroqProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
-    { name: 'llama-3.1-8b-instant', label: 'Llama 3.1 8b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.2-11b-vision-preview', label: 'Llama 3.2 11b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.2-90b-vision-preview', label: 'Llama 3.2 90b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.2-3b-preview', label: 'Llama 3.2 3b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.2-1b-preview', label: 'Llama 3.2 1b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
+    /*
+     * Essential fallback models - only the most stable/reliable ones
+     * Llama 3.1 8B: 128k context, fast and efficient
+     */
     {
-      name: 'deepseek-r1-distill-llama-70b',
-      label: 'Deepseek R1 Distill Llama 70b (Groq)',
+      name: 'llama-3.1-8b-instant',
+      label: 'Llama 3.1 8B',
       provider: 'Groq',
-      maxTokenAllowed: 131072,
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 8192,
+    },
+
+    // Llama 3.3 70B: 128k context, most capable model
+    {
+      name: 'llama-3.3-70b-versatile',
+      label: 'Llama 3.3 70B',
+      provider: 'Groq',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 8192,
     },
   ];
 
@@ -60,7 +68,8 @@ export default class GroqProvider extends BaseProvider {
       name: m.id,
       label: `${m.id} - context ${m.context_window ? Math.floor(m.context_window / 1000) + 'k' : 'N/A'} [ by ${m.owned_by}]`,
       provider: this.name,
-      maxTokenAllowed: m.context_window || 8000,
+      maxTokenAllowed: Math.min(m.context_window || 8192, 16384),
+      maxCompletionTokens: 8192,
     }));
   }
 

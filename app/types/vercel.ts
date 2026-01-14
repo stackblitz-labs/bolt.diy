@@ -1,15 +1,40 @@
+export interface VercelUserResponse {
+  user?: {
+    id: string;
+    username: string;
+    email: string;
+    name: string;
+    avatar?: string;
+  };
+  id?: string;
+  username?: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
+}
+
 export interface VercelUser {
-  user: any;
   id: string;
   username: string;
   email: string;
   name: string;
   avatar?: string;
+  user?: {
+    id: string;
+    username: string;
+    email: string;
+    name: string;
+    avatar?: string;
+  };
 }
 
 export interface VercelProject {
   createdAt: string | number | Date;
-  targets: any;
+  targets?: {
+    production?: {
+      alias?: string[];
+    };
+  };
   id: string;
   name: string;
   framework?: string;
@@ -17,7 +42,7 @@ export interface VercelProject {
     id: string;
     url: string;
     created: number;
-    state: string;
+    state: 'READY' | 'ERROR' | 'BUILDING' | 'CANCELED';
   }>;
 }
 
