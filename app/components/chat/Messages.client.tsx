@@ -1,5 +1,5 @@
 import type { Message } from 'ai';
-import { Fragment } from 'react';
+import { Fragment, useCallback } from 'react';
 import { classNames } from '~/utils/classNames';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
@@ -29,13 +29,16 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
     const { id, isStreaming = false, messages = [] } = props;
     const location = useLocation();
 
-    const handleRewind = (messageId: string) => {
-      const searchParams = new URLSearchParams(location.search);
-      searchParams.set('rewindTo', messageId);
-      window.location.search = searchParams.toString();
-    };
+    const handleRewind = useCallback(
+      (messageId: string) => {
+        const searchParams = new URLSearchParams(location.search);
+        searchParams.set('rewindTo', messageId);
+        window.location.search = searchParams.toString();
+      },
+      [location.search],
+    );
 
-    const handleFork = async (messageId: string) => {
+    const handleFork = useCallback(async (messageId: string) => {
       try {
         if (!db || !chatId.get()) {
           toast.error('Chat persistence is not available');
@@ -47,7 +50,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
       } catch (error) {
         toast.error('Failed to fork chat: ' + (error as Error).message);
       }
-    };
+    }, []);
 
     return (
       <div id={id} className={props.className} ref={ref}>
