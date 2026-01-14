@@ -9,12 +9,12 @@ export function disableTelemetry() {
   gDisableTelemetry = true;
 }
 
-// We do this to work around CORS insanity.
-export async function pingTelemetry(event: string, data: any) {
+export async function pingTelemetry(_event: string, _data: any) {
   if (gDisableTelemetry) {
     return;
   }
 
+  /*
   const requestBody: any = {
     event: 'NutChat.' + event,
     data,
@@ -24,6 +24,7 @@ export async function pingTelemetry(event: string, data: any) {
     method: 'POST',
     body: JSON.stringify(requestBody),
   }).catch(() => {});
+  */
 }
 
 // Manage telemetry events for a single chat message.
