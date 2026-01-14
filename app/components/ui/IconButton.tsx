@@ -11,6 +11,7 @@ interface BaseIconButtonProps {
   title?: string;
   disabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+  ariaLabel?: string;
 }
 
 type IconButtonWithoutChildrenProps = {
@@ -39,6 +40,7 @@ export const IconButton = memo(
         title,
         onClick,
         children,
+        ariaLabel,
       }: IconButtonProps,
       ref: ForwardedRef<HTMLButtonElement>,
     ) => {
@@ -54,6 +56,7 @@ export const IconButton = memo(
           )}
           title={title}
           disabled={disabled}
+          aria-label={ariaLabel || title}
           onClick={(event) => {
             if (disabled) {
               return;
