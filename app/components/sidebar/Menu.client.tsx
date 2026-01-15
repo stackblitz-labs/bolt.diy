@@ -303,10 +303,25 @@ export const Menu = () => {
     };
   }, [isSettingsOpen]);
 
-  const handleDuplicate = async (id: string) => {
-    await duplicateCurrentChat(id);
-    loadEntries(); // Reload the list after duplication
-  };
+  const duplicateCurrentChatRef = useRef(duplicateCurrentChat);
+  const exportChatRef = useRef(exportChat);
+
+  useEffect(() => {
+    duplicateCurrentChatRef.current = duplicateCurrentChat;
+    exportChatRef.current = exportChat;
+  });
+
+  const handleDuplicate = useCallback(
+    async (id: string) => {
+      await duplicateCurrentChatRef.current(id);
+      loadEntries(); // Reload the list after duplication
+    },
+    [loadEntries],
+  );
+
+  const handleExport = useCallback((id: string) => {
+    exportChatRef.current(id);
+  }, []);
 
   const handleSettingsClick = () => {
     setIsSettingsOpen(true);
@@ -321,6 +336,16 @@ export const Menu = () => {
     console.log('Setting dialog content:', content);
     setDialogContent(content);
   }, []);
+
+  const handleDelete = useCallback(
+    (event: React.UIEvent, item: ChatHistoryItem) => {
+      event.preventDefault();
+      event.stopPropagation();
+      console.log('Delete triggered for item:', item);
+      setDialogContentWithLogging({ type: 'delete', item });
+    },
+    [setDialogContentWithLogging],
+  );
 
   return (
     <>
@@ -431,14 +456,9 @@ export const Menu = () => {
                       <HistoryItem
                         key={item.id}
                         item={item}
-                        exportChat={exportChat}
-                        onDelete={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          console.log('Delete triggered for item:', item);
-                          setDialogContentWithLogging({ type: 'delete', item });
-                        }}
-                        onDuplicate={() => handleDuplicate(item.id)}
+                        onExport={handleExport}
+                        onDelete={handleDelete}
+                        onDuplicate={handleDuplicate}
                         selectionMode={selectionMode}
                         isSelected={selectedItems.includes(item.id)}
                         onToggleSelection={toggleItemSelection}
