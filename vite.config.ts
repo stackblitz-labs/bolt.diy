@@ -1,3 +1,4 @@
+
 import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
 import UnoCSS from 'unocss/vite';
 import { defineConfig, type ViteDevServer } from 'vite';
@@ -18,6 +19,26 @@ export default defineConfig((config) => {
     },
     build: {
       target: 'esnext',
+      rollupOptions: {
+        output: {
+          format: 'esm',
+        },
+      },
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      },
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        define: {
+          global: 'globalThis',
+        },
+      },
+    },
+    resolve: {
+      alias: {
+        buffer: 'vite-plugin-node-polyfills/polyfills/buffer',
+      },
     },
     plugins: [
       nodePolyfills({
@@ -43,8 +64,9 @@ export default defineConfig((config) => {
           return null;
         },
       },
+      // Disable remix plugin during tests to avoid "preamble" errors
       config.mode !== 'test' && remixCloudflareDevProxy(),
-      remixVitePlugin({
+      config.mode !== 'test' && remixVitePlugin({
         future: {
           v3_fetcherPersist: true,
           v3_relativeSplatPath: true,
@@ -73,6 +95,7 @@ export default defineConfig((config) => {
       },
     },
     test: {
+      environment: 'jsdom',
       exclude: [
         '**/node_modules/**',
         '**/dist/**',
