@@ -1,0 +1,317 @@
+openapi: 3.0.3
+info:
+  title: Project Website Generation API
+  description: API for triggering LLM-based website generation from business profile
+  version: 1.0.0
+
+paths:
+  /api/project/generate:
+    post:
+      summary: Generate website for a project
+      description: |
+        Triggers two-phase LLM website generation:
+        1. Phase 1: Template selection using fast model
+        2. Phase 2: Content generation using user's configured model
+        
+        Returns Server-Sent Events (SSE) stream with progress updates.
+      operationId: generateProjectWebsite
+      tags:
+        - Project Generation
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerationRequest'
+      responses:
+        '200':
+          description: SSE stream of generation events
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/GenerationSSEEvent'
+        '400':
+          description: Invalid request (missing projectId, invalid format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found or no business profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+      description: Better Auth session token
+
+  schemas:
+    GenerationRequest:
+      type: object
+      required:
+        - projectId
+      properties:
+        projectId:
+          type: string
+          format: uuid
+          description: ID of the project to generate website for
+          example: "123e4567-e89b-12d3-a456-426614174000"
+
+    GenerationSSEEvent:
+      oneOf:
+        - $ref: '#/components/schemas/ProgressEvent'
+        - $ref: '#/components/schemas/TemplateSelectedEvent'
+        - $ref: '#/components/schemas/FileEvent'
+        - $ref: '#/components/schemas/CompleteEvent'
+        - $ref: '#/components/schemas/ErrorEvent'
+        - $ref: '#/components/schemas/HeartbeatEvent'
+      discriminator:
+        propertyName: event
+
+    ProgressEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [progress]
+        data:
+          $ref: '#/components/schemas/GenerationProgress'
+
+    GenerationProgress:
+      type: object
+      required:
+        - phase
+        - status
+        - message
+        - percentage
+      properties:
+        phase:
+          type: string
+          enum:
+            - template_selection
+            - content_generation
+            - file_injection
+            - snapshot_save
+        status:
+          type: string
+          enum:
+            - pending
+            - in_progress
+            - completed
+            - error
+        message:
+          type: string
+          example: "Generating layout & copy"
+        percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 45
+        startedAt:
+          type: integer
+          description: Unix timestamp when phase started
+          example: 1704825600000
+        templateName:
+          type: string
+          description: Set after template selection completes
+          example: "Bamboo Bistro"
+        error:
+          type: string
+          description: Error message if status is 'error'
+
+    TemplateSelectedEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [template_selected]
+        data:
+          type: object
+          required:
+            - name
+            - themeId
+            - reasoning
+          properties:
+            name:
+              type: string
+              example: "Bamboo Bistro"
+            themeId:
+              type: string
+              example: "bamboobistro"
+            reasoning:
+              type: string
+              example: "Selected for Asian cuisine type and casual dining atmosphere"
+
+    FileEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [file]
+        data:
+          type: object
+          required:
+            - path
+            - content
+          properties:
+            path:
+              type: string
+              example: "src/App.tsx"
+            content:
+              type: string
+              description: File content (may be large)
+            size:
+              type: integer
+              description: Content size in bytes
+
+    CompleteEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [complete]
+        data:
+          $ref: '#/components/schemas/GenerationResult'
+
+    GenerationResult:
+      type: object
+      required:
+        - success
+        - projectId
+        - template
+      properties:
+        success:
+          type: boolean
+          example: true
+        projectId:
+          type: string
+          format: uuid
+        template:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Bamboo Bistro"
+            themeId:
+              type: string
+              example: "bamboobistro"
+            title:
+              type: string
+              example: "Golden Dragon Restaurant Website"
+            reasoning:
+              type: string
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              content:
+                type: string
+              size:
+                type: integer
+        snapshot:
+          type: object
+          properties:
+            savedAt:
+              type: string
+              format: date-time
+            fileCount:
+              type: integer
+            sizeMB:
+              type: number
+        timing:
+          type: object
+          properties:
+            phase1Ms:
+              type: integer
+              description: Template selection duration
+            phase2Ms:
+              type: integer
+              description: Content generation duration
+            totalMs:
+              type: integer
+              description: Total generation duration
+        error:
+          type: string
+
+    ErrorEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [error]
+        data:
+          type: object
+          required:
+            - message
+            - code
+            - retryable
+          properties:
+            message:
+              type: string
+              example: "Template selection failed"
+            code:
+              type: string
+              enum:
+                - PROJECT_NOT_FOUND
+                - NO_BUSINESS_PROFILE
+                - TEMPLATE_SELECTION_FAILED
+                - GENERATION_FAILED
+                - SNAPSHOT_SAVE_FAILED
+                - INTERNAL_ERROR
+            retryable:
+              type: boolean
+              description: Whether the operation can be retried
+
+    HeartbeatEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          enum: [heartbeat]
+        data:
+          type: object
+          properties:
+            timestamp:
+              type: integer
+              description: Unix timestamp
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object

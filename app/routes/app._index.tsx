@@ -66,16 +66,19 @@ function ProjectsDashboard() {
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  const handleCreateProject = async (input: { name: string; description?: string; gmaps_url?: string }) => {
+  const handleCreateProject = async (input: import('~/types/project').CreateProjectInput) => {
     setIsCreating(true);
     setCreateError(null);
 
     try {
-      await createProject(input);
-      setIsCreateDialogOpen(false);
+      const project = await createProject(input);
       await refetch();
+
+      return project;
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create project');
+
+      return null;
     } finally {
       setIsCreating(false);
     }

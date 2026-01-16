@@ -18,11 +18,11 @@ export default class AnthropicProvider extends BaseProvider {
      * Claude 3.5 Sonnet: 200k context, excellent for complex reasoning and coding
      */
     {
-      name: 'claude-3-5-sonnet-20241022',
-      label: 'Claude 3.5 Sonnet',
+      name: 'claude-sonnet-4-5-20250929',
+      label: 'Claude 4.5 Sonnet',
       provider: 'Anthropic',
       maxTokenAllowed: 200000,
-      maxCompletionTokens: 128000,
+      maxCompletionTokens: 64000,
     },
 
     // Claude 3 Haiku: 200k context, fastest and most cost-effective
@@ -42,9 +42,9 @@ export default class AnthropicProvider extends BaseProvider {
       maxTokenAllowed: 200000,
       maxCompletionTokens: 32000,
     },
-
+    
     {
-      name: 'claude-sonnet-4-5-20250929',
+      name: 'claude-haiku-4-5-20251001',
       label: 'Claude 4.5 Sonnet',
       provider: 'Anthropic',
       maxTokenAllowed: 200000,

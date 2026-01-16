@@ -106,6 +106,9 @@ export function useChatHistory(projectId?: string) {
       // Track whether server loading was attempted and succeeded (even if no data returned)
       let serverLoadAttempted = false;
 
+      // Track whether snapshot has been restored to prevent duplicate calls
+      let snapshotRestored = false;
+
       // Try server storage first if projectId is provided and user is authenticated
       if (projectId && isUserAuthenticated()) {
         try {
@@ -358,8 +361,24 @@ ${value.content}
             ...filteredMessages,
           ];
 
-          if (mixedId) {
-            restoreSnapshot(mixedId, snapshot || undefined);
+          if (mixedId && !snapshotRestored) {
+            await restoreSnapshot(mixedId, snapshot || undefined);
+            snapshotRestored = true;
+          }
+        }
+
+        // If we have a snapshot with files but didn't restore it yet (no chatIndex match),
+        // still restore the files to WebContainer
+        if (snapshot?.files && Object.keys(snapshot.files).length > 0 && startingIdx <= 0 && !snapshotRestored) {
+          const idToRestore = mixedId || projectId;
+          if (idToRestore) {
+            logger.info('Restoring snapshot without chatIndex match', {
+              projectId,
+              mixedId,
+              filesCount: Object.keys(snapshot.files).length,
+            });
+            await restoreSnapshot(idToRestore, snapshot);
+            snapshotRestored = true;
           }
         }
 
@@ -377,6 +396,20 @@ ${value.content}
          */
         setInitialMessages([]);
         chatId.set(mixedId || projectId);
+
+        // Restore snapshot files even without messages (e.g., newly generated projects)
+        if (snapshot?.files && Object.keys(snapshot.files).length > 0 && !snapshotRestored) {
+          const idToRestore = mixedId || projectId;
+          if (idToRestore) {
+            logger.info('Restoring snapshot for project with no messages', {
+              projectId,
+              mixedId,
+              filesCount: Object.keys(snapshot.files).length,
+            });
+            await restoreSnapshot(idToRestore, snapshot);
+            snapshotRestored = true;
+          }
+        }
       } else {
         navigate('/', { replace: true });
       }
@@ -575,36 +608,56 @@ ${value.content}
   );
 
   const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
-    // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
-    const container = await webcontainer;
-
     const validSnapshot = snapshot || { chatIndex: '', files: {} };
 
-    if (!validSnapshot?.files) {
+    if (!validSnapshot?.files || Object.keys(validSnapshot.files).length === 0) {
       return;
     }
 
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (key.startsWith(container.workdir)) {
-        key = key.replace(container.workdir, '');
-      }
-
-      if (value?.type === 'folder') {
-        await container.fs.mkdir(key, { recursive: true });
-      }
+    logger.info('Restoring snapshot files', {
+      id,
+      filesCount: Object.keys(validSnapshot.files).length,
     });
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
+
+    const entries = Object.entries(validSnapshot.files);
+
+    // First pass: create all folders (sorted by path depth to ensure parents first)
+    const folders = entries
+      .filter(([, value]) => value?.type === 'folder')
+      .sort(([a], [b]) => a.length - b.length);
+
+    for (const [folderPath] of folders) {
+      try {
+        await workbenchStore.createFolder(folderPath);
+      } catch (error) {
+        // Folder might already exist, which is fine
+        logger.debug('Folder creation skipped (may exist)', { folderPath });
+      }
+    }
+
+    // Second pass: create all files
+    const files = entries.filter(([, value]) => value?.type === 'file');
+
+    for (const [filePath, value] of files) {
       if (value?.type === 'file') {
-        if (key.startsWith(container.workdir)) {
-          key = key.replace(container.workdir, '');
+        try {
+          await workbenchStore.createFile(filePath, value.content);
+        } catch (error) {
+          logger.error('Failed to create file from snapshot', { filePath, error: String(error) });
         }
-
-        await container.fs.writeFile(key, value.content, { encoding: value.isBinary ? undefined : 'utf8' });
-      } else {
       }
+    }
+
+    logger.info('Snapshot restoration complete', {
+      id,
+      foldersCreated: folders.length,
+      filesCreated: files.length,
     });
 
-    // workbenchStore.files.setKey(snapshot?.files)
+    // Show workbench after successful file restoration
+    if (files.length > 0) {
+      workbenchStore.setShowWorkbench(true);
+    }
   }, []);
 
   // Compute effective ready state: only ready if data belongs to current ID
