@@ -2,6 +2,7 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
+import { memo } from 'react';
 import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 import { Markdown } from './Markdown';
 import { useStore } from '@nanostores/react';
@@ -22,7 +23,7 @@ interface UserMessageProps {
     | undefined;
 }
 
-export function UserMessage({ content, parts }: UserMessageProps) {
+export const UserMessage = memo(({ content, parts }: UserMessageProps) => {
   const profile = useStore(profileStore);
 
   // Extract images from parts - look for file parts with image mime types
@@ -93,7 +94,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
       <Markdown html>{textContent}</Markdown>
     </div>
   );
-}
+});
 
 function stripMetadata(content: string) {
   const artifactRegex = /<boltArtifact\s+[^>]*>[\s\S]*?<\/boltArtifact>/gm;
