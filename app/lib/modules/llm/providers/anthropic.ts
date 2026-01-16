@@ -42,7 +42,7 @@ export default class AnthropicProvider extends BaseProvider {
       maxTokenAllowed: 200000,
       maxCompletionTokens: 32000,
     },
-    
+
     {
       name: 'claude-haiku-4-5-20251001',
       label: 'Claude 4.5 Sonnet',

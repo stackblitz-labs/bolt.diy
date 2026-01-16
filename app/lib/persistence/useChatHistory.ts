@@ -29,7 +29,6 @@ import {
 } from './db';
 import type { FileMap } from '~/lib/stores/files';
 import type { Snapshot } from './types';
-import { webcontainer } from '~/lib/webcontainer';
 import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
 import type { ContextAnnotation } from '~/types/context';
 import { sortMessagesByTimestamp } from './messageSort';
@@ -367,10 +366,13 @@ ${value.content}
           }
         }
 
-        // If we have a snapshot with files but didn't restore it yet (no chatIndex match),
-        // still restore the files to WebContainer
+        /*
+         * If we have a snapshot with files but didn't restore it yet (no chatIndex match),
+         * still restore the files to WebContainer
+         */
         if (snapshot?.files && Object.keys(snapshot.files).length > 0 && startingIdx <= 0 && !snapshotRestored) {
           const idToRestore = mixedId || projectId;
+
           if (idToRestore) {
             logger.info('Restoring snapshot without chatIndex match', {
               projectId,
@@ -400,6 +402,7 @@ ${value.content}
         // Restore snapshot files even without messages (e.g., newly generated projects)
         if (snapshot?.files && Object.keys(snapshot.files).length > 0 && !snapshotRestored) {
           const idToRestore = mixedId || projectId;
+
           if (idToRestore) {
             logger.info('Restoring snapshot for project with no messages', {
               projectId,
@@ -622,14 +625,12 @@ ${value.content}
     const entries = Object.entries(validSnapshot.files);
 
     // First pass: create all folders (sorted by path depth to ensure parents first)
-    const folders = entries
-      .filter(([, value]) => value?.type === 'folder')
-      .sort(([a], [b]) => a.length - b.length);
+    const folders = entries.filter(([, value]) => value?.type === 'folder').sort(([a], [b]) => a.length - b.length);
 
     for (const [folderPath] of folders) {
       try {
         await workbenchStore.createFolder(folderPath);
-      } catch (error) {
+      } catch {
         // Folder might already exist, which is fine
         logger.debug('Folder creation skipped (may exist)', { folderPath });
       }
