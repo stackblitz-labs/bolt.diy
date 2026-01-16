@@ -7,21 +7,30 @@ import McpServerList from '~/components/@settings/tabs/mcp/McpServerList';
 
 const EXAMPLE_MCP_CONFIG: MCPConfig = {
   mcpServers: {
-    everything: {
+    filesystem: {
       type: 'stdio',
       command: 'npx',
-      args: ['-y', '@modelcontextprotocol/server-everything'],
+      args: ['-y', '@modelcontextprotocol/server-filesystem', '/path/to/allowed/files'],
     },
-    deepwiki: {
-      type: 'streamable-http',
-      url: 'https://mcp.deepwiki.com/mcp',
+    git: {
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-git', '/path/to/git/repo'],
     },
-    'local-sse': {
-      type: 'sse',
-      url: 'http://localhost:8000/sse',
-      headers: {
-        Authorization: 'Bearer mytoken123',
-      },
+    memory: {
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-memory'],
+    },
+    fetch: {
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-fetch'],
+    },
+    'sequential-thinking': {
+      type: 'stdio',
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-sequential-thinking'],
     },
   },
 };

@@ -33,6 +33,14 @@ PROVIDER_LIST.forEach((provider) => {
 
 export const STARTER_TEMPLATES: Template[] = [
   {
+    name: 'Appwrite React',
+    label: 'Appwrite React',
+    description: 'React starter with Appwrite integration for full-stack apps',
+    githubRepo: 'appwrite/starter-for-react',
+    tags: ['react', 'appwrite', 'firebase-alternative'],
+    icon: 'i-simple-icons:appwrite',
+  },
+  {
     name: 'Expo App',
     label: 'Expo App',
     description: 'Expo starter template for building cross-platform mobile apps',

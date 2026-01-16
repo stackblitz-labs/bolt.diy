@@ -306,13 +306,17 @@ export default function VercelConnection() {
                               {project.targets?.production?.alias && project.targets.production.alias.length > 0 ? (
                                 <>
                                   <a
-                                    href={`https://${project.targets.production.alias.find((a: string) => a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app')) || project.targets.production.alias[0]}`}
+                                    href={`https://${project.targets.production.alias.find((a: string) => a && typeof a === 'string' && a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app')) || project.targets.production.alias[0]}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="hover:text-bolt-elements-borderColorActive"
                                   >
                                     {project.targets.production.alias.find(
-                                      (a: string) => a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app'),
+                                      (a: string) =>
+                                        a &&
+                                        typeof a === 'string' &&
+                                        a.endsWith('.vercel.app') &&
+                                        !a.includes('-projects.vercel.app'),
                                     ) || project.targets.production.alias[0]}
                                   </a>
                                   <span>•</span>
