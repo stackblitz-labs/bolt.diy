@@ -1,4 +1,4 @@
-import { memo, Fragment } from 'react';
+import { memo, Fragment, useMemo } from 'react';
 import { Markdown } from './Markdown';
 import type { JSONValue } from 'ai';
 import Popover from '~/components/ui/Popover';
@@ -74,33 +74,42 @@ export const AssistantMessage = memo(
     parts,
     addToolResult,
   }: AssistantMessageProps) => {
-    const filteredAnnotations = (annotations?.filter(
-      (annotation: JSONValue) =>
-        annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
-    ) || []) as { type: string; value: any } & { [key: string]: any }[];
+    const filteredAnnotations = useMemo(
+      () =>
+        (annotations?.filter(
+          (annotation: JSONValue) =>
+            annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
+        ) || []) as { type: string; value: any } & { [key: string]: any }[],
+      [annotations],
+    );
 
-    let chatSummary: string | undefined = undefined;
+    const chatSummary = useMemo(
+      () => filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')?.summary,
+      [filteredAnnotations],
+    );
 
-    if (filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')) {
-      chatSummary = filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')?.summary;
-    }
+    const codeContext = useMemo(
+      () => filteredAnnotations.find((annotation) => annotation.type === 'codeContext')?.files,
+      [filteredAnnotations],
+    );
 
-    let codeContext: string[] | undefined = undefined;
+    const usage:
+      | {
+          completionTokens: number;
+          promptTokens: number;
+          totalTokens: number;
+        }
+      | undefined = useMemo(
+      () => filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value,
+      [filteredAnnotations],
+    );
 
-    if (filteredAnnotations.find((annotation) => annotation.type === 'codeContext')) {
-      codeContext = filteredAnnotations.find((annotation) => annotation.type === 'codeContext')?.files;
-    }
+    const toolInvocations = useMemo(() => parts?.filter((part) => part.type === 'tool-invocation'), [parts]);
 
-    const usage: {
-      completionTokens: number;
-      promptTokens: number;
-      totalTokens: number;
-    } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value;
-
-    const toolInvocations = parts?.filter((part) => part.type === 'tool-invocation');
-    const toolCallAnnotations = filteredAnnotations.filter(
-      (annotation) => annotation.type === 'toolCall',
-    ) as ToolCallAnnotation[];
+    const toolCallAnnotations = useMemo(
+      () => filteredAnnotations.filter((annotation) => annotation.type === 'toolCall') as ToolCallAnnotation[],
+      [filteredAnnotations],
+    );
 
     return (
       <div className="overflow-hidden w-full">
