@@ -46,7 +46,9 @@ export function VercelDeploymentLink() {
         const chatNumber = currentChatId.split('-')[0];
 
         // Find project by matching the chat number in the name
-        const project = projects.find((p: { name: string | string[] }) => p.name.includes(`bolt-diy-${chatNumber}`));
+        const project = projects.find(
+          (p: { name: string | string[] }) => p.name && p.name.includes(`bolt-diy-${chatNumber}`),
+        );
 
         if (project) {
           // Fetch project details including deployments
@@ -62,17 +64,22 @@ export function VercelDeploymentLink() {
             const projectDetails = (await projectDetailsResponse.json()) as any;
 
             // Try to get URL from production aliases first
-            if (projectDetails.targets?.production?.alias && projectDetails.targets.production.alias.length > 0) {
+            if (
+              projectDetails.targets?.production?.alias &&
+              Array.isArray(projectDetails.targets.production.alias) &&
+              projectDetails.targets.production.alias.length > 0
+            ) {
               // Find the clean URL (without -projects.vercel.app)
               const cleanUrl = projectDetails.targets.production.alias.find(
-                (a: string) => a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app'),
+                (a: string) =>
+                  a && typeof a === 'string' && a.endsWith('.vercel.app') && !a.includes('-projects.vercel.app'),
               );
 
               if (cleanUrl) {
                 setDeploymentUrl(`https://${cleanUrl}`);
                 return;
-              } else {
-                // If no clean URL found, use the first alias
+              } else if (projectDetails.targets.production.alias[0]) {
+                // If no clean URL found, use the first alias if available
                 setDeploymentUrl(`https://${projectDetails.targets.production.alias[0]}`);
                 return;
               }
