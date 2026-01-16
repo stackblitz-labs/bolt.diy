@@ -1,14 +1,18 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from '@remix-run/react';
+import { toast } from 'react-toastify';
 import { DialogRoot, Dialog, DialogTitle, DialogDescription } from '~/components/ui/Dialog';
 import { Input } from '~/components/ui/Input';
 import { Button } from '~/components/ui/Button';
-import type { CreateProjectInput } from '~/types/project';
-import type { BusinessData, GeneratedContent } from '~/types/crawler';
+import type { CreateProjectInput, Project } from '~/types/project';
+import type { BusinessData } from '~/types/crawler';
+import type { GeneratedFile, GenerationProgress, GenerationResult } from '~/types/generation';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 interface CreateProjectDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateProject: (input: CreateProjectInput) => Promise<void>;
+  onCreateProject: (input: CreateProjectInput) => Promise<Project | null>;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -23,6 +27,7 @@ export function CreateProjectDialog({
   error = null,
 }: CreateProjectDialogProps) {
   const [step, setStep] = useState<Step>('details');
+  const navigate = useNavigate();
 
   // Basic business info
   const [businessName, setBusinessName] = useState('');
@@ -36,9 +41,6 @@ export function CreateProjectDialog({
   const [isCrawling, setIsCrawling] = useState(false);
   const [websiteCrawled, setWebsiteCrawled] = useState(false);
   const [fallbackMode, setFallbackMode] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   // Review/edit state
   const [editedName, setEditedName] = useState('');
@@ -51,6 +53,19 @@ export function CreateProjectDialog({
   const [crawlProgress, setCrawlProgress] = useState<'connecting' | 'extracting' | 'done'>('connecting');
 
   const [touched, setTouched] = useState({ name: false, address: false, maps: false });
+
+  // Generation state (Phase 3)
+  const [createdProject, setCreatedProject] = useState<Project | null>(null);
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
+  const [generationComplete, setGenerationComplete] = useState<GenerationResult | null>(null);
+  const [generationAttempt, setGenerationAttempt] = useState(0);
+  const [showTakingLonger, setShowTakingLonger] = useState(false);
+  const generationStartedAtRef = useRef<number | null>(null);
+  const generationAbortRef = useRef<AbortController | null>(null);
+  const completionHandledRef = useRef<boolean>(false);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -67,20 +82,29 @@ export function CreateProjectDialog({
       setFallbackMode(false);
       setCrawlProgress('connecting');
       setShowHours(false);
+
+      setCreatedProject(null);
+      setGenerationProgress(null);
+      setGenerationError(null);
+      setSelectedTemplate(null);
+      setGeneratedFiles([]);
+      setGenerationComplete(null);
+      setGenerationAttempt(0);
+      setShowTakingLonger(false);
+      generationStartedAtRef.current = null;
+      generationAbortRef.current?.abort();
+      generationAbortRef.current = null;
+      completionHandledRef.current = false;
     }
   }, [isOpen]);
 
-  // Auto-close after successful project creation
+  // Abort generation stream when dialog closes/unmounts
   useEffect(() => {
-    if (step === 'building' && !isLoading && !error) {
-      const timer = window.setTimeout(() => {
-        onClose();
-      }, 1200);
-      return () => window.clearTimeout(timer);
+    if (!isOpen) {
+      generationAbortRef.current?.abort();
+      generationAbortRef.current = null;
     }
-
-    return undefined;
-  }, [step, isLoading, error, onClose]);
+  }, [isOpen]);
 
   // Update crawl progress indicators
   useEffect(() => {
@@ -226,73 +250,23 @@ export function CreateProjectDialog({
     }
 
     setStep('building');
+
     setGenerationError(null);
+    setGenerationProgress(null);
+    setSelectedTemplate(null);
+    setGeneratedFiles([]);
+    setGenerationComplete(null);
 
-    // Skip AI generation in fallback mode
-    if (fallbackMode) {
-      const payload: CreateProjectInput = {
+    // Always attach a minimal businessProfile so generation can proceed even in fallback mode
+    const businessProfile = {
+      session_id: sessionId,
+      gmaps_url: mapsUrl.trim() || undefined,
+      crawled_data: (crawledData ?? {
         name: businessName.trim(),
-        gmaps_url: mapsUrl.trim() || undefined,
-        address: { line1: businessAddress.trim() },
-        session_id: sessionId,
-      };
-
-      await onCreateProject(payload);
-
-      return;
-    }
-
-    // Call AI generation if we have crawled data
-    let finalGeneratedContent: GeneratedContent | null = generatedContent;
-
-    if (crawledData && !generatedContent) {
-      setIsGenerating(true);
-
-      try {
-        const response = await fetch('/api/crawler/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            session_id: sessionId,
-          }),
-        });
-
-        const result: { success?: boolean; data?: GeneratedContent; error?: string | { message?: string } } =
-          await response.json();
-
-        if (response.ok && result.success && result.data) {
-          finalGeneratedContent = result.data;
-          setGeneratedContent(result.data);
-          setIsGenerating(false);
-        } else {
-          const errorMessage =
-            typeof result.error === 'string' ? result.error : result.error?.message || 'Failed to generate content';
-          setGenerationError(errorMessage);
-          setIsGenerating(false);
-
-          // Still proceed to project creation even if generation failed
-          console.error('AI generation failed:', errorMessage);
-        }
-      } catch (err) {
-        console.error('Generation error:', err);
-        setGenerationError('Failed to generate AI content. Continuing with basic data.');
-        setIsGenerating(false);
-      }
-    }
-
-    // Construct business profile with the generated content from API response
-    const businessProfile =
-      crawledData || finalGeneratedContent
-        ? {
-            session_id: sessionId,
-            gmaps_url: mapsUrl.trim() || undefined,
-            crawled_data: crawledData || undefined,
-            generated_content: finalGeneratedContent || undefined,
-            crawled_at: new Date().toISOString(),
-          }
-        : undefined;
+        address: businessAddress.trim(),
+      }) as BusinessData,
+      crawled_at: new Date().toISOString(),
+    };
 
     const payload: CreateProjectInput = {
       name: businessName.trim(),
@@ -302,8 +276,190 @@ export function CreateProjectDialog({
       businessProfile,
     };
 
-    await onCreateProject(payload);
+    const project = await onCreateProject(payload);
+
+    if (!project) {
+      setGenerationError('Failed to create project');
+      return;
+    }
+
+    setCreatedProject(project);
   };
+
+  useEffect(() => {
+    if (step !== 'building' || !createdProject?.id || generationAbortRef.current) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    generationAbortRef.current = controller;
+    generationStartedAtRef.current = Date.now();
+    setShowTakingLonger(false);
+
+    const takingLongerTimer = window.setTimeout(() => {
+      setShowTakingLonger(true);
+    }, 60_000);
+
+    const run = async () => {
+      try {
+        console.log('[Generation] Starting POST request to /api/project/generate', {
+          projectId: createdProject.id,
+          method: 'POST',
+        });
+
+        const response = await fetch('/api/project/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId: createdProject.id }),
+          signal: controller.signal,
+        });
+
+        console.log('[Generation] Response received', {
+          status: response.status,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries()),
+        });
+
+        if (!response.ok || !response.body) {
+          let message = `Generation request failed (${response.status})`;
+
+          try {
+            const errorData = (await response.json()) as { error?: { message?: string } };
+            message = errorData?.error?.message || message;
+            console.error('[Generation] Error response:', errorData);
+          } catch (parseError) {
+            console.error('[Generation] Failed to parse error response:', parseError);
+          }
+
+          setGenerationError(message);
+
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        const handleEvent = (eventName: string, dataJson: string) => {
+          try {
+            const data = JSON.parse(dataJson) as unknown;
+
+            if (eventName === 'progress') {
+              setGenerationProgress(data as GenerationProgress);
+
+              return;
+            }
+
+            if (eventName === 'template_selected') {
+              const payload = data as { name?: string };
+              setSelectedTemplate(payload.name ?? null);
+
+              return;
+            }
+
+            if (eventName === 'file') {
+              const file = data as GeneratedFile;
+              setGeneratedFiles((prev) => [...prev, file]);
+
+              return;
+            }
+
+            if (eventName === 'complete') {
+              setGenerationComplete(data as GenerationResult);
+
+              return;
+            }
+
+            if (eventName === 'error') {
+              const payload = data as { message?: string };
+              console.error('[Generation] Error event received:', payload);
+              setGenerationError(payload.message ?? 'Generation failed');
+            }
+          } catch (parseError) {
+            console.warn('[Generation] Malformed event payload:', { eventName, dataJson, parseError });
+
+            // ignore malformed event payload
+          }
+        };
+
+        while (true) {
+          const { value, done } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+
+          let idx: number;
+
+          while ((idx = buffer.indexOf('\n\n')) !== -1) {
+            const rawEvent = buffer.slice(0, idx);
+            buffer = buffer.slice(idx + 2);
+
+            const lines = rawEvent.split('\n').map((l) => l.trim());
+            const eventLine = lines.find((l) => l.startsWith('event:'));
+            const dataLine = lines.find((l) => l.startsWith('data:'));
+
+            if (!eventLine || !dataLine) {
+              continue;
+            }
+
+            const eventName = eventLine.replace('event:', '').trim();
+            const dataJson = dataLine.replace('data:', '').trim();
+            handleEvent(eventName, dataJson);
+          }
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log('[Generation] Request aborted by user');
+
+          return;
+        }
+
+        console.error('[Generation] Stream processing failed:', err);
+        setGenerationError(err instanceof Error ? err.message : 'Generation failed');
+      } finally {
+        generationAbortRef.current = null;
+        window.clearTimeout(takingLongerTimer);
+      }
+    };
+
+    void run();
+
+    return () => {
+      window.clearTimeout(takingLongerTimer);
+      controller.abort();
+    };
+  }, [createdProject?.id, generationAttempt, step]);
+
+  // When generation completes, inject files and navigate to the project chat
+  useEffect(() => {
+    if (!generationComplete || !createdProject || completionHandledRef.current) {
+      return;
+    }
+
+    completionHandledRef.current = true;
+
+    const run = async () => {
+      try {
+        const filesToInject = generationComplete.files?.length ? generationComplete.files : generatedFiles;
+
+        for (const file of filesToInject) {
+          await workbenchStore.createFile(file.path, file.content);
+        }
+
+        toast.success('Website generated successfully!');
+        onClose();
+        navigate(`/chat/${createdProject.url_id ?? createdProject.id}`);
+      } catch (err) {
+        completionHandledRef.current = false;
+        setGenerationError(err instanceof Error ? err.message : 'Failed to inject generated files');
+      }
+    };
+
+    void run();
+  }, [createdProject, generationComplete, generatedFiles, navigate, onClose]);
 
   return (
     <DialogRoot open={isOpen} onOpenChange={onClose}>
@@ -704,12 +860,8 @@ export function CreateProjectDialog({
           {/* BUILDING STEP */}
           {step === 'building' && (
             <div className="p-6">
-              <DialogTitle>{fallbackMode ? 'Creating your project...' : 'Building your website'}</DialogTitle>
-              <DialogDescription>
-                {fallbackMode
-                  ? 'Please wait while we set up your project.'
-                  : 'Our AI is setting everything up for you.'}
-              </DialogDescription>
+              <DialogTitle>Building your website</DialogTitle>
+              <DialogDescription>Our AI is setting everything up for you.</DialogDescription>
               <div className="mt-6 space-y-6">
                 <div className="flex flex-col items-center gap-4 text-center">
                   <div className="relative h-24 w-24">
@@ -718,64 +870,93 @@ export function CreateProjectDialog({
                   </div>
                   <div>
                     <div className="text-lg font-semibold text-bolt-elements-textPrimary">
-                      {fallbackMode ? 'Creating your project' : 'Building your dream website'}
+                      Building your dream website
                     </div>
                     <div className="text-sm text-bolt-elements-textSecondary">
-                      {fallbackMode
-                        ? 'This will only take a moment.'
-                        : isGenerating
-                          ? 'Generating AI-powered content...'
-                          : 'Sit tight while we generate your layout and copy.'}
+                      {generationProgress?.message || 'Sit tight while we generate your layout and copy.'}
                     </div>
                   </div>
                 </div>
-                {!fallbackMode && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm">
-                      <div className="h-6 w-6 rounded-full bg-bolt-elements-item-backgroundAccent/10 text-bolt-elements-item-backgroundAccent flex items-center justify-center">
-                        <span className="i-ph-check w-4 h-4" />
-                      </div>
-                      <span className="text-bolt-elements-textSecondary line-through">Analyzing business details</span>
-                    </div>
-                    <div className="flex items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-white p-3 text-sm">
-                      {isGenerating ? (
-                        <>
-                          <div className="h-6 w-6 rounded-full border-2 border-bolt-elements-item-backgroundAccent border-t-transparent animate-spin" />
-                          <span className="text-bolt-elements-textPrimary font-semibold">
-                            Generating layout & copy...
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="h-6 w-6 rounded-full bg-bolt-elements-item-backgroundAccent/10 text-bolt-elements-item-backgroundAccent flex items-center justify-center">
-                            <span className="i-ph-check w-4 h-4" />
-                          </div>
-                          <span className="text-bolt-elements-textSecondary line-through">
-                            Generating layout & copy...
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm opacity-70">
-                      <div className="h-6 w-6 rounded-full border-2 border-bolt-elements-borderColor" />
-                      <span className="text-bolt-elements-textSecondary">Final polish & SEO check</span>
-                    </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm">
+                    {selectedTemplate ? (
+                      <>
+                        <div className="h-6 w-6 rounded-full bg-bolt-elements-item-backgroundAccent/10 text-bolt-elements-item-backgroundAccent flex items-center justify-center">
+                          <span className="i-ph-check w-4 h-4" />
+                        </div>
+                        <span className="text-bolt-elements-textSecondary line-through">
+                          Analyzing business details
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="h-6 w-6 rounded-full border-2 border-bolt-elements-item-backgroundAccent border-t-transparent animate-spin" />
+                        <span className="text-bolt-elements-textPrimary font-semibold">
+                          Analyzing business details...
+                        </span>
+                      </>
+                    )}
                   </div>
-                )}
-                {generationError && !error && (
-                  <div className="p-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-md">
-                    <p className="text-sm text-orange-600 dark:text-orange-400">
-                      AI generation completed with warnings. Your project will be created with available data.
-                    </p>
+
+                  <div className="flex items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-white p-3 text-sm">
+                    {generationComplete ? (
+                      <>
+                        <div className="h-6 w-6 rounded-full bg-bolt-elements-item-backgroundAccent/10 text-bolt-elements-item-backgroundAccent flex items-center justify-center">
+                          <span className="i-ph-check w-4 h-4" />
+                        </div>
+                        <span className="text-bolt-elements-textSecondary line-through">
+                          Generating layout & copy...
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="h-6 w-6 rounded-full border-2 border-bolt-elements-item-backgroundAccent border-t-transparent animate-spin" />
+                        <span className="text-bolt-elements-textPrimary font-semibold">
+                          Generating layout & copy...
+                        </span>
+                      </>
+                    )}
                   </div>
-                )}
-                {error && (
+
+                  <div className="flex items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm opacity-70">
+                    <div className="h-6 w-6 rounded-full border-2 border-bolt-elements-borderColor" />
+                    <span className="text-bolt-elements-textSecondary">Final polish & SEO check</span>
+                  </div>
+
+                  {showTakingLonger && !generationComplete && (
+                    <div className="text-xs text-bolt-elements-textSecondary">Taking longer than usual...</div>
+                  )}
+
+                  {selectedTemplate && (
+                    <div className="text-xs text-bolt-elements-textSecondary">
+                      Selected template: {selectedTemplate}
+                    </div>
+                  )}
+                </div>
+
+                {(generationError || error) && (
                   <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-md">
-                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{generationError || error}</p>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                       <Button
                         type="button"
-                        onClick={handleConfirm}
+                        onClick={() => {
+                          // Retry generation if project exists, otherwise retry project creation
+                          if (createdProject?.id) {
+                            setGenerationError(null);
+                            setGenerationProgress(null);
+                            setSelectedTemplate(null);
+                            setGeneratedFiles([]);
+                            setGenerationComplete(null);
+                            generationAbortRef.current?.abort();
+                            generationAbortRef.current = null;
+                            generationStartedAtRef.current = null;
+                            setShowTakingLonger(false);
+                            setGenerationAttempt((n) => n + 1);
+                          } else {
+                            void handleConfirm();
+                          }
+                        }}
                         className="bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent hover:bg-bolt-elements-button-primary-backgroundHover"
                       >
                         Try Again
