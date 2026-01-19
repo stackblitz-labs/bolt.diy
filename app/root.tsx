@@ -120,6 +120,12 @@ export const Head = createHead(() => {
       <script dangerouslySetInnerHTML={{ __html: logRocketInit }} />
       <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
       <script dangerouslySetInnerHTML={{ __html: analyticsCode }} />
+      <script
+        async
+        src="https://replay-analytics.netlify.app/umami.js"
+        data-website-id="97c7e1d9-1b55-46ef-8cd5-8fb5886adac9"
+        data-host-url="https://replay-analytics.netlify.app"
+      />
     </>
   );
 });
