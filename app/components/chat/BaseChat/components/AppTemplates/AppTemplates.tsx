@@ -4,7 +4,14 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CategorySelector, type IntroSectionCategory } from './CategorySelector';
 import { ReferenceAppCard } from './ReferenceAppCard';
 import { ReferenceAppModal } from './ReferenceAppModal';
-import { getLandingPageIndex, type LandingPageIndexEntry, ReferenceAppStage } from '~/lib/replay/ReferenceApps';
+import { CollectionModal } from './CollectionModal';
+import {
+  getLandingPageIndex,
+  type LandingPageIndexEntry,
+  ReferenceAppStage,
+  getCollections,
+  type CollectionPageIndexEntry,
+} from '~/lib/replay/ReferenceApps';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
 
@@ -23,7 +30,10 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
   const dragStartRef = useRef({ x: 0, scrollLeft: 0 });
   const [referenceApps, setReferenceApps] = useState<LandingPageIndexEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [collections, setCollections] = useState<CollectionPageIndexEntry[]>([]);
+  const [isLoadingCollections, setIsLoadingCollections] = useState(true);
   const [selectedApp, setSelectedApp] = useState<LandingPageIndexEntry | null>(null);
+  const [selectedCollection, setSelectedCollection] = useState<CollectionPageIndexEntry | null>(null);
 
   // Fetch reference apps on mount
   useEffect(() => {
@@ -41,6 +51,22 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
     };
 
     loadReferenceApps();
+  }, []);
+
+  // Fetch collections on mount
+  useEffect(() => {
+    const loadCollections = async () => {
+      try {
+        setIsLoadingCollections(true);
+        const collections = await getCollections();
+        setCollections(collections);
+      } catch (error) {
+        console.error('Failed to fetch collections:', error);
+      } finally {
+        setIsLoadingCollections(false);
+      }
+    };
+    loadCollections();
   }, []);
 
   // Handle appPath URL parameter - automatically trigger customize action
@@ -268,8 +294,70 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
             </>
           )}
 
+          {/* Collections Section */}
+          {collections.length > 0 && (
+            <div className="max-w-[1337px] mx-auto px-4 sm:px-6 animate-fade-in animation-delay-600">
+              <div className="mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-bolt-elements-textHeading mb-2">Collections</h2>
+                <p className="text-bolt-elements-textSecondary">Apps for different use cases</p>
+              </div>
+
+              {isLoadingCollections ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-8 h-8 border-4 border-bolt-elements-borderColor border-t-rose-500 rounded-full animate-spin" />
+                    <p className="text-bolt-elements-textSecondary text-sm">Loading collections...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {collections.map((collection) => (
+                    <button
+                      key={collection.collectionPath}
+                      onClick={() => setSelectedCollection(collection)}
+                      className="group text-left bg-gradient-to-br from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-1 rounded-xl p-6 border border-bolt-elements-borderColor hover:border-rose-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-rose-500/5"
+                    >
+                      <h3 className="text-lg font-semibold text-bolt-elements-textPrimary mb-2 group-hover:text-rose-500 transition-colors">
+                        {collection.name}
+                      </h3>
+                      <p className="text-sm text-bolt-elements-textSecondary leading-relaxed">
+                        {collection.shortDescription}
+                      </p>
+                      <div className="mt-4 flex items-center text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-sm font-medium">View collection</span>
+                        <svg
+                          className="w-4 h-4 ml-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Reference App Modal */}
           <ReferenceAppModal app={selectedApp} sendMessage={sendMessage} onClose={() => setSelectedApp(null)} />
+
+          {/* Collection Modal */}
+          <CollectionModal
+            collection={selectedCollection}
+            referenceApps={referenceApps}
+            onClose={() => setSelectedCollection(null)}
+            onAppClick={(app) => {
+              setSelectedCollection(null);
+              // Small delay to allow collection modal to close before opening app modal
+              setTimeout(() => {
+                setSelectedApp(app);
+              }, 100);
+            }}
+          />
         </>
       )}
     </div>

@@ -97,3 +97,47 @@ export async function getLandingPageContent(referenceAppPath: string): Promise<L
   const { landingPage } = await callNutAPI('get-landing-page', { referenceAppPath });
   return landingPage;
 }
+
+// Abbreviated information about a collection page.
+export interface CollectionPageIndexEntry {
+  collectionPath: string;
+  name: string;
+  shortDescription: string;
+}
+
+// Information about a reference app in a collection.
+interface CollectionPageReferenceApp {
+  // Path under the referenceApps directory to this app.
+  referenceAppPath: string;
+
+  // Description of the app tailored to the collection's use case.
+  description: string;
+}
+
+export interface CollectionPageContent {
+  // Identifying path under the collections directory to this content JSON file.
+  // directories are lower case, collection file names are PascalCase.
+  collectionPath: string;
+
+  // Name of the collection.
+  name: string;
+
+  // Single phrase describing the collection, e.g. the persona who the collection is for.
+  shortDescription: string;
+
+  // Single paragraph (5 sentences at most) with details about the problems the collection of apps is designed to solve.
+  longDescription: string;
+
+  // All apps in the collection, in the order they should be presented.
+  apps: CollectionPageReferenceApp[];
+}
+
+export async function getCollections(): Promise<CollectionPageIndexEntry[]> {
+  const { collectionPages } = await callNutAPI('get-collection-page-index', {});
+  return collectionPages;
+}
+
+export async function getCollectionPageContent(collectionPath: string): Promise<CollectionPageContent> {
+  const { collectionPage } = await callNutAPI('get-collection-page', { collectionPath });
+  return collectionPage;
+}
