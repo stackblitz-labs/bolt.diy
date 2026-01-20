@@ -7,8 +7,6 @@ import { useUser } from '~/hooks/useUser';
 import { checkSubscriptionStatus } from '~/lib/stripe/client';
 import { useEffect } from 'react';
 import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
-import { database } from '~/lib/persistence/apps';
-import { buildAccessStore } from '~/lib/stores/buildAccess';
 import { BaseChat } from '~/components/chat/BaseChat/BaseChat';
 
 export const meta: MetaFunction = () => {
@@ -26,14 +24,11 @@ export default function Index() {
     const fetchAccess = async () => {
       if (user) {
         const stripeStatus = await checkSubscriptionStatus();
-        const list = await database.getAllAppEntries();
 
-        buildAccessStore.setAccess(stripeStatus.subscription, list.length ?? 0);
         subscriptionStore.setSubscription(stripeStatus);
       } else {
         // Clear subscription when user signs out
         subscriptionStore.setSubscription({ hasSubscription: false, subscription: null });
-        buildAccessStore.clearAccess();
       }
     };
 

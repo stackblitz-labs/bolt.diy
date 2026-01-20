@@ -32,7 +32,6 @@ import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { getCurrentIFrame } from '~/components/workbench/Preview/Preview';
 import { Crosshair, X, Palette, Plus, MousePointerClickIcon } from 'lucide-react';
-import { buildAccessStore } from '~/lib/stores/buildAccess';
 import { designPanelStore } from '~/lib/stores/designSystemStore';
 import { elementPickerStore, setIsElementPickerEnabled, setIsElementPickerReady } from '~/lib/stores/elementPicker';
 import { useIsMobile } from '~/lib/hooks/useIsMobile';
@@ -116,7 +115,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const user = useStore(userStore);
   const selectedElement = useStore(workbenchStore.selectedElement) as SelectedElementData | null;
   // const { isMobile, isTablet } = useIsMobile();
-  const hasBuildAccess = useStore(buildAccessStore.hasAccess);
   const isDesignPanelVisible = useStore(designPanelStore.isVisible);
   const { isMobile } = useIsMobile();
   const isElementPickerEnabled = useStore(elementPickerStore.isEnabled);
@@ -608,8 +606,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
         {/* Start Building Button - shown when discovery rating is high enough */}
         {(() => {
-          const showStartBuildingButton =
-            user && startPlanningRating > 0 && !hasAppSummary && hasBuildAccess && !hasPendingMessage;
+          const showStartBuildingButton = user && startPlanningRating > 0 && !hasAppSummary && !hasPendingMessage;
 
           return showStartBuildingButton ? (
             <ClientOnly>
