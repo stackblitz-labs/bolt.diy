@@ -8,8 +8,9 @@ import { getThemeByTemplateName, getThemePrompt, RESTAURANT_THEMES } from '~/the
 import { streamText } from '~/lib/.server/llm/stream-text';
 import { saveSnapshot } from '~/lib/services/projects.server';
 import type { FileMap } from '~/lib/stores/files';
-import { WORK_DIR, MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
+import { WORK_DIR, MODEL_REGEX, PROVIDER_REGEX, STARTER_TEMPLATES } from '~/utils/constants';
 import { getFastModel } from '~/lib/services/fastModelResolver';
+import { fetchTemplateFromGitHub, applyIgnorePatterns, buildTemplatePrimingMessages } from '~/lib/.server/templates';
 
 const logger = createScopedLogger('projectGenerationService');
 
@@ -359,7 +360,9 @@ export async function selectTemplate(
 /**
  * Phase 2: Content generation (user's LLM), streamed as file events.
  *
- * NOTE: Implemented in Phase 3 (US1). Phase 2 only provides the skeleton signature.
+ * This function fetches the GitHub template associated with the themeId,
+ * primes the LLM with the template files, and asks it to customize
+ * (not regenerate) the template with business data.
  */
 export async function* generateContent(
   businessProfile: BusinessProfile,
@@ -371,28 +374,113 @@ export async function* generateContent(
   providerSettings: Record<string, IProviderSetting>,
 ): AsyncGenerator<{ event: 'file'; data: GeneratedFile }> {
   const themePrompt = getThemePrompt(themeId) ?? '';
+
+  const businessName =
+    businessProfile.generated_content?.businessIdentity?.displayName ||
+    businessProfile.crawled_data?.name ||
+    'Restaurant';
+
+  // Look up template in STARTER_TEMPLATES by themeId
+  const template = STARTER_TEMPLATES.find((t) => t.restaurantThemeId === themeId);
+
+  if (!template) {
+    throw new Error(`[TEMPLATE_PRIMING] Template not found for themeId: ${themeId}`);
+  }
+
+  logger.info(`[TEMPLATE_PRIMING] Using template: ${template.name} (${template.githubRepo})`);
+
+  // Try to fetch template from GitHub
+  let assistantMessage: string;
+  let userMessage: string;
+
+  try {
+    const githubToken = env?.GITHUB_TOKEN;
+    const allFiles = await fetchTemplateFromGitHub(template.githubRepo, githubToken);
+
+    logger.info(`[TEMPLATE_PRIMING] Template fetched: ${allFiles.length} files`);
+
+    // Apply ignore patterns
+    const { includedFiles, ignoredFiles } = applyIgnorePatterns(allFiles);
+
+    logger.info(`[TEMPLATE_PRIMING] After filtering: ${includedFiles.length} included, ${ignoredFiles.length} ignored`);
+
+    // Build priming messages
+    const title = businessProfile.generated_content?.businessIdentity?.displayName
+      ? `${businessProfile.generated_content.businessIdentity.displayName} Website`
+      : 'Restaurant Website';
+
+    const primingMessages = buildTemplatePrimingMessages(
+      includedFiles,
+      ignoredFiles,
+      businessProfile,
+      template.name,
+      themePrompt,
+      title,
+    );
+
+    assistantMessage = primingMessages.assistantMessage;
+    userMessage = primingMessages.userMessage;
+  } catch (error) {
+    // Fallback to from-scratch generation if GitHub fetch fails
+    logger.warn('[TEMPLATE_PRIMING] GitHub fetch failed, falling back to from-scratch generation', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    assistantMessage = '';
+    userMessage = buildFallbackUserMessage(businessName, model, provider.name);
+  }
+
+  // Compose additional system prompt with theme and business data
   const additionalSystemPrompt = composeContentPrompt(businessProfile, themePrompt);
 
-  const userMessage = [
-    // Explicitly set model/provider for streamText() via its message markers.
-    `[Model: ${model}]`,
-    '',
-    `[Provider: ${provider.name}]`,
-    '',
-    'Generate the website now.',
-  ].join('\n');
+  // Build messages array - include assistant message if we have template content
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+  if (assistantMessage) {
+    messages.push({ role: 'assistant', content: assistantMessage });
+
+    /*
+     * CRITICAL: Yield template files FIRST so they're in the snapshot
+     * LLM modifications will overwrite files with the same paths
+     */
+    const templateFiles = extractFileActionsFromBuffer(assistantMessage);
+
+    logger.info(`[CONTENT_GEN] Template files (${templateFiles.files.length}):`);
+
+    for (const file of templateFiles.files) {
+      logger.info(`  [TEMPLATE] ${file.path} (${file.content.length} chars)`);
+      yield { event: 'file', data: file };
+    }
+
+    // Check if template includes App.tsx
+    const templateAppTsx = templateFiles.files.find((f) => f.path.includes('App.tsx'));
+
+    if (templateAppTsx) {
+      logger.info(`[DEBUG] Template App.tsx found at: ${templateAppTsx.path}`);
+      logger.info(`[DEBUG] Template App.tsx preview: ${templateAppTsx.content.substring(0, 200)}...`);
+    } else {
+      logger.warn(`[DEBUG] No App.tsx found in template files!`);
+    }
+
+    logger.info(`[CONTENT_GEN] Yielded ${templateFiles.files.length} template files`);
+  }
+
+  // Add model/provider markers to user message for streamText() parsing
+  const fullUserMessage = [`[Model: ${model}]`, '', `[Provider: ${provider.name}]`, '', userMessage].join('\n');
+
+  messages.push({ role: 'user', content: fullUserMessage });
 
   /*
    * streamText() returns an AI SDK stream result with a `textStream` we can parse incrementally.
    * We inject the theme prompt ourselves via `composeContentPrompt` to keep a single source of truth.
    */
   const result = await streamText({
-    messages: [{ role: 'user', content: userMessage }],
+    messages,
     env,
     apiKeys,
     providerSettings,
     chatMode: 'build',
-    restaurantThemeId: null,
+    restaurantThemeId: themeId,
     additionalSystemPrompt,
   });
 
@@ -418,12 +506,36 @@ export async function* generateContent(
       buffer = extracted.remaining;
 
       for (const file of extracted.files) {
+        logger.info(`  [LLM] ${file.path} (${file.content.length} chars)`);
+
+        // Check if LLM is generating App.tsx (potential overwrite of template)
+        if (file.path.includes('App.tsx')) {
+          logger.warn(`[DEBUG] LLM generated App.tsx at: ${file.path}`);
+          logger.warn(`[DEBUG] LLM App.tsx preview: ${file.content.substring(0, 200)}...`);
+        }
+
         yield { event: 'file', data: file };
       }
     }
   } finally {
     reader.releaseLock();
   }
+}
+
+/**
+ * Fallback user message when GitHub template fetch fails.
+ * This reverts to the original from-scratch generation behavior.
+ */
+function buildFallbackUserMessage(businessName: string, _model: string, _providerName: string): string {
+  return [
+    `Generate a complete production-ready restaurant website for "${businessName}".`,
+    '',
+    'Use the theme design instructions and business profile provided in the system prompt.',
+    'Generate all required files including App.tsx, components, and styles.',
+    'Replace ALL placeholder content with actual business data - no lorem ipsum or generic text.',
+    '',
+    'Begin generating files now.',
+  ].join('\n');
 }
 
 /**
@@ -1013,16 +1125,33 @@ function estimateFilesSizeMB(files: GeneratedFile[]): number {
 
 function buildFileMapFromGeneratedFiles(files: GeneratedFile[]): FileMap {
   const map: FileMap = {};
+  const fileVersions: Map<string, { source: string; index: number; charCount: number }[]> = new Map();
 
-  for (const file of files) {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     const fullPath = normalizeFilePath(file.path);
+
+    // Track all versions of each file for debugging
+    if (!fileVersions.has(fullPath)) {
+      fileVersions.set(fullPath, []);
+    }
+
+    // Heuristic: first batch of files before any duplicates are likely template files
+    const existingVersions = fileVersions.get(fullPath)!;
+    const isLikelyTemplate = existingVersions.length === 0 && i < 50; // Assume first 50 unique files are template
+
+    fileVersions.get(fullPath)!.push({
+      source: isLikelyTemplate ? 'TEMPLATE' : 'LLM',
+      index: i,
+      charCount: file.content.length,
+    });
 
     // Add folder entries
     const parts = fullPath.split('/').filter(Boolean);
     let current = '';
 
-    for (let i = 0; i < parts.length - 1; i++) {
-      current += `/${parts[i]}`;
+    for (let j = 0; j < parts.length - 1; j++) {
+      current += `/${parts[j]}`;
 
       if (!map[current]) {
         map[current] = { type: 'folder' };
@@ -1035,6 +1164,18 @@ function buildFileMapFromGeneratedFiles(files: GeneratedFile[]): FileMap {
       isBinary: false,
     };
   }
+
+  // Log files that were overwritten
+  for (const [path, versions] of fileVersions) {
+    if (versions.length > 1) {
+      const winner = versions[versions.length - 1];
+      const versionSummary = versions.map((v) => `${v.source}@${v.index}(${v.charCount})`).join(' → ');
+      logger.warn(`[FILE_MAP] ${path}: ${versions.length} versions [${versionSummary}], winner=${winner.source}`);
+    }
+  }
+
+  const uniqueFiles = Object.entries(map).filter(([_, v]) => v?.type === 'file');
+  logger.info(`[FILE_MAP] Final count: ${uniqueFiles.length} unique files from ${files.length} total entries`);
 
   return map;
 }

@@ -20,6 +20,9 @@ interface Env {
   PERPLEXITY_API_KEY: string;
   AWS_BEDROCK_CONFIG: string;
 
+  // GitHub API token for template fetching
+  GITHUB_TOKEN?: string;
+
   // AWS Amplify deployment credentials
   AMPLIFY_ACCESS_KEY_ID?: string;
   AMPLIFY_SECRET_ACCESS_KEY?: string;

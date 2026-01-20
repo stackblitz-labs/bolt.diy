@@ -547,6 +547,15 @@ export class FilesStore {
     this.#modifiedFiles.clear();
   }
 
+  /**
+   * Get the paths of all files that have been modified in the current session.
+   * Used for context selection to boost recently edited files.
+   * @returns Array of absolute file paths that have been modified
+   */
+  getModifiedFilePaths(): string[] {
+    return Array.from(this.#modifiedFiles.keys());
+  }
+
   async saveFile(filePath: string, content: string) {
     const webcontainer = await this.#webcontainer;
 

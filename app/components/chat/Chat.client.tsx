@@ -192,6 +192,7 @@ export const ChatImpl = memo(
         chatMode,
         designScheme,
         restaurantThemeId: restaurantThemeIdRef.current,
+        recentlyEdited: workbenchStore.getModifiedFilePaths(),
         supabase: {
           isConnected: supabaseConn.isConnected,
           hasSelectedProject: !!selectedProject,
@@ -643,11 +644,24 @@ export const ChatImpl = memo(
           );
         }
 
-        if (autoSelectTemplate) {
+        logger.info('[TEMPLATE_FLOW] Auto-select decision point', {
+          autoSelectTemplate,
+          templateInjectionProcessed: templateInjectionProcessedRef.current,
+          willRunAutoSelect: autoSelectTemplate && !templateInjectionProcessedRef.current,
+          chatStarted,
+        });
+
+        if (autoSelectTemplate && !templateInjectionProcessedRef.current) {
           const { template, title } = await selectStarterTemplate({
             message: finalMessageContent,
             model,
             provider,
+          });
+
+          logger.info('[TEMPLATE_FLOW] Client LLM selected template', {
+            template,
+            title,
+            isBlank: template === 'blank',
           });
 
           if (template !== 'blank') {
@@ -684,6 +698,13 @@ export const ChatImpl = memo(
               const themeId = selectedTheme?.id || null;
               logger.info(`[THEME DEBUG] Setting restaurantThemeId to: ${themeId || 'null'}`);
               restaurantThemeIdRef.current = themeId;
+
+              logger.info('[TEMPLATE_FLOW] Setting messages with client template', {
+                templateName: template,
+                themeId,
+                assistantMessageLength: assistantMessage.length,
+                assistantMessagePreview: assistantMessage.substring(0, 300),
+              });
 
               setMessages([
                 {

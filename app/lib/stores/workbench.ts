@@ -298,6 +298,15 @@ export class WorkbenchStore {
   }
 
   /**
+   * Get paths of all files modified in the current session.
+   * Used for context selection to boost recently edited files.
+   * @returns Array of absolute file paths that have been modified
+   */
+  getModifiedFilePaths(): string[] {
+    return this.#filesStore.getModifiedFilePaths();
+  }
+
+  /**
    * Lock a file to prevent edits
    * @param filePath Path to the file to lock
    * @returns True if the file was successfully locked
@@ -557,6 +566,15 @@ export class WorkbenchStore {
   }
 
   runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+    // Skip file actions for reloaded messages to prevent overwriting new content
+    if (this.#reloadedMessages.has(data.messageId) && data.action.type === 'file') {
+      logger.debug('[RELOADED_SKIP] Skipping file action for reloaded message', {
+        messageId: data.messageId,
+        filePath: data.action.filePath,
+      });
+      return;
+    }
+
     if (isStreaming) {
       this.actionStreamSampler(data, isStreaming);
     } else {
@@ -576,6 +594,15 @@ export class WorkbenchStore {
   }
 
   async _runBundledAction(data: ActionCallbackData) {
+    // Skip file actions for reloaded messages to prevent overwriting new content
+    if (this.#reloadedMessages.has(data.messageId) && data.action.type === 'file') {
+      logger.debug('[RELOADED_SKIP] Skipping bundled file action for reloaded message', {
+        messageId: data.messageId,
+        filePath: data.action.filePath,
+      });
+      return;
+    }
+
     const artifact = this.#getArtifact(data.artifactId);
 
     if (!artifact) {

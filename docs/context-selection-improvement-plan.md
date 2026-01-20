@@ -3,23 +3,26 @@
 > **Status:** Proposed  
 > **Author:** AI Agent Team  
 > **Created:** January 15, 2026  
-> **Last Updated:** January 15, 2026
+> **Last Updated:** January 17, 2026  
+> **Version:** 2.0 (Revised for Small Restaurant Websites)
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [Current Architecture](#current-architecture)
-3. [Problem Statement](#problem-statement)
-4. [Research Findings](#research-findings)
-5. [Proposed Solution](#proposed-solution)
-6. [Technical Design](#technical-design)
-7. [Implementation Plan](#implementation-plan)
-8. [Success Metrics](#success-metrics)
-9. [Risks & Mitigations](#risks--mitigations)
-10. [Future Enhancements](#future-enhancements)
-11. [References](#references)
+2. [Target Use Case](#target-use-case)
+3. [Current Architecture](#current-architecture)
+4. [Problem Statement](#problem-statement)
+5. [Research Findings](#research-findings)
+6. [Approach Comparison](#approach-comparison)
+7. [Proposed Solution](#proposed-solution)
+8. [Technical Design](#technical-design)
+9. [Implementation Plan](#implementation-plan)
+10. [Success Metrics](#success-metrics)
+11. [Risks & Mitigations](#risks--mitigations)
+12. [Future Enhancements](#future-enhancements)
+13. [References](#references)
 
 ---
 
@@ -28,17 +31,81 @@
 ### The Problem
 Our current website editing flow uses **3 LLM calls** per user message. The second call (`selectContext`) only sees **file paths** (not content), causing it to guess which files are relevant based solely on filenames. This leads to poor file selection and incorrect edits.
 
-### The Solution
-Replace the LLM-based file selection with a **local content-aware retriever** that uses BM25 scoring + symbol extraction. This eliminates one LLM call, reduces latency by 2-5 seconds, cuts token usage by ~50%, and dramatically improves file selection accuracy.
+### The Solution (Revised)
+After deep research into Aider, Cody, Claude Code, and OpenHands, and considering our **small, predictable restaurant website structure** (~20-30 files), we recommend a **Hybrid Core Bundle + Keyword Matching** approach instead of a full BM25 retriever.
+
+This approach:
+- **Always includes core files** (pages, layout, styles, data)
+- **Adds extras via simple keyword matching** (hero → Hero.tsx)
+- **Uses optional grep fallback** for specific text searches
+- **Borrows boost signals from Aider** (recently edited, chat-mentioned)
 
 ### Impact
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
 | LLM calls per message | 3 | 2 | 33% fewer |
 | Token usage | 60-120K | 30-60K | ~50% reduction |
-| Context selection latency | 2-5s | 10-50ms | 99% faster |
-| File selection accuracy | Poor | Good | Significant |
+| Context selection latency | 2-5s | 5-20ms | 99% faster |
+| File selection accuracy | Poor | Excellent | Significant |
 | Monthly LLM cost | $$$ | $$ | ~30-40% savings |
+| Implementation time | 3-4 hours (BM25) | 1-2 hours (Hybrid) | 50% faster |
+
+---
+
+## Target Use Case
+
+### Restaurant Website Structure
+
+Our AI builder generates **small, predictable restaurant websites** like [Chromaticstreet](https://github.com/neweb-learn/Chromaticstreet):
+
+```
+restaurant-website/           (~20-30 files total)
+├── src/
+│   ├── pages/               (3 files)
+│   │   ├── Home.tsx
+│   │   ├── About.tsx
+│   │   └── Menu.tsx
+│   ├── components/          (6-10 files)
+│   │   ├── Hero.tsx
+│   │   ├── Feature.tsx
+│   │   ├── Footer.tsx
+│   │   ├── Layout.tsx
+│   │   ├── MenuPreview.tsx
+│   │   ├── Story.tsx
+│   │   ├── figma/
+│   │   └── ui/
+│   ├── data/                (menu items, restaurant info)
+│   ├── styles/              (CSS/theme files)
+│   ├── guidelines/          (design tokens)
+│   ├── lib/                 (utilities)
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── index.html
+├── package.json
+└── vite.config.ts
+```
+
+### Key Characteristics
+
+| Characteristic | Value | Implication |
+|---------------|-------|-------------|
+| Total files | 20-30 | Can include most files in context |
+| File naming | Predictable (Hero.tsx, Menu.tsx) | Simple keyword matching works |
+| Structure | Standard sections | Core bundle approach viable |
+| Dependencies | Flat (no deep call chains) | No need for dependency graph |
+| Tech stack | React + Vite + TypeScript | Single language, consistent patterns |
+
+### Common User Requests
+
+| Request Type | Example | Target Files |
+|--------------|---------|--------------|
+| Header/Navigation | "Change the logo" | Layout.tsx, Hero.tsx |
+| Hero section | "Update the headline" | Hero.tsx, Home.tsx |
+| Menu | "Change dish prices" | Menu.tsx, MenuPreview.tsx, data/ |
+| Footer | "Update contact info" | Footer.tsx |
+| Styling | "Make it more blue" | index.css, styles/, tailwind.config |
+| About | "Change our story" | About.tsx, Story.tsx |
 
 ---
 
@@ -184,205 +251,394 @@ score = Σ (1 / (k + rank_i)) for each retriever
 **Pros:** Best of both lexical and semantic matching  
 **Cons:** Requires embedding infrastructure, higher latency
 
+### 4. Claude Code's Approach (On-Demand Agentic Search)
+
+**How it works:**
+- **No pre-built index or embeddings**
+- Uses GrepTool (regex search) + Glob + LS for file discovery
+- Auto-loads CLAUDE.md files for project context
+- LLM decides which tools to call each turn
+
+**Pros:** Simple, no infrastructure, works for any codebase  
+**Cons:** Multiple LLM calls for exploration, higher latency
+
+### 5. OpenHands' Approach (Action-Observation Loop)
+
+**How it works:**
+- Iterative loop: LLM → Execute → Observe → LLM
+- Uses `view` tool to explore files before editing
+- `str_replace` for exact text replacement
+- Full event history maintained
+
+**Pros:** Self-correcting, sees content before editing  
+**Cons:** Multiple round-trips, higher latency and token usage
+
 ### Key Insight: No Embeddings Needed
 
-Both Aider and Cody **avoid embedding-based retrieval** because:
+All major tools (Aider, Cody, Claude Code, OpenHands) **avoid embedding-based retrieval** because:
 - Code is fundamentally about named entities (symbols)
 - AST analysis and keyword matching are deterministic and fast
 - Embeddings struggle with code-specific semantics
+- Simpler approaches work well for predictable structures
+
+---
+
+## Approach Comparison
+
+### Full Comparison Matrix
+
+| Feature | Aider | Cody | Claude Code | OpenHands | Our Hybrid |
+|---------|-------|------|-------------|-----------|------------|
+| **Pre-indexing** | ✅ AST + Graph | ✅ Multiple indexes | ❌ None | ❌ None | ❌ None |
+| **Embeddings** | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No |
+| **File Discovery** | PageRank | RRF fusion | Grep/Glob | LLM explores | Keyword map |
+| **Sees Content** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes (core bundle) |
+| **Dependencies** | tree-sitter, NetworkX | LSP, Symf | None | None | None |
+| **Setup Time** | 1-2 days | 1 day | Minutes | Minutes | 1-2 hours |
+| **Best For** | Large codebases | IDE integration | General use | Interactive | Small, predictable |
+
+### Aider Deep Dive: Why We Don't Need It
+
+Aider's RepoMap is sophisticated but **overkill for restaurant websites**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  AIDER'S APPROACH: Full AST + PageRank                                          │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐       │
+│  │ Tree-Sitter │───▶│ Extract     │───▶│ Build Graph │───▶│ PageRank    │       │
+│  │ AST Parsing │    │ Defs/Refs   │    │ (NetworkX)  │    │ + Binary    │       │
+│  │             │    │             │    │             │    │ Search      │       │
+│  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘       │
+│                                                                                 │
+│  COMPLEXITY: High | SETUP: 1-2 days | BEST FOR: Large codebases (1000+ files)   │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Aider's Key Techniques:**
+| Technique | Purpose | Needed for Restaurants? |
+|-----------|---------|------------------------|
+| Tree-sitter parsing | Extract symbols from AST | ❌ No - filenames are descriptive |
+| NetworkX graph | Track who-calls-whom | ❌ No - flat component structure |
+| PageRank ranking | Find central files | ❌ No - all sections equally important |
+| Binary search | Fit token budget | ❌ No - small enough to include all |
+| .scm query files | Language-specific extraction | ❌ No - only React/TS |
+
+**What We Borrow from Aider:**
+| Technique | Aider's Approach | Our Simplified Version |
+|-----------|------------------|------------------------|
+| Chat file boost | ×50 weight | ×8 boost for recently edited |
+| Mentioned identifiers | ×10 weight | ×5 boost for keyword match |
+| Important files | Prepend config files | Core bundle always included |
+| Well-named boost | ×10 for camelCase | Not needed - all well-named |
+
+### Decision: Hybrid Approach
+
+For **20-30 file restaurant websites** with **predictable structure**:
+
+| Approach | Verdict | Reason |
+|----------|---------|--------|
+| ❌ Full BM25 | Overkill | Too complex for small sites |
+| ❌ Aider (AST+PageRank) | Overkill | No deep dependencies to track |
+| ❌ Cody (Multiple retrievers) | Overkill | Single language, simple structure |
+| ❌ Claude Code (Agentic) | Higher latency | Multiple LLM round-trips |
+| ✅ **Hybrid (Core + Keywords)** | **Perfect fit** | Simple, fast, accurate |
 
 ---
 
 ## Proposed Solution
 
-### Recommended Approach: Lightweight Lexical + Symbol-Aware Retriever
+### Recommended Approach: Hybrid Core Bundle + Keyword Matching
 
-Replace LLM Call #2 with a **local, deterministic retriever** that:
+Replace LLM Call #2 with a **local, deterministic function** that:
 
-1. Builds an in-memory index of file contents
-2. Scores files using multiple signals (BM25 + boosts)
-3. Returns top 5 most relevant files
-4. Runs in ~10-50ms (vs 2-5s for LLM)
+1. **Always includes core files** (pages, layout, styles, data)
+2. **Adds extras via keyword matching** (simple section → file mapping)
+3. **Uses optional grep fallback** for specific text searches
+4. **Applies Aider-inspired boosts** (recently edited, chat-mentioned)
+
+This is **simpler than BM25** but equally effective for small, predictable websites.
 
 ### New Flow Diagram
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  IMPROVED FLOW: 2 LLM CALLS (was 3)                            │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  User: "Change the header color to blue"                       │
-│                          │                                     │
-│                          ▼                                     │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ LLM CALL #1: createSummary() - UNCHANGED                 │  │
-│  │                                                          │  │
-│  │ Same as before - summarizes chat history                 │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                          │                                     │
-│                          ▼                                     │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ LOCAL: retrieveRelevantFiles() - NEW! (NO LLM)           │  │
-│  │                                                          │  │
-│  │ PROCESS:                                                 │  │
-│  │ 1. Build in-memory inverted index of file contents       │  │
-│  │ 2. Score files using BM25 algorithm                      │  │
-│  │ 3. Apply boost signals:                                  │  │
-│  │    • Path/filename match (+3)                            │  │
-│  │    • Symbol/export match (+2.5)                          │  │
-│  │    • Currently in context (+5)                           │  │
-│  │ 4. Return top 5 files by combined score                  │  │
-│  │                                                          │  │
-│  │ LATENCY: ~10-50ms                                        │  │
-│  │ TOKENS: 0 (no LLM call!)                                 │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                          │                                     │
-│                          ▼                                     │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ LLM CALL #2: streamText() - UNCHANGED                    │  │
-│  │                                                          │  │
-│  │ Same as before - generates response with edits           │  │
-│  │ Now receives CORRECTLY selected files                    │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                │
-│  TOTAL: ~30,000-60,000 tokens (50% reduction!)                 │
-└────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────┐
+│  IMPROVED FLOW: 2 LLM CALLS (was 3)                                            │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                │
+│  User: "Change the header color to blue"                                       │
+│                          │                                                     │
+│                          ▼                                                     │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │ LLM CALL #1: createSummary() - UNCHANGED                                 │  │
+│  │                                                                          │  │
+│  │ Same as before - summarizes chat history                                 │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                          │                                                     │
+│                          ▼                                                     │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │ LOCAL: getContextFiles() - NEW! (NO LLM, SIMPLER THAN BM25)              │  │
+│  │                                                                          │  │
+│  │ STEP 1: Always include CORE BUNDLE (~8-12 files)                         │  │
+│  │   • All pages: Home.tsx, About.tsx, Menu.tsx                             │  │
+│  │   • Layout: Layout.tsx, Footer.tsx, App.tsx                              │  │
+│  │   • Styles: index.css, tailwind.config, theme files                      │  │
+│  │   • Data: menu data, restaurant info                                     │  │
+│  │                                                                          │  │
+│  │ STEP 2: Add EXTRAS via keyword matching                                  │  │
+│  │   • "header/hero/headline" → Hero.tsx                                    │  │
+│  │   • "menu/dishes/prices" → MenuPreview.tsx, data/                        │  │
+│  │   • "footer/contact" → Footer.tsx                                        │  │
+│  │   • "story/about" → Story.tsx                                            │  │
+│  │                                                                          │  │
+│  │ STEP 3: Apply Aider-inspired boosts                                      │  │
+│  │   • Recently edited files: +8                                            │  │
+│  │   • Chat-mentioned files: +5                                             │  │
+│  │   • Keyword matches: +5                                                  │  │
+│  │                                                                          │  │
+│  │ STEP 4: Optional grep for specific text                                  │  │
+│  │   • "change $14 to $16" → grep for "14" or "$14"                         │  │
+│  │   • "update #21C6FF" → grep for hex color                                │  │
+│  │                                                                          │  │
+│  │ LATENCY: ~5-20ms                                                         │  │
+│  │ TOKENS: 0 (no LLM call!)                                                 │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                          │                                                     │
+│                          ▼                                                     │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │ LLM CALL #2: streamText() - UNCHANGED                                    │  │
+│  │                                                                          │  │
+│  │ Same as before - generates response with edits                           │  │
+│  │ Now receives CORRECTLY selected files                                    │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                │
+│  TOTAL: ~30,000-60,000 tokens (50% reduction!)                                 │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Scoring Algorithm
+### Why This Works for Restaurant Websites
 
-The retriever combines multiple signals to score each file:
+| Factor | Why Hybrid Works |
+|--------|------------------|
+| **Small file count** | Can include all core files without exceeding context |
+| **Predictable naming** | Hero.tsx, Menu.tsx - names match sections |
+| **Standard structure** | Same sections across all restaurants |
+| **Flat dependencies** | No deep call chains to track |
+| **Single language** | Only React/TypeScript, no complex parsing needed |
+
+### Scoring Algorithm (Simplified from BM25)
+
+The hybrid approach uses **simple additive scoring** instead of BM25:
 
 | Signal | Boost Value | Description |
 |--------|-------------|-------------|
-| **BM25 Content Match** | Base score | Standard information retrieval scoring on file content |
-| **Path/Filename Match** | +3.0 | File path contains terms from user query |
-| **Basename Match** | +2.0 | Filename (without extension) matches query term |
-| **Symbol/Export Match** | +2.5 | Exported function/component name matches query |
-| **Currently in Context** | +5.0 | File was selected in previous conversation turn |
+| **Core Bundle** | +10 | Always-included files (pages, layout, styles) |
+| **Recently Edited** | +8 | Files modified in current session (Aider-inspired) |
+| **Keyword Match** | +5 | User query contains section keyword |
+| **Chat Mentioned** | +3 | File mentioned in conversation history |
+| **Grep Match** | +5 | File contains specific text user mentioned |
 
 **Final Score Formula:**
 ```
-finalScore = BM25(query, fileContent) 
-           + pathMatchBoost 
-           + symbolMatchBoost 
-           + contextBoost
+finalScore = coreBoost + recentlyEditedBoost + keywordBoost + chatMentionBoost + grepBoost
 ```
+
+**Note:** No BM25 inverted index needed. Simple keyword matching is sufficient.
 
 ---
 
 ## Technical Design
 
-### New File Structure
+### New File Structure (Simplified)
 
 ```
 app/lib/.server/llm/
 ├── context/                      # NEW DIRECTORY
-│   ├── types.ts                  # Type definitions
-│   ├── index.ts                  # Index building logic
-│   └── retrieval.ts              # Scoring and retrieval logic
+│   └── getContextFiles.ts        # Single file - core bundle + keyword matching
 ├── create-summary.ts             # UNCHANGED
-├── select-context.ts             # MODIFIED - use local retrieval
+├── select-context.ts             # MODIFIED - use getContextFiles()
 ├── stream-text.ts                # UNCHANGED
 └── ...
 ```
 
-### Type Definitions
+**Note:** No separate types.ts, index.ts, retrieval.ts needed. Single file is sufficient.
+
+### Core Implementation
 
 ```typescript
-// ~/lib/.server/llm/context/types.ts
+// ~/lib/.server/llm/context/getContextFiles.ts
 
 import type { FileMap } from '~/lib/.server/llm/constants';
 
-export type IndexedFile = {
-  path: string;          // Relative path: 'src/components/Header.tsx'
-  fullPath: string;      // Full path: '/home/project/src/components/Header.tsx'
-  content: string;       // File content (truncated to 20KB)
-  tokens: string[];      // Tokenized content for BM25
-  pathTokens: string[];  // Tokenized path segments
-  symbols: string[];     // Exported functions/components/classes
+// ============================================
+// STEP 1: Define Core Bundle (always included)
+// ============================================
+
+const CORE_PATTERNS = [
+  // Pages - always include all pages
+  'pages/Home',
+  'pages/About', 
+  'pages/Menu',
+  
+  // Layout components
+  'components/Layout',
+  'components/Footer',
+  'App.tsx',
+  
+  // Styles - always include for visual changes
+  'index.css',
+  'styles/',
+  'tailwind.config',
+  
+  // Data - always include for content changes
+  'data/',
+];
+
+// ============================================
+// STEP 2: Define Keyword → File Mapping
+// ============================================
+
+const KEYWORD_MAP: Record<string, string[]> = {
+  // Header / Navigation
+  'header': ['Hero', 'Layout', 'Navbar'],
+  'navbar': ['Layout', 'Navbar'],
+  'navigation': ['Layout', 'Navbar'],
+  'logo': ['Layout', 'Hero'],
+  'nav': ['Layout'],
+  
+  // Hero section
+  'hero': ['Hero', 'Home'],
+  'headline': ['Hero'],
+  'tagline': ['Hero'],
+  'banner': ['Hero'],
+  'cta': ['Hero'],
+  'button': ['Hero', 'ui/Button'],
+  
+  // Menu
+  'menu': ['Menu', 'MenuPreview', 'data/'],
+  'dish': ['Menu', 'MenuPreview', 'data/'],
+  'food': ['Menu', 'MenuPreview'],
+  'price': ['Menu', 'MenuPreview', 'data/'],
+  'item': ['Menu', 'MenuPreview'],
+  
+  // Story / About
+  'story': ['Story', 'About'],
+  'about': ['About', 'Story'],
+  'history': ['Story', 'About'],
+  
+  // Footer / Contact
+  'footer': ['Footer'],
+  'contact': ['Footer'],
+  'hours': ['Footer', 'data/'],
+  'address': ['Footer'],
+  'location': ['Footer'],
+  'social': ['Footer'],
+  
+  // Features
+  'feature': ['Feature'],
+  'service': ['Feature'],
+  
+  // Styling
+  'color': ['index.css', 'styles/', 'tailwind.config', 'guidelines/'],
+  'font': ['index.css', 'styles/'],
+  'style': ['index.css', 'styles/'],
+  'theme': ['styles/', 'guidelines/'],
+  'background': ['index.css', 'styles/'],
 };
 
-export type CodeIndex = {
-  files: IndexedFile[];
-  invertedIndex: Map<string, { doc: number; tf: number }[]>;
-  docLengths: number[];
-  avgDocLength: number;
-};
+// ============================================
+// STEP 3: Main Function
+// ============================================
 
-export type RetrievalOptions = {
-  maxFiles?: number;      // Default: 5
-  pinnedPaths?: string[]; // Files already in context buffer
-};
-```
-
-### Index Building
-
-```typescript
-// ~/lib/.server/llm/context/index.ts
-
-export function buildCodeIndex(files: FileMap): CodeIndex {
-  // 1. Filter files using existing ignore patterns
-  // 2. Tokenize each file's content (lowercase, split on non-alphanumeric)
-  // 3. Extract symbols using regex patterns:
-  //    - export function/const/class declarations
-  //    - JSX component usage (<ComponentName />)
-  // 4. Build inverted index: token -> [{ docIdx, termFrequency }]
-  // 5. Calculate document lengths and average for BM25
+export interface ContextOptions {
+  recentlyEdited?: string[];  // Files edited in current session
+  chatHistory?: string[];      // Previous messages for mention detection
 }
 
-function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/[^a-z0-9_]+/)
-    .filter((t) => t && !STOP_WORDS.has(t));
-}
-
-function extractSymbols(path: string, content: string): string[] {
-  // Regex patterns for:
-  // - export function Name()
-  // - export const Name =
-  // - export class Name
-  // - <ComponentName in JSX/TSX files
-}
-```
-
-### Retrieval Logic
-
-```typescript
-// ~/lib/.server/llm/context/retrieval.ts
-
-export function retrieveRelevantFiles(
-  index: CodeIndex,
-  options: {
-    query: string;
-    summary?: string;
-    options?: RetrievalOptions;
+export function getContextFiles(
+  userMessage: string,
+  allFiles: string[],
+  options: ContextOptions = {}
+): string[] {
+  const { recentlyEdited = [], chatHistory = [] } = options;
+  const scores = new Map<string, number>();
+  const queryLower = userMessage.toLowerCase();
+  
+  // ---- STEP 1: Score core bundle files ----
+  for (const file of allFiles) {
+    for (const pattern of CORE_PATTERNS) {
+      if (file.includes(pattern)) {
+        scores.set(file, (scores.get(file) || 0) + 10);
+        break;
+      }
+    }
   }
-): IndexedFile[] {
-  const { maxFiles = 5, pinnedPaths = [] } = options.options ?? {};
   
-  // 1. Combine query + summary for richer context
-  const combined = `${summary ?? ''}\n\n${query}`;
-  
-  // 2. Extract different types of terms
-  const queryTokens = tokenizeQuery(combined);
-  const fileLikeTerms = extractFileLikeTerms(combined);  // *.tsx, *.css patterns
-  const symbolTerms = extractSymbolTerms(combined);       // PascalCase words
-  
-  // 3. Calculate BM25 base scores
-  const bm25Scores = scoreBM25(index, queryTokens);
-  
-  // 4. Apply boost signals
-  for (each file) {
-    score = bm25Scores[i];
-    score += pathMatchBoost(file, fileLikeTerms);    // +3.0
-    score += symbolMatchBoost(file, symbolTerms);     // +2.5
-    score += pinnedBoost(file, pinnedPaths);          // +5.0
+  // ---- STEP 2: Score keyword matches ----
+  for (const [keyword, patterns] of Object.entries(KEYWORD_MAP)) {
+    if (queryLower.includes(keyword)) {
+      for (const pattern of patterns) {
+        for (const file of allFiles) {
+          if (file.includes(pattern)) {
+            scores.set(file, (scores.get(file) || 0) + 5);
+          }
+        }
+      }
+    }
   }
   
-  // 5. Sort by score and return top maxFiles
-  return sortedFiles.slice(0, maxFiles);
+  // ---- STEP 3: Boost recently edited files (Aider-inspired) ----
+  for (const file of recentlyEdited) {
+    if (allFiles.includes(file)) {
+      scores.set(file, (scores.get(file) || 0) + 8);
+    }
+  }
+  
+  // ---- STEP 4: Boost files mentioned in chat history ----
+  for (const msg of chatHistory) {
+    for (const file of allFiles) {
+      const basename = file.split('/').pop()?.replace(/\.(tsx?|jsx?|css)$/, '');
+      if (basename && msg.toLowerCase().includes(basename.toLowerCase())) {
+        scores.set(file, (scores.get(file) || 0) + 3);
+      }
+    }
+  }
+  
+  // ---- STEP 5: Sort by score and return ----
+  return [...scores.entries()]
+    .filter(([_, score]) => score > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([file]) => file);
+}
+
+// ============================================
+// STEP 4: Optional Grep Fallback
+// ============================================
+
+export function grepForSpecificText(
+  userMessage: string,
+  files: FileMap
+): string[] {
+  const matches: string[] = [];
+  
+  // Extract quoted strings, prices, hex colors
+  const patterns = userMessage.match(
+    /["']([^"']+)["']|#[0-9A-Fa-f]{6}|\$\d+(\.\d{2})?/g
+  );
+  
+  if (!patterns) return matches;
+  
+  for (const pattern of patterns) {
+    const searchTerm = pattern.replace(/["']/g, '');
+    for (const [path, content] of Object.entries(files)) {
+      if (typeof content === 'string' && content.includes(searchTerm)) {
+        matches.push(path);
+      }
+    }
+  }
+  
+  return [...new Set(matches)];
 }
 ```
 
@@ -391,40 +647,63 @@ export function retrieveRelevantFiles(
 ```typescript
 // Key changes to ~/lib/.server/llm/select-context.ts
 
-import { buildCodeIndex } from './context/index';
-import { retrieveRelevantFiles } from './context/retrieval';
+import { getContextFiles, grepForSpecificText } from './context/getContextFiles';
 
 export async function selectContext(props: {
   messages: Message[];
   files: FileMap;
   summary: string;
+  recentlyEdited?: string[];
   // ... other existing props
 }) {
-  // Keep existing: extract current context, get last user message
-  const { codeContext } = extractCurrentContext(processedMessages);
+  const { messages, files, summary, recentlyEdited = [] } = props;
+  
+  // Get all file paths
+  const allFiles = Object.keys(files).map(p => 
+    p.replace('/home/project/', '')
+  );
+  
+  // Extract last user message
+  const lastUserMessage = messages
+    .filter(m => m.role === 'user')
+    .pop();
+  
+  if (!lastUserMessage) {
+    throw new Error('No user message found');
+  }
+  
   const userQuery = extractTextContent(lastUserMessage);
   
-  // NEW: Replace LLM call with local retrieval
-  const index = buildCodeIndex(files);
+  // NEW: Use local getContextFiles instead of LLM
+  const selectedFiles = getContextFiles(
+    userQuery,
+    allFiles,
+    {
+      recentlyEdited,
+      chatHistory: messages
+        .filter(m => m.role === 'user')
+        .map(m => extractTextContent(m)),
+    }
+  );
   
-  const retrieved = retrieveRelevantFiles(index, {
-    query: userQuery,
-    summary,
-    options: {
-      maxFiles: 5,
-      pinnedPaths: currentContextFiles,
-    },
-  });
+  // Optional: Add grep matches for specific text
+  const grepMatches = grepForSpecificText(userQuery, files);
+  const allSelected = [...new Set([...selectedFiles, ...grepMatches])];
   
-  // Build filteredFiles from retrieved results
+  // Build filteredFiles
   const filteredFiles: FileMap = {};
-  retrieved.forEach((f) => {
-    filteredFiles[f.path] = files[f.fullPath];
-  });
+  for (const path of allSelected) {
+    const fullPath = `/home/project/${path}`;
+    if (files[fullPath]) {
+      filteredFiles[path] = files[fullPath];
+    }
+  }
+  
+  logger.info(`Selected ${Object.keys(filteredFiles).length} files`);
   
   return filteredFiles;
   
-  // REMOVED: generateText() LLM call
+  // REMOVED: generateText() LLM call entirely
 }
 ```
 
@@ -435,93 +714,101 @@ export async function selectContext(props: {
 ```typescript
 // The public interface remains the same
 const summary = await createSummary({ ... });
-const filteredFiles = await selectContext({ ..., summary });  // Now uses local retrieval
+const filteredFiles = await selectContext({ ..., summary });  // Now uses local function
 const result = await streamText({ ..., contextFiles: filteredFiles });
 ```
 
 ---
 
-## Implementation Plan
+## Implementation Plan (Revised)
 
-### Phase 1: Core Retriever (1-3 hours)
+### Phase 1: Core Hybrid Retriever (1-2 hours)
 
-**Goal:** Replace LLM-based selection with basic local retriever
+**Goal:** Replace LLM-based selection with simple hybrid function
 
 | Task | Estimate | Owner |
 |------|----------|-------|
-| Create `context/types.ts` with type definitions | 15 min | |
-| Implement `context/index.ts` with tokenization and inverted index | 45 min | |
-| Implement `context/retrieval.ts` with BM25 + boosts | 45 min | |
-| Modify `select-context.ts` to use local retrieval | 30 min | |
-| Add logging for debugging | 15 min | |
-| Manual testing with various queries | 30 min | |
+| Create `context/getContextFiles.ts` with core bundle + keyword map | 45 min | |
+| Implement `grepForSpecificText()` function | 15 min | |
+| Modify `select-context.ts` to use new function | 20 min | |
+| Add logging for debugging | 10 min | |
+| Manual testing with 10 sample queries | 30 min | |
 
 **Deliverables:**
-- New `context/` directory with 3 files
+- New `context/getContextFiles.ts` file
 - Modified `select-context.ts`
-- Working local retrieval
+- Working hybrid selection
 
-### Phase 2: Symbol Extraction Enhancement (2-4 hours)
+### Phase 2: Aider-Inspired Boosts (30 min - 1 hour)
 
-**Goal:** Improve symbol detection for better accuracy
+**Goal:** Add recently-edited and chat-mention boosts
 
 | Task | Estimate | Owner |
 |------|----------|-------|
-| Add more regex patterns for TypeScript/React | 1 hour | |
-| Handle CSS class names and selectors | 30 min | |
-| Add support for import/export analysis | 1 hour | |
-| Unit tests for symbol extraction | 1 hour | |
+| Track recently edited files in session | 20 min | |
+| Extract file mentions from chat history | 20 min | |
+| Apply boost scores | 10 min | |
+| Test boost behavior | 10 min | |
 
 **Deliverables:**
-- Enhanced symbol extraction
-- Test coverage
+- Recently edited tracking
+- Chat mention detection
+- Improved selection for iterative edits
 
-### Phase 3: Testing & Validation (2-4 hours)
+### Phase 3: Testing & Validation (1-2 hours)
 
 **Goal:** Verify improvement in file selection accuracy
 
 | Task | Estimate | Owner |
 |------|----------|-------|
-| Create test dataset of queries + expected files | 1 hour | |
-| Compare old vs new selection accuracy | 1 hour | |
-| Measure latency improvement | 30 min | |
-| Edge case testing (large projects, unusual naming) | 1 hour | |
-| Fix any issues discovered | Variable | |
+| Create test dataset of 20 queries + expected files | 30 min | |
+| Compare old vs new selection accuracy | 30 min | |
+| Measure latency improvement | 15 min | |
+| Edge case testing | 30 min | |
+| Fix any issues | Variable | |
 
 **Deliverables:**
 - Accuracy comparison report
 - Performance benchmarks
 
-### Phase 4: Production Rollout (1-2 hours)
+### Phase 4: Production Rollout (30 min - 1 hour)
 
 **Goal:** Deploy and monitor in production
 
 | Task | Estimate | Owner |
 |------|----------|-------|
-| Feature flag for gradual rollout | 30 min | |
-| Add monitoring/metrics for selection quality | 30 min | |
-| Deploy to staging | 15 min | |
-| Deploy to production (canary) | 15 min | |
-| Full rollout | 15 min | |
+| Feature flag for gradual rollout | 15 min | |
+| Add logging for selection quality | 15 min | |
+| Deploy to staging | 10 min | |
+| Deploy to production | 10 min | |
 
 **Deliverables:**
 - Production deployment
-- Monitoring dashboard
+- Monitoring logs
 
-### Optional Phase 5: AST Integration (1-2 days)
+### Optional Phase 5: BM25 Upgrade (If Needed)
 
-**Goal:** Add tree-sitter for robust symbol extraction
+**Trigger:** Only if hybrid approach misses files in >10% of queries
 
 | Task | Estimate | Owner |
 |------|----------|-------|
-| Integrate tree-sitter for TypeScript/JavaScript | 4 hours | |
-| Build dependency graph from imports | 4 hours | |
-| Add PageRank-style scoring for central files | 4 hours | |
-| Performance optimization | 2 hours | |
+| Add BM25 content scoring | 1 hour | |
+| Add inverted index | 1 hour | |
 
 **Deliverables:**
-- AST-based symbol extraction
-- Dependency-aware scoring
+- Full BM25 retriever
+- Higher accuracy for edge cases
+
+### Total Time Estimate
+
+| Phase | Time | Priority |
+|-------|------|----------|
+| Phase 1: Core Hybrid | 1-2 hours | **Required** |
+| Phase 2: Aider Boosts | 30 min - 1 hour | Recommended |
+| Phase 3: Testing | 1-2 hours | Required |
+| Phase 4: Rollout | 30 min - 1 hour | Required |
+| Phase 5: BM25 (if needed) | 3-4 hours | Optional |
+| **Total (without Phase 5)** | **3-6 hours** | |
 
 ---
 
@@ -540,8 +827,8 @@ const result = await streamText({ ..., contextFiles: filteredFiles });
 
 | Metric | Target | How to Measure |
 |--------|--------|----------------|
-| Index build time | <200ms | Server-side timing |
-| Memory usage | <50MB per session | Memory profiling |
+| Function execution time | <20ms | Server-side timing |
+| Memory usage | <10MB per session | Memory profiling (no index needed) |
 | Error rate | <1% | Error logs |
 
 ### Validation Approach
@@ -554,41 +841,41 @@ const result = await streamText({ ..., contextFiles: filteredFiles });
 
 ## Risks & Mitigations
 
-### Risk 1: Heuristics Miss Edge Cases
+### Risk 1: Keyword Map Missing a Section
 
-**Scenario:** User says "update checkout logic" but logic is in a generically-named file
-
-**Mitigation:**
-- BM25 content matching catches "checkout" in file content
-- Add "recently edited" boost for active files
-- Increase candidate set to 8, then prune by token limit
-
-### Risk 2: Index Build Overhead
-
-**Scenario:** Large workspace slows down responses
+**Scenario:** User says "update the gallery" but we don't have "gallery" in KEYWORD_MAP
 
 **Mitigation:**
-- Truncate file content to 20KB for indexing
-- For very large projects (>500 files), cache index per session
-- Incremental updates when files change
+- Grep fallback catches specific text user mentions
+- Core bundle includes all pages which likely contain gallery
+- Easy to add new keywords to the map as we discover them
 
-### Risk 3: Incorrect Symbol Extraction
+### Risk 2: Unconventional File Naming
 
-**Scenario:** Regex patterns miss complex TypeScript syntax
-
-**Mitigation:**
-- Symbol matching is a boost signal, not required
-- BM25 content matching is primary signal
-- Phase 5 adds tree-sitter for robust parsing
-
-### Risk 4: No LLM Disambiguation
-
-**Scenario:** Ambiguous query could match multiple files equally well
+**Scenario:** Developer names component `XYZ.tsx` instead of `Hero.tsx`
 
 **Mitigation:**
-- Return top 5 files (not just 1)
-- Add optional LLM reranker for top 10 candidates if quality issues persist
-- User can always mention specific files explicitly
+- Core bundle still includes all pages
+- Grep fallback can find content regardless of filename
+- Chat-mention boost helps if user mentions "XYZ" explicitly
+
+### Risk 3: Too Many Files Selected
+
+**Scenario:** Query matches multiple keywords, selecting 15+ files
+
+**Mitigation:**
+- Sort by score and take top N (e.g., 10-15)
+- Token budget guardrail before sending to streamText
+- Core files have highest scores, so they're always included
+
+### Risk 4: New Template Structure
+
+**Scenario:** New restaurant template uses different file structure
+
+**Mitigation:**
+- CORE_PATTERNS and KEYWORD_MAP are easy to update
+- Could auto-detect structure from package.json or file patterns
+- Consider template-specific configs in the future
 
 ---
 
@@ -596,21 +883,30 @@ const result = await streamText({ ..., contextFiles: filteredFiles });
 
 ### Short-term (1-2 months)
 
-1. **Index Caching:** Cache index per project to avoid rebuilding
-2. **Incremental Updates:** Update index when files change
-3. **Recently Edited Boost:** Prioritize files user recently modified
+1. **Template-Specific Configs:** Different KEYWORD_MAP per template type
+2. **Auto-Detection:** Detect file structure from package.json/tsconfig
+3. **Keyword Expansion:** Add synonyms (e.g., "navbar" → "header", "nav")
 
-### Medium-term (3-6 months)
+### Medium-term (3-6 months) - If Accuracy Issues
 
-1. **Tree-sitter Integration:** Robust AST parsing for symbol extraction
-2. **Dependency Graph:** Build import/export graph for transitive dependencies
+1. **BM25 Content Search:** Add full-text search for edge cases
+2. **Symbol Extraction:** Parse exports to improve matching
 3. **Chunk-level Selection:** Return specific functions, not whole files
 
-### Long-term (6+ months)
+### Long-term (6+ months) - Only If Scale Increases
 
-1. **Hybrid RAG:** Add optional embedding-based retrieval
-2. **Learning from Feedback:** Adjust weights based on successful edits
-3. **Multi-repo Support:** Handle monorepos and linked projects
+1. **Tree-sitter Integration:** For larger codebases (100+ files)
+2. **Dependency Graph:** Track imports for transitive dependencies
+3. **Learning from Feedback:** Adjust weights based on successful edits
+
+### NOT Planned (Overkill for Restaurant Sites)
+
+| Feature | Reason to Skip |
+|---------|----------------|
+| Embeddings/Vector DB | Too complex, not needed for 20-30 files |
+| PageRank | No deep dependencies to rank |
+| Multiple retrievers (RRF) | Single simple approach is sufficient |
+| Language Server Protocol | Overhead not justified |
 
 ---
 
@@ -621,16 +917,24 @@ const result = await streamText({ ..., contextFiles: filteredFiles });
 1. **Aider Repository Map**
    - https://github.com/Aider-AI/aider
    - AST-based symbol extraction + PageRank ranking
+   - **What we borrowed:** Chat file boost, mentioned identifiers boost, important files concept
 
 2. **Cody Context Retrieval**
    - https://github.com/sourcegraph/cody
    - Multiple retrievers + Reciprocal Rank Fusion
+   - **What we learned:** Simple heuristics can work as well as complex systems
 
-3. **BM25 Algorithm**
-   - Standard information retrieval scoring
-   - https://en.wikipedia.org/wiki/Okapi_BM25
+3. **Claude Code**
+   - On-demand agentic search with GrepTool
+   - No pre-built index or embeddings
+   - **Validation:** Simple approaches work for predictable codebases
 
-4. **Hybrid RAG Best Practices**
+4. **OpenHands**
+   - Action-observation loop pattern
+   - Iterative file exploration
+   - **Insight:** Seeing content before editing is critical
+
+5. **Hybrid RAG Best Practices**
    - https://superlinked.com/vectorhub/articles/optimizing-rag-with-hybrid-search-reranking
 
 ### Internal Files
@@ -645,7 +949,24 @@ const result = await streamText({ ..., contextFiles: filteredFiles });
 
 ---
 
-## Appendix A: BM25 Algorithm
+## Appendix A: Sample Test Cases for Restaurant Websites
+
+| Query | Expected Files (Hybrid) | Matching Signal |
+|-------|------------------------|-----------------|
+| "Change header color to blue" | Hero.tsx, Layout.tsx, index.css | Keyword "header" + core styles |
+| "Update the menu prices" | Menu.tsx, MenuPreview.tsx, data/ | Keyword "menu" + "price" |
+| "Fix the footer links" | Footer.tsx | Keyword "footer" |
+| "Change the hero headline" | Hero.tsx, Home.tsx | Keyword "hero" + "headline" |
+| "Update restaurant hours" | Footer.tsx, data/ | Keyword "hours" |
+| "Make the buttons more rounded" | Hero.tsx, ui/Button.tsx, index.css | Keyword "button" + core styles |
+| "Change '$14' to '$16'" | *(grep match)* | Grep for "$14" |
+| "Update the about story" | About.tsx, Story.tsx | Keyword "about" + "story" |
+
+---
+
+## Appendix B: BM25 Algorithm (For Reference Only)
+
+**Note:** BM25 is NOT used in the hybrid approach. Included for reference if Phase 5 is needed.
 
 BM25 (Best Matching 25) is a ranking function used in information retrieval:
 
@@ -663,15 +984,18 @@ Where:
 
 ---
 
-## Appendix B: Sample Test Cases
+## Appendix C: Aider RepoMap Summary
 
-| Query | Expected Top Files | Rationale |
-|-------|-------------------|-----------|
-| "Change header color to blue" | Header.tsx, header.css | Path match + content match |
-| "Add a new menu item" | Menu.tsx, Navigation.tsx | Symbol match + content |
-| "Fix the footer links" | Footer.tsx | Path match |
-| "Update the contact form validation" | ContactForm.tsx, validation.ts | Content match |
-| "Change the primary button style" | Button.tsx, theme.css | Symbol + content match |
+Aider's approach is more sophisticated but **not needed for small restaurant sites**:
+
+| Aider Component | Purpose | Our Equivalent |
+|-----------------|---------|----------------|
+| Tree-sitter | Parse AST | Not needed - predictable filenames |
+| NetworkX graph | Track dependencies | Not needed - flat structure |
+| PageRank | Rank file importance | Not needed - all sections equal |
+| Binary search | Fit token budget | Simple guardrail sufficient |
+| ×50 chat boost | Prioritize active files | ×8 recently edited boost |
+| ×10 mentioned boost | Prioritize named files | ×5 keyword match boost |
 
 ---
 
@@ -685,4 +1009,13 @@ Where:
 
 ---
 
-*Document version: 1.0*
+## Changelog
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | Jan 15, 2026 | Initial proposal with BM25 approach |
+| 2.0 | Jan 17, 2026 | **Major revision**: Simplified to Hybrid approach after research into Aider, Cody, Claude Code, OpenHands. Added target use case analysis, approach comparison, and Aider-inspired boosts. |
+
+---
+
+*Document version: 2.0*
