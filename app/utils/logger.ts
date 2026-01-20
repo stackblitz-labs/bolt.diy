@@ -93,15 +93,18 @@ function log(level: DebugLevel, scope: string | undefined, messages: any[]) {
   }
 
   const allMessages = messages.reduce((acc, current) => {
+    // Serialize objects to compact JSON for readable output
+    const formatted = typeof current === 'object' && current !== null ? JSON.stringify(current) : current;
+
     if (acc.endsWith('\n')) {
-      return acc + current;
+      return acc + formatted;
     }
 
     if (!acc) {
-      return current;
+      return String(formatted);
     }
 
-    return `${acc} ${current}`;
+    return `${acc} ${formatted}`;
   }, '');
 
   const labelBackgroundColor = getColorForLevel(level);

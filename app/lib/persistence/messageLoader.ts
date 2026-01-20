@@ -12,6 +12,7 @@ import type { MessageLoaderOptions, MessageLoadResult, MessageLoadProgress } fro
 import { defaultLoaderOptions } from '~/types/message-loading';
 import { calculateBackoff, isRetryableStatus, sleep } from '~/lib/utils/backoff';
 import { validateMessages } from './messageValidation';
+import type { SequencedMessage } from './messageSort';
 
 const logger = createScopedLogger('MessageLoader');
 
@@ -251,18 +252,19 @@ export async function loadOlderMessagesPage(
 }
 
 /**
- * Convert ProjectMessage API format to AI SDK Message format.
+ * Convert ProjectMessage API format to AI SDK Message format with sequence_num preserved.
  *
  * @param projectMessages - Messages from the API
- * @returns Messages in AI SDK format
+ * @returns Messages in AI SDK format with sequence_num for proper ordering
  */
-function convertToAISDKMessages(projectMessages: ProjectMessage[]): Message[] {
+function convertToAISDKMessages(projectMessages: ProjectMessage[]): SequencedMessage[] {
   return projectMessages.map((msg) => ({
     id: msg.message_id,
     role: msg.role,
     content: msg.content as Message['content'], // API returns content matching AI SDK format
     createdAt: new Date(msg.created_at),
     annotations: msg.annotations as Message['annotations'], // Preserve annotations for hidden messages
+    sequence_num: msg.sequence_num, // Preserve sequence_num for proper ordering
   }));
 }
 

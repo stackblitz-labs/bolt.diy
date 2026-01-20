@@ -31,7 +31,7 @@ import type { FileMap } from '~/lib/stores/files';
 import type { Snapshot } from './types';
 import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
 import type { ContextAnnotation } from '~/types/context';
-import { sortMessagesByTimestamp } from './messageSort';
+import { sortMessagesBySequence, type SequencedMessage } from './messageSort';
 import type { MessageLoadProgress, MessageLoadingState } from '~/types/message-loading';
 import { initialLoadingState } from '~/types/message-loading';
 import { MESSAGE_PAGE_SIZE, MAX_MESSAGE_PAGES } from './chatSyncConstants';
@@ -252,10 +252,10 @@ export function useChatHistory(projectId?: string) {
       // Process loaded messages
       if (storedMessages && storedMessages.messages.length > 0) {
         /*
-         * Sort messages by timestamp to ensure consistent order
-         * This is important for messages loaded from server which may be out of order
+         * Sort messages by sequence_num to ensure correct order
+         * This is critical for messages loaded from server which may arrive out of order
          */
-        const sortedMessages = sortMessagesByTimestamp(storedMessages.messages);
+        const sortedMessages = sortMessagesBySequence(storedMessages.messages as SequencedMessage[]);
         storedMessages.messages = sortedMessages;
 
         /*
@@ -708,7 +708,7 @@ ${value.content}
           return;
         }
 
-        const normalizedMessages = sortMessagesByTimestamp(messages);
+        const normalizedMessages = sortMessagesBySequence(messages as SequencedMessage[]);
         setInitialMessages((prev) => [...normalizedMessages, ...prev]);
         setLoadedServerMessages((prev) => prev + normalizedMessages.length);
         setTotalServerMessages(total);

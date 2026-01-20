@@ -168,6 +168,7 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
     designScheme,
     restaurantThemeId,
     maxLLMSteps,
+    recentlyEdited,
   } = await request.json<{
     messages: Messages;
     files: any;
@@ -176,6 +177,7 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
     chatMode: 'discuss' | 'build';
     designScheme?: DesignScheme;
     restaurantThemeId?: RestaurantThemeId | null;
+    recentlyEdited?: string[];
     supabase?: {
       isConnected: boolean;
       hasSelectedProject: boolean;
@@ -346,13 +348,9 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
           console.log(`Messages count: ${processedMessages.length}`);
           filteredFiles = await selectContext({
             messages: [...processedMessages],
-            env: context.cloudflare?.env,
-            apiKeys,
             files,
-            providerSettings,
-            promptId,
-            contextOptimization,
             summary,
+            recentlyEdited,
             onFinish(resp) {
               if (resp.usage) {
                 logger.debug('selectContext token usage', JSON.stringify(resp.usage));

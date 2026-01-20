@@ -9,6 +9,7 @@ import type { MessageLoadProgress } from '~/types/message-loading';
 import { extractMessageAnnotations, normalizeAnnotationsForServer } from './annotationHelpers';
 import { MESSAGE_PAGE_SIZE } from './chatSyncConstants';
 import { authStore } from '~/lib/stores/auth';
+import type { SequencedMessage } from './messageSort';
 
 export interface IChatMetadata {
   gitUrl: string;
@@ -383,7 +384,7 @@ export async function getServerMessages(
     }
 
     // Convert ProjectMessage[] to Message[] format and reverse to chronological display
-    const messages: Message[] = result.messages
+    const messages: SequencedMessage[] = result.messages
       .slice()
       .reverse()
       .map((msg) => ({
@@ -392,6 +393,7 @@ export async function getServerMessages(
         content: msg.content as Message['content'],
         createdAt: new Date(msg.created_at),
         annotations: (msg.annotations as Message['annotations']) || undefined,
+        sequence_num: msg.sequence_num, // Preserve sequence_num for proper ordering
       }));
     const chatHistoryItem: ChatHistoryItem = {
       id: projectId,
@@ -430,16 +432,17 @@ export async function getServerMessagesPage(
   projectId: string,
   offset: number,
   limit: number,
-): Promise<{ messages: Message[]; total: number }> {
+): Promise<{ messages: SequencedMessage[]; total: number }> {
   logger.info('Fetching older messages page', { projectId, offset, limit });
 
   const response = await loadOlderMessagesPage(projectId, offset, limit);
-  const messages = response.messages.map((msg) => ({
+  const messages: SequencedMessage[] = response.messages.map((msg) => ({
     id: msg.message_id,
     role: msg.role,
     content: msg.content as Message['content'],
     createdAt: new Date(msg.created_at),
     annotations: msg.annotations as Message['annotations'],
+    sequence_num: msg.sequence_num, // Preserve sequence_num for proper ordering
   }));
 
   return {

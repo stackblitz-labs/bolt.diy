@@ -33,9 +33,27 @@
       "Bash(pnpm exec tsc:*)",
       "Skill(speckit.implement)",
       "Bash(/Users/khoitran/Documents/Projects/huskit/website-agent/.specify/scripts/bash/check-prerequisites.sh:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Bash(git fetch:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "Bash(if [ -d \"checklists\" ])",
+      "Bash(then echo \"Checklists found\")",
+      "Bash(else echo \"No checklists directory\")",
+      "Bash(fi:*)",
+      "Bash(.specify/scripts/bash/update-agent-context.sh claude)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm vitest run:*)",
+      "Bash(pnpm lint:fix)",
+      "Bash(pnpm lint)",
+      "Bash(git log:*)",
+      "WebFetch(domain:docs.github.com)",
+      "Bash(pnpm eslint:*)"
     ],
     "deny": [],
     "ask": []
+  },
+  "enabledPlugins": {
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
   }
 }

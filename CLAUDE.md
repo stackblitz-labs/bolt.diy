@@ -231,3 +231,10 @@ All PRs must pass:
 - Changelog: `changelog.md`
 - Phase 1 Spec: `specs/001-phase1-plan/spec.md`
 - Agent SDK: `.agents/` directory
+
+## Active Technologies
+- TypeScript 5.7.2 (strict mode) + ai (Vercel AI SDK), nanostores, ignore (001-hybrid-context-selection)
+- N/A (in-memory only) (001-hybrid-context-selection)
+
+## Recent Changes
+- 001-hybrid-context-selection: Added TypeScript 5.7.2 (strict mode) + ai (Vercel AI SDK), nanostores, ignore
