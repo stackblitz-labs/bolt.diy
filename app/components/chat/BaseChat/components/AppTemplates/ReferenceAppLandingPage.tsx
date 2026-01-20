@@ -10,7 +10,12 @@ import { assert } from '~/utils/nut';
 import { database } from '~/lib/persistence/apps';
 import { getRepositoryURL } from '~/lib/replay/DevelopmentServer';
 import AppView, { type ResizeSide } from '~/components/workbench/Preview/components/AppView';
-import { X, Sparkles, Check, ExternalLink, Monitor, ZoomIn } from 'lucide-react';
+import { X, Sparkles, Check, ExternalLink, Monitor, ZoomIn, Download } from 'lucide-react';
+import { downloadRepository } from '~/lib/replay/Deploy';
+import { toast } from 'react-toastify';
+import { userStore } from '~/lib/stores/auth';
+import { useStore } from '@nanostores/react';
+import { Button } from '~/components/ui/button';
 
 interface ReferenceAppLandingPageProps {
   app: LandingPageIndexEntry;
@@ -155,6 +160,8 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
   const [isPreviewLoading, setIsPreviewLoading] = useState(true);
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const user = useStore(userStore);
+  const [repositoryId, setRepositoryId] = useState<string | null>(null);
 
   // Handle iframe load event
   const handleIframeLoad = useCallback(() => {
@@ -181,6 +188,7 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
     const createLandingPageReferenceApp = async () => {
       setIsPreviewLoading(true);
       const repositoryId = await database.createLandingPageReferenceApp(app.referenceAppPath);
+      setRepositoryId(repositoryId);
       setAppPreviewURL(getRepositoryURL(repositoryId));
     };
     createLandingPageReferenceApp();
@@ -207,6 +215,46 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
       chatMode: ChatMode.UserMessage,
       referenceAppPath: appPath,
     });
+  };
+
+  const handleDownloadCode = async () => {
+    if (!repositoryId) {
+      toast.error('No repository ID found');
+      return;
+    }
+
+    try {
+      const repositoryContents = await downloadRepository(repositoryId);
+
+      const byteCharacters = atob(repositoryContents);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/zip' });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `repository-${repositoryId}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Repository downloaded successfully');
+      if (window.analytics) {
+        window.analytics.track('Downloaded Code', {
+          timestamp: new Date().toISOString(),
+          userId: user?.id,
+          email: user?.email,
+        });
+      }
+    } catch (error) {
+      console.error('Error downloading repository:', error);
+      toast.error('Failed to download repository');
+    }
   };
 
   // Use landing page content if available, otherwise fall back to index entry
@@ -466,13 +514,17 @@ export const ReferenceAppLandingPage: React.FC<ReferenceAppLandingPageProps> = (
               <p className="text-bolt-elements-textPrimary font-medium">Ready to get started?</p>
               <p className="text-sm text-bolt-elements-textSecondary">Customize this template to fit your needs</p>
             </div>
-            <button
-              onClick={handleCustomize}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-rose-500/25 hover:shadow-xl hover:shadow-rose-500/30 hover:scale-[1.02] group"
-            >
-              <Sparkles size={18} className="group-hover:animate-pulse" />
-              Build with this template
-            </button>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleDownloadCode} variant="outline" className="rounded-full" disabled={!repositoryId}>
+                <Download size={18} />
+                Download code
+              </Button>
+
+              <Button onClick={handleCustomize} variant="default" className="rounded-full">
+                <Sparkles size={18} />
+                Build with this template
+              </Button>
+            </div>
           </div>
         </div>
       </div>
