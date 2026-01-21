@@ -16,7 +16,7 @@ import Components from '~/components/workbench/Preview/components/PlanView/compo
 import Events from '~/components/workbench/Preview/components/PlanView/components/Features/components/Events';
 import Pages from '~/components/workbench/Preview/components/PlanView/components/Pages';
 import type { AppFeature } from '~/lib/persistence/messageAppSummary';
-import FeatureDebugControls from '~/components/ui/FeatureDebugControls';
+import FeatureDebugControls from '~/components/ui/DebugControls';
 import WithTooltip from './Tooltip';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 
