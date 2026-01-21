@@ -4,9 +4,10 @@ import { chatStore } from '~/lib/stores/chat';
 import { isAdmin } from '~/lib/utils';
 import { getChatIdsForFeature } from '~/components/workbench/Preview/components/PlanView/components/Features/components/Events';
 import type { ChatResponse } from '~/lib/persistence/response';
-import { Bug } from 'lucide-react';
-import { IconButton } from './IconButton';
+import { Bug } from '~/components/ui/Icon';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
+import { Button } from '~/components/ui/button';
 
 interface FeatureDebugControlsProps {
   featureName: string | undefined;
@@ -81,11 +82,18 @@ export const DebugAppButton = () => {
   };
 
   return (
-    <WithTooltip tooltip="Open app in Honeycomb">
-      <IconButton onClick={handleClick} className="text-lg hover:scale-110 transition-transform button-icon">
-        <Bug size={20} />
-      </IconButton>
-    </WithTooltip>
+    <TooltipProvider>
+      <WithTooltip tooltip="Open app in Honeycomb">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleClick}
+          className="h-9 w-9 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+        >
+          <Bug size={16} />
+        </Button>
+      </WithTooltip>
+    </TooltipProvider>
   );
 };
 
@@ -109,15 +117,19 @@ const FeatureDebugControls = ({ featureName }: FeatureDebugControlsProps) => {
   };
 
   return (
-    <WithTooltip tooltip="Grab backend debug info">
-      <IconButton
-        onClick={handleClick}
-        className="text-lg hover:scale-110 transition-transform button-icon"
-        title="Grab backend debug info"
-      >
-        <Bug size={20} />
-      </IconButton>
-    </WithTooltip>
+    <TooltipProvider>
+      <WithTooltip tooltip="Grab backend debug info">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleClick}
+          className="h-9 w-9 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+          title="Grab backend debug info"
+        >
+          <Bug size={16} />
+        </Button>
+      </WithTooltip>
+    </TooltipProvider>
   );
 };
 

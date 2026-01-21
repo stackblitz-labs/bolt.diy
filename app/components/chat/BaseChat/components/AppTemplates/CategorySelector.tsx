@@ -1,5 +1,6 @@
 import React from 'react';
 import { classNames } from '~/utils/classNames';
+import { Button } from '~/components/ui/button';
 
 export interface IntroSectionCategory {
   name: string;
@@ -31,27 +32,23 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         {categories.map((category) => {
           const isSelected = selectedCategory === category.name;
           return (
-            <button
+            <Button
               key={category.name}
               onClick={() => onCategorySelect?.(isSelected ? undefined : category.name)}
-              className={classNames('px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200', {
-                'bg-purple-100/50 dark:bg-purple-500/10 text-bolt-elements-textHeading border border-transparent hover:border-purple-300 dark:hover:border-purple-500/50 hover:bg-purple-100/70 dark:hover:bg-purple-500/20':
-                  !isSelected,
-                'bg-transparent text-bolt-elements-textHeading border-2 border-black dark:border-white shadow-sm':
-                  isSelected,
-              })}
+              className={classNames('px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200', {})}
+              variant={isSelected ? 'default' : 'outline'}
             >
-              <span className="text-bolt-elements-textHeading">{category.name}</span>
-              <span className="text-bolt-elements-textSecondary ml-1">({category.count})</span>
-            </button>
+              <span>{category.name}</span>
+              <span className="ml-1">({category.count})</span>
+            </Button>
           );
         })}
-        <label className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium text-bolt-elements-textHeading cursor-pointer hover:bg-purple-100/50 dark:hover:bg-purple-500/10 transition-all duration-200">
+        <label className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium text-bolt-elements-textHeading cursor-pointer transition-all duration-200 border border-bolt-elements-borderColor">
           <input
             type="checkbox"
             checked={showAlpha}
             onChange={(e) => onShowAlphaChange(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-rose-500 focus:ring-rose-500 focus:ring-2 cursor-pointer"
+            className="w-4 h-4 rounded border-gray-300 focus:ring-1 cursor-pointer"
           />
           <span>Include Alpha Apps</span>
         </label>
@@ -62,7 +59,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
           placeholder="Search apps by name..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full max-w-md px-4 py-2.5 rounded-lg text-sm text-bolt-elements-textHeading bg-bolt-elements-background border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent placeholder:text-bolt-elements-textSecondary"
+          className="w-full max-w-md px-4 py-2.5 rounded-lg text-sm text-bolt-elements-textHeading bg-bolt-elements-background border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:border-transparent placeholder:text-bolt-elements-textSecondary"
         />
       </div>
     </div>

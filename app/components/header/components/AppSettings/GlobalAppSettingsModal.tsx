@@ -3,7 +3,7 @@ import { useStore } from '@nanostores/react';
 import { appSettingsModalStore } from '~/lib/stores/appSettingsModal';
 import { chatStore } from '~/lib/stores/chat';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
+import { ChatDescription } from '~/components/panels/SettingsPanel/components/ChatDescription.client';
 import { AuthSelectorComponent } from './components/AuthSelectorComponent';
 import { SecretsComponent } from './components/SecretsComponent';
 import { PermissionsSelectionComponent } from './components/PermissionsSelectionComponent';

@@ -39,11 +39,6 @@ const ProgressStatus = () => {
 
   return (
     <div className="w-full h-full relative">
-      {/* Animated gradient border */}
-      <div className="absolute inset-0 p-[3px] animate-focus-border opacity-60 rounded-b-xl">
-        <div className="w-full h-full bg-bolt-elements-background-depth-2 rounded-b-[9px]" />
-      </div>
-
       {/* Main content container with flexible centering */}
       <div className="relative w-full h-full flex flex-col items-center justify-center p-4 overflow-hidden">
         {/* Mockup Layout - responsive positioning */}

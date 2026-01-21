@@ -8,7 +8,6 @@ import { chatStore } from '~/lib/stores/chat';
 import PreviewLoad from './PreviewLoad/PreviewLoad';
 import { isFeatureStatusImplemented } from '~/lib/persistence/messageAppSummary';
 import { classNames } from '~/utils/classNames';
-import useViewport from '~/lib/hooks/useViewport';
 
 export type ResizeSide = 'left' | 'right' | null;
 
@@ -32,7 +31,6 @@ const AppView = ({
   const repositoryId = useStore(workbenchStore.repositoryId);
   const appSummary = useStore(chatStore.appSummary);
   const initialBuildComplete = isFeatureStatusImplemented(appSummary?.features?.[0]?.status);
-  const isSmallViewport = useViewport(800);
   const previewLoading = useStore(chatStore.previewLoading);
   const handleTokenOrRepoChange = (params: URLSearchParams) => {
     setRedirectUrl(`https://${repositoryId}.http.replay.io/auth/callback#${params.toString()}`);
@@ -64,16 +62,13 @@ const AppView = ({
           <div
             className={classNames('absolute inset-0', {
               'p-[3px] app-progress-border opacity-80': !initialBuildComplete,
-              'rounded-b-xl': !isSmallViewport,
             })}
           >
             <iframe
               key={actualIframeUrl}
               ref={iframeRef}
               title="preview"
-              className={classNames('w-full h-full bg-white transition-all duration-300 opacity-100', {
-                'rounded-b-xl': !isSmallViewport,
-              })}
+              className={classNames('w-full h-full bg-white transition-all duration-300 opacity-100', {})}
               src={actualIframeUrl}
               allowFullScreen
               sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-forms allow-modals"

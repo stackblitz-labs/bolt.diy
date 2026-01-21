@@ -79,18 +79,10 @@ export function useEditAppTitle({
       return false; // No change, skip validation
     }
 
-    const lengthValid = trimmedTitle.length > 0 && trimmedTitle.length <= 100;
-
-    // Allow letters, numbers, spaces, and common punctuation but exclude characters that could cause issues
-    const characterValid = /^[a-zA-Z0-9\s\-_.,!?()[\]{}'"]+$/.test(trimmedTitle);
+    const lengthValid = trimmedTitle.length > 0 && trimmedTitle.length <= 200;
 
     if (!lengthValid) {
       toast.error('Title must be between 1 and 100 characters.');
-      return false;
-    }
-
-    if (!characterValid) {
-      toast.error('Title can only contain letters, numbers, spaces, and basic punctuation.');
       return false;
     }
 
@@ -135,8 +127,13 @@ export function useEditAppTitle({
       if (e.key === 'Escape') {
         await handleBlur();
       }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        await handleSubmit(e);
+      }
     },
-    [handleBlur],
+    [handleBlur, handleSubmit, currentTitle],
   );
 
   return {

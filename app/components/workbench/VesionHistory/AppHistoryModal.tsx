@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { appHistoryModalStore, closeAppHistoryModal } from '~/lib/stores/appHistoryModal';
-import AppHistory from './AppHistory';
+import AppHistory from '~/components/panels/HistoryPanel/AppHistory';
 import { IconButton } from '~/components/ui/IconButton';
 import { RotateCw, X } from '~/components/ui/Icon';
 

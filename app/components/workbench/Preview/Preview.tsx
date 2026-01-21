@@ -1,15 +1,42 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { IconButton } from '~/components/ui/IconButton';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { designPanelStore } from '~/lib/stores/designSystemStore';
-import { setIsElementPickerEnabled, setIsElementPickerReady } from '~/lib/stores/elementPicker';
+import { elementPickerStore, setIsElementPickerEnabled, setIsElementPickerReady } from '~/lib/stores/elementPicker';
 import AppView, { type ResizeSide } from './components/AppView';
 import MultiDevicePreview, { type MultiDevicePreviewRef } from './components/InfiniteCanvas/MultiDevicePreview';
-import useViewport from '~/lib/hooks';
 import { useVibeAppAuthPopup } from '~/lib/hooks/useVibeAppAuth';
-import { RotateCw, MonitorSmartphone, Maximize2, Minimize2 } from '~/components/ui/Icon';
+import { Monitor, ExternalLink, Eye, Paintbrush, Shrink, RefreshCcw, Fullscreen } from 'lucide-react';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
+import { Button } from '~/components/ui/button';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
+import WithTooltip from '~/components/ui/Tooltip';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+} from '~/components/ui/breadcrumb';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu';
+import { buildBreadcrumbData } from '~/utils/componentBreadcrumb';
+import { useIsMobile } from '~/lib/hooks/useIsMobile';
+import { chatStore } from '~/lib/stores/chat';
+
+interface ReactComponent {
+  displayName?: string;
+  name?: string;
+  props?: Record<string, unknown>;
+  state?: unknown;
+  type: 'class' | 'function' | 'host';
+  selector?: string;
+}
 
 let gCurrentIFrameRef: React.RefObject<HTMLIFrameElement> | undefined;
 
@@ -17,27 +44,35 @@ export function getCurrentIFrame() {
   return gCurrentIFrameRef?.current ?? undefined;
 }
 
+type PreviewMode = 'preview' | 'editor';
+
 export const Preview = memo(() => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const multiDevicePreviewRef = useRef<MultiDevicePreviewRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isMouseOverPreviewRef = useRef(false);
+  const { isMobile } = useIsMobile();
 
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activeMode, setActiveMode] = useState<PreviewMode>('preview');
 
   const [url, setUrl] = useState('');
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
 
   const previewURL = useStore(workbenchStore.previewURL);
+  const previewLoading = useStore(chatStore.previewLoading);
+  const isPreviewReady = previewURL && !previewLoading;
+  const selectedElement = useStore(workbenchStore.selectedElement);
+  const isElementPickerEnabled = useStore(elementPickerStore.isEnabled);
+  const isElementPickerReady = useStore(elementPickerStore.isReady);
 
-  const isSmallViewport = useViewport(800);
   // Toggle between responsive mode and device mode
   const [isDeviceModeOn, setIsDeviceModeOn] = useState(false);
 
   // Use percentage for width
-  const [widthPercent, setWidthPercent] = useState<number>(37.5); // 375px assuming 1000px window width initially
+  const [widthPercent, setWidthPercent] = useState<number>(37.5);
 
   const resizingState = useRef({
     isResizing: false,
@@ -47,8 +82,7 @@ export const Preview = memo(() => {
     windowWidth: window.innerWidth,
   });
 
-  // Define the scaling factor
-  const SCALING_FACTOR = 2; // Adjust this value to increase/decrease sensitivity
+  const SCALING_FACTOR = 2;
 
   gCurrentIFrameRef = iframeRef;
 
@@ -62,18 +96,85 @@ export const Preview = memo(() => {
     setIsElementPickerEnabled(false);
   };
 
+  // Toggle element picker in iframe
+  const toggleElementPicker = (enabled: boolean) => {
+    const iframe = getCurrentIFrame();
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(
+        {
+          type: 'ELEMENT_PICKER_CONTROL',
+          enabled,
+        },
+        '*',
+      );
+    }
+  };
+
+  // Helper functions for element highlighting
+  const highlightElement = (component: ReactComponent) => {
+    const iframe = getCurrentIFrame();
+    if (!iframe || !iframe.contentWindow) {
+      return;
+    }
+
+    const selector =
+      component.selector ||
+      (component.type === 'host' ? (component.displayName || component.name)?.toLowerCase() : null);
+    const selectorParts = selector?.split('> ');
+    if (selector) {
+      iframe.contentWindow.postMessage(
+        {
+          type: 'ELEMENT_PICKER_HIGHLIGHT',
+          selector: selectorParts?.[selectorParts.length - 1],
+        },
+        '*',
+      );
+    }
+  };
+
+  const clearHighlight = () => {
+    const iframe = getCurrentIFrame();
+    if (!iframe || !iframe.contentWindow) {
+      return;
+    }
+
+    iframe.contentWindow.postMessage(
+      {
+        type: 'ELEMENT_PICKER_HIGHLIGHT',
+        selector: null,
+      },
+      '*',
+    );
+  };
+
+  // Helper function to update when clicking breadcrumb items
+  const updateTreeToComponent = (clickedComponent: ReactComponent, tree: ReactComponent[]) => {
+    const clickedIndex = tree.indexOf(clickedComponent);
+    if (clickedIndex === -1) {
+      return;
+    }
+
+    const newTree = tree.slice(clickedIndex);
+    const lastReactComponent = [...newTree]
+      .reverse()
+      .find((comp: ReactComponent) => comp.type === 'function' || comp.type === 'class');
+
+    workbenchStore.setSelectedElement({
+      component: lastReactComponent ?? clickedComponent,
+      tree: newTree,
+    });
+  };
+
   // Listen for messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'ELEMENT_PICKED') {
-        // Store the full element data including the react tree
         workbenchStore.setSelectedElement({
           component: event.data.react.component,
           tree: event.data.react.tree,
         });
         setIsElementPickerEnabled(false);
 
-        // Disable element picker on all iframes after picking
         const disableMessage = { type: 'ELEMENT_PICKER_CONTROL', enabled: false };
         if (multiDevicePreviewRef.current) {
           multiDevicePreviewRef.current.postMessageToAll(disableMessage);
@@ -96,7 +197,6 @@ export const Preview = memo(() => {
     if (!previewURL) {
       setUrl('');
       setIframeUrl(undefined);
-
       return;
     }
 
@@ -130,7 +230,6 @@ export const Preview = memo(() => {
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
@@ -145,7 +244,6 @@ export const Preview = memo(() => {
       return;
     }
 
-    // Prevent text selection
     document.body.style.userSelect = 'none';
 
     resizingState.current.isResizing = true;
@@ -157,7 +255,7 @@ export const Preview = memo(() => {
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
 
-    e.preventDefault(); // Prevent any text selection on mousedown
+    e.preventDefault();
   };
 
   const onMouseMove = (e: MouseEvent) => {
@@ -167,8 +265,6 @@ export const Preview = memo(() => {
 
     const dx = e.clientX - resizingState.current.startX;
     const windowWidth = resizingState.current.windowWidth;
-
-    // Apply scaling factor to increase sensitivity
     const dxPercent = (dx / windowWidth) * 100 * SCALING_FACTOR;
 
     let newWidthPercent = resizingState.current.startWidthPercent;
@@ -179,9 +275,7 @@ export const Preview = memo(() => {
       newWidthPercent = resizingState.current.startWidthPercent - dxPercent;
     }
 
-    // Clamp the width between 10% and 90%
     newWidthPercent = Math.max(10, Math.min(newWidthPercent, 90));
-
     setWidthPercent(newWidthPercent);
   };
 
@@ -190,30 +284,22 @@ export const Preview = memo(() => {
     resizingState.current.side = null;
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
-
-    // Restore text selection
     document.body.style.userSelect = '';
   };
 
-  // Handle window resize to ensure widthPercent remains valid
   useEffect(() => {
     const handleWindowResize = () => {
-      /*
-       * Optional: Adjust widthPercent if necessary
-       * For now, since widthPercent is relative, no action is needed
-       */
+      // widthPercent is relative, no action needed
     };
 
     window.addEventListener('resize', handleWindowResize);
-
     return () => {
       window.removeEventListener('resize', handleWindowResize);
     };
   }, []);
 
-  // Prevent back navigation (two-finger swipe) when over preview
+  // Prevent back navigation when over preview
   useEffect(() => {
-    // Push a state to track navigation
     window.history.pushState({ preventBack: true }, '');
 
     let isRestoringState = false;
@@ -247,13 +333,11 @@ export const Preview = memo(() => {
     };
 
     window.addEventListener('popstate', handlePopState);
-
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
-  // Track mouse position over preview area
   const handleMouseEnter = () => {
     isMouseOverPreviewRef.current = true;
   };
@@ -262,80 +346,281 @@ export const Preview = memo(() => {
     isMouseOverPreviewRef.current = false;
   };
 
-  return (
-    <div ref={containerRef} className="w-full h-full flex flex-col relative bg-bolt-elements-background-depth-1">
-      {isPortDropdownOpen && (
-        <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
-      )}
-      <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 p-3 flex items-center gap-2 shadow-sm">
-        <IconButton icon={<RotateCw size={20} />} onClick={() => reloadPreview()} />
-        <div
-          className={classNames(
-            'flex items-center gap-2 flex-grow bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textSecondary px-4 py-2 text-sm hover:bg-bolt-elements-background-depth-3 hover:border-bolt-elements-borderColor focus-within:bg-bolt-elements-background-depth-3 focus-within:border-blue-500/50 focus-within:text-bolt-elements-textPrimary transition-all duration-200 shadow-sm hover:shadow-md',
-            {
-              'rounded-xl': !isSmallViewport,
-            },
-          )}
-        >
-          <input
-            title="URL"
-            ref={inputRef}
-            className="w-full bg-transparent border-none outline-none focus:ring-0 focus:ring-offset-0 p-0"
-            type="text"
-            value={url}
-            onChange={(event) => {
-              setUrl(event.target.value);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                if (url !== iframeUrl) {
-                  setIframeUrl(url);
-                } else {
-                  reloadPreview();
-                }
+  const openInNewTab = () => {
+    if (iframeUrl) {
+      window.open(iframeUrl, '_blank');
+    }
+  };
 
-                if (inputRef.current) {
-                  inputRef.current.blur();
-                }
-              }
-            }}
-          />
+  const handleElementPickerToggle = () => {
+    if (!isElementPickerReady) {
+      return;
+    }
+    const newState = !isElementPickerEnabled;
+    setIsElementPickerEnabled(newState);
+    toggleElementPicker(newState);
+  };
+
+  return (
+    <TooltipProvider>
+      <div ref={containerRef} className="w-full h-full flex flex-col relative bg-bolt-elements-background-depth-1">
+        {isPortDropdownOpen && (
+          <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
+        )}
+
+        {/* Top Navigation Bar */}
+        {isPreviewReady && (
+          <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor p-2 flex items-center justify-between gap-2">
+            {/* Left: Preview/Editor Toggle */}
+            {!isMobile && (
+              <div className="flex items-center h-9 bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => {
+                    setActiveMode('preview');
+                    handleElementPickerToggle();
+                  }}
+                  className={classNames(
+                    'flex items-center justify-center gap-2 px-2 py-1 text-sm font-medium rounded-md transition-all',
+                    activeMode === 'preview'
+                      ? 'bg-background text-bolt-elements-textPrimary border border-input shadow-sm'
+                      : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                  )}
+                >
+                  <Eye size={16} />
+                  Preview
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveMode('editor');
+                    handleElementPickerToggle();
+                  }}
+                  className={classNames(
+                    'flex items-center justify-center gap-2 px-2 py-1 text-sm font-medium rounded-md transition-all',
+                    activeMode === 'editor'
+                      ? 'bg-background text-bolt-elements-textPrimary border border-input shadow-sm'
+                      : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                  )}
+                  disabled={!isElementPickerReady || isMobile}
+                >
+                  <Paintbrush size={16} />
+                  Editor
+                </button>
+              </div>
+            )}
+
+            {/* Center: Device Selector + URL */}
+            <div className="flex h-9 w-fit items-center justify-center gap-1 border border-border border-solid rounded-full px-1">
+              {/* Device Dropdown */}
+              <Button
+                variant="outline"
+                onClick={toggleDeviceMode}
+                className="flex items-center gap-1.5 h-7 px-3 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary rounded-full"
+              >
+                <Monitor size={16} />
+                {isDeviceModeOn ? 'Multi-Device' : 'Desktop'}
+              </Button>
+
+              {/* URL Input */}
+              <div className="flex items-center px-2 w-fit">
+                <input
+                  title="URL"
+                  ref={inputRef}
+                  className="w-[200px] bg-transparent text-sm text-bolt-elements-textSecondary border-none outline-none focus:ring-0 p-0 truncate"
+                  type="text"
+                  value={url}
+                  placeholder="https://"
+                  onChange={(event) => {
+                    setUrl(event.target.value);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      if (url !== iframeUrl) {
+                        setIframeUrl(url);
+                      } else {
+                        reloadPreview();
+                      }
+
+                      if (inputRef.current) {
+                        inputRef.current.blur();
+                      }
+                    }
+                  }}
+                />
+              </div>
+
+              <WithTooltip tooltip="Open in new tab">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={openInNewTab}
+                  className="h-7 w-7 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                >
+                  <ExternalLink size={16} />
+                </Button>
+              </WithTooltip>
+
+              <WithTooltip tooltip="Reload">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => reloadPreview()}
+                  className="h-7 w-7 min-w-7 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary border border-border rounded-full p-0"
+                >
+                  <RefreshCcw size={16} />
+                </Button>
+              </WithTooltip>
+            </div>
+
+            <WithTooltip tooltip="Toggle full screen">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className="h-9 w-9 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+              >
+                {isFullscreen ? <Shrink size={16} /> : <Fullscreen size={16} />}
+              </Button>
+            </WithTooltip>
+          </div>
+        )}
+
+        {/* Preview Area */}
+        <div
+          className={`flex-1 bg-bolt-elements-background-depth-2 bg-opacity-30 ${isDeviceModeOn ? 'overflow-hidden' : 'flex justify-center items-center overflow-auto'}`}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {isDeviceModeOn ? (
+            <MultiDevicePreview ref={multiDevicePreviewRef} iframeUrl={iframeUrl ?? ''} />
+          ) : (
+            <AppView
+              isDeviceModeOn={isDeviceModeOn}
+              iframeRef={iframeRef}
+              iframeUrl={iframeUrl ?? ''}
+              previewURL={url}
+              startResizing={startResizing}
+              widthPercent={widthPercent}
+            />
+          )}
         </div>
 
-        {!isSmallViewport && (
-          <IconButton
-            icon={<MonitorSmartphone size={20} />}
-            onClick={toggleDeviceMode}
-            title={isDeviceModeOn ? 'Switch to Responsive Mode' : 'Switch to Device Mode'}
-          />
-        )}
-        {!isSmallViewport && (
-          <IconButton
-            icon={isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
-          />
-        )}
-      </div>
+        {/* Bottom: Breadcrumb Navigation */}
+        {!isMobile && selectedElement && (selectedElement.tree?.length > 0 || selectedElement.component) && (
+          <div className="bg-bolt-elements-background-depth-1 border-t border-bolt-elements-borderColor px-4 py-2">
+            {(() => {
+              if (!selectedElement?.tree || selectedElement.tree.length === 0) {
+                return (
+                  <Breadcrumb>
+                    <BreadcrumbList className="text-sm">
+                      <BreadcrumbItem>
+                        <BreadcrumbPage className="text-bolt-elements-textPrimary font-medium">
+                          {selectedElement?.component?.displayName || 'Selection'}
+                        </BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                );
+              }
 
-      <div
-        className={`flex-1 bg-bolt-elements-background-depth-2 bg-opacity-30 ${isDeviceModeOn ? 'overflow-hidden' : 'flex justify-center items-center overflow-auto'}`}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        {isDeviceModeOn ? (
-          <MultiDevicePreview ref={multiDevicePreviewRef} iframeUrl={iframeUrl ?? ''} />
-        ) : (
-          <AppView
-            isDeviceModeOn={isDeviceModeOn}
-            iframeRef={iframeRef}
-            iframeUrl={iframeUrl ?? ''}
-            previewURL={url}
-            startResizing={startResizing}
-            widthPercent={widthPercent}
-          />
+              const originalTree = selectedElement.tree as ReactComponent[];
+              const breadcrumb = buildBreadcrumbData(originalTree, {
+                getDisplayName: (comp) => comp.displayName || comp.name,
+                getKind: (comp) => (comp.type === 'function' || comp.type === 'class' ? 'react' : 'html'),
+              });
+
+              if (!breadcrumb) {
+                return null;
+              }
+
+              const { htmlElements, firstReact, lastReact, lastHtml } = breadcrumb;
+              const lastReactComponent = lastReact?.item as ReactComponent | undefined;
+              const firstReactComponent = firstReact?.item as ReactComponent | undefined;
+              const lastHtmlComponent = lastHtml?.item as ReactComponent | undefined;
+              const lastReactDisplayName = lastReact?.displayName;
+              const firstReactDisplayName = firstReact?.displayName;
+
+              return (
+                <Breadcrumb>
+                  <BreadcrumbList className="text-sm">
+                    {/* Show last React component (if different from first) */}
+                    {lastReactComponent && firstReactComponent && lastReactDisplayName !== firstReactDisplayName && (
+                      <BreadcrumbItem>
+                        <BreadcrumbPage
+                          className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary cursor-pointer transition-colors"
+                          onMouseEnter={() => highlightElement(lastReactComponent)}
+                          onMouseLeave={clearHighlight}
+                          onClick={() => updateTreeToComponent(lastReactComponent, originalTree)}
+                        >
+                          {lastReactDisplayName?.split('$')[0] ||
+                            lastReactDisplayName ||
+                            lastReactComponent.name ||
+                            'Component'}
+                        </BreadcrumbPage>
+                      </BreadcrumbItem>
+                    )}
+
+                    {/* Ellipsis dropdown for HTML elements (if more than 1) */}
+                    {htmlElements.length > 1 && (
+                      <>
+                        {lastReactComponent &&
+                          firstReactComponent &&
+                          lastReactDisplayName !== firstReactDisplayName && (
+                            <BreadcrumbSeparator>/</BreadcrumbSeparator>
+                          )}
+                        <BreadcrumbItem>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger className="flex items-center gap-1 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors">
+                              <BreadcrumbEllipsis className="h-4 w-4" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              {htmlElements.slice(1, -1).map((node, index: number) => {
+                                const component = node.item as ReactComponent;
+                                return (
+                                  <DropdownMenuItem
+                                    key={index}
+                                    className="cursor-pointer"
+                                    onMouseEnter={() => highlightElement(component)}
+                                    onMouseLeave={clearHighlight}
+                                    onClick={() => updateTreeToComponent(component, originalTree)}
+                                  >
+                                    {node.displayName || component.name || 'unknown'}
+                                  </DropdownMenuItem>
+                                );
+                              })}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </BreadcrumbItem>
+                      </>
+                    )}
+
+                    {/* Show last HTML element */}
+                    {lastHtmlComponent && (
+                      <>
+                        {(htmlElements.length > 1 ||
+                          (lastReactComponent &&
+                            firstReactComponent &&
+                            lastReactDisplayName !== firstReactDisplayName)) && (
+                          <BreadcrumbSeparator>/</BreadcrumbSeparator>
+                        )}
+                        <BreadcrumbItem>
+                          <BreadcrumbPage
+                            className="text-bolt-elements-textPrimary font-medium hover:text-bolt-elements-textSecondary cursor-pointer transition-colors"
+                            onMouseEnter={() => highlightElement(lastHtmlComponent)}
+                            onMouseLeave={clearHighlight}
+                            onClick={() => updateTreeToComponent(lastHtmlComponent, originalTree)}
+                          >
+                            {lastHtml?.displayName || lastHtmlComponent.name || 'element'}
+                          </BreadcrumbPage>
+                        </BreadcrumbItem>
+                      </>
+                    )}
+                  </BreadcrumbList>
+                </Breadcrumb>
+              );
+            })()}
+          </div>
         )}
       </div>
-    </div>
+    </TooltipProvider>
   );
 });

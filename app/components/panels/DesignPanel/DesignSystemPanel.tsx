@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
 import { designPanelStore, markThemeChanged, markThemesSaved, resetThemeChanges } from '~/lib/stores/designSystemStore';
 import { getAvailableThemes, findMatchingTheme, getThemeCSSVariables } from '~/lib/replay/themeHelper';
 import { Skeleton } from '~/components/ui/Skeleton';
-import { Sun, Moon, ChevronRight, Palette, Type, Settings, ArrowLeft } from 'lucide-react';
+import { Sun, Moon, SlidersHorizontal, ArrowLeft } from 'lucide-react';
 import { ThemePicker } from '~/components/ui/theme-picker';
 import type { ThemeOption } from '~/components/ui/theme-picker';
 import { classNames } from '~/utils/classNames';
@@ -32,7 +32,6 @@ export const DesignSystemPanel = () => {
   const appId = useStore(chatStore.currentAppId);
 
   const [currentView, setCurrentView] = useState<ViewType>('overview');
-  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
   const [currentFont, setCurrentFont] = useState<string[]>(['Inter']);
   const [radius, setRadius] = useState(0.5);
   const [spacingUnit, setSpacingUnit] = useState(4);
@@ -266,13 +265,6 @@ export const DesignSystemPanel = () => {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
-
-  // Handle theme mode toggle
-  const handleThemeModeToggle = () => {
-    const newMode = themeMode === 'light' ? 'dark' : 'light';
-    setThemeMode(newMode);
-    sendThemeModeToAllIframes(newMode);
-  };
 
   // Handle theme change
   const handleThemeChange = (themeName: string) => {
@@ -531,7 +523,6 @@ export const DesignSystemPanel = () => {
       setCurrentColors(extractColorsFromVariables(originalVariablesRef.current));
     }
     setHoveredTheme(null);
-    designPanelStore.isVisible.set(false);
   }, []);
 
   // Register handlers
@@ -545,104 +536,109 @@ export const DesignSystemPanel = () => {
 
   // Render overview
   const renderOverview = () => (
-    <div className="p-6 space-y-4">
+    <div className="p-4 space-y-6">
+      {/* Light/Dark Mode Toggle */}
+      <div className="relative flex rounded-lg border border-bolt-elements-borderColor p-1 bg-bolt-elements-background-depth-2">
+        {/* Sliding background */}
+        <div
+          className="absolute top-1 bottom-1 left-1 rounded-md bg-background shadow-sm border border-bolt-elements-borderColor transition-transform duration-300 ease-in-out"
+          style={{
+            width: 'calc(50% - 0.25rem)',
+            transform: themeMode === 'dark' ? 'translateX(calc(100% + 0.5rem))' : 'translateX(0)',
+          }}
+        />
+        <button
+          onClick={() => {
+            setThemeMode('light');
+            sendThemeModeToAllIframes('light');
+          }}
+          className={classNames(
+            'relative z-10 flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors',
+            themeMode === 'light'
+              ? 'text-bolt-elements-textPrimary'
+              : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+          )}
+        >
+          <Sun size={16} />
+          <span>Light mode</span>
+        </button>
+        <button
+          onClick={() => {
+            setThemeMode('dark');
+            sendThemeModeToAllIframes('dark');
+          }}
+          className={classNames(
+            'relative z-10 flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors',
+            themeMode === 'dark'
+              ? 'text-bolt-elements-textPrimary'
+              : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+          )}
+        >
+          <Moon size={16} />
+          <span>Dark mode</span>
+        </button>
+      </div>
+
+      {/* Separator */}
+      <div className="border-t border-bolt-elements-borderColor" />
+
       {/* Colors Section */}
-      <div
-        className="relative border-b border-bolt-elements-borderColor pb-4"
-        onMouseEnter={() => setHoveredSection('colors')}
-        onMouseLeave={() => setHoveredSection(null)}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Palette size={18} className="text-bolt-elements-textSecondary" />
-            <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Colors</h3>
-          </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Colours</h3>
           <button
             onClick={() => setCurrentView('colors')}
-            className={classNames(
-              'flex items-center gap-1 px-2 py-1 text-xs font-medium text-bolt-elements-textPrimary bg-bolt-elements-background-depth-3 rounded border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 transition-all',
-              hoveredSection === 'colors' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-            )}
+            className="p-1.5 rounded-md text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 transition-all"
+            title="Advanced color settings"
           >
-            <span>Advanced</span>
-            <ChevronRight size={12} />
+            <SlidersHorizontal size={16} />
           </button>
         </div>
-        <div className="flex items-center gap-2 mb-3">
-          <ThemePicker
-            options={availableThemes.map(
-              (theme): ThemeOption => ({
-                name: theme.name,
-                title: theme.title,
-                colors: getThemeColors(theme.name),
-              }),
-            )}
-            value={selectedTheme}
-            onChange={handleThemeChange}
-            onHover={handleThemeHover}
-            onHoverEnd={handleThemePickerHoverEnd}
-            showCustomOption={isCustomTheme || themeChanges.hasChanges}
-            isCustom={isCustomTheme || themeChanges.hasChanges}
-            customColors={currentColors}
-            placeholder="Select Theme"
-          />
-        </div>
+        <ThemePicker
+          options={availableThemes.map(
+            (theme): ThemeOption => ({
+              name: theme.name,
+              title: theme.title,
+              colors: getThemeColors(theme.name),
+            }),
+          )}
+          value={selectedTheme}
+          onChange={handleThemeChange}
+          onHover={handleThemeHover}
+          onHoverEnd={handleThemePickerHoverEnd}
+          showCustomOption={isCustomTheme || themeChanges.hasChanges}
+          isCustom={isCustomTheme || themeChanges.hasChanges}
+          customColors={currentColors}
+          placeholder="Theme name"
+        />
       </div>
 
-      {/* Fonts Section */}
-      <div
-        className="relative border-b border-bolt-elements-borderColor pb-4"
-        onMouseEnter={() => setHoveredSection('typography')}
-        onMouseLeave={() => setHoveredSection(null)}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Type size={18} className="text-bolt-elements-textSecondary" />
-            <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Fonts</h3>
-          </div>
-          <button
-            onClick={() => setCurrentView('typography')}
-            className={classNames(
-              'flex items-center gap-1 px-2 py-1 text-xs font-medium text-bolt-elements-textPrimary bg-bolt-elements-background-depth-3 rounded border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 transition-all',
-              hoveredSection === 'typography' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-            )}
-          >
-            <span>Advanced</span>
-            <ChevronRight size={12} />
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <MultiSelect
-            defaultValue={currentFont}
-            onValueChange={handleFontChange}
-            options={sansSerifFonts}
-            placeholder="Select fonts..."
-            maxCount={3}
-            hideSelectAll
-            onOptionHover={(option) => handleFontHover(option.value)}
-            onOptionHoverEnd={handleFontHoverEnd}
-          />
-        </div>
+      {/* Typography Section */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Typography</h3>
+        <MultiSelect
+          defaultValue={currentFont}
+          onValueChange={handleFontChange}
+          options={sansSerifFonts}
+          placeholder="Select fonts..."
+          maxCount={3}
+          hideSelectAll
+          onOptionHover={(option) => handleFontHover(option.value)}
+          onOptionHoverEnd={handleFontHoverEnd}
+        />
       </div>
 
-      {/* Other Settings Section */}
-      <div className="space-y-4">
-        <RadiusSelector
-          icon={<Settings size={18} className="text-bolt-elements-textSecondary" />}
-          currentValue={radius}
-          onChange={handleRadiusChange}
-        />
-        <SpacingSelector
-          icon={<Settings size={18} className="text-bolt-elements-textSecondary" />}
-          currentValue={spacingUnit}
-          onChange={handleSpacingUnitChange}
-        />
-        <BorderWidthSelector
-          icon={<Settings size={18} className="text-bolt-elements-textSecondary" />}
-          currentValue={borderWidth}
-          onChange={handleBorderWidthChange}
-        />
-      </div>
+      {/* Separator */}
+      <div className="border-t border-bolt-elements-borderColor" />
+
+      {/* Roundness Section */}
+      <RadiusSelector currentValue={radius} onChange={handleRadiusChange} />
+
+      {/* Space Section */}
+      <SpacingSelector currentValue={spacingUnit} onChange={handleSpacingUnitChange} />
+
+      {/* Stroke Section */}
+      <BorderWidthSelector currentValue={borderWidth} onChange={handleBorderWidthChange} />
     </div>
   );
 
@@ -681,32 +677,28 @@ export const DesignSystemPanel = () => {
   }
 
   return (
-    <div className="@container flex flex-col h-full w-full bg-bolt-elements-background-depth-1 rounded-xl border border-bolt-elements-borderColor shadow-lg overflow-hidden">
-      <div className="bg-bolt-elements-background-depth-1 border-b border-bolt-elements-borderColor border-opacity-50 shadow-sm rounded-t-xl">
-        <div className="flex items-center justify-between px-2 h-[38px]">
-          <div className="flex-1 text-bolt-elements-textSecondary text-sm font-medium truncate pl-1">
-            {currentView === 'overview' ? 'Design System' : currentView.charAt(0).toUpperCase() + currentView.slice(1)}
-          </div>
-          <div className="flex items-center gap-0.5 flex-shrink-0 pr-1">
-            <button
-              onClick={handleThemeModeToggle}
-              className="p-1.5 rounded-lg text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 transition-all duration-200"
-              title={themeMode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            >
-              {themeMode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-            </button>
-          </div>
-        </div>
-      </div>
-
+    <div className="@container flex flex-col h-full w-full bg-bolt-elements-background-depth-1 rounded-md border border-bolt-elements-borderColor shadow-lg overflow-hidden">
       <div className="flex-1 overflow-y-auto flex flex-col">
         {isLoading || !selectedTheme ? (
-          <div className="flex-1 p-6 space-y-6">
-            <Skeleton className="h-8 w-48" />
+          <div className="flex-1 p-4 space-y-6">
+            <Skeleton className="h-10 w-full rounded-full" />
+            <div className="border-t border-bolt-elements-borderColor" />
             <div className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="border-t border-bolt-elements-borderColor" />
+            <div className="space-y-4">
+              <Skeleton className="h-6 w-20" />
+              <div className="grid grid-cols-3 gap-2">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
             </div>
           </div>
         ) : (

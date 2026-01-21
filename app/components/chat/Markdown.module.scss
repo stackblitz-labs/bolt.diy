@@ -184,32 +184,32 @@ $code-font-size: 13px;
     }
   }
 
-  // Enhanced checkbox styling inspired by SignUpForm
+  // Enhanced checkbox styling with muted theme
   input[type='checkbox'] {
     appearance: none;
     -webkit-appearance: none;
     height: 20px;
     width: 20px;
     border-radius: 6px;
-    border: 2px solid #3b82f6;
+    border: 2px solid var(--bolt-elements-borderColor);
     background: var(--bolt-elements-background-depth-2);
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
 
     &:hover {
+      border-color: var(--bolt-elements-textPrimary);
       background: var(--bolt-elements-background-depth-3);
     }
 
     &:focus {
       outline: none;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+      box-shadow: 0 0 0 2px var(--bolt-elements-focus);
     }
 
     &:checked {
-      background:
-        linear-gradient(135deg, #3b82f6, #10b981) padding-box,
-        linear-gradient(135deg, #3b82f6, #10b981) border-box;
+      background: var(--bolt-elements-textPrimary);
+      border-color: var(--bolt-elements-textPrimary);
     }
 
     &:disabled {
@@ -233,16 +233,19 @@ $code-font-size: 13px;
       cursor: pointer;
       text-align: left; // Force left alignment for checkbox list items
 
-      &:hover {
+      &:has(input[type='checkbox']:disabled) {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      &:hover:not(:has(input[type='checkbox']:disabled)) {
         background: var(--bolt-elements-background-depth-2);
-        border-color: #3b82f6;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-color: var(--bolt-elements-textPrimary);
       }
 
       // Style when checkbox is checked - same as hover state
       &:has(input[type='checkbox']:checked) {
-        border-color: #3b82f6;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-color: var(--bolt-elements-textPrimary);
       }
 
       // Style the checkbox container

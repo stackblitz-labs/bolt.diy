@@ -8,14 +8,6 @@ import { useStore } from '@nanostores/react';
 import { getDiscoveryRating } from '~/lib/persistence/message';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbEllipsis,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '~/components/ui/breadcrumb';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -25,16 +17,19 @@ import { buildBreadcrumbData } from '~/utils/componentBreadcrumb';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { userStore } from '~/lib/stores/auth';
-// import { useIsMobile } from '~/lib/hooks/useIsMobile';
 import { processImage, validateImageFile, formatFileSize } from '~/utils/imageProcessing';
 import { toast } from 'react-toastify';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import WithTooltip from '~/components/ui/Tooltip';
 import { getCurrentIFrame } from '~/components/workbench/Preview/Preview';
-import { Crosshair, X, Palette, Plus, MousePointerClickIcon } from 'lucide-react';
-import { designPanelStore } from '~/lib/stores/designSystemStore';
-import { elementPickerStore, setIsElementPickerEnabled, setIsElementPickerReady } from '~/lib/stores/elementPicker';
-import { useIsMobile } from '~/lib/hooks/useIsMobile';
+import {
+  Crosshair,
+  X,
+  Plus,
+  ChevronRight,
+  // Mic,
+} from 'lucide-react';
+import { Button } from '~/components/ui/button';
 
 // const AudioWaveIcon = () => (
 //   <svg
@@ -114,11 +109,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const hasAppSummary = !!appSummary;
   const user = useStore(userStore);
   const selectedElement = useStore(workbenchStore.selectedElement) as SelectedElementData | null;
-  // const { isMobile, isTablet } = useIsMobile();
-  const isDesignPanelVisible = useStore(designPanelStore.isVisible);
-  const { isMobile } = useIsMobile();
-  const isElementPickerEnabled = useStore(elementPickerStore.isEnabled);
-  const isElementPickerReady = useStore(elementPickerStore.isReady);
 
   // Focus textarea if URL has focus=true parameter
   useEffect(() => {
@@ -127,22 +117,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       textareaRef.current.focus();
     }
   }, [textareaRef]);
-
-  // Send postMessage to control element picker in iframe
-  const toggleElementPicker = (enabled: boolean) => {
-    const iframe = getCurrentIFrame();
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage(
-        {
-          type: 'ELEMENT_PICKER_CONTROL',
-          enabled,
-        },
-        '*',
-      );
-    } else {
-      console.warn('[Preview] Cannot send message - iframe not ready');
-    }
-  };
 
   // Helper functions for element highlighting
   const highlightElement = (component: ReactComponent) => {
@@ -183,24 +157,24 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   // Listen for messages from iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'ELEMENT_PICKED') {
-        // Store the full element data including the react tree
-        workbenchStore.setSelectedElement({
-          component: event.data.react.component,
-          tree: event.data.react.tree,
-        });
-        setIsElementPickerEnabled(false);
-      } else if (event.data.type === 'ELEMENT_PICKER_STATUS') {
-      } else if (event.data.type === 'ELEMENT_PICKER_READY' && event.data.source === 'element-picker') {
-        setIsElementPickerReady(true);
-      }
-    };
+  // useEffect(() => {
+  //   const handleMessage = (event: MessageEvent) => {
+  //     if (event.data.type === 'ELEMENT_PICKED') {
+  //       // Store the full element data including the react tree
+  //       workbenchStore.setSelectedElement({
+  //         component: event.data.react.component,
+  //         tree: event.data.react.tree,
+  //       });
+  //       setIsElementPickerEnabled(false);
+  //     } else if (event.data.type === 'ELEMENT_PICKER_STATUS') {
+  //     } else if (event.data.type === 'ELEMENT_PICKER_READY' && event.data.source === 'element-picker') {
+  //       setIsElementPickerReady(true);
+  //     }
+  //   };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  //   window.addEventListener('message', handleMessage);
+  //   return () => window.removeEventListener('message', handleMessage);
+  // }, []);
 
   // Helper function to update when clicking breadcrumb items (sets clicked component as selected and trims tree)
   const updateTreeToComponent = (clickedComponent: ReactComponent, tree: ReactComponent[]) => {
@@ -365,403 +339,308 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setTimeout(() => {
       workbenchStore.setShowWorkbench(true);
       mobileNavStore.setShowMobileNav(true);
-      mobileNavStore.setActiveTab('preview');
+      mobileNavStore.setActiveTab('canvas');
     }, 2000);
   };
 
   return (
-    <div className={classNames('relative bg-transparent rounded-xl transition-all duration-300')}>
-      {selectedElement && (
-        <div className="bg-bolt-elements-background-depth-2 border-b border-bolt-elements-borderColor px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-blue-500/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <Crosshair size={18} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium">
-                  {(() => {
-                    if (!selectedElement.tree || selectedElement.tree.length === 0) {
-                      return (
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-bolt-elements-textPrimary">Selected:</span>
-                          <span className="text-blue-600 dark:text-blue-400">
-                            {selectedElement.component?.displayName || 'Component'}
-                          </span>
-                        </span>
-                      );
-                    }
+    <div className={classNames('relative transition-all duration-300')}>
+      {/* Main input container with white background */}
+      <div className="bg-background rounded-md border border-bolt-elements-borderColor">
+        {/* Textarea area */}
+        <div className="relative">
+          {/* Breadcrumb pill at top left */}
+          {selectedElement && (
+            <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-bolt-elements-background-depth-1 rounded-md border border-bolt-elements-borderColor text-sm font-medium">
+              <Crosshair size={12} className="text-bolt-elements-textSecondary flex-shrink-0" />
+              {(() => {
+                if (!selectedElement.tree || selectedElement.tree.length === 0) {
+                  return (
+                    <span className="text-bolt-elements-textPrimary font-medium">
+                      {selectedElement.component?.displayName || 'Component'}
+                    </span>
+                  );
+                }
 
-                    const originalTree = selectedElement.tree;
-                    const breadcrumbData = buildBreadcrumbData(originalTree, {
-                      getDisplayName: (comp) => comp.displayName || comp.name,
-                      getKind: (comp) => (comp.type === 'function' || comp.type === 'class' ? 'react' : 'html'),
-                    });
+                const originalTree = selectedElement.tree;
+                const breadcrumbData = buildBreadcrumbData(originalTree, {
+                  getDisplayName: (comp) => comp.displayName || comp.name,
+                  getKind: (comp) => (comp.type === 'function' || comp.type === 'class' ? 'react' : 'html'),
+                });
 
-                    if (!breadcrumbData) {
-                      return null;
-                    }
+                if (!breadcrumbData) {
+                  return null;
+                }
 
-                    const { htmlElements, firstReact, lastReact, lastHtml } = breadcrumbData;
-                    const lastReactComponent = lastReact?.item as ReactComponent | undefined;
-                    const firstReactComponent = firstReact?.item as ReactComponent | undefined;
-                    const lastHtmlComponent = lastHtml?.item as ReactComponent | undefined;
-                    const lastReactDisplayName = lastReact?.displayName;
-                    const firstReactDisplayName = firstReact?.displayName;
+                const { htmlElements, firstReact, lastReact, lastHtml } = breadcrumbData;
+                const lastReactComponent = lastReact?.item as ReactComponent | undefined;
+                const firstReactComponent = firstReact?.item as ReactComponent | undefined;
+                const lastHtmlComponent = lastHtml?.item as ReactComponent | undefined;
+                const lastReactDisplayName = lastReact?.displayName;
+                const firstReactDisplayName = firstReact?.displayName;
 
-                    return (
-                      <Breadcrumb>
-                        <BreadcrumbList>
-                          <BreadcrumbItem>
-                            <span className="text-bolt-elements-textPrimary">Selected:</span>
-                          </BreadcrumbItem>
+                const parts: React.ReactNode[] = [];
 
-                          {/* Show currently selected React component (last React component) */}
-                          {lastReactComponent &&
-                            firstReactComponent &&
-                            lastReactDisplayName !== firstReactDisplayName && (
-                              <>
-                                <BreadcrumbSeparator />
-                                <BreadcrumbItem>
-                                  <BreadcrumbPage
-                                    className="text-blue-600 dark:text-blue-400 cursor-pointer"
-                                    onMouseEnter={() => highlightElement(lastReactComponent)}
-                                    onMouseLeave={clearHighlight}
-                                    onClick={() => updateTreeToComponent(lastReactComponent, originalTree)}
-                                  >
-                                    {lastReactDisplayName?.split('$')[0] ||
-                                      lastReactDisplayName ||
-                                      lastReactComponent.name ||
-                                      'Component'}
-                                  </BreadcrumbPage>
-                                </BreadcrumbItem>
-                              </>
-                            )}
+                // Show currently selected React component (last React component)
+                if (lastReactComponent && firstReactComponent && lastReactDisplayName !== firstReactDisplayName) {
+                  parts.push(
+                    <button
+                      key="react"
+                      className="text-bolt-elements-textPrimary hover:text-bolt-elements-textHeading transition-colors cursor-pointer"
+                      onMouseEnter={() => highlightElement(lastReactComponent)}
+                      onMouseLeave={clearHighlight}
+                      onClick={() => updateTreeToComponent(lastReactComponent, originalTree)}
+                    >
+                      {lastReactDisplayName?.split('$')[0] ||
+                        lastReactDisplayName ||
+                        lastReactComponent.name ||
+                        'Component'}
+                    </button>,
+                  );
+                }
 
-                          {/* Second ellipsis for HTML elements (if there are any) */}
-                          {htmlElements.length > 1 && (
-                            <>
-                              <BreadcrumbSeparator />
-                              <BreadcrumbItem>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger className="flex items-center gap-1 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor rounded-lg p-1">
-                                    <BreadcrumbEllipsis className="h-4 w-4" />
-                                    <span className="sr-only">More HTML elements</span>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="start">
-                                    {htmlElements.slice(1, -1).map((node, index: number) => {
-                                      const component = node.item as ReactComponent;
+                // Show ellipsis for HTML elements (if there are any)
+                if (htmlElements.length > 1) {
+                  parts.push(
+                    <DropdownMenu key="ellipsis">
+                      <DropdownMenuTrigger className="flex items-center gap-0.5 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors cursor-pointer">
+                        <span>...</span>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {htmlElements.slice(1, -1).map((node, index: number) => {
+                          const component = node.item as ReactComponent;
 
-                                      return (
-                                        <DropdownMenuItem
-                                          key={index}
-                                          className="text-purple-600 dark:text-purple-400 cursor-pointer"
-                                          onMouseEnter={() => highlightElement(component)}
-                                          onMouseLeave={clearHighlight}
-                                          onClick={() => updateTreeToComponent(component, originalTree)}
-                                        >
-                                          {node.displayName || component.name || 'unknown'}
-                                        </DropdownMenuItem>
-                                      );
-                                    })}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </BreadcrumbItem>
-                            </>
-                          )}
+                          return (
+                            <DropdownMenuItem
+                              key={index}
+                              className="cursor-pointer"
+                              onMouseEnter={() => highlightElement(component)}
+                              onMouseLeave={clearHighlight}
+                              onClick={() => updateTreeToComponent(component, originalTree)}
+                            >
+                              {node.displayName || component.name || 'unknown'}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>,
+                  );
+                }
 
-                          {/* Show currently selected HTML element (last HTML element) */}
-                          {lastHtmlComponent && (
-                            <>
-                              <BreadcrumbSeparator />
-                              <BreadcrumbItem>
-                                <BreadcrumbPage
-                                  className="text-purple-600 dark:text-purple-400 cursor-pointer"
-                                  onMouseEnter={() => highlightElement(lastHtmlComponent)}
-                                  onMouseLeave={clearHighlight}
-                                  onClick={() => updateTreeToComponent(lastHtmlComponent, originalTree)}
-                                >
-                                  {lastHtml?.displayName || lastHtmlComponent.name || 'element'}
-                                </BreadcrumbPage>
-                              </BreadcrumbItem>
-                            </>
-                          )}
-                        </BreadcrumbList>
-                      </Breadcrumb>
-                    );
-                  })()}
-                </div>
-              </div>
+                // Show currently selected HTML element (last HTML element)
+                if (lastHtmlComponent) {
+                  parts.push(
+                    <button
+                      key="html"
+                      className="text-bolt-elements-textPrimary hover:text-bolt-elements-textHeading transition-colors cursor-pointer"
+                      onMouseEnter={() => highlightElement(lastHtmlComponent)}
+                      onMouseLeave={clearHighlight}
+                      onClick={() => updateTreeToComponent(lastHtmlComponent, originalTree)}
+                    >
+                      {lastHtml?.displayName || lastHtmlComponent.name || 'element'}
+                    </button>,
+                  );
+                }
+
+                return (
+                  <div className="flex items-center gap-1">
+                    {parts.map((part, index) => (
+                      <React.Fragment key={index}>
+                        {part}
+                        {index < parts.length - 1 && (
+                          <ChevronRight size={12} className="text-bolt-elements-textSecondary flex-shrink-0" />
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                );
+              })()}
+              <button
+                onClick={() => workbenchStore.setSelectedElement(null)}
+                className="ml-1 p-0.5 hover:bg-bolt-elements-background-depth-3 rounded transition-colors flex items-center justify-center text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary flex-shrink-0"
+              >
+                <X size={12} />
+              </button>
             </div>
-            <button
-              onClick={() => workbenchStore.setSelectedElement(null)}
-              className="w-6 h-6 rounded-lg bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-4 hover:border-bolt-elements-focus/50 transition-all duration-200 flex items-center justify-center text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary flex-shrink-0"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="relative">
-        {/* Custom styled placeholder */}
-        {!input && !chatStarted && (
-          <div className="absolute left-4 top-3 pointer-events-none text-base">
-            <span className="text-gray-400 dark:text-gray-500 animate-pulse animation-delay-200">
-              What would you like{' '}
-            </span>
-            <span className="text-rose-500 font-medium animate-pulse animation-delay-200">
-              Replay Builder to build?
-            </span>
-          </div>
-        )}
-        <textarea
-          ref={textareaRef}
-          className={classNames(
-            'w-full px-4 py-3 pr-4 border-none resize-none text-bolt-elements-textPrimary bg-transparent text-base',
-            'transition-all duration-200 focus:outline-none',
-            { 'opacity-50 cursor-not-allowed': hasPendingMessage },
-            // Hide native placeholder when custom placeholder is shown
-            { 'placeholder-transparent': !chatStarted },
-            { 'placeholder-gray-400 dark:placeholder-gray-500': chatStarted },
           )}
-          onDragEnter={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.5)';
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.5)';
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.boxShadow = 'none';
+          <textarea
+            ref={textareaRef}
+            className={classNames(
+              'w-full border-none resize-none text-bolt-elements-textPrimary bg-transparent text-base rounded-md',
+              'focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-none active:border-none',
+              { 'opacity-50 cursor-not-allowed': hasPendingMessage },
+              'placeholder:text-bolt-elements-textSecondary',
+              selectedElement ? 'pt-10 px-3 pb-3' : 'p-3',
+            )}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.5)';
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.5)';
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.currentTarget.style.boxShadow = 'none';
 
-            const files = Array.from(e.dataTransfer.files);
-            files.forEach((file) => {
-              if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
+              const files = Array.from(e.dataTransfer.files);
+              files.forEach((file) => {
+                if (file.type.startsWith('image/')) {
+                  const reader = new FileReader();
 
-                reader.onload = (e) => {
-                  const base64Image = e.target?.result as string;
-                  setUploadedFiles([...uploadedFiles, file]);
-                  setImageDataList([...imageDataList, base64Image]);
-                };
-                reader.readAsDataURL(file);
+                  reader.onload = (e) => {
+                    const base64Image = e.target?.result as string;
+                    setUploadedFiles([...uploadedFiles, file]);
+                    setImageDataList([...imageDataList, base64Image]);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              });
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                if (event.shiftKey) {
+                  return;
+                }
+
+                event.preventDefault();
+
+                if (hasPendingMessage) {
+                  chatStore.showStopConfirmation.set(true);
+                  return;
+                }
+
+                if (event.nativeEvent.isComposing) {
+                  return;
+                }
+
+                // Transform selectedElement to API format
+                const componentReference = selectedElement?.tree
+                  ? {
+                      componentNames: selectedElement.tree.map(
+                        (comp: ReactComponent) => comp.displayName || 'Anonymous',
+                      ),
+                    }
+                  : undefined;
+
+                handleSendMessage({
+                  messageInput: input,
+                  chatMode: ChatMode.UserMessage,
+                  componentReference,
+                });
+
+                // Clear selected element after sending
+                if (selectedElement) {
+                  workbenchStore.setSelectedElement(null);
+                }
               }
-            });
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              if (event.shiftKey) {
-                return;
-              }
+            }}
+            value={input}
+            onChange={handleInputChange}
+            onPaste={handlePaste}
+            style={{
+              minHeight,
+              maxHeight,
+              overflowY: 'auto',
+            }}
+            disabled={hasPendingMessage}
+            placeholder={getPlaceholderText(chatStarted, hasAppSummary)}
+            translate="no"
+          />
 
-              event.preventDefault();
+          {/* Start Building Button - shown when discovery rating is high enough */}
+          {(() => {
+            const showStartBuildingButton = user && startPlanningRating > 0 && !hasAppSummary && !hasPendingMessage;
 
+            return showStartBuildingButton ? (
+              <ClientOnly>
+                {() => <StartBuildingButton onClick={handleStartBuilding} startPlanningRating={startPlanningRating} />}
+              </ClientOnly>
+            ) : null;
+          })()}
+        </div>
+
+        {/* Bottom controls */}
+        <div className="flex justify-between items-center p-2">
+          <div className="flex gap-2 items-center">
+            {/* Microphone button */}
+            {/* <TooltipProvider>
+              <WithTooltip tooltip={isListening ? 'Stop listening' : 'Start speech recognition'}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="w-8 h-8 rounded-full bg-background border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-2 p-2 aspect-square"
+                  disabled={hasPendingMessage}
+                  onClick={isListening ? onStopListening : onStartListening}
+                >
+                  <Mic size={16} className="text-bolt-elements-textPrimary" />
+                </Button>
+              </WithTooltip>
+            </TooltipProvider> */}
+
+            {/* Plus/Upload button */}
+            <TooltipProvider>
+              <WithTooltip
+                tooltip={
+                  <div className="text-xs">
+                    <div className="font-medium mb-1 text-bolt-elements-textHeading">Upload Image</div>
+                    <div>✅ Supports: JPEG, PNG, GIF, WebP</div>
+                    <div>🔄 Converts: SVG, BMP, TIFF → JPEG</div>
+                    <div>📐 Auto-resizes large images (&gt;500KB)</div>
+                  </div>
+                }
+              >
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="w-8 h-8 rounded-full bg-background border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-2 p-2 aspect-square"
+                  onClick={handleFileUpload}
+                >
+                  <Plus size={16} className="text-bolt-elements-textPrimary" />
+                </Button>
+              </WithTooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Send Button */}
+          <Button
+            onClick={() => {
               if (hasPendingMessage) {
                 chatStore.showStopConfirmation.set(true);
                 return;
               }
-
-              if (event.nativeEvent.isComposing) {
-                return;
-              }
-
-              // Transform selectedElement to API format
-              const componentReference = selectedElement?.tree
-                ? {
-                    componentNames: selectedElement.tree.map((comp: ReactComponent) => comp.displayName || 'Anonymous'),
-                  }
-                : undefined;
-
-              handleSendMessage({
-                messageInput: input,
-                chatMode: ChatMode.UserMessage,
-                componentReference,
-              });
-
-              // Clear selected element after sending
-              if (selectedElement) {
-                workbenchStore.setSelectedElement(null);
-              }
-            }
-          }}
-          value={input}
-          onChange={handleInputChange}
-          onPaste={handlePaste}
-          style={{
-            minHeight,
-            maxHeight,
-            overflowY: 'auto',
-          }}
-          disabled={hasPendingMessage}
-          placeholder={getPlaceholderText(chatStarted, hasAppSummary)}
-          translate="no"
-        />
-
-        {/* Start Building Button - shown when discovery rating is high enough */}
-        {(() => {
-          const showStartBuildingButton = user && startPlanningRating > 0 && !hasAppSummary && !hasPendingMessage;
-
-          return showStartBuildingButton ? (
-            <ClientOnly>
-              {() => <StartBuildingButton onClick={handleStartBuilding} startPlanningRating={startPlanningRating} />}
-            </ClientOnly>
-          ) : null;
-        })()}
-      </div>
-
-      <div className="flex justify-between items-center px-4 py-3">
-        <div className="flex gap-3 items-center">
-          {/* {!isMobile && !isTablet && (
-            <TooltipProvider>
-              <WithTooltip tooltip={isListening ? 'Stop listening' : 'Start speech recognition'}>
-                <div>
-                  <button
-                    onClick={isListening ? onStopListening : onStartListening}
-                    disabled={hasPendingMessage}
-                    className={classNames(
-                      'w-10 h-10 rounded-full border-2 transition-all duration-200 flex items-center justify-center',
-                      isListening
-                        ? 'border-rose-500 bg-rose-50 dark:bg-rose-500/10 text-rose-500'
-                        : 'border-rose-300 dark:border-rose-500/50 bg-transparent text-rose-400 dark:text-rose-400 hover:border-rose-400 hover:text-rose-500',
-                      { 'opacity-50 cursor-not-allowed': hasPendingMessage },
-                    )}
-                  >
-                    <AudioWaveIcon />
-                  </button>
-                </div>
-              </WithTooltip>
-            </TooltipProvider>
-          )} */}
-
-          <TooltipProvider>
-            <WithTooltip
-              tooltip={
-                <div className="text-xs">
-                  <div className="font-medium mb-1 text-bolt-elements-textHeading">Upload Image</div>
-                  <div>✅ Supports: JPEG, PNG, GIF, WebP</div>
-                  <div>🔄 Converts: SVG, BMP, TIFF → JPEG</div>
-                  <div>📐 Auto-resizes large images (&gt;500KB)</div>
-                </div>
-              }
-            >
-              <button
-                className="w-10 h-10 rounded-full border-2 border-rose-300 dark:border-rose-500/50 bg-transparent text-rose-400 dark:text-rose-400 hover:border-rose-400 hover:text-rose-500 transition-all duration-200 flex items-center justify-center"
-                onClick={handleFileUpload}
-              >
-                <Plus size={18} />
-              </button>
-            </WithTooltip>
-          </TooltipProvider>
-
-          {chatStarted && (
-            <TooltipProvider>
-              <WithTooltip
-                tooltip={
-                  hasPendingMessage
-                    ? 'Design panel is disabled while generating code'
-                    : isDesignPanelVisible
-                      ? 'Hide Design Panel'
-                      : 'Show Design Panel'
-                }
-              >
-                <button
-                  className={classNames(
-                    'w-10 h-10 rounded-full border-2 transition-all duration-200 flex items-center justify-center',
-                    hasPendingMessage
-                      ? 'border-gray-300 dark:border-gray-600 text-gray-400 opacity-50 cursor-not-allowed'
-                      : isDesignPanelVisible
-                        ? 'border-rose-500 bg-rose-50 dark:bg-rose-500/10 text-rose-500'
-                        : 'border-rose-300 dark:border-rose-500/50 bg-transparent text-rose-400 dark:text-rose-400 hover:border-rose-400 hover:text-rose-500',
-                  )}
-                  onClick={() => {
-                    if (!hasPendingMessage) {
-                      designPanelStore.isVisible.set(!isDesignPanelVisible);
+              if (input.length > 0 || uploadedFiles.length > 0) {
+                const componentReference = selectedElement?.tree
+                  ? {
+                      componentNames: selectedElement.tree.map(
+                        (comp: ReactComponent) => comp.displayName || 'Anonymous',
+                      ),
                     }
-                  }}
-                  disabled={hasPendingMessage}
-                >
-                  <Palette size={18} />
-                </button>
-              </WithTooltip>
-              {!isMobile && (
-                <WithTooltip
-                  tooltip={
-                    !isElementPickerReady || isMobile
-                      ? 'Element picker not available'
-                      : isElementPickerEnabled
-                        ? 'Stop selecting element'
-                        : 'Select element in app preview'
-                  }
-                >
-                  <button
-                    className={classNames(
-                      'w-10 h-10 rounded-full border-2 transition-all duration-200 flex items-center justify-center',
-                      !isElementPickerReady || isMobile
-                        ? 'border-gray-300 dark:border-gray-600 text-gray-400 opacity-50 cursor-not-allowed'
-                        : isElementPickerEnabled
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-500'
-                          : 'border-rose-300 dark:border-rose-500/50 bg-transparent text-rose-400 dark:text-rose-400 hover:border-rose-400 hover:text-rose-500',
-                    )}
-                    onClick={() => {
-                      if (!isElementPickerReady || isMobile) {
-                        return;
-                      }
-                      const newState = !isElementPickerEnabled;
-                      setIsElementPickerEnabled(newState);
-                      toggleElementPicker(newState);
-                    }}
-                    disabled={!isElementPickerReady || isMobile}
-                  >
-                    <MousePointerClickIcon size={18} />
-                  </button>
-                </WithTooltip>
-              )}
-            </TooltipProvider>
-          )}
-        </div>
+                  : undefined;
 
-        {/* Send Button - Always visible */}
-        <button
-          onClick={() => {
-            if (hasPendingMessage) {
-              chatStore.showStopConfirmation.set(true);
-              return;
-            }
-            if (input.length > 0 || uploadedFiles.length > 0) {
-              const componentReference = selectedElement?.tree
-                ? {
-                    componentNames: selectedElement.tree.map((comp: ReactComponent) => comp.displayName || 'Anonymous'),
-                  }
-                : undefined;
+                handleSendMessage({
+                  messageInput: input,
+                  chatMode: ChatMode.UserMessage,
+                  componentReference,
+                });
 
-              handleSendMessage({
-                messageInput: input,
-                chatMode: ChatMode.UserMessage,
-                componentReference,
-              });
-
-              if (selectedElement) {
-                workbenchStore.setSelectedElement(null);
+                if (selectedElement) {
+                  workbenchStore.setSelectedElement(null);
+                }
               }
-            }
-          }}
-          disabled={hasPendingMessage && !input.length && !uploadedFiles.length}
-          className={classNames(
-            'px-5 py-2.5 rounded-xl font-medium text-white transition-all duration-200 flex items-center gap-2',
-            'bg-rose-500 hover:bg-rose-600',
-            'shadow-md hover:shadow-lg',
-          )}
-        >
-          <span>Send</span>
-          <span className="text-white/70 text-sm">⌘Enter</span>
-        </button>
+            }}
+            disabled={hasPendingMessage || !input.length || !uploadedFiles.length}
+            className="px-5 py-2.5 rounded-full font-medium bg-bolt-elements-textPrimary text-background hover:bg-bolt-elements-textPrimary/90 transition-all duration-200 flex items-center gap-2"
+          >
+            <span>Send</span>
+            <span className="text-white/70 text-sm">⌘Enter</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

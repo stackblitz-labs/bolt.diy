@@ -39,7 +39,7 @@ export const StartBuildingCard: React.FC<StartBuildingCardProps> = ({ startPlann
       setTimeout(() => {
         workbenchStore.setShowWorkbench(true);
         mobileNavStore.setShowMobileNav(true);
-        mobileNavStore.setActiveTab('preview');
+        mobileNavStore.setActiveTab('canvas');
       }, 2000);
     }
   };

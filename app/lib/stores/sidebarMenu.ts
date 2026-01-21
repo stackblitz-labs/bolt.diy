@@ -1,7 +1,7 @@
 import { atom } from 'nanostores';
 
 export class SidebarMenuStore {
-  isOpen = atom<boolean>(false);
+  isOpen = atom<boolean>(true);
 
   constructor() {
     if (import.meta.hot) {

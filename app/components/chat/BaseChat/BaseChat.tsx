@@ -8,7 +8,6 @@ import { Menu } from '~/components/sidebar/Menu.client';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { MobileNav } from '~/components/mobile-nav/MobileNav.client';
 import { classNames } from '~/utils/classNames';
-import { Messages } from '~/components/chat/Messages/Messages.client';
 import { IntroSection } from '~/components/chat/BaseChat/components/IntroSection/IntroSection';
 import { ChatPromptContainer } from '~/components/chat/BaseChat/components/ChatPromptContainer/ChatPromptContainer';
 import { useSpeechRecognition } from '~/hooks/useSpeechRecognition';
@@ -20,25 +19,27 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { useStore } from '@nanostores/react';
 import useViewport from '~/lib/hooks';
 import { chatStore } from '~/lib/stores/chat';
-import { userStore, isLoadingStore } from '~/lib/stores/auth';
+import { userStore } from '~/lib/stores/auth';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { useLayoutWidths } from '~/lib/hooks/useLayoutWidths';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
-import { StackedInfoCard, type InfoCardData } from '~/components/ui/InfoCard';
+import { type InfoCardData } from '~/components/ui/InfoCard';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '~/components/ui/resizable';
 import { AppFeatureKind, AppFeatureStatus, BugReportStatus } from '~/lib/persistence/messageAppSummary';
 import { openFeatureModal, openIntegrationTestsModal } from '~/lib/stores/featureModal';
-import { subscriptionStore } from '~/lib/stores/subscriptionStatus';
 import { toast } from 'react-toastify';
 import { database, type AppLibraryEntry } from '~/lib/persistence/apps';
 import AppTemplates from './components/AppTemplates/AppTemplates';
-// import Pricing from '~/components/landingPage/components/Pricing';
-// import FAQs from '~/components/landingPage/components/FAQs';
-// import Explanation from '~/components/landingPage/components/Explanation';
+import { DesignSystemPanel } from '~/components/panels/DesignPanel/DesignSystemPanel';
+import { DesignToolbar } from '~/components/panels/DesignPanel/DesignToolbar';
+import { SettingsPanel } from '~/components/panels/SettingsPanel/SettingsPanel';
+import { HistoryPanel } from '~/components/panels/HistoryPanel/HistoryPanel';
+import { ChatPanel } from '~/components/panels/ChatPanel';
+import SideBar from '~/components/sidebar/side-bar.client';
+import { sidebarPanelStore } from '~/lib/stores/sidebarPanel';
 import { designPanelStore } from '~/lib/stores/designSystemStore';
-import { DesignSystemPanel } from '~/components/panels/DesignSystemPanel';
-import { DesignToolbar } from '~/components/panels/DesignToolbar';
+import { TopNav } from '~/components/chat/TopNav';
 
 export const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -81,25 +82,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 300 : 200;
     const isSmallViewport = useViewport(800);
     const user = useStore(userStore);
-    const isAuthLoading = useStore(isLoadingStore);
     const { chatWidth, chatPanelSize, setChatPanelSize, panelSizeKey } = useLayoutWidths(!!user);
     const showWorkbench = useStore(workbenchStore.showWorkbench);
     const selectedElement = useStore(workbenchStore.selectedElement);
     const repositoryId = useStore(workbenchStore.repositoryId);
     const showMobileNav = useStore(mobileNavStore.showMobileNav);
-    const isDesignPanelVisible = useStore(designPanelStore.isVisible);
+    const activePanel = useStore(sidebarPanelStore.activePanel);
     const [infoCards, setInfoCards] = useState<InfoCardData[]>([]);
-    const isSubscriptionStoreLoaded = useStore(subscriptionStore.isLoaded);
     const [list, setList] = useState<AppLibraryEntry[] | undefined>(undefined);
-    const [isLoadingList, setIsLoadingList] = useState(true);
 
     const loadEntries = useCallback(() => {
-      setIsLoadingList(true);
       database
         .getAllAppEntries()
         .then(setList)
-        .catch((error) => toast.error(error.message))
-        .finally(() => setIsLoadingList(false));
+        .catch((error) => toast.error(error.message));
     }, []);
 
     useEffect(() => {
@@ -127,10 +123,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       if (appSummary && !showWorkbench && !hasShownWorkbench.current) {
         workbenchStore.setShowWorkbench(true);
-        mobileNavStore.setActiveTab('preview');
+        mobileNavStore.setActiveTab('canvas');
         hasShownWorkbench.current = true;
       }
     }, [appSummary]);
+
+    // Sync designPanelStore.isVisible with sidebar panel state
+    useEffect(() => {
+      const shouldShowDesignPanel = activePanel === 'design';
+      designPanelStore.isVisible.set(shouldShowDesignPanel);
+    }, [activePanel]);
 
     useEffect(() => {
       const newCards: InfoCardData[] = [];
@@ -339,84 +341,104 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       maxHeight: TEXTAREA_MAX_HEIGHT,
     };
 
+    const themeChanges = useStore(designPanelStore.themeChanges);
+    console.log('themeChanges', themeChanges);
+
+    // Render the appropriate panel based on activePanel
+    const renderActivePanel = () => {
+      switch (activePanel) {
+        case 'design':
+          return (
+            <>
+              <DesignSystemPanel />
+              {themeChanges.hasChanges && <DesignToolbar />}
+            </>
+          );
+        case 'settings':
+          return <SettingsPanel />;
+        case 'history':
+          return <HistoryPanel />;
+        case 'chat':
+        default:
+          return (
+            <div
+              className={classNames('h-full flex flex-col', {
+                'px-2': isSmallViewport,
+              })}
+            >
+              <ChatPanel
+                messageRef={messageRef}
+                uploadedFiles={uploadedFiles}
+                setUploadedFiles={setUploadedFiles!}
+                imageDataList={imageDataList}
+                setImageDataList={setImageDataList!}
+                messageInputProps={messageInputProps}
+                infoCards={infoCards}
+                handleSendMessage={handleSendMessage}
+                onLastMessageCheckboxChange={onLastMessageCheckboxChange}
+                list={list}
+              />
+            </div>
+          );
+      }
+    };
+
     const baseChat = (
       <div
         ref={ref}
         className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
         data-chat-visible={showChat}
       >
-        {user && <ClientOnly>{() => <Menu />}</ClientOnly>}
+        {!chatStarted && <ClientOnly>{() => <Menu />}</ClientOnly>}
+        {user && !isSmallViewport && chatStarted && <ClientOnly>{() => <SideBar />}</ClientOnly>}
         {chatStarted && !isSmallViewport && showWorkbench ? (
-          <ResizablePanelGroup
-            key={panelSizeKey}
-            direction="horizontal"
-            className="w-full h-full"
-            onLayout={(sizes) => {
-              if (sizes[0] !== undefined) {
-                setChatPanelSize(sizes[0]);
-              }
-            }}
-          >
-            <ResizablePanel defaultSize={chatPanelSize} minSize={20} maxSize={60} className="h-full">
-              <div
-                ref={scrollRef}
-                className="w-full h-full flex flex-col overflow-x-hidden overflow-y-hidden pl-6 pt-6 pb-6 pr-2"
+          <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <TopNav />
+            <div className="flex-1 flex flex-col h-full overflow-hidden pr-2 pb-2">
+              <ResizablePanelGroup
+                key={panelSizeKey}
+                direction="horizontal"
+                className="w-full flex-1 border rounded-md border-bolt-elements-borderColor bg-background"
+                onLayout={(sizes) => {
+                  if (sizes[0] !== undefined) {
+                    setChatPanelSize(sizes[0]);
+                  }
+                }}
               >
-                <div className={classNames(styles.Chat, 'flex flex-col h-full w-full')}>
-                  <div className="h-full flex flex-col">
-                    <ClientOnly>
-                      {() => {
-                        if (isDesignPanelVisible) {
-                          return (
-                            <>
-                              <DesignSystemPanel />
-                              <DesignToolbar />
-                            </>
-                          );
-                        }
-
-                        return (
-                          <>
-                            <Messages
-                              ref={messageRef}
-                              onLastMessageCheckboxChange={onLastMessageCheckboxChange}
-                              sendMessage={handleSendMessage}
-                              list={list}
-                            />
-                            {infoCards && infoCards.length > 0 && (
-                              <div className="flex justify-center">
-                                <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
-                                  <StackedInfoCard
-                                    cards={infoCards}
-                                    className="w-full mb-2"
-                                    handleSendMessage={handleSendMessage}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        );
-                      }}
-                    </ClientOnly>
-                    {!isDesignPanelVisible && (
-                      <ChatPromptContainer
-                        uploadedFiles={uploadedFiles}
-                        setUploadedFiles={setUploadedFiles!}
-                        imageDataList={imageDataList}
-                        setImageDataList={setImageDataList!}
-                        messageInputProps={messageInputProps}
-                      />
-                    )}
+                <ResizablePanel defaultSize={chatPanelSize} minSize={20} maxSize={60} className="h-full">
+                  <div ref={scrollRef} className="w-full h-full flex flex-col overflow-x-hidden overflow-y-hidden p-2">
+                    <div className={classNames(styles.Chat, 'flex flex-col h-full w-full')}>
+                      <div className="h-full flex flex-col">
+                        <ClientOnly>{() => renderActivePanel()}</ClientOnly>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={100 - chatPanelSize} minSize={30} className="h-full">
-              <ClientOnly>{() => <Workbench chatStarted={chatStarted} isResizable />}</ClientOnly>
-            </ResizablePanel>
-          </ResizablePanelGroup>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={100 - chatPanelSize} minSize={30} className="h-full">
+                  <ClientOnly>{() => <Workbench chatStarted={chatStarted} isResizable />}</ClientOnly>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </div>
+          </div>
+        ) : chatStarted && isSmallViewport ? (
+          /* Mobile view when chat started */
+          <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <TopNav />
+            <div ref={scrollRef} className="flex-1 flex flex-col overflow-x-hidden overflow-y-auto pb-20">
+              <ClientOnly>
+                {() => {
+                  // On mobile, show workbench when canvas tab is active
+                  if (showWorkbench) {
+                    return <Workbench chatStarted={chatStarted} />;
+                  }
+                  return renderActivePanel();
+                }}
+              </ClientOnly>
+            </div>
+          </div>
         ) : (
+          /* Landing page or desktop without workbench */
           <div
             ref={scrollRef}
             className={classNames('w-full h-full flex flex-col lg:flex-row overflow-x-hidden', {
@@ -425,7 +447,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               'pt-2 pb-2 px-4': isSmallViewport && !appSummary && !showMobileNav,
               'pt-2 pb-16 px-4': isSmallViewport && (!!appSummary || showMobileNav),
               'p-6': !isSmallViewport && chatStarted,
-              'pt-12 px-6 pb-16': !isSmallViewport && !chatStarted,
+              'pt-12 px-2 pb-16': !isSmallViewport && !chatStarted,
             })}
           >
             <div
@@ -439,6 +461,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               })}
               style={!isSmallViewport && showWorkbench ? { width: `${chatWidth}px` } : { width: '100%' }}
             >
+              {chatStarted && appSummary && <TopNav />}
               {!chatStarted && (
                 <>
                   <IntroSection />
@@ -457,68 +480,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       return null;
                     }
 
-                    if (isDesignPanelVisible) {
-                      return (
-                        <>
-                          <DesignSystemPanel />
-                          <DesignToolbar />
-                        </>
-                      );
-                    }
-
-                    return (
-                      <>
-                        <Messages
-                          ref={messageRef}
-                          onLastMessageCheckboxChange={onLastMessageCheckboxChange}
-                          sendMessage={handleSendMessage}
-                          list={list}
-                        />
-                        {infoCards && infoCards.length > 0 && (
-                          <div className="flex justify-center">
-                            <div style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}>
-                              <StackedInfoCard
-                                cards={infoCards}
-                                className="w-full mb-2"
-                                handleSendMessage={handleSendMessage}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    );
+                    return renderActivePanel();
                   }}
                 </ClientOnly>
-                {(() => {
-                  const isLoadingData = isAuthLoading || (user && !isSubscriptionStoreLoaded) || isLoadingList;
-
-                  if (isLoadingData && !chatStarted) {
-                    return (
-                      <div className="flex items-center justify-center min-h-[176.5px]">
-                        <div className="flex flex-col items-center gap-4">
-                          <div className="w-8 h-8 border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary rounded-full animate-spin"></div>
-                          <p className="text-sm text-bolt-elements-textSecondary">Loading...</p>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return !isDesignPanelVisible ? (
-                    <>
-                      <ChatPromptContainer
-                        uploadedFiles={uploadedFiles}
-                        setUploadedFiles={setUploadedFiles!}
-                        imageDataList={imageDataList}
-                        setImageDataList={setImageDataList!}
-                        messageInputProps={messageInputProps}
-                      />
-                    </>
-                  ) : null;
-                })()}
-                {/* {!user && !chatStarted && <Pricing />}
-                {!user && !chatStarted && <Explanation />} */}
+                {!chatStarted && (
+                  <ChatPromptContainer
+                    uploadedFiles={uploadedFiles}
+                    setUploadedFiles={setUploadedFiles!}
+                    imageDataList={imageDataList}
+                    setImageDataList={setImageDataList!}
+                    messageInputProps={messageInputProps}
+                  />
+                )}
                 {!chatStarted && <AppTemplates sendMessage={handleSendMessage} />}
-                {/* {!user && !chatStarted && <FAQs />} */}
               </div>
             </div>
             <ClientOnly>{() => <Workbench chatStarted={chatStarted} />}</ClientOnly>

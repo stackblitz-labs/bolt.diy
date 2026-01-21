@@ -2,49 +2,50 @@ import React, { useState, useEffect, useRef } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '~/lib/utils';
 import { Icon } from './Icon';
-import { CheckCircle, Info, AlertTriangle, XCircle, Loader2, MoreHorizontal } from 'lucide-react';
+import { Info, AlertTriangle, XCircle, MoreHorizontal, CheckCircle, Loader2 } from 'lucide-react';
 import { formatPascalCaseName } from '~/utils/names';
 import { BugReportComponent } from '~/components/chat/BugReportComponent';
 import type { BugReport } from '~/lib/persistence/messageAppSummary';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import WithTooltip from './Tooltip';
+// import { CheckCircle, Loader } from '~/components/icons';
 
-const infoCardVariants = cva('flex items-start gap-3 rounded-2xl border p-4 transition-colors', {
-  variants: {
-    variant: {
-      default: 'bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor',
-      active: 'bg-bolt-elements-background-depth-2 border-green-500 border-2',
-      warning: 'bg-bolt-elements-background-depth-2 border-bolt-elements-borderColorWarning border-2',
-    },
-    size: {
-      default: 'p-4',
-      sm: 'p-3',
-      lg: 'p-5',
-    },
-  },
-  defaultVariants: {
-    variant: 'default',
-    size: 'default',
-  },
-});
-
-const iconVariants = cva(
-  'flex-shrink-0 rounded-full p-1 w-8 h-8 flex items-center justify-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary border border-bolt-elements-borderColor',
+const infoCardVariants = cva(
+  'flex items-center gap-2 rounded-md border border-border bg-popover p-4 transition-colors',
   {
     variants: {
-      type: {
-        success: 'bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary',
-        info: 'bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary',
-        warning: 'bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary',
-        error: 'bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary',
-        loading: 'bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary',
+      variant: {
+        default: 'shadow-[0_4px_12px_-1px_rgba(0,0,0,0.10)]',
+        active: 'border-accent-foreground border-2',
+        warning: 'border-destructive border-2',
+      },
+      size: {
+        default: 'p-4',
+        sm: 'p-3',
+        lg: 'p-5',
       },
     },
     defaultVariants: {
-      type: 'success',
+      variant: 'default',
+      size: 'default',
     },
   },
 );
+
+const iconVariants = cva('flex-shrink-0 rounded-full p-1 w-10 h-10 flex items-center justify-center', {
+  variants: {
+    type: {
+      success: 'text-popover-foreground',
+      info: 'text-popover-foreground',
+      warning: 'text-popover-foreground',
+      error: 'text-popover-foreground',
+      loading: 'text-popover-foreground',
+    },
+  },
+  defaultVariants: {
+    type: 'success',
+  },
+});
 
 export interface InfoCardProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof infoCardVariants> {
   title?: string;
@@ -93,6 +94,7 @@ const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
     ref,
   ) => {
     const [isOpen, setIsOpen] = useState(false);
+
     const getIcon = () => {
       switch (iconType) {
         case 'success':
@@ -116,7 +118,7 @@ const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
       <div
         ref={ref}
         className={cn(infoCardVariants({ variant, size, className }), {
-          'flex items-center cursor-pointer hover:bg-bolt-elements-background-depth-3': !!onCardClick,
+          'cursor-pointer hover:bg-accent': !!onCardClick,
         })}
         {...props}
         onClick={onCardClick}
@@ -134,12 +136,12 @@ const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm leading-tight text-bolt-elements-textHeading">
+              <h3 className="font-semibold text-sm leading-tight text-popover-foreground">
                 {title ? formatPascalCaseName(title) : ''}
               </h3>
               {description && (
                 <WithTooltip tooltip={description} maxWidth={400}>
-                  <p className="text-sm mt-1 truncate text-bolt-elements-textSecondary">{description}</p>
+                  <p className="text-sm mt-1 truncate text-muted-foreground">{description}</p>
                 </WithTooltip>
               )}
             </div>
@@ -152,18 +154,18 @@ const InfoCard = React.forwardRef<HTMLDivElement, InfoCardProps>(
                     setIsOpen(!isOpen);
                     e.stopPropagation();
                   }}
-                  className="flex-shrink-0 p-1 w-8 h-8 flex items-center justify-center rounded-full transition-colors bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor"
+                  className="flex-shrink-0 p-1 w-8 h-8 flex items-center justify-center rounded-full transition-colors bg-popover hover:bg-accent border border-border"
                   aria-label="More options"
                 >
-                  <Icon icon={MoreHorizontal} size={16} className="text-bolt-elements-textSecondary" />
+                  <Icon icon={MoreHorizontal} size={16} />
                 </button>
                 {isOpen && (
-                  <div className="absolute right-full top-0 mt-2 w-48 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded-lg shadow-lg z-14">
+                  <div className="absolute right-full top-0 mt-2 w-48 bg-popover border border-border rounded-lg shadow-lg z-14">
                     {actionButtons.map((button) => (
                       <button
                         key={button.label}
                         onClick={button.onClick}
-                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-muted-foreground hover:bg-accent"
                       >
                         {button.icon}
                         {button.label}
@@ -285,7 +287,7 @@ const StackedInfoCard = React.forwardRef<HTMLDivElement, StackedInfoCardProps>(
                     transform: 'scale(0.95)',
                   }}
                 >
-                  <div className="bg-bolt-elements-background-depth-2 border-2 border-bolt-elements-borderColor rounded-2xl p-4 h-full" />
+                  <div className="bg-popover border-2 border-border rounded-md p-4 h-full" />
                 </div>
               )}
 
@@ -297,7 +299,7 @@ const StackedInfoCard = React.forwardRef<HTMLDivElement, StackedInfoCardProps>(
                     transform: 'scale(0.9)',
                   }}
                 >
-                  <div className="bg-bolt-elements-background-depth-2 border-2 border-bolt-elements-borderColor rounded-2xl p-4 h-full" />
+                  <div className="bg-popover border-2 border-border rounded-md p-4 h-full" />
                 </div>
               )}
             </>

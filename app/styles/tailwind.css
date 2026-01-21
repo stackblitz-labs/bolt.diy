@@ -4,48 +4,111 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    /* Base colors - Light mode (from design system) */
+    --background: 0 0% 100%; /* base/white */
+    --foreground: 0 0% 3.9%; /* neutral/950 = #0A0A0A */
+    --card: 0 0% 100%; /* base/white */
+    --card-foreground: 0 0% 3.9%; /* neutral/950 = #0A0A0A */
+    --popover: 0 0% 100%; /* base/white */
+    --popover-foreground: 0 0% 3.9%; /* neutral/950 = #0A0A0A */
+
+    /* Primary - neutral/900 light, neutral/200 dark */
+    --primary: 0 0% 9%; /* neutral/900 = #171717 */
+    --primary-foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+
+    --secondary: 0 0% 96.1%; /* neutral/100 = #F5F5F5 */
+    --secondary-foreground: 0 0% 9%; /* neutral/900 = #171717 */
+
+    --muted: 0 0% 96.1%; /* neutral/100 = #F5F5F5 */
+    --muted-foreground: 0 0% 45.1%; /* neutral/500 = #737373 */
+
+    --accent: 0 0% 96.1%; /* neutral/100 = #F5F5F5 */
+    --accent-foreground: 0 0% 9%; /* neutral/900 = #171717 */
+
+    --destructive: 0 72.2% 50.6%; /* red/600 = #C93545 */
+    --destructive-foreground: 0 0% 98%; /* red/50 = #FDF4F3 converted to HSL */
+
+    --border: 0 0% 89.8%; /* neutral/200 = #E5E5E5 */
+    --input: 0 0% 89.8%; /* neutral/200 = #E5E5E5 */
+    --ring: 0 0% 63.9%; /* neutral/400 = #A3A3A3 */
+
+    /* Sidebar colors - Light mode */
+    --sidebar: 0 0% 98%; /* neutral/50 = #FAFAFA */
+    --sidebar-foreground: 0 0% 3.9%; /* neutral/950 = #0A0A0A */
+    --sidebar-primary: 0 0% 9%; /* neutral/900 = #171717 */
+    --sidebar-primary-foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+    --sidebar-accent: 0 0% 96.1%; /* neutral/100 = #F5F5F5 */
+    --sidebar-accent-foreground: 0 0% 9%; /* neutral/900 = #171717 */
+    --sidebar-border: 0 0% 89.8%; /* neutral/200 = #E5E5E5 */
+    --sidebar-ring: 0 0% 63.9%; /* neutral/400 = #A3A3A3 */
+
+    /* Chart colors - Light mode */
+    --chart-1: 25 95% 53%; /* orange/600 = #CD6B12 */
+    --chart-2: 173 80% 40%; /* teal/600 = #0D9488 */
+    --chart-3: 197 37% 24%; /* cyan/900 = #164E63 */
+    --chart-4: 43 96% 56%; /* amber/400 = #FBBF24 */
+    --chart-5: 43 96% 56%; /* amber/500 = #F59E0B */
+
+    /* Border radius values (from design system: xs=2px, sm=6px, md=8px, lg=10px, xl=14px, 2xl=16px, 3xl=24px, 4xl=32px) */
+    --radius-xs: 0.125rem; /* 2px */
+    --radius-sm: 0.375rem; /* 6px */
+    --radius-md: 0.5rem; /* 8px */
+    --radius-lg: 0.625rem; /* 10px */
+    --radius-xl: 0.875rem; /* 14px */
+    --radius-2xl: 1rem; /* 16px */
+    --radius-3xl: 1.5rem; /* 24px */
+    --radius-4xl: 2rem; /* 32px */
+    --radius: 0.5rem; /* default - using md value */
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+  .dark,
+  [data-theme='dark'] {
+    /* Base colors - Dark mode (from design system) */
+    --background: 0 0% 3.9%; /* neutral/950 = #0A0A0A */
+    --foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+    --card: 0 0% 3.9%; /* neutral/950 = #0A0A0A */
+    --card-foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+    --popover: 0 0% 9%; /* neutral/900 = #171717 */
+    --popover-foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+
+    /* Primary - neutral/200 in dark mode */
+    --primary: 0 0% 89.8%; /* neutral/200 = #E5E5E5 */
+    --primary-foreground: 0 0% 9%; /* neutral/900 = #171717 */
+
+    --secondary: 0 0% 14.9%; /* neutral/800 = #262626 */
+    --secondary-foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+
+    --muted: 0 0% 14.9%; /* neutral/800 = #262626 */
+    --muted-foreground: 0 0% 63.9%; /* neutral/400 = #A3A3A3 */
+
+    --accent: 0 0% 25.1%; /* neutral/700 = #404040 */
+    --accent-foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+
+    --destructive: 0 62.8% 50.6%; /* red/400 = #EA8286 */
+    --destructive-foreground: 0 0% 98%; /* red/50 = #FDF4F3 converted to HSL */
+
+    /* border-dark and input-dark use #FFFFFF with opacity: 10% and 15% */
+    /* Approximated as: #FFFFFF 10% ≈ #1A1A1A, #FFFFFF 15% ≈ #262626 */
+    --border: 0 0% 10.2%; /* #FFFFFF 10% over black ≈ #1A1A1A */
+    --input: 0 0% 14.9%; /* #FFFFFF 15% over black ≈ #262626 (neutral/800) */
+    --ring: 0 0% 83.1%; /* neutral/500 = #737373 */
+
+    /* Sidebar colors - Dark mode */
+    --sidebar: 0 0% 9%; /* neutral/900 = #171717 */
+    --sidebar-foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+    --sidebar-primary: 217 91% 60%; /* blue/700 = #252EDD */
+    --sidebar-primary-foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+    --sidebar-accent: 0 0% 14.9%; /* neutral/800 = #262626 */
+    --sidebar-accent-foreground: 0 0% 98%; /* neutral/50 = #FAFAFA */
+    --sidebar-border: 0 0% 14.9%; /* #FFFFFF 10% - approximated */
+    --sidebar-ring: 0 0% 37.3%; /* neutral/600 = #525252 */
+
+    /* Chart colors - Dark mode */
+    --chart-1: 217 91% 60%; /* blue/700 = #252EDD */
+    --chart-2: 160 84% 39%; /* emerald/500 = #10B981 */
+    --chart-3: 43 96% 56%; /* amber/500 = #F59E0B */
+    --chart-4: 271 81% 56%; /* purple/500 = #A855F7 */
+    --chart-5: 343 77% 50%; /* rose/500 = #F43F5E */
   }
 }
 

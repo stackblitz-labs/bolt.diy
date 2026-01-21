@@ -13,7 +13,7 @@ const CHAT_MIN_WIDTH = 500;
 const CHAT_MAX_WIDTH = 600;
 const CHAT_TARGET_PERCENTAGE = 0.4;
 const STORAGE_KEY = 'nut-chat-panel-size';
-const DEFAULT_CHAT_PANEL_SIZE = 35; // percentage
+const DEFAULT_CHAT_PANEL_SIZE = 25; // percentage
 
 function getStoredPanelSize(): number {
   if (typeof window === 'undefined') {

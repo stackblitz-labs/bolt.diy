@@ -1,79 +1,79 @@
 import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { mobileNavStore } from '~/lib/stores/mobileNav';
-import { MessageCircle, Monitor } from '~/components/ui/Icon';
+import { mobileNavStore, type MobileNavTab } from '~/lib/stores/mobileNav';
+import { sidebarPanelStore } from '~/lib/stores/sidebarPanel';
+import { MessageCircle, Monitor, Settings, History } from 'lucide-react';
+
+interface TabConfig {
+  id: MobileNavTab;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const tabs: TabConfig[] = [
+  { id: 'chat', label: 'Chat', icon: <MessageCircle size={20} /> },
+  { id: 'canvas', label: 'Canvas', icon: <Monitor size={20} /> },
+  // { id: 'theme', label: 'Theme', icon: <Palette size={20} /> },
+  { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
+  { id: 'history', label: 'History', icon: <History size={20} /> },
+];
 
 export const MobileNav = () => {
   const showWorkbench = useStore(workbenchStore.showWorkbench);
   const activeTab = useStore(mobileNavStore.activeTab);
 
-  const handleTabClick = (tab: 'chat' | 'preview') => {
-    if (tab === 'chat') {
-      workbenchStore.showWorkbench.set(false);
-    } else {
+  const handleTabClick = (tab: MobileNavTab) => {
+    mobileNavStore.setActiveTab(tab);
+
+    // Handle workbench visibility
+    if (tab === 'canvas') {
       if (!showWorkbench) {
         workbenchStore.showWorkbench.set(true);
       }
+    } else {
+      workbenchStore.showWorkbench.set(false);
     }
-    mobileNavStore.setActiveTab(tab);
+
+    // Map mobile tabs to sidebar panels
+    switch (tab) {
+      case 'chat':
+        sidebarPanelStore.setActivePanel('chat');
+        break;
+      // case 'theme':
+      //   sidebarPanelStore.setActivePanel('design');
+      //   break;
+      case 'settings':
+        sidebarPanelStore.setActivePanel('settings');
+        break;
+      case 'history':
+        sidebarPanelStore.setActivePanel('history');
+        break;
+      case 'canvas':
+        // Keep current panel, just show workbench
+        break;
+    }
   };
 
-  const getTabClasses = (tabName: 'chat' | 'preview') => {
-    const baseClasses =
-      'flex-1 flex flex-col items-center justify-center py-2 px-2 transition-all duration-200 group relative';
-
-    if (activeTab === tabName) {
-      return classNames(
-        baseClasses,
-        'bg-gradient-to-t from-blue-500 to-indigo-500 text-white shadow-lg border-t-2 border-t-white/20',
-      );
-    }
-
+  const getTabClasses = (tabId: MobileNavTab) => {
+    const isActive = activeTab === tabId;
     return classNames(
-      baseClasses,
-      'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 bg-opacity-50 hover:shadow-sm',
+      'flex-1 flex flex-col items-center justify-center py-2 gap-1 transition-colors',
+      isActive
+        ? 'text-bolt-elements-textPrimary bg-bolt-elements-background-depth-1'
+        : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
     );
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-bolt-elements-background-depth-2 bg-opacity-95 backdrop-blur-md border-t border-bolt-elements-borderColor border-opacity-50 shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor safe-area-bottom">
       <div className="flex w-full">
-        <button onClick={() => handleTabClick('chat')} className={getTabClasses('chat')}>
-          <MessageCircle
-            className={classNames(
-              'text-lg mb-0.5 transition-transform duration-200 group-hover:scale-110',
-              activeTab === 'chat' ? 'drop-shadow-sm' : '',
-            )}
-            size={18}
-          />
-          <span
-            className={classNames(
-              'text-xs font-semibold transition-transform duration-200 group-hover:scale-105',
-              activeTab === 'chat' ? 'drop-shadow-sm' : 'font-medium',
-            )}
-          >
-            Chat
-          </span>
-        </button>
-
-        <button onClick={() => handleTabClick('preview')} className={getTabClasses('preview')}>
-          <Monitor
-            className={classNames(
-              'text-lg mb-0.5 transition-transform duration-200 group-hover:scale-110',
-              activeTab === 'preview' ? 'drop-shadow-sm' : '',
-            )}
-            size={18}
-          />
-          <span
-            className={classNames(
-              'text-xs font-semibold transition-transform duration-200 group-hover:scale-105',
-              activeTab === 'preview' ? 'drop-shadow-sm' : 'font-medium',
-            )}
-          >
-            Preview
-          </span>
-        </button>
+        {tabs.map((tab) => (
+          <button key={tab.id} onClick={() => handleTabClick(tab.id)} className={getTabClasses(tab.id)}>
+            {tab.icon}
+            <span className="text-xs font-medium">{tab.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

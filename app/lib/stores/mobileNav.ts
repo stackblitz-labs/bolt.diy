@@ -1,7 +1,9 @@
 import { atom } from 'nanostores';
 
+export type MobileNavTab = 'chat' | 'canvas' | 'theme' | 'settings' | 'history';
+
 export class MobileNavStore {
-  activeTab = atom<'chat' | 'preview'>('chat');
+  activeTab = atom<MobileNavTab>('chat');
   showMobileNav = atom<boolean>(false);
 
   constructor() {
@@ -10,7 +12,7 @@ export class MobileNavStore {
     }
   }
 
-  setActiveTab(tab: 'chat' | 'preview') {
+  setActiveTab(tab: MobileNavTab) {
     this.activeTab.set(tab);
   }
 

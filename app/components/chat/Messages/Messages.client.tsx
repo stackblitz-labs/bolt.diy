@@ -1,19 +1,20 @@
-import React, { Suspense, useState, useEffect, useRef, useCallback } from 'react';
-import { classNames } from '~/utils/classNames';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { cn } from '~/lib/utils';
 import {
   type Message,
   DISCOVERY_RESPONSE_CATEGORY,
   DISCOVERY_RATING_CATEGORY,
   getDiscoveryRating,
 } from '~/lib/persistence/message';
-import { User } from '~/components/ui/Icon';
 import {
-  MessageContents,
-  JumpToBottom,
   StartBuildingCard,
   SignInCard,
   StopBuildCard,
   ContinueBuildCard,
+  UserMessage,
+  AssistantMessage,
+  PendingIndicator,
+  MessageNavigator,
 } from './components';
 import {
   APP_SUMMARY_CATEGORY,
@@ -49,7 +50,6 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     const user = useStore(userStore);
     const appSummary = useStore(chatStore.appSummary);
     const listenResponses = useStore(chatStore.listenResponses);
-    const [showTopShadow, setShowTopShadow] = useState(false);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const messages = useStore(chatStore.messages);
     const hasPendingMessage = useStore(chatStore.hasPendingMessage);
@@ -67,11 +67,57 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
     const previousScrollHeight = useRef<number>(0);
     const hasScrolledRef = useRef(false);
 
+    // Message navigation state
+    const [currentNavigationIndex, setCurrentNavigationIndex] = useState<number>(-1);
+    const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
     // Calculate startPlanningRating for the card display
     let startPlanningRating = 0;
     if (!hasPendingMessage && !hasAppSummary) {
       startPlanningRating = getDiscoveryRating(messages || []);
     }
+
+    // Extract user messages for navigation
+    const userMessagesForNav = React.useMemo(() => {
+      return messages
+        .filter((m) => m.role === 'user' && shouldDisplayMessage(m))
+        .map((m, idx) => ({
+          id: m.id,
+          content: typeof m.content === 'string' ? m.content : '',
+          index: idx,
+        }));
+    }, [messages]);
+
+    // Initialize navigation index to last message when messages change
+    useEffect(() => {
+      if (userMessagesForNav.length > 0 && currentNavigationIndex === -1) {
+        setCurrentNavigationIndex(userMessagesForNav.length - 1);
+      }
+    }, [userMessagesForNav.length, currentNavigationIndex]);
+
+    // Handle navigation to a specific user message
+    const handleNavigateToMessage = useCallback(
+      (navIndex: number) => {
+        setCurrentNavigationIndex(navIndex);
+        const targetMessage = userMessagesForNav[navIndex];
+        if (targetMessage) {
+          const element = messageRefs.current.get(targetMessage.id);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      },
+      [userMessagesForNav],
+    );
+
+    // Register message ref for scrolling
+    const setMessageRef = useCallback((id: string, element: HTMLDivElement | null) => {
+      if (element) {
+        messageRefs.current.set(id, element);
+      } else {
+        messageRefs.current.delete(id);
+      }
+    }, []);
 
     useEffect(() => {
       const shouldShow = !hasPendingMessage && !listenResponses && appSummary?.features?.length && !isFullyComplete;
@@ -114,7 +160,6 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
       }
 
       setShowJumpToBottom(distanceFromBottom > 50);
-      setShowTopShadow(scrollTop > 10);
     };
 
     // Load more items when scrolling to the top
@@ -248,6 +293,46 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
         return () => clearTimeout(timer);
       }
     }, [startPlanningRating]);
+
+    // Scroll to bottom on initial mount and when messages first load
+    const hasInitializedRef = useRef(false);
+    const previousMessagesLengthForInitRef = useRef(messages.length);
+
+    useEffect(() => {
+      if (messages.length === 0) {
+        return;
+      }
+
+      // Reset initialization flag when messages change significantly (e.g., new chat)
+      if (hasInitializedRef.current && messages.length < previousMessagesLengthForInitRef.current / 2) {
+        hasInitializedRef.current = false;
+      }
+
+      previousMessagesLengthForInitRef.current = messages.length;
+
+      if (hasInitializedRef.current) {
+        return;
+      }
+
+      // Wait for DOM to be ready using requestAnimationFrame for more reliable timing
+      let timeoutId: NodeJS.Timeout | null = null;
+      const rafId = requestAnimationFrame(() => {
+        timeoutId = setTimeout(() => {
+          if (containerRef.current) {
+            // Use immediate scroll on initial load to ensure it reaches the bottom
+            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+            hasInitializedRef.current = true;
+          }
+        }, 50);
+      });
+
+      return () => {
+        cancelAnimationFrame(rafId);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      };
+    }, [messages.length]);
 
     // Helper function to filter, deduplicate, and sort messages
     const processMessageGroup = (messageGroup: Message[]): Message[] => {
@@ -454,85 +539,52 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
         onCheckboxChange = onLastMessageCheckboxChange;
       }
 
-      return (
-        <div
-          data-testid="message"
-          key={index}
-          className={classNames('group relative w-full transition-all duration-200', {
-            'mt-5': !isFirst,
-          })}
-        >
-          <div
-            className={classNames('p-6 rounded-2xl border transition-all duration-200', {
-              // User messages
-              'bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20 hover:border-blue-500/30':
-                isUserMessage,
-              // Assistant messages
-              'bg-bolt-elements-messages-background border-bolt-elements-borderColor hover:border-bolt-elements-borderColor border-opacity-60':
-                !isUserMessage && (!hasPendingMessage || (hasPendingMessage && !isLast)),
-              // Last message when pending
-              'bg-gradient-to-b from-bolt-elements-messages-background from-30% to-transparent border-bolt-elements-borderColor border-opacity-50':
-                !isUserMessage && hasPendingMessage && isLast,
-            })}
-          >
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center w-full py-8">
-                  <div className="flex items-center gap-3 text-bolt-elements-textSecondary">
-                    <div className="w-6 h-6 border-2 border-bolt-elements-textSecondary border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm">Loading...</span>
-                  </div>
-                </div>
-              }
-            >
-              <div className="flex items-center gap-3 mb-4">
-                {isUserMessage && (
-                  <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-500 to-green-500 text-white rounded-full shadow-lg">
-                    <User size={18} />
-                  </div>
-                )}
-
-                {/* {!isUserMessage && (
-                  <div className="flex items-center justify-center w-8 h-8 bg-bolt-elements-background-depth-2 border-2 border-bolt-elements-borderColor text-bolt-elements-textPrimary rounded-full shadow-sm">
-                    <div className="w-6 h-6">
-                      <img src="/logo-styled.svg" alt="Replay" className="w-full h-full" />
-                    </div>
-                  </div>
-                )} */}
-
-                <span className={classNames('text-sm font-medium text-bolt-elements-textHeading')}>
-                  {isUserMessage ? 'Me' : 'Replay'}
-                </span>
-              </div>
-
-              <div className="w-full">
-                <MessageContents
-                  message={message}
-                  messages={messages}
-                  onCheckboxChange={onCheckboxChange}
-                  sendMessage={sendMessage}
-                />
-              </div>
-            </Suspense>
+      // Use the appropriate message component based on role
+      if (isUserMessage) {
+        return (
+          <div key={message.id || index} ref={(el) => setMessageRef(message.id, el)}>
+            <UserMessage
+              message={message}
+              messages={messages}
+              isFirst={isFirst}
+              onCheckboxChange={onCheckboxChange}
+              sendMessage={sendMessage}
+            />
           </div>
+        );
+      }
 
-          <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-bolt-elements-focus rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-        </div>
+      return (
+        <AssistantMessage
+          key={message.id || index}
+          message={message}
+          messages={messages}
+          isFirst={isFirst}
+          isLast={isLast}
+          isPending={hasPendingMessage}
+          onCheckboxChange={onCheckboxChange}
+          sendMessage={sendMessage}
+        />
       );
     };
 
     return (
       <div className="relative flex-1 min-h-0 flex flex-col">
-        {showTopShadow && (
-          <div
-            className="absolute top-0 left-1/2 transform -translate-x-1/2 h-px bg-bolt-elements-borderColor/30 shadow-sm z-2 pointer-events-none transition-opacity duration-200"
-            style={{ width: 'calc(min(100%, var(--chat-max-width, 37rem)))' }}
-          />
+        {/* Message Navigator */}
+        {userMessagesForNav.length > 0 && appSummary && (
+          <div>
+            <MessageNavigator
+              userMessages={userMessagesForNav}
+              currentIndex={currentNavigationIndex >= 0 ? currentNavigationIndex : userMessagesForNav.length - 1}
+              onNavigate={handleNavigateToMessage}
+              onScrollToBottom={scrollToBottom}
+              showJumpToBottom={showJumpToBottom}
+            />
+          </div>
         )}
-
         <div
           ref={setRefs}
-          className={classNames('flex-1 overflow-y-auto rounded-b-2xl', 'flex flex-col w-full max-w-chat pb-6 mx-auto')}
+          className={cn('flex-1 overflow-y-auto rounded-b-2xl', 'flex flex-col w-full max-w-chat pb-6 mx-auto px-2')}
         >
           {(() => {
             const timelineItems = createTimelineItems();
@@ -546,12 +598,12 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
                 {hasMoreToLoad && (
                   <div ref={loadTriggerRef} className="flex items-center justify-center py-4 mb-4">
                     {isLoadingMore ? (
-                      <div className="flex items-center gap-3 text-bolt-elements-textSecondary">
-                        <div className="w-5 h-5 border-2 border-bolt-elements-textSecondary border-t-transparent rounded-full animate-spin" />
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
                         <span className="text-sm">Loading earlier messages...</span>
                       </div>
                     ) : (
-                      <div className="text-sm text-bolt-elements-textTertiary opacity-60">Scroll up to load more</div>
+                      <div className="text-sm text-muted-foreground opacity-60">Scroll up to load more</div>
                     )}
                   </div>
                 )}
@@ -594,33 +646,8 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>(
             />
           )}
 
-          {hasPendingMessage && (
-            <div className="w-full mt-3">
-              <div className="flex gap-4 pl-6">
-                <div className="flex items-center gap-3 text-bolt-elements-textSecondary py-2">
-                  <div className="flex gap-1">
-                    <div
-                      className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
-                      style={{ animationDelay: '0ms' }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
-                      style={{ animationDelay: '150ms' }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
-                      style={{ animationDelay: '300ms' }}
-                    ></div>
-                  </div>
-                  {pendingMessageStatus && (
-                    <span className="text-sm font-medium opacity-60">{pendingMessageStatus}...</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          {hasPendingMessage && <PendingIndicator status={pendingMessageStatus} />}
         </div>
-        <JumpToBottom visible={showJumpToBottom} onClick={scrollToBottom} />
       </div>
     );
   },

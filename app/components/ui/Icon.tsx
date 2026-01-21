@@ -87,6 +87,7 @@ export {
   Search,
   Send,
   Settings,
+  Share2,
   ShieldCheck,
   Sparkles,
   StopCircle,

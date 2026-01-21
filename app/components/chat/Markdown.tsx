@@ -4,6 +4,7 @@ import type { BundledLanguage } from 'shiki';
 import { createScopedLogger } from '~/utils/logger';
 import { rehypePlugins, remarkPlugins, allowedHTMLElements } from '~/utils/markdown';
 import { CodeBlock } from './CodeBlock';
+import { Button } from '~/components/ui/button';
 
 import styles from './Markdown.module.scss';
 import type { ChatMessageParams } from './ChatComponent/components/ChatImplementer/ChatImplementer';
@@ -250,14 +251,13 @@ export const Markdown = memo((props: MarkdownProps) => {
       </ReactMarkdown>
       {hasCheckboxes && (
         <div className="mt-4 flex justify-end">
-          <button
-            type="button"
+          <Button
             onClick={handleChecklistSubmit}
             disabled={checkedItems.size === 0 || !onCheckboxChange}
-            className="px-4 py-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-500 hover:bg-blue-600 text-white"
+            className="px-4 py-2 rounded-full bg-bolt-elements-textPrimary text-background hover:bg-bolt-elements-textPrimary/90 transition-colors"
           >
             Submit
-          </button>
+          </Button>
         </div>
       )}
     </div>
