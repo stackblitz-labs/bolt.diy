@@ -634,7 +634,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 }
               }
             }}
-            disabled={hasPendingMessage || !input.length || !uploadedFiles.length}
+            disabled={hasPendingMessage || (!input.length && !uploadedFiles.length)}
             className="px-5 py-2.5 rounded-full font-medium bg-bolt-elements-textPrimary text-background hover:bg-bolt-elements-textPrimary/90 transition-all duration-200 flex items-center gap-2"
           >
             <span>Send</span>

@@ -342,7 +342,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const themeChanges = useStore(designPanelStore.themeChanges);
-    console.log('themeChanges', themeChanges);
 
     // Render the appropriate panel based on activePanel
     const renderActivePanel = () => {
