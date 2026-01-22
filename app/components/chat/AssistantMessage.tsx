@@ -7,6 +7,16 @@ import { WORK_DIR } from '~/utils/constants';
 import WithTooltip from '~/components/ui/Tooltip';
 import type { Message } from 'ai';
 import type { ProviderInfo } from '~/types/model';
+import type {
+  TextUIPart,
+  ReasoningUIPart,
+  ToolInvocationUIPart,
+  SourceUIPart,
+  FileUIPart,
+  StepStartUIPart,
+} from '@ai-sdk/ui-utils';
+import { ToolInvocations } from './ToolInvocations';
+import type { ToolCallAnnotation } from '~/types/context';
 
 interface AssistantMessageProps {
   content: string;
@@ -19,6 +29,10 @@ interface AssistantMessageProps {
   setChatMode?: (mode: 'discuss' | 'build') => void;
   model?: string;
   provider?: ProviderInfo;
+  parts:
+    | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
+    | undefined;
+  addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -57,6 +71,8 @@ export const AssistantMessage = memo(
     setChatMode,
     model,
     provider,
+    parts,
+    addToolResult,
   }: AssistantMessageProps) => {
     const filteredAnnotations = (annotations?.filter(
       (annotation: JSONValue) =>
@@ -80,6 +96,11 @@ export const AssistantMessage = memo(
       promptTokens: number;
       totalTokens: number;
     } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value;
+
+    const toolInvocations = parts?.filter((part) => part.type === 'tool-invocation');
+    const toolCallAnnotations = filteredAnnotations.filter(
+      (annotation) => annotation.type === 'toolCall',
+    ) as ToolCallAnnotation[];
 
     return (
       <div className="overflow-hidden w-full">
@@ -158,6 +179,13 @@ export const AssistantMessage = memo(
         <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
           {content}
         </Markdown>
+        {toolInvocations && toolInvocations.length > 0 && (
+          <ToolInvocations
+            toolInvocations={toolInvocations}
+            toolCallAnnotations={toolCallAnnotations}
+            addToolResult={addToolResult}
+          />
+        )}
       </div>
     );
   },

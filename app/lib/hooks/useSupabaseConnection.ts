@@ -9,6 +9,7 @@ import {
   isFetchingApiKeys,
   updateSupabaseConnection,
   fetchProjectApiKeys,
+  initializeSupabaseConnection,
 } from '~/lib/stores/supabase';
 
 export function useSupabaseConnection() {
@@ -20,22 +21,44 @@ export function useSupabaseConnection() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
-    const savedConnection = localStorage.getItem('supabase_connection');
-    const savedCredentials = localStorage.getItem('supabaseCredentials');
+    const initConnection = async () => {
+      console.log('useSupabaseConnection: Initializing connection...');
 
-    if (savedConnection) {
-      const parsed = JSON.parse(savedConnection);
-
-      if (savedCredentials && !parsed.credentials) {
-        parsed.credentials = JSON.parse(savedCredentials);
+      // First, try to initialize from server-side token
+      try {
+        await initializeSupabaseConnection();
+        console.log('useSupabaseConnection: Server-side initialization completed');
+      } catch {
+        console.log('useSupabaseConnection: Server-side initialization failed, trying localStorage');
       }
 
-      updateSupabaseConnection(parsed);
+      // Then check localStorage for additional data
+      const savedConnection = localStorage.getItem('supabase_connection');
+      const savedCredentials = localStorage.getItem('supabaseCredentials');
 
-      if (parsed.token && parsed.selectedProjectId && !parsed.credentials) {
-        fetchProjectApiKeys(parsed.selectedProjectId, parsed.token).catch(console.error);
+      if (savedConnection) {
+        console.log('useSupabaseConnection: Loading from localStorage');
+
+        const parsed = JSON.parse(savedConnection);
+
+        if (savedCredentials && !parsed.credentials) {
+          parsed.credentials = JSON.parse(savedCredentials);
+        }
+
+        // Only update if we don't already have a connection from server-side
+        const currentState = supabaseConnection.get();
+
+        if (!currentState.user) {
+          updateSupabaseConnection(parsed);
+        }
+
+        if (parsed.token && parsed.selectedProjectId && !parsed.credentials) {
+          fetchProjectApiKeys(parsed.selectedProjectId, parsed.token).catch(console.error);
+        }
       }
-    }
+    };
+
+    initConnection();
   }, []);
 
   const handleConnect = async () => {

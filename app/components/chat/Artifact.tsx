@@ -23,15 +23,16 @@ if (import.meta.hot) {
 
 interface ArtifactProps {
   messageId: string;
+  artifactId: string;
 }
 
-export const Artifact = memo(({ messageId }: ArtifactProps) => {
+export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const userToggledActions = useRef(false);
   const [showActions, setShowActions] = useState(false);
   const [allActionFinished, setAllActionFinished] = useState(false);
 
   const artifacts = useStore(workbenchStore.artifacts);
-  const artifact = artifacts[messageId];
+  const artifact = artifacts[artifactId];
 
   const actions = useStore(
     computed(artifact.runner.actions, (actions) => {

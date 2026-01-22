@@ -14,20 +14,20 @@ export default class PerplexityProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
-      name: 'llama-3.1-sonar-small-128k-online',
-      label: 'Sonar Small Online',
+      name: 'sonar',
+      label: 'Sonar',
       provider: 'Perplexity',
       maxTokenAllowed: 8192,
     },
     {
-      name: 'llama-3.1-sonar-large-128k-online',
-      label: 'Sonar Large Online',
+      name: 'sonar-pro',
+      label: 'Sonar Pro',
       provider: 'Perplexity',
       maxTokenAllowed: 8192,
     },
     {
-      name: 'llama-3.1-sonar-huge-128k-online',
-      label: 'Sonar Huge Online',
+      name: 'sonar-reasoning-pro',
+      label: 'Sonar Reasoning Pro',
       provider: 'Perplexity',
       maxTokenAllowed: 8192,
     },

@@ -597,7 +597,11 @@ export class FilesStore {
 
     // Set up file watcher
     webcontainer.internal.watchPaths(
-      { include: [`${WORK_DIR}/**`], exclude: ['**/node_modules', '.git'], includeContent: true },
+      {
+        include: [`${WORK_DIR}/**`],
+        exclude: ['**/node_modules', '.git', '**/package-lock.json'],
+        includeContent: true,
+      },
       bufferWatchEvents(100, this.#processEventBuffer.bind(this)),
     );
 

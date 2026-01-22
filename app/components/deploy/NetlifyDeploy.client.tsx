@@ -224,6 +224,9 @@ export function useNetlifyDeploy() {
         source: 'netlify',
       });
 
+      // Show success toast notification
+      toast.success(`🚀 Netlify deployment completed successfully!`);
+
       return true;
     } catch (error) {
       console.error('Deploy error:', error);

@@ -64,73 +64,79 @@ The year is 2025.
           : ''
       : ''
   }
-  
-  Create .env file if it doesn't exist${
+
+
+  ${
     supabase?.isConnected &&
     supabase?.hasSelectedProject &&
     supabase?.credentials?.supabaseUrl &&
     supabase?.credentials?.anonKey
-      ? ` with:
-    VITE_SUPABASE_URL=${supabase.credentials.supabaseUrl}
-    VITE_SUPABASE_ANON_KEY=${supabase.credentials.anonKey}`
-      : '.'
+      ? `
+    Create .env file if it doesn't exist${
+      supabase?.isConnected &&
+      supabase?.hasSelectedProject &&
+      supabase?.credentials?.supabaseUrl &&
+      supabase?.credentials?.anonKey
+        ? ` with:
+      VITE_SUPABASE_URL=${supabase.credentials.supabaseUrl}
+      VITE_SUPABASE_ANON_KEY=${supabase.credentials.anonKey}`
+        : '.'
+    }
+    DATA PRESERVATION REQUIREMENTS:
+      - DATA INTEGRITY IS HIGHEST PRIORITY - users must NEVER lose data
+      - FORBIDDEN: Destructive operations (DROP, DELETE) that could cause data loss
+      - FORBIDDEN: Transaction control (BEGIN, COMMIT, ROLLBACK, END)
+        Note: DO $$ BEGIN ... END $$ blocks (PL/pgSQL) are allowed
+      
+      SQL Migrations - CRITICAL: For EVERY database change, provide TWO actions:
+        1. Migration File: <boltAction type="supabase" operation="migration" filePath="/supabase/migrations/name.sql">
+        2. Query Execution: <boltAction type="supabase" operation="query" projectId="\${projectId}">
+      
+      Migration Rules:
+        - NEVER use diffs, ALWAYS provide COMPLETE file content
+        - Create new migration file for each change in /home/project/supabase/migrations
+        - NEVER update existing migration files
+        - Descriptive names without number prefix (e.g., create_users.sql)
+        - ALWAYS enable RLS: alter table users enable row level security;
+        - Add appropriate RLS policies for CRUD operations
+        - Use default values: DEFAULT false/true, DEFAULT 0, DEFAULT '', DEFAULT now()
+        - Start with markdown summary in multi-line comment explaining changes
+        - Use IF EXISTS/IF NOT EXISTS for safe operations
+      
+      Example migration:
+      /*
+        # Create users table
+        1. New Tables: users (id uuid, email text, created_at timestamp)
+        2. Security: Enable RLS, add read policy for authenticated users
+      */
+      CREATE TABLE IF NOT EXISTS users (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        email text UNIQUE NOT NULL,
+        created_at timestamptz DEFAULT now()
+      );
+      ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+      CREATE POLICY "Users read own data" ON users FOR SELECT TO authenticated USING (auth.uid() = id);
+    
+    Client Setup:
+      - Use @supabase/supabase-js
+      - Create singleton client instance
+      - Use environment variables from .env
+    
+    Authentication:
+      - ALWAYS use email/password signup
+      - FORBIDDEN: magic links, social providers, SSO (unless explicitly stated)
+      - FORBIDDEN: custom auth systems, ALWAYS use Supabase's built-in auth
+      - Email confirmation ALWAYS disabled unless stated
+    
+    Security:
+      - ALWAYS enable RLS for every new table
+      - Create policies based on user authentication
+      - One migration per logical change
+      - Use descriptive policy names
+      - Add indexes for frequently queried columns
+  `
+      : ''
   }
-  
-  NEVER modify Supabase config or .env files apart from creating .env.
-  Do not generate types for supabase.
-  
-  DATA PRESERVATION REQUIREMENTS:
-    - DATA INTEGRITY IS HIGHEST PRIORITY - users must NEVER lose data
-    - FORBIDDEN: Destructive operations (DROP, DELETE) that could cause data loss
-    - FORBIDDEN: Transaction control (BEGIN, COMMIT, ROLLBACK, END)
-      Note: DO $$ BEGIN ... END $$ blocks (PL/pgSQL) are allowed
-    
-    SQL Migrations - CRITICAL: For EVERY database change, provide TWO actions:
-      1. Migration File: <boltAction type="supabase" operation="migration" filePath="/supabase/migrations/name.sql">
-      2. Query Execution: <boltAction type="supabase" operation="query" projectId="\${projectId}">
-    
-    Migration Rules:
-      - NEVER use diffs, ALWAYS provide COMPLETE file content
-      - Create new migration file for each change in /home/project/supabase/migrations
-      - NEVER update existing migration files
-      - Descriptive names without number prefix (e.g., create_users.sql)
-      - ALWAYS enable RLS: alter table users enable row level security;
-      - Add appropriate RLS policies for CRUD operations
-      - Use default values: DEFAULT false/true, DEFAULT 0, DEFAULT '', DEFAULT now()
-      - Start with markdown summary in multi-line comment explaining changes
-      - Use IF EXISTS/IF NOT EXISTS for safe operations
-    
-    Example migration:
-    /*
-      # Create users table
-      1. New Tables: users (id uuid, email text, created_at timestamp)
-      2. Security: Enable RLS, add read policy for authenticated users
-    */
-    CREATE TABLE IF NOT EXISTS users (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      email text UNIQUE NOT NULL,
-      created_at timestamptz DEFAULT now()
-    );
-    ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-    CREATE POLICY "Users read own data" ON users FOR SELECT TO authenticated USING (auth.uid() = id);
-  
-  Client Setup:
-    - Use @supabase/supabase-js
-    - Create singleton client instance
-    - Use environment variables from .env
-  
-  Authentication:
-    - ALWAYS use email/password signup
-    - FORBIDDEN: magic links, social providers, SSO (unless explicitly stated)
-    - FORBIDDEN: custom auth systems, ALWAYS use Supabase's built-in auth
-    - Email confirmation ALWAYS disabled unless stated
-  
-  Security:
-    - ALWAYS enable RLS for every new table
-    - Create policies based on user authentication
-    - One migration per logical change
-    - Use descriptive policy names
-    - Add indexes for frequently queried columns
 </database_instructions>
 
 <artifact_instructions>

@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, type ImperativePanelHandle } from 'react-resizable-panels';
 import { IconButton } from '~/components/ui/IconButton';
 import { shortcutEventEmitter } from '~/lib/hooks';
@@ -7,6 +7,7 @@ import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { Terminal, type TerminalRef } from './Terminal';
+import { TerminalManager } from './TerminalManager';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('Terminal');
@@ -18,12 +19,12 @@ export const TerminalTabs = memo(() => {
   const showTerminal = useStore(workbenchStore.showTerminal);
   const theme = useStore(themeStore);
 
-  const terminalRefs = useRef<Array<TerminalRef | null>>([]);
+  const terminalRefs = useRef<Map<number, TerminalRef>>(new Map());
   const terminalPanelRef = useRef<ImperativePanelHandle>(null);
   const terminalToggledByShortcut = useRef(false);
 
   const [activeTerminal, setActiveTerminal] = useState(0);
-  const [terminalCount, setTerminalCount] = useState(1);
+  const [terminalCount, setTerminalCount] = useState(0);
 
   const addTerminal = () => {
     if (terminalCount < MAX_TERMINALS) {
@@ -31,6 +32,51 @@ export const TerminalTabs = memo(() => {
       setActiveTerminal(terminalCount);
     }
   };
+
+  const closeTerminal = useCallback(
+    (index: number) => {
+      if (index === 0) {
+        return;
+      } // Can't close bolt terminal
+
+      const terminalRef = terminalRefs.current.get(index);
+
+      if (terminalRef?.getTerminal) {
+        const terminal = terminalRef.getTerminal();
+
+        if (terminal) {
+          workbenchStore.detachTerminal(terminal);
+        }
+      }
+
+      // Remove the terminal from refs
+      terminalRefs.current.delete(index);
+
+      // Adjust terminal count and active terminal
+      setTerminalCount(terminalCount - 1);
+
+      if (activeTerminal === index) {
+        setActiveTerminal(Math.max(0, index - 1));
+      } else if (activeTerminal > index) {
+        setActiveTerminal(activeTerminal - 1);
+      }
+    },
+    [activeTerminal, terminalCount],
+  );
+
+  useEffect(() => {
+    return () => {
+      terminalRefs.current.forEach((ref, index) => {
+        if (index > 0 && ref?.getTerminal) {
+          const terminal = ref.getTerminal();
+
+          if (terminal) {
+            workbenchStore.detachTerminal(terminal);
+          }
+        }
+      });
+    };
+  }, []);
 
   useEffect(() => {
     const { current: terminal } = terminalPanelRef;
@@ -56,9 +102,9 @@ export const TerminalTabs = memo(() => {
     });
 
     const unsubscribeFromThemeStore = themeStore.subscribe(() => {
-      for (const ref of Object.values(terminalRefs.current)) {
+      terminalRefs.current.forEach((ref) => {
         ref?.reloadStyles();
-      }
+      });
     });
 
     return () => {
@@ -125,6 +171,15 @@ export const TerminalTabs = memo(() => {
                       >
                         <div className="i-ph:terminal-window-duotone text-lg" />
                         Terminal {terminalCount > 1 && index}
+                        <button
+                          className="bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:bg-transparent rounded"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeTerminal(index);
+                          }}
+                        >
+                          <div className="i-ph:x text-xs" />
+                        </button>
                       </button>
                     </React.Fragment>
                   )}
@@ -132,6 +187,26 @@ export const TerminalTabs = memo(() => {
               );
             })}
             {terminalCount < MAX_TERMINALS && <IconButton icon="i-ph:plus" size="md" onClick={addTerminal} />}
+            <IconButton
+              icon="i-ph:arrow-clockwise"
+              title="Reset Terminal"
+              size="md"
+              onClick={() => {
+                const ref = terminalRefs.current.get(activeTerminal);
+
+                if (ref?.getTerminal()) {
+                  const terminal = ref.getTerminal()!;
+                  terminal.clear();
+                  terminal.focus();
+
+                  if (activeTerminal === 0) {
+                    workbenchStore.attachBoltTerminal(terminal);
+                  } else {
+                    workbenchStore.attachTerminal(terminal);
+                  }
+                }
+              }}
+            />
             <IconButton
               className="ml-auto"
               icon="i-ph:caret-down"
@@ -147,35 +222,51 @@ export const TerminalTabs = memo(() => {
 
             if (index == 0) {
               return (
-                <Terminal
-                  key={index}
-                  id={`terminal_${index}`}
-                  className={classNames('h-full overflow-hidden modern-scrollbar-invert', {
-                    hidden: !isActive,
-                  })}
-                  ref={(ref) => {
-                    terminalRefs.current.push(ref);
-                  }}
-                  onTerminalReady={(terminal) => workbenchStore.attachBoltTerminal(terminal)}
-                  onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
-                  theme={theme}
-                />
+                <React.Fragment key={`terminal-container-${index}`}>
+                  <Terminal
+                    key={`terminal-${index}`}
+                    id={`terminal_${index}`}
+                    className={classNames('h-full overflow-hidden modern-scrollbar-invert', {
+                      hidden: !isActive,
+                    })}
+                    ref={(ref) => {
+                      if (ref) {
+                        terminalRefs.current.set(index, ref);
+                      }
+                    }}
+                    onTerminalReady={(terminal) => workbenchStore.attachBoltTerminal(terminal)}
+                    onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
+                    theme={theme}
+                  />
+                  <TerminalManager
+                    terminal={terminalRefs.current.get(index)?.getTerminal() || null}
+                    isActive={isActive}
+                  />
+                </React.Fragment>
               );
             } else {
               return (
-                <Terminal
-                  key={index}
-                  id={`terminal_${index}`}
-                  className={classNames('modern-scrollbar h-full overflow-hidden', {
-                    hidden: !isActive,
-                  })}
-                  ref={(ref) => {
-                    terminalRefs.current.push(ref);
-                  }}
-                  onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
-                  onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
-                  theme={theme}
-                />
+                <React.Fragment key={`terminal-container-${index}`}>
+                  <Terminal
+                    key={`terminal-${index}`}
+                    id={`terminal_${index}`}
+                    className={classNames('modern-scrollbar h-full overflow-hidden', {
+                      hidden: !isActive,
+                    })}
+                    ref={(ref) => {
+                      if (ref) {
+                        terminalRefs.current.set(index, ref);
+                      }
+                    }}
+                    onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
+                    onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
+                    theme={theme}
+                  />
+                  <TerminalManager
+                    terminal={terminalRefs.current.get(index)?.getTerminal() || null}
+                    isActive={isActive}
+                  />
+                </React.Fragment>
               );
             }
           })}
