@@ -31,7 +31,8 @@ type ProviderName =
   | 'OpenRouter'
   | 'Perplexity'
   | 'Together'
-  | 'XAI';
+  | 'XAI'
+  | 'Zai';
 
 // Update the PROVIDER_ICONS type to use the ProviderName type
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
@@ -50,6 +51,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   Perplexity: SiPerplexity,
   Together: BsCloud,
   XAI: BsRobot,
+  Zai: TbBrain,
 };
 
 // Update PROVIDER_DESCRIPTIONS to use the same type
@@ -57,6 +59,7 @@ const PROVIDER_DESCRIPTIONS: Partial<Record<ProviderName, string>> = {
   Anthropic: 'Access Claude and other Anthropic models',
   Github: 'Use OpenAI models hosted through GitHub infrastructure',
   OpenAI: 'Use GPT-4, GPT-3.5, and other OpenAI models',
+  Zai: 'Access GLM-4.7 and other Z.AI models',
 };
 
 const CloudProvidersTab = () => {
