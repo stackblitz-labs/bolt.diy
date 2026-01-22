@@ -13,11 +13,6 @@ dotenv.config();
 
 export default defineConfig((config) => {
   return {
-    server: {
-      allowedHosts: [
-        "bolt.services.xlaunch.dk",
-      ],
-    },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
