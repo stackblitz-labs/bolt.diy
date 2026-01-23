@@ -3,7 +3,6 @@ import { useSearchParams } from '@remix-run/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CategorySelector, type IntroSectionCategory } from './CategorySelector';
 import { ReferenceAppCard } from './ReferenceAppCard';
-import { ReferenceAppModal } from './ReferenceAppModal';
 import { CollectionModal } from './CollectionModal';
 import {
   getLandingPageIndex,
@@ -35,7 +34,6 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [collections, setCollections] = useState<CollectionPageIndexEntry[]>([]);
   const [isLoadingCollections, setIsLoadingCollections] = useState(true);
-  const [selectedApp, setSelectedApp] = useState<LandingPageIndexEntry | null>(null);
   const isSidebarOpen = useStore(sidebarMenuStore.isOpen);
   const [selectedCollection, setSelectedCollection] = useState<CollectionPageIndexEntry | null>(null);
 
@@ -275,7 +273,6 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
                         photo={app.screenshotURL}
                         appPath={app.referenceAppPath}
                         sendMessage={sendMessage}
-                        onClick={() => setSelectedApp(app)}
                       />
                     </div>
                   ))}
@@ -352,9 +349,6 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
             </div>
           )}
 
-          {/* Reference App Modal */}
-          <ReferenceAppModal app={selectedApp} sendMessage={sendMessage} onClose={() => setSelectedApp(null)} />
-
           {/* Collection Modal */}
           <CollectionModal
             collection={selectedCollection}
@@ -362,10 +356,9 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
             onClose={() => setSelectedCollection(null)}
             onAppClick={(app) => {
               setSelectedCollection(null);
-              // Small delay to allow collection modal to close before opening app modal
-              setTimeout(() => {
-                setSelectedApp(app);
-              }, 100);
+              // Navigate directly to gallery page
+              const encodedName = encodeURIComponent(app.name);
+              window.location.href = `/gallery/${encodedName}`;
             }}
           />
         </>

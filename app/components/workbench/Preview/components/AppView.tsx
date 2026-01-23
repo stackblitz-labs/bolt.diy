@@ -59,11 +59,7 @@ const AppView = ({
     >
       {previewURL && !previewLoading ? (
         <div className={'relative w-full h-full'}>
-          <div
-            className={classNames('absolute inset-0', {
-              'p-[3px] app-progress-border opacity-80': !initialBuildComplete,
-            })}
-          >
+          <div className={classNames('absolute inset-0')}>
             <iframe
               key={actualIframeUrl}
               ref={iframeRef}
