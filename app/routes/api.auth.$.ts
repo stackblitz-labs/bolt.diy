@@ -14,6 +14,7 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/cloudfla
  * Handle GET requests for Better Auth routes
  */
 export async function loader({ request }: LoaderFunctionArgs) {
+  console.log('[API.AUTH] Loader Request:', request.url);
   return auth.handler(request);
 }
 
@@ -21,5 +22,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * Handle POST requests for Better Auth routes
  */
 export async function action({ request }: ActionFunctionArgs) {
+  console.log('[API.AUTH] Action Request:', request.url);
   return auth.handler(request);
 }

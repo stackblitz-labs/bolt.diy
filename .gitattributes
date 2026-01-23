@@ -1,0 +1,37 @@
+# Let Git decide what to do, for every file. More on that later.
+* text=auto
+
+# Overwrite the above and declare files that will always have
+# LF line endings on checkin and checkout. No ESLint/Prettier
+# issues for those files.
+*.js text eol=lf
+*.jsx text eol=lf
+# If you're using TypeScript, also add .ts, .tsx files
+*.ts text eol=lf
+*.tsx text eol=lf
+# If you're using Prettier, you probably want LF in .json, .md, .css,
+# and all the other files you're formatting with Prettier.
+*.json text eol=lf
+*.md text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+# An alternative is to ditch the above and make everything have LF on
+# checkin/checkout, but I'm not sure what will happen with binary files.
+# * text eol=lf
+
+# Declare files that are binary so that their eol should not be modified.
+# Git, with the first line of this file, will probably not modify binary
+# files, but add the following just to be safe and explicit.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

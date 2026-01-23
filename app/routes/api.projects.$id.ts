@@ -88,14 +88,21 @@ export async function action({ params, request }: ActionFunctionArgs) {
         );
     }
   } catch (error) {
-    logger.error(`Failed to ${method.toLowerCase()} project`, { error, projectId });
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+
+    logger.error(`Failed to ${method.toLowerCase()} project`, {
+      error: message,
+      stack,
+      projectId,
+    });
 
     if (error instanceof Error && error.message.includes('not found')) {
       return json({ error: { code: PROJECT_ERROR_CODES.NOT_FOUND, message: 'Project not found' } }, { status: 404 });
     }
 
     return json(
-      { error: { code: 'INTERNAL_ERROR', message: `Failed to ${method.toLowerCase()} project` } },
+      { error: { code: 'INTERNAL_ERROR', message: `Failed to ${method.toLowerCase()} project: ${message}` } },
       { status: 500 },
     );
   }

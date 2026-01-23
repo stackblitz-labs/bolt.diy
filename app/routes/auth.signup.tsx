@@ -2,8 +2,8 @@ import { redirect, type LoaderFunctionArgs } from '@remix-run/node';
 import { useLoaderData, useSearchParams, Form, Link } from '@remix-run/react';
 import { getOptionalSession } from '~/lib/auth/session.server';
 import { signIn } from '~/lib/auth/auth.client';
-import { FaFacebook } from 'react-icons/fa';
-import { MdEmail, MdLock } from 'react-icons/md';
+import { FaGoogle, FaFacebook } from 'react-icons/fa';
+import { MdEmail, MdLock, MdCheck, MdOutlineVpnKey } from 'react-icons/md';
 import { Button } from '~/components/ui/Button';
 import { Input } from '~/components/ui/Input';
 
@@ -26,12 +26,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
   };
 }
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const [searchParams] = useSearchParams();
   const loaderData = useLoaderData<typeof loader>();
   const returnTo = searchParams.get('returnTo') || '/app?login=true';
 
-  // Map OAuth error codes to user-friendly messages
   const getErrorMessage = (error: string | null): string | null => {
     if (!error) {
       return null;
@@ -52,24 +51,11 @@ export default function LoginPage() {
 
   const errorMessage = getErrorMessage(loaderData.error) || loaderData.errorDescription;
 
-  const handleGoogleLogin = async () => {
-    console.log('[Login] Google login button clicked');
-
-    try {
-      if (!signIn || !signIn.social) {
-        console.error('[Login] signIn or signIn.social is undefined', { signIn });
-        return;
-      }
-
-      console.log('[Login] Initiating social sign in with google');
-      await signIn.social({
-        provider: 'google',
-        callbackURL: returnTo,
-      });
-      console.log('[Login] Social sign in initiated');
-    } catch (error) {
-      console.error('[Login] Error during Google login:', error);
-    }
+  const handleGoogleLogin = () => {
+    signIn.social({
+      provider: 'google',
+      callbackURL: returnTo,
+    });
   };
 
   const handleFacebookLogin = () => {
@@ -81,24 +67,24 @@ export default function LoginPage() {
       <div className="w-full max-w-[1000px] overflow-hidden rounded-[2rem] bg-white shadow-xl dark:bg-gray-900 dark:shadow-2xl">
         <div className="p-8 md:p-12 lg:p-16">
           <div className="mb-10 text-center">
-            <h1 className="mb-2 text-4xl font-bold text-gray-900 dark:text-white">Log In</h1>
+            <h1 className="mb-2 text-4xl font-bold text-gray-900 dark:text-white">Sign Up</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Login to Huskit to access your projects and continue building.
+              Sign up to Huskit to access your projects and continue building.
             </p>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Don't have an account?{' '}
+              Already have an account?{' '}
               <Link
-                to="/auth/signup"
-                className="font-semibold text-black underline underline-offset-2 hover:text-gray-800 dark:text-white dark:hover:text-gray-200"
+                to="/auth/login"
+                className="font-bold text-black hover:text-gray-800 dark:text-white dark:hover:text-gray-200"
               >
-                Sign Up
+                Log In
               </Link>
             </p>
           </div>
 
           <div className="flex flex-col gap-10 lg:flex-row lg:gap-16">
             <div className="flex-1">
-              <Form method="post" className="space-y-5">
+              <Form method="post" className="space-y-4">
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                     <MdEmail className="h-5 w-5" />
@@ -111,6 +97,20 @@ export default function LoginPage() {
                     required
                   />
                 </div>
+
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <MdCheck className="h-5 w-5" />
+                  </div>
+                  <Input
+                    type="email"
+                    name="confirm_email"
+                    placeholder="Confirm email"
+                    className="h-12 border-gray-200 bg-white pl-10 text-base shadow-sm focus-visible:ring-black dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus-visible:ring-white"
+                    required
+                  />
+                </div>
+
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                     <MdLock className="h-5 w-5" />
@@ -118,7 +118,20 @@ export default function LoginPage() {
                   <Input
                     type="password"
                     name="password"
-                    placeholder="Password"
+                    placeholder="Choose a password"
+                    className="h-12 border-gray-200 bg-white pl-10 text-base shadow-sm focus-visible:ring-black dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus-visible:ring-white"
+                    required
+                  />
+                </div>
+
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <MdOutlineVpnKey className="h-5 w-5" />
+                  </div>
+                  <Input
+                    type="password"
+                    name="confirm_password"
+                    placeholder="Confirm password"
                     className="h-12 border-gray-200 bg-white pl-10 text-base shadow-sm focus-visible:ring-black dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus-visible:ring-white"
                     required
                   />
@@ -128,7 +141,7 @@ export default function LoginPage() {
                   type="submit"
                   className="h-12 w-full rounded-xl bg-[#1a1b2e] text-base font-medium text-white hover:bg-[#2f3049] dark:bg-white dark:text-black dark:hover:bg-gray-200"
                 >
-                  Log In
+                  Sign Up
                 </Button>
 
                 {errorMessage && (
@@ -139,7 +152,6 @@ export default function LoginPage() {
               </Form>
             </div>
 
-            {/* Divider */}
             <div className="relative flex items-center justify-center lg:flex-col">
               <div className="absolute inset-0 flex items-center lg:inset-auto lg:h-full lg:w-full lg:flex-col lg:justify-center">
                 <div className="h-px w-full bg-gray-200 lg:h-full lg:w-px dark:bg-gray-700"></div>
@@ -147,13 +159,12 @@ export default function LoginPage() {
               <div className="relative bg-white px-4 text-sm text-gray-400 dark:bg-gray-900">or</div>
             </div>
 
-            {/* Social Login Section */}
             <div className="flex flex-1 flex-col justify-center space-y-4">
               <button
                 onClick={handleGoogleLogin}
                 className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white text-base font-medium text-gray-700 shadow-sm transition-transform active:scale-[0.98] hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
               >
-                <img src="https://www.google.com/favicon.ico" alt="Google" className="h-5 w-5" />
+                <FaGoogle className="h-5 w-5 text-gray-700 dark:text-white" />
                 <span>Continue with Google</span>
               </button>
 
@@ -180,7 +191,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="bg-gray-50 py-4 text-center text-xs text-gray-400 dark:bg-gray-800/50 dark:text-gray-500">
           This site is protected by reCAPTCHA Enterprise.{' '}
           <a href="#" className="underline hover:text-gray-600 dark:hover:text-gray-300">

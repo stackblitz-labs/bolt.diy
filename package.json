@@ -217,7 +217,7 @@
     "vite-plugin-optimize-css-modules": "^1.1.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^2.1.7",
-    "wrangler": "^4.44.0"
+    "wrangler": "^3.114.16"
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"
