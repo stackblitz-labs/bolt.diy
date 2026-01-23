@@ -3,6 +3,7 @@ interface Window {
   webkitSpeechRecognition: typeof SpeechRecognition;
   SpeechRecognition: typeof SpeechRecognition;
   analytics?: {
+    tags: Record<string, unknown>;
     track: (event: string, properties?: Record<string, any>) => void;
     identify: (userId: string, traits?: Record<string, any>) => void;
   };

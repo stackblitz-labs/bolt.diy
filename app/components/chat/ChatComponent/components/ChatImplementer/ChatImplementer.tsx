@@ -156,6 +156,10 @@ const ChatImplementer = memo(() => {
         chatStore.currentAppId.set(appId);
         chatStore.appTitle.set('New App');
 
+        if (window.analytics) {
+          window.analytics.tags.appId = appId;
+        }
+
         navigateApp(appId);
       } catch (e) {
         console.error('Failed to initialize chat', e);

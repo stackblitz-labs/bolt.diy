@@ -274,12 +274,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         sendMessage(payload);
         abortListening();
 
-        if (window.analytics && messages.length === 0) {
-          window.analytics.track('Created a new chat', {
-            timestamp: new Date().toISOString(),
-            userId: user?.id,
-            email: user?.email,
-          });
+        if (window.analytics) {
+          if (messages.length === 0) {
+            window.analytics.track('Created a new chat');
+          } else {
+            window.analytics.track('Sent a chat message');
+          }
         }
 
         if (handleInputChange) {

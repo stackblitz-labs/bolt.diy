@@ -72,6 +72,9 @@ export async function updateAppState(appId: string) {
   chatStore.currentAppId.set(appId);
   chatStore.appTitle.set(title);
   chatStore.started.set(chatStore.messages.get().length > 0);
+  if (window.analytics) {
+    window.analytics.tags.appId = appId;
+  }
 }
 
 export function Chat() {

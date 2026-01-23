@@ -236,6 +236,13 @@ function GalleryPageContent() {
       // Create a new app with the reference app path
       const appId = await database.createApp(appPath);
 
+      window.analytics?.track('Customized Reference App', {
+        userId: user?.id,
+        email: user?.email,
+        referenceAppPath: app?.referenceAppPath,
+        appId,
+      });
+
       // Navigate to the app with a prompt parameter
       const url = new URL(window.location.origin);
       url.pathname = `/app/${appId}`;
@@ -275,10 +282,11 @@ function GalleryPageContent() {
 
       toast.success('Repository downloaded successfully');
       if (window.analytics) {
-        window.analytics.track('Downloaded Code', {
+        window.analytics.track('Downloaded Reference App', {
           timestamp: new Date().toISOString(),
           userId: user?.id,
           email: user?.email,
+          referenceAppPath: app?.referenceAppPath,
         });
       }
     } catch (error) {

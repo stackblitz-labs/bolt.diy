@@ -24,7 +24,7 @@ import GlobalFeatureModal from './components/feature-modal/GlobalFeatureModal';
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
-import { getAnalyticsCode } from './embeds/anayltics';
+import { getAnalyticsCode } from './embeds/analytics';
 
 import './styles/tailwind.css';
 
