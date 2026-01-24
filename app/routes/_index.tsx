@@ -1,31 +1,36 @@
-import { json, type MetaFunction } from '@remix-run/cloudflare';
-import { ClientOnly } from 'remix-utils/client-only';
-import { BaseChat } from '~/components/chat/BaseChat';
-import { Chat } from '~/components/chat/Chat.client';
-import { Header } from '~/components/header/Header';
-import BackgroundRays from '~/components/ui/BackgroundRays';
+import { json, redirect, type MetaFunction, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import { useNavigate } from '@remix-run/react';
 import { ProjectErrorBoundary } from '~/components/projects/ProjectErrorBoundary';
+import { LandingPage } from '~/components/landing/LandingPage';
+import { getSession } from '~/lib/auth/session.server';
+import { getProjectsByUserId } from '~/lib/services/projects.server';
 
 export const meta: MetaFunction = () => {
-  return [{ title: 'Bolt' }, { name: 'description', content: 'Talk with Bolt, an AI assistant from StackBlitz' }];
+  return [{ title: 'HuskIT' }, { name: 'description', content: 'Talk with HuskIT, an AI assistant' }];
 };
 
-export const loader = () => json({});
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const session = await getSession(request);
 
-/**
- * Landing page component for Bolt
- * Note: Settings functionality should ONLY be accessed through the sidebar menu.
- * Do not add settings button/panel to this landing page as it was intentionally removed
- * to keep the UI clean and consistent with the design system.
- */
+  if (session?.user) {
+    const { total } = await getProjectsByUserId(session.user.id, { limit: 1 });
+
+    if (total > 0) {
+      return redirect('/app');
+    } else {
+      return redirect('/app/projects/new');
+    }
+  }
+
+  return json({});
+};
+
 export default function Index() {
+  const navigate = useNavigate();
+
   return (
     <ProjectErrorBoundary>
-      <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
-        <BackgroundRays />
-        <Header />
-        <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
-      </div>
+      <LandingPage onStart={() => navigate('/auth/signup')} />
     </ProjectErrorBoundary>
   );
 }
