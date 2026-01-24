@@ -238,6 +238,16 @@ function GalleryPageContent() {
     }
   }, [handleIframeLoad, appPreviewURL]);
 
+  // Set default review name from logged-in user (only when user becomes available)
+  useEffect(() => {
+    if (user && reviewName === '') {
+      const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email || '';
+      if (userName) {
+        setReviewName(userName);
+      }
+    }
+  }, [user]);
+
   const handleCustomize = async () => {
     if (!app) {
       return;
@@ -325,6 +335,11 @@ function GalleryPageContent() {
 
   const handleSubmitReview = async () => {
     if (!app) {
+      return;
+    }
+
+    if (!user) {
+      toast.error('Please log in to submit a review');
       return;
     }
 
@@ -1191,6 +1206,14 @@ function GalleryPageContent() {
                       <div className="bg-bolt-elements-background-depth-2 rounded-lg p-6 border border-bolt-elements-borderColor">
                         <h4 className="text-lg font-semibold text-bolt-elements-textPrimary mb-4">Add a Review</h4>
 
+                        {!user && (
+                          <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                            <p className="text-sm text-amber-600 dark:text-amber-400">
+                              Please log in to submit a review.
+                            </p>
+                          </div>
+                        )}
+
                         <div className="space-y-4">
                           {/* Rating */}
                           <div>
@@ -1203,7 +1226,11 @@ function GalleryPageContent() {
                                   key={star}
                                   type="button"
                                   onClick={() => setReviewRating(star)}
-                                  className="focus:outline-none transition-transform hover:scale-110"
+                                  disabled={!user}
+                                  className={classNames(
+                                    'focus:outline-none transition-transform',
+                                    !user ? 'cursor-not-allowed opacity-50' : 'hover:scale-110',
+                                  )}
                                 >
                                   <Star
                                     size={24}
@@ -1231,7 +1258,11 @@ function GalleryPageContent() {
                               value={reviewName}
                               onChange={(e) => setReviewName(e.target.value)}
                               placeholder="Your name (optional, leave blank for anonymous)"
-                              className="w-full px-3 py-2 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-md text-bolt-elements-textPrimary placeholder:text-bolt-elements-textSecondary focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500"
+                              disabled={!user}
+                              className={classNames(
+                                'w-full px-3 py-2 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-md text-bolt-elements-textPrimary placeholder:text-bolt-elements-textSecondary focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500',
+                                !user ? 'cursor-not-allowed opacity-50' : '',
+                              )}
                             />
                             <p className="text-xs text-bolt-elements-textSecondary mt-1">
                               {reviewName.trim()
@@ -1250,14 +1281,18 @@ function GalleryPageContent() {
                               onChange={(e) => setReviewComment(e.target.value)}
                               placeholder="Share your thoughts about this app (optional)"
                               rows={4}
-                              className="w-full px-3 py-2 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-md text-bolt-elements-textPrimary placeholder:text-bolt-elements-textSecondary focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 resize-none"
+                              disabled={!user}
+                              className={classNames(
+                                'w-full px-3 py-2 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-md text-bolt-elements-textPrimary placeholder:text-bolt-elements-textSecondary focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 resize-none',
+                                !user ? 'cursor-not-allowed opacity-50' : '',
+                              )}
                             />
                           </div>
 
                           {/* Submit Button */}
                           <Button
                             onClick={handleSubmitReview}
-                            disabled={reviewRating === 0 || isSubmittingReview}
+                            disabled={!user || reviewRating === 0 || isSubmittingReview}
                             className="w-full sm:w-auto bg-rose-500 hover:bg-rose-600 text-white"
                           >
                             {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
