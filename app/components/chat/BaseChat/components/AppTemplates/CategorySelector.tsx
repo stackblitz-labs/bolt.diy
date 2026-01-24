@@ -11,8 +11,8 @@ interface CategorySelectorProps {
   categories: IntroSectionCategory[];
   selectedCategory?: string;
   onCategorySelect?: (categoryName: string | undefined) => void;
-  showAlpha: boolean;
-  onShowAlphaChange: (showAlpha: boolean) => void;
+  showAll: boolean;
+  onShowAllChange: (showAll: boolean) => void;
   searchTerm: string;
   onSearchChange: (searchTerm: string) => void;
 }
@@ -21,8 +21,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   categories,
   selectedCategory,
   onCategorySelect,
-  showAlpha,
-  onShowAlphaChange,
+  showAll,
+  onShowAllChange,
   searchTerm,
   onSearchChange,
 }) => {
@@ -46,11 +46,11 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         <label className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium text-bolt-elements-textHeading cursor-pointer transition-all duration-200 border border-bolt-elements-borderColor">
           <input
             type="checkbox"
-            checked={showAlpha}
-            onChange={(e) => onShowAlphaChange(e.target.checked)}
+            checked={showAll}
+            onChange={(e) => onShowAllChange(e.target.checked)}
             className="w-4 h-4 rounded border-gray-300 focus:ring-1 cursor-pointer"
           />
-          <span>Include Alpha Apps</span>
+          <span>Show All</span>
         </label>
       </div>
       <div className="flex justify-center">

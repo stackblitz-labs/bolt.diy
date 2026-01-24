@@ -2,8 +2,13 @@ import { json, type LoaderFunctionArgs, type MetaFunction } from '~/lib/remix-ty
 import { useParams, Link } from '@remix-run/react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
-import type { LandingPageIndexEntry, LandingPageContent } from '~/lib/replay/ReferenceApps';
-import { getLandingPageIndex, getLandingPageContent } from '~/lib/replay/ReferenceApps';
+import type { ReferenceAppSummary, ReferenceAppContent } from '~/lib/replay/ReferenceApps';
+import {
+  getReferenceAppSummaries,
+  getReferenceAppContent,
+  reportTrackerAppCopy,
+  addTrackerAppReview,
+} from '~/lib/replay/ReferenceApps';
 import { database } from '~/lib/persistence/apps';
 import { getRepositoryURL } from '~/lib/replay/DevelopmentServer';
 import { useStore } from '@nanostores/react';
@@ -21,6 +26,11 @@ import {
   AppWindowMac,
   Download,
   ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  Bug,
+  Star,
 } from 'lucide-react';
 import { downloadRepository } from '~/lib/replay/Deploy';
 import { toast } from 'react-toastify';
@@ -42,6 +52,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '~/components/ui/ui/accordion';
 import WithTooltip from '~/components/ui/Tooltip';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
+import { ReferenceAppStatusIndicator } from '~/components/chat/BaseChat/components/AppTemplates/ReferenceAppStatusIndicator';
 
 export const meta: MetaFunction = () => {
   return [{ title: 'Gallery | Replay Builder' }];
@@ -54,7 +65,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
   }
 
   try {
-    const apps = await getLandingPageIndex();
+    const apps = await getReferenceAppSummaries();
     const app = apps.find((a) => a.name === name);
 
     if (!app) {
@@ -139,8 +150,8 @@ const LoadingSkeleton: React.FC<{ isSmallViewport?: boolean; isSidebarCollapsed?
 function GalleryPageContent() {
   const params = useParams();
   const appName = params.name ? decodeURIComponent(params.name) : null;
-  const [app, setApp] = useState<LandingPageIndexEntry | null>(null);
-  const [landingPageContent, setLandingPageContent] = useState<LandingPageContent | null>(null);
+  const [app, setApp] = useState<ReferenceAppSummary | null>(null);
+  const [appContent, setAppContent] = useState<ReferenceAppContent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [appPreviewURL, setAppPreviewURL] = useState<string | null>(null);
@@ -154,6 +165,10 @@ function GalleryPageContent() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const [reviewRating, setReviewRating] = useState<number>(0);
+  const [reviewName, setReviewName] = useState<string>('');
+  const [reviewComment, setReviewComment] = useState<string>('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   // Handle iframe load event
   const handleIframeLoad = useCallback(() => {
@@ -174,7 +189,7 @@ function GalleryPageContent() {
         setError(null);
 
         // Fetch app from index
-        const apps = await getLandingPageIndex();
+        const apps = await getReferenceAppSummaries();
         const foundApp = apps.find((a) => a.name === appName);
 
         if (!foundApp) {
@@ -187,8 +202,8 @@ function GalleryPageContent() {
 
         // Load landing page content
         try {
-          const content = await getLandingPageContent(foundApp.referenceAppPath);
-          setLandingPageContent(content);
+          const content = await getReferenceAppContent(foundApp.referenceAppPath);
+          setAppContent(content);
         } catch (err) {
           console.error('Failed to fetch landing page content:', err);
           // Continue with index data if content fetch fails
@@ -228,11 +243,14 @@ function GalleryPageContent() {
       return;
     }
 
-    const appPath = landingPageContent?.referenceAppPath || app.referenceAppPath;
-    const appName = landingPageContent?.name || app.name;
+    const appPath = appContent?.referenceAppPath || app.referenceAppPath;
+    const appName = appContent?.name || app.name;
     assert(appPath, 'App path is required');
 
     try {
+      // Report the customize action
+      reportTrackerAppCopy(appPath, 'customize', user?.email);
+
       // Create a new app with the reference app path
       const appId = await database.createApp(appPath);
 
@@ -255,12 +273,22 @@ function GalleryPageContent() {
   };
 
   const handleDownloadCode = async () => {
+    if (!app) {
+      return;
+    }
+
     if (!repositoryId) {
       toast.error('No repository ID found');
       return;
     }
 
+    const appPath = appContent?.referenceAppPath || app.referenceAppPath;
+    assert(appPath, 'App path is required');
+
     try {
+      // Report the download action
+      reportTrackerAppCopy(appPath, 'download', user?.email);
+
       const repositoryContents = await downloadRepository(repositoryId);
 
       const byteCharacters = atob(repositoryContents);
@@ -295,11 +323,53 @@ function GalleryPageContent() {
     }
   };
 
+  const handleSubmitReview = async () => {
+    if (!app) {
+      return;
+    }
+
+    if (reviewRating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+
+    const appPath = appContent?.referenceAppPath || app.referenceAppPath;
+    assert(appPath, 'App path is required');
+
+    try {
+      setIsSubmittingReview(true);
+      await addTrackerAppReview({
+        path: appPath,
+        rating: reviewRating,
+        user_name: reviewName.trim() || undefined,
+        user_email: user?.email,
+        comment: reviewComment.trim() || undefined,
+      });
+
+      // Reload app content to show the new review
+      if (appPath) {
+        const content = await getReferenceAppContent(appPath);
+        setAppContent(content);
+      }
+
+      // Reset form
+      setReviewRating(0);
+      setReviewName('');
+      setReviewComment('');
+      toast.success('Review submitted successfully');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      toast.error('Failed to submit review. Please try again.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   // Use landing page content if available, otherwise fall back to index entry
-  const displayData = landingPageContent || app;
+  const displayData = appContent || app;
 
   // Get page features for carousel (filter features with kind: 'Page')
-  const pageFeatures = landingPageContent?.features?.filter((f) => f.kind === 'Page') || [];
+  const pageFeatures = appContent?.features?.filter((f) => f.kind === 'Page') || [];
   const carouselItems = [
     { type: 'preview' as const, id: 'preview' },
     ...pageFeatures.map((f, idx) => ({ type: 'feature' as const, id: `feature-${idx}`, feature: f })),
@@ -393,7 +463,7 @@ function GalleryPageContent() {
   }
 
   // Error or fallback state
-  if (error || !landingPageContent) {
+  if (error || !appContent) {
     return (
       <div className="flex h-screen w-full overflow-hidden bg-bolt-elements-background-depth-1">
         {/* Sidebar - Desktop only */}
@@ -456,6 +526,7 @@ function GalleryPageContent() {
                 </Breadcrumb>
 
                 <div className="flex items-center gap-2">
+                  {app?.stage && <ReferenceAppStatusIndicator stage={app.stage} size="sm" />}
                   <Button
                     onClick={handleDownloadCode}
                     variant="outline"
@@ -604,6 +675,9 @@ function GalleryPageContent() {
               </Breadcrumb>
 
               <div className="flex items-center gap-2">
+                {(displayData?.stage || app?.stage) && (
+                  <ReferenceAppStatusIndicator stage={(displayData?.stage || app?.stage)!} size="sm" />
+                )}
                 <Button
                   onClick={handleDownloadCode}
                   variant="outline"
@@ -872,9 +946,9 @@ function GalleryPageContent() {
                     )}
 
                     {/* Long Description */}
-                    {landingPageContent?.longDescription && (
+                    {appContent?.longDescription && (
                       <div className="space-y-4">
-                        {landingPageContent.longDescription
+                        {appContent.longDescription
                           .split(/\n\n+/)
                           .filter((p) => p.trim())
                           .map((paragraph, index) => (
@@ -887,11 +961,11 @@ function GalleryPageContent() {
                   </div>
 
                   {/* Features Section */}
-                  {landingPageContent?.features && landingPageContent.features.length > 0 && (
+                  {appContent?.features && appContent.features.length > 0 && (
                     <div>
                       <h3 className="text-2xl font-bold text-bolt-elements-textPrimary mb-4">Features</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {landingPageContent.features.map((feature, index) => (
+                        {appContent.features.map((feature, index) => (
                           <div key={index} className="bg-bolt-elements-background-depth-2 rounded-md p-4">
                             <h4 className="text-base font-bold text-bolt-elements-textPrimary mb-1.5">
                               {feature.name}
@@ -943,15 +1017,15 @@ function GalleryPageContent() {
                   ) : null}
 
                   {/* FAQ Section */}
-                  {landingPageContent &&
-                  'faq' in landingPageContent &&
-                  landingPageContent.faq &&
-                  Array.isArray(landingPageContent.faq) &&
-                  landingPageContent.faq.length > 0 ? (
+                  {appContent &&
+                  'faq' in appContent &&
+                  appContent.faq &&
+                  Array.isArray(appContent.faq) &&
+                  appContent.faq.length > 0 ? (
                     <div>
                       <h3 className="text-2xl font-bold text-bolt-elements-textPrimary mb-4">FAQ</h3>
                       <Accordion type="single" collapsible className="w-full">
-                        {landingPageContent.faq.map((faqItem: { question: string; answer: string }, index: number) => (
+                        {appContent.faq.map((faqItem: { question: string; answer: string }, index: number) => (
                           <AccordionItem
                             key={index}
                             value={`faq-${index}`}
@@ -968,6 +1042,230 @@ function GalleryPageContent() {
                       </Accordion>
                     </div>
                   ) : null}
+
+                  {/* Status Section */}
+                  {appContent && (appContent.trackerFeatures.length > 0 || appContent.trackerBugs.length > 0) ? (
+                    <div>
+                      <h3 className="text-2xl font-bold text-bolt-elements-textPrimary mb-4">Status</h3>
+
+                      {/* Features */}
+                      {appContent.trackerFeatures.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-bolt-elements-textPrimary mb-3">Features</h4>
+                          <div className="space-y-2">
+                            {appContent.trackerFeatures.map((feature, index) => {
+                              const getStatusConfig = () => {
+                                switch (feature.status) {
+                                  case 'green':
+                                    return {
+                                      icon: CheckCircle2,
+                                      iconColor: 'text-green-600 dark:text-green-400',
+                                      bgColor: 'bg-green-50 dark:bg-green-950/30',
+                                      borderColor: 'border-green-200 dark:border-green-800',
+                                    };
+                                  case 'yellow':
+                                    return {
+                                      icon: AlertCircle,
+                                      iconColor: 'text-amber-600 dark:text-amber-400',
+                                      bgColor: 'bg-amber-50 dark:bg-amber-950/30',
+                                      borderColor: 'border-amber-200 dark:border-amber-800',
+                                    };
+                                  case 'red':
+                                    return {
+                                      icon: XCircle,
+                                      iconColor: 'text-red-600 dark:text-red-400',
+                                      bgColor: 'bg-red-50 dark:bg-red-950/30',
+                                      borderColor: 'border-red-200 dark:border-red-800',
+                                    };
+                                  default:
+                                    return {
+                                      icon: AlertCircle,
+                                      iconColor: 'text-gray-600 dark:text-gray-400',
+                                      bgColor: 'bg-gray-50 dark:bg-gray-950/30',
+                                      borderColor: 'border-gray-200 dark:border-gray-800',
+                                    };
+                                }
+                              };
+
+                              const statusConfig = getStatusConfig();
+                              const Icon = statusConfig.icon;
+
+                              return (
+                                <div
+                                  key={index}
+                                  className={classNames(
+                                    'flex items-start gap-3 p-3 rounded-lg border',
+                                    statusConfig.bgColor,
+                                    statusConfig.borderColor,
+                                  )}
+                                >
+                                  <Icon
+                                    size={20}
+                                    className={classNames('flex-shrink-0 mt-0.5', statusConfig.iconColor)}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-bolt-elements-textPrimary">{feature.name}</div>
+                                    {feature.note && (
+                                      <div className="text-sm text-bolt-elements-textSecondary mt-1">
+                                        {feature.note}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bugs */}
+                      {appContent.trackerBugs.length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-bolt-elements-textPrimary mb-3">Known Issues</h4>
+                          <div className="space-y-2">
+                            {appContent.trackerBugs.map((bug, index) => (
+                              <div
+                                key={index}
+                                className="flex items-start gap-3 p-3 rounded-lg border bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                              >
+                                <Bug size={20} className="flex-shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+                                <div className="flex-1 text-bolt-elements-textPrimary">{bug.description}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {/* Reviews Section */}
+                  {appContent && (
+                    <div>
+                      <h3 className="text-2xl font-bold text-bolt-elements-textPrimary mb-4">Reviews</h3>
+
+                      {/* Existing Reviews */}
+                      {appContent.trackerReviews && appContent.trackerReviews.length > 0 ? (
+                        <div className="space-y-4 mb-8">
+                          {appContent.trackerReviews.map((review, index) => (
+                            <div
+                              key={index}
+                              className="bg-bolt-elements-background-depth-2 rounded-lg p-4 border border-bolt-elements-borderColor"
+                            >
+                              <div className="flex items-start justify-between gap-4 mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <Star
+                                        key={star}
+                                        size={16}
+                                        className={classNames(
+                                          star <= review.rating
+                                            ? 'fill-yellow-400 text-yellow-400'
+                                            : 'text-bolt-elements-textSecondary',
+                                        )}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-sm font-medium text-bolt-elements-textPrimary">
+                                    {review.rating}/5
+                                  </span>
+                                </div>
+                                {review.name && (
+                                  <span className="text-sm text-bolt-elements-textSecondary">{review.name}</span>
+                                )}
+                                {!review.name && (
+                                  <span className="text-sm text-bolt-elements-textSecondary italic">Anonymous</span>
+                                )}
+                              </div>
+                              {review.comment && (
+                                <p className="text-bolt-elements-textPrimary mt-2">{review.comment}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-bolt-elements-textSecondary mb-8">No reviews yet. Be the first to review!</p>
+                      )}
+
+                      {/* Add Review Form */}
+                      <div className="bg-bolt-elements-background-depth-2 rounded-lg p-6 border border-bolt-elements-borderColor">
+                        <h4 className="text-lg font-semibold text-bolt-elements-textPrimary mb-4">Add a Review</h4>
+
+                        <div className="space-y-4">
+                          {/* Rating */}
+                          <div>
+                            <label className="block text-sm font-medium text-bolt-elements-textPrimary mb-2">
+                              Rating <span className="text-red-500">*</span>
+                            </label>
+                            <div className="flex items-center gap-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => setReviewRating(star)}
+                                  className="focus:outline-none transition-transform hover:scale-110"
+                                >
+                                  <Star
+                                    size={24}
+                                    className={classNames(
+                                      star <= reviewRating
+                                        ? 'fill-yellow-400 text-yellow-400'
+                                        : 'text-bolt-elements-textSecondary hover:text-yellow-400/50',
+                                    )}
+                                  />
+                                </button>
+                              ))}
+                              {reviewRating > 0 && (
+                                <span className="text-sm text-bolt-elements-textSecondary ml-2">{reviewRating}/5</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Name */}
+                          <div>
+                            <label className="block text-sm font-medium text-bolt-elements-textPrimary mb-2">
+                              Display Name
+                            </label>
+                            <input
+                              type="text"
+                              value={reviewName}
+                              onChange={(e) => setReviewName(e.target.value)}
+                              placeholder="Your name (optional, leave blank for anonymous)"
+                              className="w-full px-3 py-2 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-md text-bolt-elements-textPrimary placeholder:text-bolt-elements-textSecondary focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500"
+                            />
+                            <p className="text-xs text-bolt-elements-textSecondary mt-1">
+                              {reviewName.trim()
+                                ? `Your review will be shown as "${reviewName.trim()}"`
+                                : 'Your review will be shown as "Anonymous"'}
+                            </p>
+                          </div>
+
+                          {/* Comment */}
+                          <div>
+                            <label className="block text-sm font-medium text-bolt-elements-textPrimary mb-2">
+                              Comment
+                            </label>
+                            <textarea
+                              value={reviewComment}
+                              onChange={(e) => setReviewComment(e.target.value)}
+                              placeholder="Share your thoughts about this app (optional)"
+                              rows={4}
+                              className="w-full px-3 py-2 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-md text-bolt-elements-textPrimary placeholder:text-bolt-elements-textSecondary focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 resize-none"
+                            />
+                          </div>
+
+                          {/* Submit Button */}
+                          <Button
+                            onClick={handleSubmitReview}
+                            disabled={reviewRating === 0 || isSubmittingReview}
+                            className="w-full sm:w-auto bg-rose-500 hover:bg-rose-600 text-white"
+                          >
+                            {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

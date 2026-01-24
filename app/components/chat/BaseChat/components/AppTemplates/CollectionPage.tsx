@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import type {
-  CollectionPageIndexEntry,
-  CollectionPageContent,
-  LandingPageIndexEntry,
-} from '~/lib/replay/ReferenceApps';
+import type { CollectionPageIndexEntry, CollectionPageContent, ReferenceAppSummary } from '~/lib/replay/ReferenceApps';
 import { getCollectionPageContent } from '~/lib/replay/ReferenceApps';
 import { X } from 'lucide-react';
 
 interface CollectionPageProps {
   collection: CollectionPageIndexEntry;
-  referenceApps: LandingPageIndexEntry[];
+  referenceApps: ReferenceAppSummary[];
   onClose: () => void;
-  onAppClick: (app: LandingPageIndexEntry) => void;
+  onAppClick: (app: ReferenceAppSummary) => void;
 }
 
 const LoadingSkeleton: React.FC = () => (

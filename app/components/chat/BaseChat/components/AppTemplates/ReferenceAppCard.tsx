@@ -2,14 +2,16 @@ import React from 'react';
 import { Expand } from 'lucide-react';
 import type { ChatMessageParams } from '~/components/chat/ChatComponent/components/ChatImplementer/ChatImplementer';
 import { ChatMode } from '~/lib/replay/SendChatMessage';
-import { REFERENCE_APP_PLACEHOLDER_PHOTO } from '~/lib/replay/ReferenceApps';
+import { REFERENCE_APP_PLACEHOLDER_PHOTO, type ReferenceAppStage } from '~/lib/replay/ReferenceApps';
 import { classNames } from '~/utils/classNames';
 import { assert } from '~/utils/nut';
+import { ReferenceAppStatusIndicator } from './ReferenceAppStatusIndicator';
 
 interface ReferenceAppCardProps {
   appName: string;
   description: string;
   bulletPoints?: string[];
+  stage: ReferenceAppStage;
   photo?: string;
   appPath?: string;
   photoOnLeft?: boolean;
@@ -25,6 +27,7 @@ export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
   className,
   appPath,
   sendMessage,
+  stage,
 }) => {
   const displayPhoto = photo || REFERENCE_APP_PLACEHOLDER_PHOTO;
 
@@ -140,6 +143,11 @@ export const ReferenceAppCard: React.FC<ReferenceAppCardProps> = ({
           View details
           <Expand size={14} className="sm:w-4 sm:h-4" strokeWidth={2} />
         </button>
+
+        {/* Stage display */}
+        <div className="pointer-events-auto">
+          <ReferenceAppStatusIndicator stage={stage} size="sm" />
+        </div>
 
         {/* Feature Tags */}
         {/* {bulletPoints.length > 0 && (

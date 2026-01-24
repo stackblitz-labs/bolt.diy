@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CollectionPage } from './CollectionPage';
-import type { CollectionPageIndexEntry, LandingPageIndexEntry } from '~/lib/replay/ReferenceApps';
+import type { CollectionPageIndexEntry, ReferenceAppSummary } from '~/lib/replay/ReferenceApps';
 
 interface CollectionModalProps {
   collection: CollectionPageIndexEntry | null;
-  referenceApps: LandingPageIndexEntry[];
+  referenceApps: ReferenceAppSummary[];
   onClose: () => void;
-  onAppClick: (app: LandingPageIndexEntry) => void;
+  onAppClick: (app: ReferenceAppSummary) => void;
 }
 
 export const CollectionModal: React.FC<CollectionModalProps> = ({ collection, referenceApps, onClose, onAppClick }) => {

@@ -5,9 +5,8 @@ import { CategorySelector, type IntroSectionCategory } from './CategorySelector'
 import { ReferenceAppCard } from './ReferenceAppCard';
 import { CollectionModal } from './CollectionModal';
 import {
-  getLandingPageIndex,
-  type LandingPageIndexEntry,
-  ReferenceAppStage,
+  getReferenceAppSummaries,
+  type ReferenceAppSummary,
   getCollections,
   type CollectionPageIndexEntry,
 } from '~/lib/replay/ReferenceApps';
@@ -23,14 +22,14 @@ interface AppTemplatesProps {
 
 const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>('All');
-  const [showAlpha, setShowAlpha] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams] = useSearchParams();
   const hasHandledAppPath = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, scrollLeft: 0 });
-  const [referenceApps, setReferenceApps] = useState<LandingPageIndexEntry[]>([]);
+  const [referenceApps, setReferenceApps] = useState<ReferenceAppSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [collections, setCollections] = useState<CollectionPageIndexEntry[]>([]);
   const [isLoadingCollections, setIsLoadingCollections] = useState(true);
@@ -42,7 +41,7 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
     const loadReferenceApps = async () => {
       try {
         setIsLoading(true);
-        const apps = await getLandingPageIndex();
+        const apps = await getReferenceAppSummaries();
         // Transform the API response to match the component's expected format
         setReferenceApps(apps);
       } catch (error) {
@@ -101,11 +100,11 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
 
   // Filter apps by stage first (before calculating categories)
   const stageFilteredApps = useMemo(() => {
-    if (showAlpha) {
+    if (showAll) {
       return referenceApps;
     }
-    return referenceApps.filter((app) => app.stage !== ReferenceAppStage.Alpha);
-  }, [referenceApps, showAlpha]);
+    return referenceApps.filter((app) => ['alpha', 'beta', 'release'].includes(app.stage));
+  }, [referenceApps, showAll]);
 
   const categories = useMemo(() => {
     const sectionCategories: IntroSectionCategory[] = [];
@@ -235,8 +234,8 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
             categories={categories}
             selectedCategory={selectedCategory}
             onCategorySelect={setSelectedCategory}
-            showAlpha={showAlpha}
-            onShowAlphaChange={setShowAlpha}
+            showAll={showAll}
+            onShowAllChange={setShowAll}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
           />
@@ -270,6 +269,7 @@ const AppTemplates = ({ sendMessage }: AppTemplatesProps) => {
                         appName={app.name}
                         description={app.shortDescription}
                         bulletPoints={app.bulletPoints}
+                        stage={app.stage}
                         photo={app.screenshotURL}
                         appPath={app.referenceAppPath}
                         sendMessage={sendMessage}

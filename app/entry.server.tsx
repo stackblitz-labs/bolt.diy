@@ -65,7 +65,7 @@ export default async function handleRequest(
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
     "media-src 'self' https://static.replay.io",
-    "connect-src 'self' https://*.replay.io https://auth.nut.new https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://widget.intercom.io https://api.intercom.io https://api-iam.intercom.io wss://*.intercom.io https://telemetry.replay.io https://*.github.com https://*.githubusercontent.com https://cdn.segment.com https://api.segment.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.lgrckt-in.com http://*.ts.net https://replay-analytics.netlify.app",
+    "connect-src 'self' https://*.replay.io https://auth.nut.new https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://widget.intercom.io https://api.intercom.io https://api-iam.intercom.io wss://*.intercom.io https://telemetry.replay.io https://*.github.com https://*.githubusercontent.com https://cdn.segment.com https://api.segment.io https://va.vercel-scripts.com https://vitals.vercel-insights.com https://*.lgrckt-in.com http://*.ts.net https://replay-analytics.netlify.app https://builder-reference-app-tracker.netlify.app",
     "frame-src 'self' https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://intercom-sheets.com https://*.replay.io",
     "worker-src 'self' blob:",
     "object-src 'none'",
