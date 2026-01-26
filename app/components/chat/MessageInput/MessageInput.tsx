@@ -17,6 +17,7 @@ import { buildBreadcrumbData } from '~/utils/componentBreadcrumb';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { mobileNavStore } from '~/lib/stores/mobileNav';
 import { userStore } from '~/lib/stores/auth';
+import { messageInputFocusStore } from '~/lib/stores/messageInputFocus';
 import { processImage, validateImageFile, formatFileSize } from '~/utils/imageProcessing';
 import { toast } from 'react-toastify';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
@@ -110,13 +111,24 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const user = useStore(userStore);
   const selectedElement = useStore(workbenchStore.selectedElement) as SelectedElementData | null;
 
-  // Focus textarea if URL has focus=true parameter
+  // Focus textarea if URL has focus=true parameter or focus is triggered via store
+  const focusTrigger = useStore(messageInputFocusStore.focusTrigger);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('focus') === 'true' && textareaRef?.current) {
       textareaRef.current.focus();
     }
   }, [textareaRef]);
+
+  useEffect(() => {
+    if (focusTrigger > 0 && textareaRef?.current) {
+      // Small delay to ensure the component is rendered
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [focusTrigger, textareaRef]);
 
   // Helper functions for element highlighting
   const highlightElement = (component: ReactComponent) => {

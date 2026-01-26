@@ -11,10 +11,13 @@ import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import Cookies from 'js-cookie';
 import { useStore } from '@nanostores/react';
 import { sidebarMenuStore } from '~/lib/stores/sidebarMenu';
+import { messageInputFocusStore } from '~/lib/stores/messageInputFocus';
 import useViewport from '~/lib/hooks';
 import { Plus, Search, Folder, FolderOpen, PanelLeft, Home } from '~/components/ui/Icon';
 import { classNames } from '~/utils/classNames';
 import { ClientAuth } from '~/components/auth/ClientAuth';
+import WithTooltip from '~/components/ui/Tooltip';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 
 type DialogContent = { type: 'delete'; item: AppLibraryEntry } | null;
 
@@ -227,119 +230,163 @@ export const Menu = () => {
           {/* Menu Items */}
           <div className="space-y-1">
             {/* Home */}
-            <a
-              href="/"
-              className={classNames(
-                'w-full flex items-center rounded-md text-bolt-elements-textPrimary transition-colors',
-                effectiveCollapsed ? 'justify-center px-2 py-2' : 'gap-3 px-3 py-2',
-                window.location.pathname === '/' || window.location.pathname === ''
-                  ? 'bg-bolt-elements-background-depth-1'
-                  : 'hover:bg-bolt-elements-background-depth-1',
+            <TooltipProvider>
+              {!effectiveCollapsed ? (
+                <a
+                  href="/"
+                  className={classNames(
+                    'w-full flex items-center rounded-md text-bolt-elements-textPrimary transition-colors',
+                    effectiveCollapsed ? 'justify-center px-2 py-2' : 'gap-3 px-3 py-2',
+                    window.location.pathname === '/' || window.location.pathname === ''
+                      ? 'bg-bolt-elements-background-depth-1'
+                      : 'hover:bg-bolt-elements-background-depth-1',
+                  )}
+                  title={effectiveCollapsed ? 'Home' : undefined}
+                >
+                  <Home size={18} className="text-bolt-elements-textPrimary" />
+                  <span className="text-sm font-medium">Home</span>
+                </a>
+              ) : (
+                <WithTooltip tooltip="Home">
+                  <a
+                    href="/"
+                    className={classNames(
+                      'w-full flex items-center rounded-md text-bolt-elements-textPrimary transition-colors',
+                      effectiveCollapsed ? 'justify-center px-2 py-2' : 'gap-3 px-3 py-2',
+                      window.location.pathname === '/' || window.location.pathname === ''
+                        ? 'bg-bolt-elements-background-depth-1'
+                        : 'hover:bg-bolt-elements-background-depth-1',
+                    )}
+                    title={effectiveCollapsed ? 'Home' : undefined}
+                  >
+                    <Home size={18} className="text-bolt-elements-textPrimary" />
+                  </a>
+                </WithTooltip>
               )}
-              title={effectiveCollapsed ? 'Home' : undefined}
-            >
-              <Home size={18} className="text-bolt-elements-textPrimary" />
-              {!effectiveCollapsed && <span className="text-sm font-medium">Home</span>}
-            </a>
 
-            {/* New App */}
-            {!effectiveCollapsed ? (
-              <a
-                href="/?focus=true"
-                className="w-full flex items-center justify-between px-3 py-2 rounded-md text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors group"
-              >
-                <div className="flex items-center gap-3">
-                  <Plus size={18} className="text-bolt-elements-textPrimary" />
-                  <span className="text-sm font-medium">New App</span>
-                </div>
-                <span className="text-xs text-bolt-elements-textSecondary">Ctrl+N</span>
-              </a>
-            ) : (
-              <a
-                href="/?focus=true"
-                className="w-full flex items-center justify-center px-2 py-2 rounded-md text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors"
-                title="New App"
-              >
-                <Plus size={18} className="text-bolt-elements-textPrimary" />
-              </a>
-            )}
-
-            {/* Search - transforms to input when clicked */}
-            {!effectiveCollapsed &&
-              (!isSearchFocused && !searchValue ? (
-                <button
+              {/* New App */}
+              {!effectiveCollapsed ? (
+                <div
                   onClick={() => {
-                    setIsSearchFocused(true);
-                    // Focus the input after state update
-                    setTimeout(() => {
-                      searchInputRef.current?.focus();
-                    }, 0);
+                    if (isSmallViewport) {
+                      sidebarMenuStore.close();
+                    } else {
+                      setIsCollapsed(true);
+                      sidebarMenuStore.setCollapsed(true);
+                      sidebarMenuStore.close();
+                    }
+                    // Trigger focus on message input
+                    messageInputFocusStore.triggerFocus();
                   }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors group"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors group cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <Search size={18} className="text-bolt-elements-textPrimary" />
-                    <span className="text-sm font-medium">Search</span>
+                    <Plus size={18} className="text-bolt-elements-textPrimary" />
+                    <span className="text-sm font-medium">New App</span>
                   </div>
-                  <span className="text-xs text-bolt-elements-textSecondary">Ctrl+K</span>
-                </button>
-              ) : (
-                <div className="relative w-full">
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-bolt-elements-textTertiary">
-                    <Search size={18} />
-                  </div>
-                  <input
-                    ref={searchInputRef}
-                    className="w-full bg-bolt-elements-background-depth-1 pl-10 pr-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 placeholder-bolt-elements-textTertiary text-bolt-elements-textPrimary border border-bolt-elements-borderColor border-opacity-50 transition-all duration-200"
-                    type="search"
-                    placeholder="Search apps..."
-                    value={searchValue}
-                    onChange={(e) => {
-                      setSearchValue(e.target.value);
-                      handleSearchChange(e);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        setSearchValue('');
-                        handleSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
-                        searchInputRef.current?.blur();
-                        setIsSearchFocused(false);
-                      }
-                    }}
-                    onBlur={() => {
-                      // Keep search visible if there's a search term
-                      if (!searchValue) {
-                        setIsSearchFocused(false);
-                      }
-                    }}
-                    aria-label="Search apps"
-                  />
+                  <span className="text-xs text-bolt-elements-textSecondary">Ctrl+N</span>
                 </div>
-              ))}
-            {effectiveCollapsed && (
-              <button
-                onClick={() => {
-                  if (isSmallViewport) {
-                    sidebarMenuStore.close();
-                    setIsSearchFocused(true);
-                    setTimeout(() => {
-                      searchInputRef.current?.focus();
-                    }, 0);
-                  } else {
-                    setIsCollapsed(false);
-                    sidebarMenuStore.setCollapsed(false);
-                    setIsSearchFocused(true);
-                    setTimeout(() => {
-                      searchInputRef.current?.focus();
-                    }, 0);
-                  }
-                }}
-                className="w-full flex items-center justify-center px-2 py-2 rounded-md text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors"
-                title="Search"
-              >
-                <Search size={18} className="text-bolt-elements-textPrimary" />
-              </button>
-            )}
+              ) : (
+                <WithTooltip tooltip="New App">
+                  <div
+                    onClick={() => {
+                      if (isSmallViewport) {
+                        sidebarMenuStore.close();
+                      } else {
+                        setIsCollapsed(true);
+                        sidebarMenuStore.setCollapsed(true);
+                        sidebarMenuStore.close();
+                      }
+                      // Trigger focus on message input
+                      messageInputFocusStore.triggerFocus();
+                    }}
+                    className="w-full flex items-center justify-center px-2 py-2 rounded-md text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors cursor-pointer"
+                    title="New App"
+                  >
+                    <Plus size={18} className="text-bolt-elements-textPrimary" />
+                  </div>
+                </WithTooltip>
+              )}
+
+              {/* Search - transforms to input when clicked */}
+              {!effectiveCollapsed &&
+                (!isSearchFocused && !searchValue ? (
+                  <button
+                    onClick={() => {
+                      setIsSearchFocused(true);
+                      // Focus the input after state update
+                      setTimeout(() => {
+                        searchInputRef.current?.focus();
+                      }, 0);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-md text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Search size={18} className="text-bolt-elements-textPrimary" />
+                      <span className="text-sm font-medium">Search</span>
+                    </div>
+                    <span className="text-xs text-bolt-elements-textSecondary">Ctrl+K</span>
+                  </button>
+                ) : (
+                  <div className="relative w-full">
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-bolt-elements-textTertiary">
+                      <Search size={18} />
+                    </div>
+                    <input
+                      ref={searchInputRef}
+                      className="w-full bg-bolt-elements-background-depth-1 pl-10 pr-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 placeholder-bolt-elements-textTertiary text-bolt-elements-textPrimary border border-bolt-elements-borderColor border-opacity-50 transition-all duration-200"
+                      type="search"
+                      placeholder="Search apps..."
+                      value={searchValue}
+                      onChange={(e) => {
+                        setSearchValue(e.target.value);
+                        handleSearchChange(e);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          setSearchValue('');
+                          handleSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+                          searchInputRef.current?.blur();
+                          setIsSearchFocused(false);
+                        }
+                      }}
+                      onBlur={() => {
+                        // Keep search visible if there's a search term
+                        if (!searchValue) {
+                          setIsSearchFocused(false);
+                        }
+                      }}
+                      aria-label="Search apps"
+                    />
+                  </div>
+                ))}
+              {effectiveCollapsed && (
+                <WithTooltip tooltip="Search">
+                  <button
+                    onClick={() => {
+                      if (isSmallViewport) {
+                        sidebarMenuStore.close();
+                        setIsSearchFocused(true);
+                        setTimeout(() => {
+                          searchInputRef.current?.focus();
+                        }, 0);
+                      } else {
+                        setIsCollapsed(false);
+                        sidebarMenuStore.setCollapsed(false);
+                        setIsSearchFocused(true);
+                        setTimeout(() => {
+                          searchInputRef.current?.focus();
+                        }, 0);
+                      }
+                    }}
+                    className="w-full flex items-center justify-center px-2 py-2 rounded-md text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 transition-colors"
+                    title="Search"
+                  >
+                    <Search size={18} className="text-bolt-elements-textPrimary" />
+                  </button>
+                </WithTooltip>
+              )}
+            </TooltipProvider>
           </div>
         </div>
 
