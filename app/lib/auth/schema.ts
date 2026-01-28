@@ -79,6 +79,7 @@ export const account = pgTable(
     refreshToken: text('refresh_token'),
     accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
     scope: text('scope'),
+    password: text('password'), // Required for email-password auth
     idToken: text('id_token'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

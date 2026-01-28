@@ -1,11 +1,50 @@
-import { redirect, type LoaderFunctionArgs } from '@remix-run/node';
-import { useLoaderData, useSearchParams, Form, Link } from '@remix-run/react';
+import { redirect, json, type LoaderFunctionArgs, type ActionFunctionArgs } from '@remix-run/node';
+import { useLoaderData, useSearchParams, Form, Link, useActionData } from '@remix-run/react';
 import { getOptionalSession } from '~/lib/auth/session.server';
+import { auth } from '~/lib/auth/auth.server';
 import { signIn } from '~/lib/auth/auth.client';
 import { FaGoogle, FaFacebook } from 'react-icons/fa';
 import { MdEmail, MdLock, MdCheck, MdOutlineVpnKey } from 'react-icons/md';
 import { Button } from '~/components/ui/Button';
 import { Input } from '~/components/ui/Input';
+
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData();
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+  const confirmPassword = formData.get('confirm_password') as string;
+  const confirmEmail = formData.get('confirm_email') as string;
+
+  if (email !== confirmEmail) {
+    return json({ error: 'Emails do not match' }, { status: 400 });
+  }
+
+  if (password !== confirmPassword) {
+    return json({ error: 'Passwords do not match' }, { status: 400 });
+  }
+
+  try {
+    const response = await auth.api.signUpEmail({
+      body: {
+        email,
+        password,
+        name: email.split('@')[0],
+      },
+      asResponse: true,
+    });
+
+    if (!response.ok) {
+      return json({ error: 'Failed to create account' }, { status: 400 });
+    }
+
+    // Forward the session headers so the user is logged in immediately
+    return redirect('/app?login=true', {
+      headers: response.headers,
+    });
+  } catch (error: any) {
+    return json({ error: error.message || 'Something went wrong' }, { status: 500 });
+  }
+}
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await getOptionalSession(request);
@@ -29,6 +68,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function SignUpPage() {
   const [searchParams] = useSearchParams();
   const loaderData = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const returnTo = searchParams.get('returnTo') || '/app?login=true';
 
   const getErrorMessage = (error: string | null): string | null => {
@@ -46,10 +86,10 @@ export default function SignUpPage() {
       temporarily_unavailable: 'The authentication service is temporarily unavailable. Please try again later.',
     };
 
-    return errorMessages[error] || 'An error occurred during sign-in. Please try again.';
+    return errorMessages[error] || error;
   };
 
-  const errorMessage = getErrorMessage(loaderData.error) || loaderData.errorDescription;
+  const errorMessage = actionData?.error || getErrorMessage(loaderData.error) || loaderData.errorDescription;
 
   const handleGoogleLogin = () => {
     signIn.social({
