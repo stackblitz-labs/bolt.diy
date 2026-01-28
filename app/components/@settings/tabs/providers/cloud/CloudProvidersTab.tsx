@@ -17,12 +17,12 @@ import type { IconType } from 'react-icons';
 
 // Add type for provider names to ensure type safety
 type ProviderName =
+  | 'Google'
   | 'AmazonBedrock'
   | 'Anthropic'
   | 'Cohere'
   | 'Deepseek'
   | 'Github'
-  | 'Google'
   | 'Groq'
   | 'HuggingFace'
   | 'Hyperbolic'
@@ -35,12 +35,12 @@ type ProviderName =
 
 // Update the PROVIDER_ICONS type to use the ProviderName type
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
+  Google: SiGoogle,
   AmazonBedrock: SiAmazon,
   Anthropic: FaBrain,
   Cohere: BiChip,
   Deepseek: BiCodeBlock,
   Github: SiGithub,
-  Google: SiGoogle,
   Groq: BsCloud,
   HuggingFace: SiHuggingface,
   Hyperbolic: TbCloudComputing,

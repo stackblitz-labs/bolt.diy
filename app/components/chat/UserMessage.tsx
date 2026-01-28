@@ -20,9 +20,45 @@ interface UserMessageProps {
   parts:
     | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
     | undefined;
+  timestamp?: Date;
 }
 
-export function UserMessage({ content, parts }: UserMessageProps) {
+function formatTime(date?: Date): string {
+  if (!date) {
+    return '';
+  }
+
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function UserAvatar({ profile }: { profile: { avatar?: string; username?: string } | null }) {
+  if (profile?.avatar) {
+    return (
+      <img
+        src={profile.avatar}
+        alt={profile?.username || 'User'}
+        className="w-8 h-8 object-cover rounded-full"
+        loading="eager"
+        decoding="sync"
+      />
+    );
+  }
+
+  return (
+    <div
+      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+      style={{ background: 'var(--bolt-chat-user-avatar-bg)' }}
+    >
+      <div className="i-ph:user text-sm text-bolt-elements-textSecondary" />
+    </div>
+  );
+}
+
+export function UserMessage({ content, parts, timestamp }: UserMessageProps) {
   const profile = useStore(profileStore);
 
   // Extract images from parts - look for file parts with image mime types
@@ -31,66 +67,47 @@ export function UserMessage({ content, parts }: UserMessageProps) {
       (part): part is FileUIPart => part.type === 'file' && 'mimeType' in part && part.mimeType.startsWith('image/'),
     ) || [];
 
-  if (Array.isArray(content)) {
-    const textItem = content.find((item) => item.type === 'text');
-    const textContent = stripMetadata(textItem?.text || '');
+  const textContent = Array.isArray(content)
+    ? stripMetadata(content.find((item) => item.type === 'text')?.text || '')
+    : stripMetadata(content);
 
-    return (
-      <div className="overflow-hidden flex flex-col gap-3 items-center ">
-        <div className="flex flex-row items-start justify-center overflow-hidden shrink-0 self-start">
-          {profile?.avatar || profile?.username ? (
-            <div className="flex items-end gap-2">
-              <img
-                src={profile.avatar}
-                alt={profile?.username || 'User'}
-                className="w-[25px] h-[25px] object-cover rounded-full"
-                loading="eager"
-                decoding="sync"
-              />
-              <span className="text-bolt-elements-textPrimary text-sm">
-                {profile?.username ? profile.username : ''}
-              </span>
-            </div>
-          ) : (
-            <div className="i-ph:user-fill text-accent-500 text-2xl" />
-          )}
-        </div>
-        <div className="flex flex-col gap-4 bg-accent-500/10 backdrop-blur-sm p-3 py-3 w-auto rounded-lg mr-auto">
-          {textContent && <Markdown html>{textContent}</Markdown>}
-          {images.map((item, index) => (
-            <img
-              key={index}
-              src={`data:${item.mimeType};base64,${item.data}`}
-              alt={`Image ${index + 1}`}
-              className="max-w-full h-auto rounded-lg"
-              style={{ maxHeight: '512px', objectFit: 'contain' }}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const textContent = stripMetadata(content);
+  const displayName = profile?.username || 'You';
+  const timeStr = formatTime(timestamp);
 
   return (
-    <div className="flex flex-col bg-accent-500/10 backdrop-blur-sm px-5 p-3.5 w-auto rounded-lg ml-auto">
-      <div className="flex gap-3.5 mb-4">
-        {images.map((item, index) => (
-          <div className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden">
-            <div className="h-16 w-16 bg-transparent outline-none">
-              <img
-                key={index}
-                src={`data:${item.mimeType};base64,${item.data}`}
-                alt={`Image ${index + 1}`}
-                className="h-full w-full rounded-lg"
-                style={{ objectFit: 'fill' }}
-              />
-            </div>
-          </div>
-        ))}
+    <div className="flex gap-4 flex-row-reverse group">
+      <div className="mt-1">
+        <UserAvatar profile={profile} />
       </div>
-      <Markdown html>{textContent}</Markdown>
+      <div className="space-y-1 max-w-[85%]">
+        <div className="flex items-baseline gap-2 justify-end">
+          {timeStr && <span className="text-[10px] text-bolt-elements-textTertiary">{timeStr}</span>}
+          <span className="text-xs font-bold text-bolt-elements-textPrimary">{displayName}</span>
+        </div>
+        <div
+          className="p-4 rounded-2xl rounded-tr-none text-sm leading-relaxed shadow-md text-white"
+          style={{
+            background: 'var(--bolt-chat-user-bubble-bg)',
+          }}
+        >
+          {images.length > 0 && (
+            <div className="flex gap-3.5 mb-3">
+              {images.map((item, index) => (
+                <div key={index} className="relative flex rounded-lg overflow-hidden">
+                  <img
+                    src={`data:${item.mimeType};base64,${item.data}`}
+                    alt={`Image ${index + 1}`}
+                    className="h-16 w-16 object-cover rounded-lg"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="[&_*]:!text-white [&_a]:underline">
+            <Markdown html>{textContent}</Markdown>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

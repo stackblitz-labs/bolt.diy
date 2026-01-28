@@ -1,6 +1,36 @@
 /* Color Tokens Light Theme */
 :root,
 :root[data-theme='light'] {
+  /* Brand Colors */
+  --bolt-brand-500: #8b5cf6;
+  --bolt-brand-600: #7c3aed;
+  --bolt-brand-700: #6d28d9;
+  --bolt-brand-gradient: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+
+  /* Chat UI Colors */
+  --bolt-chat-ai-bubble-bg: #ffffff;
+  --bolt-chat-ai-bubble-border: #f1f5f9;
+  --bolt-chat-ai-avatar-bg: var(--bolt-brand-gradient);
+  --bolt-chat-user-bubble-bg: var(--bolt-brand-600);
+  --bolt-chat-user-bubble-text: #ffffff;
+  --bolt-chat-user-avatar-bg: #e2e8f0;
+  --bolt-chat-panel-bg: #f8fafc;
+  --bolt-chat-suggestions-bg: #f8fafc;
+  --bolt-chat-suggestions-border: #e2e8f0;
+  --bolt-chat-suggestions-hover-bg: #f5f3ff;
+  --bolt-chat-suggestions-hover-border: #ddd6fe;
+  --bolt-chat-input-glow: rgba(124, 58, 237, 0.2);
+
+  /* Status Badge Colors */
+  --bolt-status-success-bg: #ecfdf5;
+  --bolt-status-success-text: #047857;
+  --bolt-status-success-border: rgba(16, 185, 129, 0.5);
+  --bolt-status-success-dot: #10b981;
+
+  /* Header Colors */
+  --bolt-header-bg: rgba(255, 255, 255, 0.8);
+  --bolt-header-border: #e2e8f0;
+
   --bolt-elements-borderColor: theme('colors.alpha.gray.10');
   --bolt-elements-borderColorActive: theme('colors.accent.600');
 
@@ -109,6 +139,36 @@
 /* Color Tokens Dark Theme */
 :root,
 :root[data-theme='dark'] {
+  /* Brand Colors - Dark Theme */
+  --bolt-brand-500: #a78bfa;
+  --bolt-brand-600: #8b5cf6;
+  --bolt-brand-700: #7c3aed;
+  --bolt-brand-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+
+  /* Chat UI Colors - Dark Theme */
+  --bolt-chat-ai-bubble-bg: #1e293b;
+  --bolt-chat-ai-bubble-border: #334155;
+  --bolt-chat-ai-avatar-bg: var(--bolt-brand-gradient);
+  --bolt-chat-user-bubble-bg: var(--bolt-brand-600);
+  --bolt-chat-user-bubble-text: #ffffff;
+  --bolt-chat-user-avatar-bg: #475569;
+  --bolt-chat-panel-bg: #0f172a;
+  --bolt-chat-suggestions-bg: #1e293b;
+  --bolt-chat-suggestions-border: #334155;
+  --bolt-chat-suggestions-hover-bg: #2e1065;
+  --bolt-chat-suggestions-hover-border: #7c3aed;
+  --bolt-chat-input-glow: rgba(139, 92, 246, 0.3);
+
+  /* Status Badge Colors - Dark Theme */
+  --bolt-status-success-bg: rgba(16, 185, 129, 0.1);
+  --bolt-status-success-text: #34d399;
+  --bolt-status-success-border: rgba(52, 211, 153, 0.3);
+  --bolt-status-success-dot: #34d399;
+
+  /* Header Colors - Dark Theme */
+  --bolt-header-bg: rgba(15, 23, 42, 0.8);
+  --bolt-header-border: #1e293b;
+
   --bolt-elements-borderColor: theme('colors.alpha.white.10');
   --bolt-elements-borderColorActive: theme('colors.accent.500');
 

@@ -14,7 +14,12 @@ import { getApiKeysFromCookies } from './APIKeyManager';
 import Cookies from 'js-cookie';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import styles from './BaseChat.module.scss';
+import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
+import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
+import GitCloneButton from './GitCloneButton';
+import { ClearChatHistoryButton } from './ClearChatHistoryButton';
 import type { ProviderInfo } from '~/types/model';
+import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
 import ChatAlert from './ChatAlert';
@@ -107,7 +112,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       enhancePrompt,
       sendMessage,
       handleStop,
+      importChat,
       exportChat,
+      clearChatHistory,
       hasOlderMessages,
       loadingOlder,
       loadingOlderError,
@@ -142,7 +149,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
-    const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
+    const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(true);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
     const [transcript, setTranscript] = useState('');
@@ -481,14 +488,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
               </div>
             </StickToBottom>
-            {/* <div className="flex flex-col justify-center">
+            <div className="flex flex-col justify-center">
               {!chatStarted && (
                 <div className="flex justify-center gap-2">
                   {ImportButtons(importChat)}
                   <GitCloneButton importChat={importChat} />
                 </div>
               )}
-              {chatStarted && (
+              {/* Clear Chat History button hidden for cleaner UI - can be accessed via menu */}
+              {chatStarted && false && (
                 <div className="flex justify-center gap-2 pb-4">
                   <ClearChatHistoryButton clearChatHistory={clearChatHistory} />
                 </div>
@@ -505,7 +513,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   })}
                 {!chatStarted && <StarterTemplates />}
               </div>
-            </div> */}
+            </div>
           </div>
           <ClientOnly>
             {() => (

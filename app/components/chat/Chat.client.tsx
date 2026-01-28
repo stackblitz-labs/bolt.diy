@@ -153,11 +153,26 @@ export const ChatImpl = memo(
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
     const [model, setModel] = useState(() => {
       const savedModel = Cookies.get('selectedModel');
-      return savedModel || DEFAULT_MODEL;
+      const selectedModel = savedModel || DEFAULT_MODEL;
+      console.log('🤖 [Chat] Model initialized:', {
+        savedModel,
+        DEFAULT_MODEL,
+        selectedModel,
+      });
+
+      return selectedModel;
     });
     const [provider, setProvider] = useState(() => {
       const savedProvider = Cookies.get('selectedProvider');
-      return (PROVIDER_LIST.find((p) => p.name === savedProvider) || DEFAULT_PROVIDER) as ProviderInfo;
+      const selectedProvider = (PROVIDER_LIST.find((p) => p.name === savedProvider) ||
+        DEFAULT_PROVIDER) as ProviderInfo;
+      console.log('🤖 [Chat] Provider initialized:', {
+        savedProvider,
+        DEFAULT_PROVIDER: DEFAULT_PROVIDER?.name,
+        selectedProvider: selectedProvider.name,
+      });
+
+      return selectedProvider;
     });
     const { showChat } = useStore(chatStore);
     const [animationScope, animate] = useAnimate();
@@ -192,7 +207,6 @@ export const ChatImpl = memo(
         chatMode,
         designScheme,
         restaurantThemeId: restaurantThemeIdRef.current,
-        recentlyEdited: workbenchStore.getModifiedFilePaths(),
         supabase: {
           isConnected: supabaseConn.isConnected,
           hasSelectedProject: !!selectedProject,
@@ -375,6 +389,11 @@ export const ChatImpl = memo(
 
     useEffect(() => {
       chatStore.setKey('started', initialMessages.length > 0);
+
+      /*
+       * Always show workbench on mount so preview is visible immediately
+       * workbenchStore.showWorkbench.set(true);
+       */
     }, []);
 
     useEffect(() => {
@@ -508,6 +527,11 @@ export const ChatImpl = memo(
       chatStore.setKey('started', true);
 
       setChatStarted(true);
+
+      /*
+       * workbenchStore.showWorkbench.set(true);
+       * console.log("workbenchStore.showWorkbench", workbenchStore.showWorkbench);
+       */
     };
 
     // Helper function to create message parts array from text and images
@@ -575,6 +599,8 @@ export const ChatImpl = memo(
         return;
       }
 
+      console.log('🤖 [Chat] sendMessage called with model:', model, 'provider:', provider.name);
+
       let finalMessageContent = messageContent;
 
       if (selectedElement) {
@@ -607,6 +633,8 @@ export const ChatImpl = memo(
           }
 
           // Proceed directly to normal message flow - API will use info collection tools
+          console.log('🤖 [Chat] Sending message with model:', model, 'provider:', provider.name);
+
           const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
           const attachments = uploadedFiles.length > 0 ? await filesToAttachments(uploadedFiles) : undefined;
 
@@ -644,24 +672,11 @@ export const ChatImpl = memo(
           );
         }
 
-        logger.info('[TEMPLATE_FLOW] Auto-select decision point', {
-          autoSelectTemplate,
-          templateInjectionProcessed: templateInjectionProcessedRef.current,
-          willRunAutoSelect: autoSelectTemplate && !templateInjectionProcessedRef.current,
-          chatStarted,
-        });
-
-        if (autoSelectTemplate && !templateInjectionProcessedRef.current) {
+        if (autoSelectTemplate) {
           const { template, title } = await selectStarterTemplate({
             message: finalMessageContent,
             model,
             provider,
-          });
-
-          logger.info('[TEMPLATE_FLOW] Client LLM selected template', {
-            template,
-            title,
-            isBlank: template === 'blank',
           });
 
           if (template !== 'blank') {
@@ -698,13 +713,6 @@ export const ChatImpl = memo(
               const themeId = selectedTheme?.id || null;
               logger.info(`[THEME DEBUG] Setting restaurantThemeId to: ${themeId || 'null'}`);
               restaurantThemeIdRef.current = themeId;
-
-              logger.info('[TEMPLATE_FLOW] Setting messages with client template', {
-                templateName: template,
-                themeId,
-                assistantMessageLength: assistantMessage.length,
-                assistantMessagePreview: assistantMessage.substring(0, 300),
-              });
 
               setMessages([
                 {
