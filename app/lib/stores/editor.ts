@@ -2,6 +2,7 @@ import { atom, computed, map, type MapStore, type WritableAtom } from 'nanostore
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import type { FileMap, FilesStore } from './files';
 import { createScopedLogger } from '~/utils/logger';
+import { WORK_DIR } from '~/utils/constants';
 
 export type EditorDocuments = Record<string, EditorDocument>;
 
@@ -20,7 +21,15 @@ export class EditorStore {
       return undefined;
     }
 
-    return documents[selectedFile];
+    // Normalize path: strip /home/project/ prefix if present
+    // FilesStore uses relative paths but FileTree passes absolute paths
+    let lookupPath = selectedFile;
+
+    if (selectedFile.startsWith(WORK_DIR + '/')) {
+      lookupPath = selectedFile.slice(WORK_DIR.length + 1);
+    }
+
+    return documents[lookupPath];
   });
 
   constructor(filesStore: FilesStore) {

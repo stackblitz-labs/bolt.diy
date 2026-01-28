@@ -179,7 +179,7 @@ function ProjectActions({
   };
 
   const handleDelete = async () => {
-    if (!onDelete) {
+    if (!onDelete || isDeleting) {
       return;
     }
 
@@ -191,6 +191,10 @@ function ProjectActions({
       setIsOpen(false);
     } catch (error) {
       console.error('Failed to delete project:', error);
+
+      // Close modal on error to prevent repeated API calls
+      setShowDeleteModal(false);
+      setIsOpen(false);
     } finally {
       setIsDeleting(false);
     }

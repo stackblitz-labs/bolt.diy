@@ -7,7 +7,6 @@ import { bufferWatchEvents } from '~/utils/buffer';
 import { WORK_DIR } from '~/utils/constants';
 import { computeFileModifications } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
-import { unreachable } from '~/utils/unreachable';
 import {
   addLockedFile,
   removeLockedFile,
@@ -25,6 +24,41 @@ import { getCurrentChatId } from '~/utils/fileLocks';
 const logger = createScopedLogger('FilesStore');
 
 const utf8TextDecoder = new TextDecoder('utf8', { fatal: true });
+
+/**
+ * Validates and normalizes a file path to ensure it's within the WebContainer working directory.
+ * Returns the relative path from the working directory.
+ *
+ * @param workdir - The WebContainer working directory (e.g., '/home/project')
+ * @param filePath - The file path to validate (can be absolute or relative)
+ * @returns The normalized relative path
+ * @throws Error if the path escapes the working directory
+ */
+function validateAndNormalizePath(workdir: string, filePath: string): string {
+  let normalizedPath = filePath;
+
+  if (filePath.startsWith(workdir)) {
+    // Already absolute within workdir - use as-is
+    normalizedPath = filePath;
+  } else if (filePath.startsWith('/')) {
+    // Absolute path but not starting with workdir - treat as relative to workdir
+    // Strip the leading slash and join with workdir
+    const pathWithoutSlash = filePath.slice(1);
+    normalizedPath = path.join(workdir, pathWithoutSlash);
+  } else {
+    // Relative path - join with workdir
+    normalizedPath = path.join(workdir, filePath);
+  }
+
+  const relativePath = path.relative(workdir, normalizedPath);
+
+  // Reject paths that escape the working directory
+  if (!relativePath || relativePath.startsWith('..') || relativePath === '.') {
+    throw new Error(`EINVAL: invalid path, must be within ${workdir}, got '${filePath}'`);
+  }
+
+  return relativePath;
+}
 
 export interface File {
   type: 'file';
@@ -63,6 +97,12 @@ export class FilesStore {
    * Keeps track of deleted files and folders to prevent them from reappearing on reload
    */
   #deletedPaths: Set<string> = import.meta.hot?.data.deletedPaths ?? new Set();
+
+  /**
+   * Tracks files that were recently saved programmatically to prevent the file watcher
+   * from overwriting them with stale or empty content during WebContainer's write operation.
+   */
+  #recentlySavedFiles: Set<string> = new Set();
 
   /**
    * Map of files that matches the state of WebContainer.
@@ -560,37 +600,49 @@ export class FilesStore {
     const webcontainer = await this.#webcontainer;
 
     try {
-      const relativePath = path.relative(webcontainer.workdir, filePath);
+      const relativePath = validateAndNormalizePath(webcontainer.workdir, filePath);
 
-      if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
-      }
+      // Mark file as recently saved to prevent watcher from overwriting with stale/empty content
+      this.#recentlySavedFiles.add(relativePath);
+      setTimeout(() => this.#recentlySavedFiles.delete(relativePath), 500);
 
-      const oldContent = this.getFile(filePath)?.content;
+      const currentFile = this.files.get()[relativePath];
+      const oldContent = currentFile?.type === 'file' ? currentFile.content : undefined;
 
-      if (!oldContent && oldContent !== '') {
-        unreachable('Expected content to be defined');
+      /*
+       * If file doesn't exist in store yet, delegate to createFile.
+       * This handles the race condition where WebContainer writes happen
+       * before the file watcher updates the store.
+       */
+      if (oldContent === undefined) {
+        logger.debug('File not in store yet, creating:', relativePath);
+        await this.createFile(relativePath, content);
+
+        return;
       }
 
       await webcontainer.fs.writeFile(relativePath, content);
 
-      if (!this.#modifiedFiles.has(filePath)) {
-        this.#modifiedFiles.set(filePath, oldContent);
+      if (!this.#modifiedFiles.has(relativePath)) {
+        this.#modifiedFiles.set(relativePath, oldContent);
       }
 
       // Get the current lock state before updating
-      const currentFile = this.files.get()[filePath];
       const isLocked = currentFile?.type === 'file' ? currentFile.isLocked : false;
 
       // we immediately update the file and don't rely on the `change` event coming from the watcher
-      this.files.setKey(filePath, {
+      this.files.setKey(relativePath, {
         type: 'file',
         content,
         isBinary: false,
         isLocked,
       });
 
-      logger.info('File updated');
+      logger.info('File updated', {
+        relativePath,
+        contentLength: content.length,
+        contentPreview: content.substring(0, 200),
+      });
     } catch (error) {
       logger.error('Failed to update file content\n\n', error);
 
@@ -706,8 +758,20 @@ export class FilesStore {
     const watchEvents = events.flat(2);
 
     for (const { type, path, buffer } of watchEvents) {
-      // remove any trailing slashes
-      const sanitizedPath = path.replace(/\/+$/g, '');
+      // Remove trailing slashes and normalize to relative path
+      let sanitizedPath = path.replace(/\/+$/g, '');
+
+      // Strip /home/project prefix to store relative paths only
+      if (sanitizedPath.startsWith(WORK_DIR + '/')) {
+        sanitizedPath = sanitizedPath.slice(WORK_DIR.length + 1);
+      } else if (sanitizedPath === WORK_DIR || sanitizedPath === '/home') {
+        continue; // Skip root directories entirely
+      }
+
+      // Skip empty paths
+      if (!sanitizedPath) {
+        continue;
+      }
 
       switch (type) {
         case 'add_dir': {
@@ -728,6 +792,13 @@ export class FilesStore {
         }
         case 'add_file':
         case 'change': {
+          // Skip watcher updates for files that were just saved programmatically
+          // to prevent race condition where watcher receives empty content first
+          if (this.#recentlySavedFiles.has(sanitizedPath)) {
+            logger.debug('Skipping watcher update for recently saved file', { path: sanitizedPath });
+            break;
+          }
+
           if (type === 'add_file') {
             this.#size++;
           }
@@ -745,6 +816,13 @@ export class FilesStore {
           if (!isBinary) {
             content = this.#decodeFileContent(buffer);
           }
+
+          logger.debug('File watcher change event', {
+            path: sanitizedPath,
+            type,
+            contentLength: content.length,
+            contentPreview: content.substring(0, 200),
+          });
 
           this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
 
@@ -776,20 +854,40 @@ export class FilesStore {
     }
   }
 
+  /**
+   * Ensures all parent directories of a path exist in the files store.
+   * This is necessary because mkdir() creates directories in WebContainer,
+   * but the file watcher events are buffered and may not fire before UI renders.
+   */
+  #ensureParentFolders(filePath: string) {
+    const parts = filePath.split('/');
+    let currentPath = '';
+
+    // Iterate through all parent directories (exclude the file itself)
+    for (let i = 0; i < parts.length - 1; i++) {
+      currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
+
+      // Only add if not already present
+      if (!this.files.get()[currentPath]) {
+        this.files.setKey(currentPath, { type: 'folder' });
+      }
+    }
+  }
+
   async createFile(filePath: string, content: string | Uint8Array = '') {
     const webcontainer = await this.#webcontainer;
 
     try {
-      const relativePath = path.relative(webcontainer.workdir, filePath);
-
-      if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
-      }
+      const relativePath = validateAndNormalizePath(webcontainer.workdir, filePath);
 
       const dirPath = path.dirname(relativePath);
 
       if (dirPath !== '.') {
         await webcontainer.fs.mkdir(dirPath, { recursive: true });
+
+        // Add folder entries to FilesStore immediately
+        // This prevents race condition with file watcher
+        this.#ensureParentFolders(relativePath);
       }
 
       const isBinary = content instanceof Uint8Array;
@@ -798,29 +896,29 @@ export class FilesStore {
         await webcontainer.fs.writeFile(relativePath, Buffer.from(content));
 
         const base64Content = Buffer.from(content).toString('base64');
-        this.files.setKey(filePath, {
+        this.files.setKey(relativePath, {
           type: 'file',
           content: base64Content,
           isBinary: true,
           isLocked: false,
         });
 
-        this.#modifiedFiles.set(filePath, base64Content);
+        this.#modifiedFiles.set(relativePath, base64Content);
       } else {
         const contentToWrite = (content as string).length === 0 ? ' ' : content;
         await webcontainer.fs.writeFile(relativePath, contentToWrite);
 
-        this.files.setKey(filePath, {
+        this.files.setKey(relativePath, {
           type: 'file',
           content: content as string,
           isBinary: false,
           isLocked: false,
         });
 
-        this.#modifiedFiles.set(filePath, content as string);
+        this.#modifiedFiles.set(relativePath, content as string);
       }
 
-      logger.info(`File created: ${filePath}`);
+      logger.info(`File created: ${relativePath}`);
 
       return true;
     } catch (error) {
@@ -833,17 +931,13 @@ export class FilesStore {
     const webcontainer = await this.#webcontainer;
 
     try {
-      const relativePath = path.relative(webcontainer.workdir, folderPath);
-
-      if (!relativePath) {
-        throw new Error(`EINVAL: invalid folder path, create '${relativePath}'`);
-      }
+      const relativePath = validateAndNormalizePath(webcontainer.workdir, folderPath);
 
       await webcontainer.fs.mkdir(relativePath, { recursive: true });
 
-      this.files.setKey(folderPath, { type: 'folder' });
+      this.files.setKey(relativePath, { type: 'folder' });
 
-      logger.info(`Folder created: ${folderPath}`);
+      logger.info(`Folder created: ${relativePath}`);
 
       return true;
     } catch (error) {
@@ -856,26 +950,22 @@ export class FilesStore {
     const webcontainer = await this.#webcontainer;
 
     try {
-      const relativePath = path.relative(webcontainer.workdir, filePath);
-
-      if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, delete '${relativePath}'`);
-      }
+      const relativePath = validateAndNormalizePath(webcontainer.workdir, filePath);
 
       await webcontainer.fs.rm(relativePath);
 
-      this.#deletedPaths.add(filePath);
+      this.#deletedPaths.add(relativePath);
 
-      this.files.setKey(filePath, undefined);
+      this.files.setKey(relativePath, undefined);
       this.#size--;
 
-      if (this.#modifiedFiles.has(filePath)) {
-        this.#modifiedFiles.delete(filePath);
+      if (this.#modifiedFiles.has(relativePath)) {
+        this.#modifiedFiles.delete(relativePath);
       }
 
       this.#persistDeletedPaths();
 
-      logger.info(`File deleted: ${filePath}`);
+      logger.info(`File deleted: ${relativePath}`);
 
       return true;
     } catch (error) {
@@ -888,39 +978,35 @@ export class FilesStore {
     const webcontainer = await this.#webcontainer;
 
     try {
-      const relativePath = path.relative(webcontainer.workdir, folderPath);
-
-      if (!relativePath) {
-        throw new Error(`EINVAL: invalid folder path, delete '${relativePath}'`);
-      }
+      const relativePath = validateAndNormalizePath(webcontainer.workdir, folderPath);
 
       await webcontainer.fs.rm(relativePath, { recursive: true });
 
-      this.#deletedPaths.add(folderPath);
+      this.#deletedPaths.add(relativePath);
 
-      this.files.setKey(folderPath, undefined);
+      this.files.setKey(relativePath, undefined);
 
       const allFiles = this.files.get();
 
-      for (const [path, dirent] of Object.entries(allFiles)) {
-        if (path.startsWith(folderPath + '/')) {
-          this.files.setKey(path, undefined);
+      for (const [filePath, dirent] of Object.entries(allFiles)) {
+        if (filePath.startsWith(relativePath + '/')) {
+          this.files.setKey(filePath, undefined);
 
-          this.#deletedPaths.add(path);
+          this.#deletedPaths.add(filePath);
 
           if (dirent?.type === 'file') {
             this.#size--;
           }
 
-          if (dirent?.type === 'file' && this.#modifiedFiles.has(path)) {
-            this.#modifiedFiles.delete(path);
+          if (dirent?.type === 'file' && this.#modifiedFiles.has(filePath)) {
+            this.#modifiedFiles.delete(filePath);
           }
         }
       }
 
       this.#persistDeletedPaths();
 
-      logger.info(`Folder deleted: ${folderPath}`);
+      logger.info(`Folder deleted: ${relativePath}`);
 
       return true;
     } catch (error) {

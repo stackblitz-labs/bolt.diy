@@ -48,7 +48,11 @@
       "Bash(pnpm lint)",
       "Bash(git log:*)",
       "WebFetch(domain:docs.github.com)",
-      "Bash(pnpm eslint:*)"
+      "Bash(pnpm eslint:*)",
+      "Bash(npm test:*)",
+      "Bash(/opt/homebrew/bin/pnpm run typecheck:*)",
+      "Bash(source:*)",
+      "Bash(./node_modules/.bin/pnpm run typecheck:*)"
     ],
     "deny": [],
     "ask": []

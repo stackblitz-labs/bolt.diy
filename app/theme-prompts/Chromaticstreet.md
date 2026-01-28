@@ -151,3 +151,9 @@ export const siteContent = {
   },
 };
 ```
+
+---
+
+## OUTPUT FORMAT REMINDER
+
+When generating or modifying code, you MUST use EXACTLY `<boltArtifact>` and `<boltAction>` tags (with the "bolt" prefix). Never use `<artifact>`, `<action>`, `<function_calls>`, `<invoke>`, or `<parameter>` - they will NOT work.

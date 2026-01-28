@@ -4,6 +4,7 @@ import type { ChatHistoryItem } from './useChatHistory';
 import type { Snapshot } from './types'; // Import Snapshot type
 import type { FileMap } from '~/lib/stores/files';
 import { withRetry } from '~/lib/utils/retry';
+import { WORK_DIR } from '~/utils/constants';
 import { loadOlderMessagesPage, loadRecentMessages } from './messageLoader';
 import type { MessageLoadProgress } from '~/types/message-loading';
 import { extractMessageAnnotations, normalizeAnnotationsForServer } from './annotationHelpers';
@@ -697,8 +698,8 @@ export async function getServerSnapshot(projectId: string): Promise<Snapshot | n
 }
 
 /**
- * Sanitize FileMap for server API by ensuring all required fields are present
- * and removing undefined entries that would be stripped by JSON.stringify
+ * Sanitize FileMap for server API by ensuring all required fields are present,
+ * removing undefined entries, and stripping the /home/project prefix from paths.
  */
 function sanitizeFilesForServer(
   files: FileMap,
@@ -710,8 +711,23 @@ function sanitizeFilesForServer(
       continue;
     } // Skip undefined entries
 
+    // Strip the /home/project prefix to get relative path
+    let relativePath = path;
+
+    if (path.startsWith(WORK_DIR + '/')) {
+      relativePath = path.slice(WORK_DIR.length + 1); // +1 for the trailing slash
+    } else if (path === WORK_DIR) {
+      // Skip the root working directory entry itself
+      continue;
+    }
+
+    // Skip empty paths
+    if (!relativePath) {
+      continue;
+    }
+
     if (entry.type === 'file') {
-      sanitized[path] = {
+      sanitized[relativePath] = {
         type: 'file',
         content: entry.content ?? '',
         isBinary: entry.isBinary ?? false,
@@ -719,7 +735,7 @@ function sanitizeFilesForServer(
         ...(entry.lockedByFolder && { lockedByFolder: entry.lockedByFolder }),
       };
     } else if (entry.type === 'folder') {
-      sanitized[path] = {
+      sanitized[relativePath] = {
         type: 'folder',
         ...(entry.isLocked !== undefined && { isLocked: entry.isLocked }),
         ...(entry.lockedByFolder && { lockedByFolder: entry.lockedByFolder }),
@@ -749,6 +765,15 @@ export async function setServerSnapshot(projectId: string, snapshot: Snapshot): 
       projectId,
       filesCount,
       hasSummary: !!snapshot.summary,
+    });
+
+    // Log sample file content for debugging
+    const fileEntries = Object.entries(sanitizedFiles).filter(([, v]) => v?.type === 'file');
+    const sampleFile = fileEntries.find(([path]) => path.includes('content') || path.includes('data'));
+
+    logger.debug('Server snapshot sample file', {
+      sampleFilePath: sampleFile?.[0],
+      sampleContentPreview: (sampleFile?.[1] as any)?.content?.substring(0, 200),
     });
 
     // Estimate snapshot size before sending

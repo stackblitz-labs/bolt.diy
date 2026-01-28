@@ -180,5 +180,6 @@ async function handleDelete(projectId: string, userId: string) {
 
   logger.info('Project deleted', { userId, projectId });
 
-  return json(null, { status: 204 });
+  // Return proper 204 No Content response (no body)
+  return new Response(null, { status: 204 });
 }

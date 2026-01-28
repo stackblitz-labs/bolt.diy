@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
 import { createScopedLogger } from '~/utils/logger';
+import { WORK_DIR } from '~/utils/constants';
 import {
   getMessages,
   getNextId,
@@ -622,17 +623,36 @@ ${value.content}
       filesCount: Object.keys(validSnapshot.files).length,
     });
 
+    // Helper to strip /home/project prefix from paths (handles both old and new format snapshots)
+    const stripWorkDirPrefix = (path: string): string => {
+      if (path.startsWith(WORK_DIR + '/')) {
+        return path.slice(WORK_DIR.length + 1);
+      }
+
+      if (path === WORK_DIR || path === '/home') {
+        return ''; // Skip root directories
+      }
+
+      return path;
+    };
+
     const entries = Object.entries(validSnapshot.files);
 
     // First pass: create all folders (sorted by path depth to ensure parents first)
     const folders = entries.filter(([, value]) => value?.type === 'folder').sort(([a], [b]) => a.length - b.length);
 
     for (const [folderPath] of folders) {
+      const normalizedPath = stripWorkDirPrefix(folderPath);
+
+      if (!normalizedPath) {
+        continue; // Skip root directories like /home or /home/project
+      }
+
       try {
-        await workbenchStore.createFolder(folderPath);
+        await workbenchStore.createFolder(normalizedPath);
       } catch {
         // Folder might already exist, which is fine
-        logger.debug('Folder creation skipped (may exist)', { folderPath });
+        logger.debug('Folder creation skipped (may exist)', { folderPath: normalizedPath });
       }
     }
 
@@ -641,10 +661,16 @@ ${value.content}
 
     for (const [filePath, value] of files) {
       if (value?.type === 'file') {
+        const normalizedPath = stripWorkDirPrefix(filePath);
+
+        if (!normalizedPath) {
+          continue;
+        }
+
         try {
-          await workbenchStore.createFile(filePath, value.content);
+          await workbenchStore.createFile(normalizedPath, value.content);
         } catch (error) {
-          logger.error('Failed to create file from snapshot', { filePath, error: String(error) });
+          logger.error('Failed to create file from snapshot', { filePath: normalizedPath, error: String(error) });
         }
       }
     }
@@ -847,7 +873,22 @@ ${value.content}
         }
       }
 
-      takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), _urlId, chatSummary);
+      // Wait for all file actions to complete and save any unsaved files before taking snapshot
+      await workbenchStore.waitForActionsToComplete();
+      await workbenchStore.saveAllFiles();
+
+      // Log the files being captured in the snapshot for debugging
+      const filesMap = workbenchStore.files.get();
+      const fileEntries = Object.entries(filesMap).filter(([, v]) => v?.type === 'file');
+      const sampleFile = fileEntries.find(([path]) => path.includes('content') || path.includes('data'));
+
+      logger.info('Taking snapshot', {
+        filesCount: fileEntries.length,
+        sampleFilePath: sampleFile?.[0],
+        sampleContentPreview: (sampleFile?.[1] as any)?.content?.substring(0, 200),
+      });
+
+      takeSnapshot(messages[messages.length - 1].id, filesMap, _urlId, chatSummary);
 
       if (!description.get() && firstArtifact?.title) {
         description.set(firstArtifact?.title);

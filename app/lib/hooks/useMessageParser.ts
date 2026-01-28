@@ -9,13 +9,21 @@ const logger = createScopedLogger('useMessageParser');
 const messageParser = new EnhancedStreamingMessageParser({
   callbacks: {
     onArtifactOpen: (data) => {
+      logger.info('onArtifactOpen', { artifactId: data.artifactId, title: data.title, messageId: data.messageId });
       workbenchStore.showWorkbench.set(true);
       workbenchStore.addArtifact(data);
     },
     onArtifactClose: (data) => {
+      logger.info('onArtifactClose', { artifactId: data.artifactId });
       workbenchStore.updateArtifact(data, { closed: true });
     },
     onActionOpen: (data) => {
+      logger.info('onActionOpen', {
+        artifactId: data.artifactId,
+        actionId: data.actionId,
+        actionType: data.action.type,
+        filePath: data.action.type === 'file' ? data.action.filePath : undefined,
+      });
       /*
        * File actions are streamed, so we add them immediately to show progress
        * Shell actions are complete when created by enhanced parser, so we wait for close
@@ -25,6 +33,13 @@ const messageParser = new EnhancedStreamingMessageParser({
       }
     },
     onActionClose: (data) => {
+      logger.info('onActionClose', {
+        artifactId: data.artifactId,
+        actionId: data.actionId,
+        actionType: data.action.type,
+        filePath: data.action.type === 'file' ? data.action.filePath : undefined,
+        contentLength: data.action.type === 'file' ? data.action.content?.length : undefined,
+      });
       /*
        * Add non-file actions (shell, build, start, etc.) when they close
        * Enhanced parser creates complete shell actions, so they're ready to execute

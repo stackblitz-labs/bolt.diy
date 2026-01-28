@@ -12,6 +12,23 @@ const BOLT_QUICK_ACTIONS_CLOSE = '</bolt-quick-actions>';
 
 const logger = createScopedLogger('MessageParser');
 
+/**
+ * Normalize LLM output that uses <artifact>/<action> tags to the expected
+ * <boltArtifact>/<boltAction> format. Claude models often output their
+ * native Artifact format instead of the custom bolt format.
+ */
+function normalizeArtifactTags(input: string): string {
+  return input
+    // Normalize opening artifact tags: <artifact -> <boltArtifact (but not <boltArtifact)
+    .replace(/<artifact(?![A-Za-z])/g, '<boltArtifact')
+    // Normalize closing artifact tags: </artifact> -> </boltArtifact>
+    .replace(/<\/artifact>/g, '</boltArtifact>')
+    // Normalize opening action tags: <action -> <boltAction (but not <boltAction)
+    .replace(/<action(?![A-Za-z])/g, '<boltAction')
+    // Normalize closing action tags: </action> -> </boltAction>
+    .replace(/<\/action>/g, '</boltAction>');
+}
+
 export interface ArtifactCallbackData extends BoltArtifactData {
   messageId: string;
   artifactId?: string;
@@ -80,6 +97,10 @@ export class StreamingMessageParser {
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
   parse(messageId: string, input: string) {
+    // Normalize <artifact>/<action> to <boltArtifact>/<boltAction>
+    // Claude models often output their native Artifact format
+    const normalizedInput = normalizeArtifactTags(input);
+
     let state = this.#messages.get(messageId);
 
     if (!state) {
@@ -99,12 +120,12 @@ export class StreamingMessageParser {
     let i = state.position;
     let earlyBreak = false;
 
-    while (i < input.length) {
-      if (input.startsWith(BOLT_QUICK_ACTIONS_OPEN, i)) {
-        const actionsBlockEnd = input.indexOf(BOLT_QUICK_ACTIONS_CLOSE, i);
+    while (i < normalizedInput.length) {
+      if (normalizedInput.startsWith(BOLT_QUICK_ACTIONS_OPEN, i)) {
+        const actionsBlockEnd = normalizedInput.indexOf(BOLT_QUICK_ACTIONS_CLOSE, i);
 
         if (actionsBlockEnd !== -1) {
-          const actionsBlockContent = input.slice(i + BOLT_QUICK_ACTIONS_OPEN.length, actionsBlockEnd);
+          const actionsBlockContent = normalizedInput.slice(i + BOLT_QUICK_ACTIONS_OPEN.length, actionsBlockEnd);
 
           // Find all <bolt-quick-action ...>label</bolt-quick-action> inside
           const quickActionRegex = /<bolt-quick-action([^>]*)>([\s\S]*?)<\/bolt-quick-action>/g;
@@ -139,12 +160,12 @@ export class StreamingMessageParser {
         }
 
         if (state.insideAction) {
-          const closeIndex = input.indexOf(ARTIFACT_ACTION_TAG_CLOSE, i);
+          const closeIndex = normalizedInput.indexOf(ARTIFACT_ACTION_TAG_CLOSE, i);
 
           const currentAction = state.currentAction;
 
           if (closeIndex !== -1) {
-            currentAction.content += input.slice(i, closeIndex);
+            currentAction.content += normalizedInput.slice(i, closeIndex);
 
             let content = currentAction.content;
 
@@ -183,7 +204,7 @@ export class StreamingMessageParser {
             i = closeIndex + ARTIFACT_ACTION_TAG_CLOSE.length;
           } else {
             if ('type' in currentAction && currentAction.type === 'file') {
-              let content = input.slice(i);
+              let content = normalizedInput.slice(i);
 
               if (!currentAction.filePath.endsWith('.md')) {
                 content = cleanoutMarkdownSyntax(content);
@@ -205,16 +226,16 @@ export class StreamingMessageParser {
             break;
           }
         } else {
-          const actionOpenIndex = input.indexOf(ARTIFACT_ACTION_TAG_OPEN, i);
-          const artifactCloseIndex = input.indexOf(ARTIFACT_TAG_CLOSE, i);
+          const actionOpenIndex = normalizedInput.indexOf(ARTIFACT_ACTION_TAG_OPEN, i);
+          const artifactCloseIndex = normalizedInput.indexOf(ARTIFACT_TAG_CLOSE, i);
 
           if (actionOpenIndex !== -1 && (artifactCloseIndex === -1 || actionOpenIndex < artifactCloseIndex)) {
-            const actionEndIndex = input.indexOf('>', actionOpenIndex);
+            const actionEndIndex = normalizedInput.indexOf('>', actionOpenIndex);
 
             if (actionEndIndex !== -1) {
               state.insideAction = true;
 
-              state.currentAction = this.#parseActionTag(input, actionOpenIndex, actionEndIndex);
+              state.currentAction = this.#parseActionTag(normalizedInput, actionOpenIndex, actionEndIndex);
 
               this._options.callbacks?.onActionOpen?.({
                 artifactId: currentArtifact.id,
@@ -242,26 +263,26 @@ export class StreamingMessageParser {
             break;
           }
         }
-      } else if (input[i] === '<' && input[i + 1] !== '/') {
+      } else if (normalizedInput[i] === '<' && normalizedInput[i + 1] !== '/') {
         let j = i;
         let potentialTag = '';
 
-        while (j < input.length && potentialTag.length < ARTIFACT_TAG_OPEN.length) {
-          potentialTag += input[j];
+        while (j < normalizedInput.length && potentialTag.length < ARTIFACT_TAG_OPEN.length) {
+          potentialTag += normalizedInput[j];
 
           if (potentialTag === ARTIFACT_TAG_OPEN) {
-            const nextChar = input[j + 1];
+            const nextChar = normalizedInput[j + 1];
 
             if (nextChar && nextChar !== '>' && nextChar !== ' ') {
-              output += input.slice(i, j + 1);
+              output += normalizedInput.slice(i, j + 1);
               i = j + 1;
               break;
             }
 
-            const openTagEnd = input.indexOf('>', j);
+            const openTagEnd = normalizedInput.indexOf('>', j);
 
             if (openTagEnd !== -1) {
-              const artifactTag = input.slice(i, openTagEnd + 1);
+              const artifactTag = normalizedInput.slice(i, openTagEnd + 1);
 
               const artifactTitle = this.#extractAttribute(artifactTag, 'title') as string;
               const type = this.#extractAttribute(artifactTag, 'type') as string;
@@ -305,7 +326,7 @@ export class StreamingMessageParser {
 
             break;
           } else if (!ARTIFACT_TAG_OPEN.startsWith(potentialTag)) {
-            output += input.slice(i, j + 1);
+            output += normalizedInput.slice(i, j + 1);
             i = j + 1;
             break;
           }
@@ -313,7 +334,7 @@ export class StreamingMessageParser {
           j++;
         }
 
-        if (j === input.length && ARTIFACT_TAG_OPEN.startsWith(potentialTag)) {
+        if (j === normalizedInput.length && ARTIFACT_TAG_OPEN.startsWith(potentialTag)) {
           break;
         }
       } else {
@@ -321,7 +342,7 @@ export class StreamingMessageParser {
          * Note: Auto-file-creation from code blocks is now handled by EnhancedMessageParser
          * to avoid duplicate processing and provide better shell command detection
          */
-        output += input[i];
+        output += normalizedInput[i];
         i++;
       }
 

@@ -29,6 +29,7 @@ export interface ArtifactState {
   type?: string;
   closed: boolean;
   runner: ActionRunner;
+  messageId: string;
 }
 
 export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
@@ -87,8 +88,33 @@ export class WorkbenchStore {
         await callback();
       } catch (error) {
         logger.error('Execution queue error:', error);
+
+        // Surface the error to the user via actionAlert
+        this.actionAlert.set({
+          type: 'error',
+          title: 'Failed to apply file changes',
+          description: error instanceof Error ? error.message : String(error),
+          content: '',
+        });
       }
     });
+  }
+
+  /**
+   * Wait for all queued actions to complete.
+   * Used to ensure file writes are finished before taking snapshots.
+   */
+  async waitForActionsToComplete(): Promise<void> {
+    // First wait for all additions to the queue
+    await this.#globalExecutionQueue;
+
+    // Then wait for each artifact's ActionRunner to complete its execution
+    const artifacts = this.artifacts.get();
+    const runnerPromises = Object.values(artifacts)
+      .filter((artifact): artifact is NonNullable<typeof artifact> => artifact !== undefined)
+      .map((artifact) => artifact.runner.waitForCompletion());
+
+    await Promise.all(runnerPromises);
   }
 
   get previews() {
@@ -230,26 +256,34 @@ export class WorkbenchStore {
     this.#editorStore.setSelectedFile(filePath);
   }
 
-  async saveFile(filePath: string) {
+  async saveFile(filePath: string, content?: string) {
     const documents = this.#editorStore.documents.get();
     const document = documents[filePath];
 
-    if (document === undefined) {
+    // If document exists in editorStore, use its value
+    if (document !== undefined) {
+      /*
+       * For scoped locks, we would need to implement diff checking here
+       * to determine if the user is modifying existing code or just adding new code
+       * This is a more complex feature that would be implemented in a future update
+       */
+
+      await this.#filesStore.saveFile(filePath, document.value);
+
+      const newUnsavedFiles = new Set(this.unsavedFiles.get());
+      newUnsavedFiles.delete(filePath);
+      this.unsavedFiles.set(newUnsavedFiles);
       return;
     }
 
-    /*
-     * For scoped locks, we would need to implement diff checking here
-     * to determine if the user is modifying existing code or just adding new code
-     * This is a more complex feature that would be implemented in a future update
-     */
+    // If content is provided (from LLM action), save it directly to filesStore
+    if (content !== undefined) {
+      await this.#filesStore.saveFile(filePath, content);
+      return;
+    }
 
-    await this.#filesStore.saveFile(filePath, document.value);
-
-    const newUnsavedFiles = new Set(this.unsavedFiles.get());
-    newUnsavedFiles.delete(filePath);
-
-    this.unsavedFiles.set(newUnsavedFiles);
+    // No content available from editorStore or parameter, cannot save
+    logger.warn('Cannot save file: document not found in editor and no content provided', { filePath });
   }
 
   async saveCurrentDocument() {
@@ -485,7 +519,20 @@ export class WorkbenchStore {
   addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
     const artifact = this.#getArtifact(id);
 
-    if (artifact) {
+    /*
+     * If artifact exists but belongs to a different message, we need to replace it.
+     * This handles the case where HMR preserves artifacts from previous tests,
+     * or when the LLM reuses the same artifact ID for a different message.
+     */
+    if (artifact && artifact.messageId !== messageId) {
+      logger.debug('Replacing artifact with same ID from different message', {
+        artifactId: id,
+        oldMessageId: artifact.messageId,
+        newMessageId: messageId,
+      });
+      // Fall through to create a new artifact
+    } else if (artifact) {
+      // Artifact exists and belongs to the same message, skip
       return;
     }
 
@@ -498,6 +545,7 @@ export class WorkbenchStore {
       title,
       closed: false,
       type,
+      messageId,
       runner: new ActionRunner(
         webcontainer,
         () => this.boltTerminal,
@@ -566,6 +614,15 @@ export class WorkbenchStore {
   }
 
   runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+    logger.info('runAction called', {
+      artifactId: data.artifactId,
+      actionId: data.actionId,
+      actionType: data.action.type,
+      filePath: data.action.type === 'file' ? data.action.filePath : undefined,
+      isStreaming,
+      isReloadedMessage: this.#reloadedMessages.has(data.messageId),
+    });
+
     // Skip file actions for reloaded messages to prevent overwriting new content
     if (this.#reloadedMessages.has(data.messageId) && data.action.type === 'file') {
       logger.debug('[RELOADED_SKIP] Skipping file action for reloaded message', {
@@ -579,6 +636,12 @@ export class WorkbenchStore {
       this.actionStreamSampler(data, isStreaming);
     } else {
       const artifact = this.#getArtifact(data.artifactId);
+
+      logger.debug('runAction artifact lookup', {
+        artifactId: data.artifactId,
+        artifactFound: !!artifact,
+        artifactType: artifact?.type,
+      });
 
       /*
        * For bundled artifacts, execute file actions directly without queue
@@ -641,18 +704,32 @@ export class WorkbenchStore {
     const artifact = this.#getArtifact(artifactId);
 
     if (!artifact) {
+      logger.error('_runAction: Artifact not found', { artifactId });
       unreachable('Artifact not found');
     }
 
     const action = artifact.runner.actions.get()[data.actionId];
 
     if (!action || action.executed) {
+      logger.debug('_runAction: Skipping - action not found or already executed', {
+        artifactId,
+        actionId: data.actionId,
+        actionFound: !!action,
+        executed: action?.executed,
+      });
       return;
     }
 
     if (data.action.type === 'file') {
       const wc = await webcontainer;
       const fullPath = path.join(wc.workdir, data.action.filePath);
+
+      logger.info('_runAction: Processing file action', {
+        filePath: data.action.filePath,
+        fullPath,
+        isStreaming,
+        contentLength: data.action.content?.length,
+      });
 
       /*
        * For scoped locks, we would need to implement diff checking here
@@ -677,7 +754,8 @@ export class WorkbenchStore {
       this.#editorStore.updateFile(fullPath, data.action.content);
 
       if (!isStreaming && data.action.content) {
-        await this.saveFile(fullPath);
+        logger.info('_runAction: Calling saveFile', { fullPath, contentLength: data.action.content.length });
+        await this.saveFile(fullPath, data.action.content);
       }
 
       if (!isStreaming) {
