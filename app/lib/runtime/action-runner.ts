@@ -90,6 +90,14 @@ export class ActionRunner {
     this.onDeployAlert = onDeployAlert;
   }
 
+  /**
+   * Wait for all queued actions to complete execution.
+   * Used to ensure file writes are finished before taking snapshots.
+   */
+  async waitForCompletion(): Promise<void> {
+    await this.#currentExecutionPromise;
+  }
+
   addAction(data: ActionCallbackData) {
     const { actionId } = data;
 
@@ -320,7 +328,9 @@ export class ActionRunner {
     }
 
     const webcontainer = await this.#webcontainer;
-    const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
+    const normalizedPath = action.filePath.startsWith('/') ? action.filePath.slice(1) : action.filePath;
+    const absolutePath = nodePath.join(webcontainer.workdir, normalizedPath);
+    const relativePath = nodePath.relative(webcontainer.workdir, absolutePath);
 
     let folder = nodePath.dirname(relativePath);
 

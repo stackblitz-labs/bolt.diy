@@ -74,13 +74,13 @@ function ProjectsDashboard() {
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    try {
-      await deleteProject(projectId);
-      await refetch();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete project';
-      throw new Error(errorMessage);
+    const success = await deleteProject(projectId);
+
+    if (!success) {
+      throw new Error('Failed to delete project');
     }
+
+    await refetch();
   };
 
   return (

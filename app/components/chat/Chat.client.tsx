@@ -55,9 +55,31 @@ export function Chat() {
     clearChatHistory,
   } = useChatHistory(projectId || undefined);
   const title = useStore(description);
+  const initialMessageIdsRef = useRef<Set<string> | null>(null);
+  const lastProjectIdRef = useRef<string | null | undefined>(undefined);
+
   useEffect(() => {
-    workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
-  }, [initialMessages]);
+    /*
+     * Reset the ref when the projectId changes (navigating to a different chat).
+     * This ensures the new chat's initial messages are properly marked as reloaded.
+     */
+    if (lastProjectIdRef.current !== projectId) {
+      initialMessageIdsRef.current = null;
+      lastProjectIdRef.current = projectId;
+    }
+
+    /*
+     * Only set reloaded messages on initial load, not on subsequent updates.
+     * This prevents newly streamed messages from being marked as "reloaded"
+     * which would cause their file actions to be skipped.
+     *
+     * For new chats (no initial messages), set an empty set to mark as initialized.
+     */
+    if (initialMessageIdsRef.current === null) {
+      initialMessageIdsRef.current = new Set(initialMessages.map((m) => m.id));
+      workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
+    }
+  }, [initialMessages, projectId]);
 
   return (
     <>
@@ -672,7 +694,65 @@ export const ChatImpl = memo(
           );
         }
 
-        if (autoSelectTemplate) {
+        /*
+         * Check if files already exist in workbench (persists across component remounts)
+         * This handles the case where website was generated, navigation occurred, and component remounted
+         */
+        const hasExistingFiles = Object.keys(files).length > 0;
+
+        logger.info('[TEMPLATE_FLOW] Auto-select decision point', {
+          autoSelectTemplate,
+          templateInjectionProcessed: templateInjectionProcessedRef.current,
+          willRunAutoSelect: autoSelectTemplate && !templateInjectionProcessedRef.current && !hasExistingFiles,
+          chatStarted,
+          hasExistingFiles,
+        });
+
+        if (hasExistingFiles) {
+          logger.info('[TEMPLATE_FLOW] Skipping template selection - files already exist in workbench');
+
+          /*
+           * Files exist from previous generation - use the normal append flow instead of resetting messages
+           * Mark chat as started since we have an existing project
+           */
+          setChatStarted(true);
+          chatStore.setKey('started', true);
+          setFakeLoading(false);
+
+          // Use append (like the chatStarted flow) instead of setMessages (which resets everything)
+          const modifiedFiles = workbenchStore.getModifiedFiles();
+          const messageText =
+            modifiedFiles !== undefined
+              ? `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${filesToArtifacts(modifiedFiles, `${Date.now()}`)}${finalMessageContent}`
+              : `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
+
+          const attachmentOptions =
+            uploadedFiles.length > 0
+              ? { experimental_attachments: await filesToAttachments(uploadedFiles) }
+              : undefined;
+
+          append(
+            {
+              role: 'user',
+              content: messageText,
+              parts: createMessageParts(messageText, imageDataList),
+            },
+            attachmentOptions,
+          );
+
+          if (modifiedFiles !== undefined) {
+            workbenchStore.resetAllFileModifications();
+          }
+
+          setInput('');
+          Cookies.remove(PROMPT_COOKIE_KEY);
+          setUploadedFiles([]);
+          setImageDataList([]);
+          resetEnhancer();
+          textareaRef.current?.blur();
+
+          return;
+        } else if (autoSelectTemplate && !templateInjectionProcessedRef.current) {
           const { template, title } = await selectStarterTemplate({
             message: finalMessageContent,
             model,

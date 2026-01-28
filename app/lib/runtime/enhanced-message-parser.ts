@@ -51,7 +51,13 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
   }
 
   private _hasDetectedArtifacts(input: string): boolean {
-    return input.includes('<boltArtifact') || input.includes('</boltArtifact>');
+    // Check for both boltArtifact and artifact tags (the latter gets normalized by the parent parser)
+    return (
+      input.includes('<boltArtifact') ||
+      input.includes('</boltArtifact>') ||
+      input.includes('<artifact') ||
+      input.includes('</artifact>')
+    );
   }
 
   private _detectAndWrapCodeBlocks(messageId: string, input: string): string {
