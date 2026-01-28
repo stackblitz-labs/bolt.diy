@@ -261,17 +261,28 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
           })
         : {};
 
-    // Merge with existing MCP tools
-    const allTools = {
-      ...mcpService.toolsWithoutExecute,
-      ...infoCollectionTools,
-    };
+    /*
+     * Only use tools in 'discuss' mode, not 'build' mode
+     * In 'build' mode, the LLM should output <boltArtifact> XML directly
+     * Passing tools to the API triggers function-calling mode, which causes
+     * the LLM to use <function_calls><invoke> format instead of <boltArtifact>
+     */
+    const allTools =
+      chatMode === 'build'
+        ? {}
+        : {
+            ...mcpService.toolsWithoutExecute,
+            ...infoCollectionTools,
+          };
 
     // Modify system prompt if in info collection mode
     const systemPromptAddition = isInfoCollectionMode ? `\n\n${INFO_COLLECTION_SYSTEM_PROMPT}` : '';
 
     logger.debug(
       `Info collection mode: ${isInfoCollectionMode}, user ID: ${userId || 'none'}, tools count: ${Object.keys(allTools).length}`,
+    );
+    logger.info(
+      `[TOOL CONFIG] chatMode: ${chatMode}, tools enabled: ${Object.keys(allTools).length > 0}, tool names: ${Object.keys(allTools).join(', ') || 'none'}`,
     );
 
     let lastChunk: string | undefined = undefined;
@@ -389,10 +400,10 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
           // logger.debug('Code Files Selected');
         }
 
+        const hasTools = Object.keys(allTools).length > 0;
         const options: StreamingOptions = {
           supabaseConnection: supabase,
-          toolChoice: 'auto',
-          tools: allTools,
+          ...(hasTools ? { toolChoice: 'auto' as const, tools: allTools } : {}),
           maxSteps: maxLLMSteps,
           onStepFinish: async ({ toolCalls, toolResults }) => {
             // add tool call annotations for frontend processing
@@ -477,6 +488,9 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
             }
           },
           onFinish: async ({ text: content, finishReason, usage }) => {
+            // Log complete LLM response
+            console.log('[LLM RESPONSE COMPLETE]:', content);
+
             logger.debug('usage', JSON.stringify(usage));
 
             if (usage) {
@@ -622,6 +636,11 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
         (async () => {
           for await (const part of result.fullStream) {
             streamRecovery.updateActivity();
+
+            // Log streaming text chunks
+            if (part.type === 'text-delta') {
+              console.log('[LLM STREAM]:', part.textDelta);
+            }
 
             if (part.type === 'error') {
               const error: any = part.error;
