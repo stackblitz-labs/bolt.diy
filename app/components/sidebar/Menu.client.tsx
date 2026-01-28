@@ -278,30 +278,40 @@ export const Menu = () => {
     }
   }, [open, selectionMode]);
 
-  useEffect(() => {
-    const enterThreshold = 20;
-    const exitThreshold = 20;
+  /*
+   * useEffect(() => {
+   *   const enterThreshold = 20;
+   *   const exitThreshold = 20;
+   */
 
-    function onMouseMove(event: MouseEvent) {
-      if (isSettingsOpen) {
-        return;
-      }
+  /*
+   *   function onMouseMove(event: MouseEvent) {
+   *     if (isSettingsOpen) {
+   *       return;
+   *     }
+   */
 
-      if (event.pageX < enterThreshold) {
-        setOpen(true);
-      }
+  /*
+   *     if (event.pageX < enterThreshold) {
+   *       setOpen(true);
+   *     }
+   */
 
-      if (menuRef.current && event.clientX > menuRef.current.getBoundingClientRect().right + exitThreshold) {
-        setOpen(false);
-      }
-    }
+  /*
+   *     if (menuRef.current && event.clientX > menuRef.current.getBoundingClientRect().right + exitThreshold) {
+   *       setOpen(false);
+   *     }
+   *   }
+   */
 
-    window.addEventListener('mousemove', onMouseMove);
+  //   window.addEventListener('mousemove', onMouseMove);
 
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-    };
-  }, [isSettingsOpen]);
+  /*
+   *   return () => {
+   *     window.removeEventListener('mousemove', onMouseMove);
+   *   };
+   * }, [isSettingsOpen]);
+   */
 
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);

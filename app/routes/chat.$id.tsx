@@ -1,5 +1,10 @@
 import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
-import { default as IndexRoute } from './_index';
+import { ClientOnly } from 'remix-utils/client-only';
+import { BaseChat } from '~/components/chat/BaseChat';
+import { Chat } from '~/components/chat/Chat.client';
+import { Header } from '~/components/header/Header';
+import BackgroundRays from '~/components/ui/BackgroundRays';
+import { ProjectErrorBoundary } from '~/components/projects/ProjectErrorBoundary';
 import { getProjectByUrlId, getProjectById } from '~/lib/services/projects.server';
 import { auth } from '~/lib/auth/auth.server';
 
@@ -58,4 +63,14 @@ export async function loader(args: LoaderFunctionArgs) {
   }
 }
 
-export default IndexRoute;
+export default function ChatRoute() {
+  return (
+    <ProjectErrorBoundary>
+      <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1 pt-20">
+        <BackgroundRays />
+        <Header />
+        <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
+      </div>
+    </ProjectErrorBoundary>
+  );
+}

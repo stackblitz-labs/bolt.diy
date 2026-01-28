@@ -7,29 +7,39 @@
  * Part of Phase 3 implementation for user project tables feature.
  */
 
-import { json, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { json, redirect, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/node';
+import { useLoaderData, Link } from '@remix-run/react';
+import { ClientOnly } from 'remix-utils/client-only';
 import { requireSession } from '~/lib/auth/guards.server';
 import { ProjectList } from '~/components/projects/ProjectList';
-import { CreateProjectDialog } from '~/components/projects/CreateProjectDialog';
 import { ProjectErrorBoundary } from '~/components/projects/ProjectErrorBoundary';
 import { useProjects } from '~/lib/persistence/useProjects';
+import { getProjectsByUserId } from '~/lib/services/projects.server';
+import { UserMenu } from '~/components/auth/UserMenu';
 import { useState } from 'react';
-import { classNames } from '~/utils/classNames';
+import type { ProjectStatus } from '~/types/project';
 
 export const meta: MetaFunction = () => {
-  return [{ title: 'Projects - Huskit' }, { name: 'description', content: 'Manage your website projects' }];
+  return [{ title: 'Dashboard - Huskit' }, { name: 'description', content: 'Manage your website projects' }];
 };
 
 /**
  * Loader: Require authentication before rendering
- *
- * This route is protected - unauthenticated users will be redirected to login
- * with a returnTo parameter to come back here after authentication.
  */
 export async function loader({ request }: LoaderFunctionArgs) {
   // This will throw a redirect if not authenticated
   const session = await requireSession(request);
+
+  // Check if user has any projects
+  const { total } = await getProjectsByUserId(session.user.id, { limit: 1 });
+
+  // If no projects AND this is a fresh login, redirect to create new project page
+  const url = new URL(request.url);
+  const isFreshLogin = url.searchParams.get('login') === 'true';
+
+  if (total === 0 && isFreshLogin) {
+    throw redirect('/app/projects/new');
+  }
 
   return json({
     user: {
@@ -43,46 +53,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 /**
  * Projects Dashboard Component
- *
- * Shows user's projects and allows creating new ones.
  */
 function ProjectsDashboard() {
   const { user } = useLoaderData<typeof loader>();
-  const {
-    projects,
-    total,
-    isLoading,
-    error,
-    createProject,
-    renameProject,
-    deleteProject,
-    refetch,
-    hasNextPage,
-    nextPage,
-    prevPage,
-  } = useProjects({ limit: 10 });
+  const [currentStatusFilter, setCurrentStatusFilter] = useState<ProjectStatus | 'all'>('all');
 
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  const handleCreateProject = async (input: import('~/types/project').CreateProjectInput) => {
-    setIsCreating(true);
-    setCreateError(null);
-
-    try {
-      const project = await createProject(input);
-      await refetch();
-
-      return project;
-    } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Failed to create project');
-
-      return null;
-    } finally {
-      setIsCreating(false);
-    }
-  };
+  const { projects, total, isLoading, error, renameProject, deleteProject, refetch } = useProjects({
+    limit: 100, // Show more projects in the dashboard
+    status: currentStatusFilter === 'all' ? undefined : currentStatusFilter,
+  });
 
   const handleRenameProject = async (projectId: string, newName: string) => {
     try {
@@ -90,8 +69,6 @@ function ProjectsDashboard() {
       await refetch();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to rename project';
-
-      // Let the ProjectActions component handle the error display
       throw new Error(errorMessage);
     }
   };
@@ -107,125 +84,89 @@ function ProjectsDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-bolt-elements-bg-depth-1">
+    <div className="min-h-screen bg-[#fcfcfd] dark:bg-gray-950">
       {/* Header */}
-      <div className="border-b border-bolt-elements-borderColor bg-white dark:bg-gray-950">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-bolt-elements-textPrimary">Your Projects</h1>
-              <p className="mt-1 text-bolt-elements-textSecondary">Create and manage your website projects</p>
-            </div>
-            <button
-              onClick={() => {
-                if (total < 10) {
-                  setIsCreateDialogOpen(true);
-                }
-              }}
-              disabled={total >= 10}
-              className={classNames(
-                'inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-ring transition-colors',
-                total >= 10
-                  ? 'border-bolt-elements-borderColor text-bolt-elements-textTertiary bg-bolt-elements-background-depth-2 cursor-not-allowed'
-                  : 'border-transparent text-white bg-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-button-primary-backgroundHover',
-              )}
-              title={total >= 10 ? 'Maximum project limit reached (10 projects)' : 'Create a new project'}
+      <header className="fixed top-0 left-0 right-0 z-[50] bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-bolt-elements-borderColor h-20 flex items-center px-6 lg:px-12">
+        <div className="w-full flex items-center justify-between mx-auto">
+          <div className="flex items-center">
+            <a href="/" className="flex items-center hover:opacity-80 transition-opacity">
+              <img src="/huskIT.svg" alt="HuskIT" className="w-[90px]" />
+            </a>
+          </div>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Link
+              to="/app/projects/new"
+              className="bg-[#1a1b26] hover:bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm active:scale-95 flex items-center gap-2"
             >
-              <div className={total >= 10 ? 'i-ph-lock w-4 h-4 mr-2' : 'i-ph-plus-bold w-4 h-4 mr-2'} />
-              {total >= 10 ? 'Limit Reached' : 'New Project'}
-            </button>
+              <div className="i-ph-plus-bold w-3.5 h-3.5" />
+              Build New Project
+            </Link>
+            <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block mx-2" />
+            <ClientOnly>
+              {() => (
+                <div className="">
+                  <UserMenu className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary rounded-lg transition-colors" />
+                </div>
+              )}
+            </ClientOnly>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main content */}
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* User info summary */}
-        <div className="mb-8 p-4 bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-4">
-              {user.image && <img src={user.image} alt={user.name || user.email} className="w-12 h-12 rounded-full" />}
-              <div>
-                <h2 className="text-lg font-medium text-bolt-elements-textPrimary">{user.name || 'Welcome back'}</h2>
-                <p className="text-sm text-bolt-elements-textSecondary">{user.email}</p>
+      {/* Main Content Area */}
+      <main className="pt-[calc(var(--header-height)+40px)] pb-24 px-8">
+        <div className="mx-auto w-full">
+          {/* Welcome Header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">User Console</span>
               </div>
+              <h1 className="text-5xl font-black text-gray-900 dark:text-white tracking-tighter">My Dashboard</h1>
+              <p className="mt-4 text-gray-400 font-medium text-lg max-w-xl leading-relaxed">
+                Welcome back, {user.name?.split(' ')[0] || 'User'}. Manage your business presence and build new
+                concepts.
+              </p>
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-bolt-elements-textPrimary">{total}</p>
-              <p className="text-sm text-bolt-elements-textSecondary">of 10 projects</p>
+
+            {/* Quick Stats */}
+            <div className="flex items-center gap-4">
+              <div className="bg-white dark:bg-gray-900 border border-bolt-elements-borderColor px-6 py-4 rounded-[24px] shadow-sm flex flex-col min-w-[140px]">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Projects</span>
+                <span className="text-2xl font-black text-gray-900 dark:text-white">
+                  {total} <span className="text-gray-300 text-lg">/ 10</span>
+                </span>
+              </div>
+              <div className="bg-white dark:bg-gray-900 border border-bolt-elements-borderColor px-6 py-4 rounded-[24px] shadow-sm flex flex-col min-w-[140px]">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Status</span>
+                <span className="text-lg font-black text-blue-500 flex items-center gap-1.5">
+                  <div className="i-ph-airplane-tilt-bold w-4 h-4" />
+                  Pro Plan
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Progress indicator */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-bolt-elements-textSecondary">Project Usage</span>
-              <span className={total >= 10 ? 'text-red-600 font-medium' : 'text-bolt-elements-textSecondary'}>
-                {total}/10 used
-              </span>
-            </div>
-            <div className="w-full bg-bolt-elements-borderColor rounded-full h-2">
-              <div
-                className={classNames(
-                  'h-2 rounded-full transition-all duration-300',
-                  total >= 10 ? 'bg-red-500' : total >= 8 ? 'bg-yellow-500' : 'bg-bolt-elements-item-backgroundAccent',
-                )}
-                style={{ width: `${Math.min((total / 10) * 100, 100)}%` }}
-              />
-            </div>
-            {total >= 8 && (
-              <div
-                className={classNames(
-                  'text-xs p-2 rounded-md',
-                  total >= 10
-                    ? 'bg-red-50 text-red-700 border border-red-200'
-                    : 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-                )}
-              >
-                {total >= 10
-                  ? "You've reached the maximum number of projects. Delete some projects to create new ones."
-                  : `You have ${10 - total} project${10 - total === 1 ? '' : 's'} remaining. Consider upgrading your plan for more projects.`}
-              </div>
-            )}
+          {/* Projects Body */}
+          <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200 fill-mode-both">
+            <ProjectList
+              projects={projects}
+              isLoading={isLoading}
+              error={error}
+              onRefresh={refetch}
+              onRenameProject={handleRenameProject}
+              onDeleteProject={handleDeleteProject}
+              currentStatusFilter={currentStatusFilter}
+              onStatusFilterChange={setCurrentStatusFilter}
+            />
           </div>
         </div>
-
-        {/* Projects list */}
-        <ProjectList
-          projects={projects}
-          isLoading={isLoading}
-          error={error}
-          onRefresh={refetch}
-          total={total}
-          hasNextPage={hasNextPage}
-          onNextPage={nextPage}
-          onPrevPage={prevPage}
-          onRenameProject={handleRenameProject}
-          onDeleteProject={handleDeleteProject}
-        />
-      </div>
-
-      {/* Create Project Dialog */}
-      <CreateProjectDialog
-        isOpen={isCreateDialogOpen}
-        onClose={() => {
-          setIsCreateDialogOpen(false);
-          setCreateError(null);
-        }}
-        onCreateProject={handleCreateProject}
-        isLoading={isCreating}
-        error={createError}
-      />
+      </main>
     </div>
   );
 }
 
-/**
- * Export the dashboard as default
- *
- * This is a protected route that shows the user's projects.
- * Wrapped with ProjectErrorBoundary to catch and handle project-related errors.
- */
 export default function WorkspaceDashboard() {
   return (
     <ProjectErrorBoundary>

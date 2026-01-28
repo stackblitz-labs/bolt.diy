@@ -19,7 +19,7 @@ export const authClient = createAuthClient({
 /**
  * Export commonly used auth methods and hooks
  */
-export const { signIn, signOut, useSession } = authClient;
+export const { signIn, signOut, signUp, useSession } = authClient;
 
 /**
  * Session Management Utilities (FR-010)

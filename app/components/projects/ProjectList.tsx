@@ -9,7 +9,6 @@ import React, { useState } from 'react';
 import { useNavigate } from '@remix-run/react';
 import type { ProjectSummary, ProjectStatus } from '~/types/project';
 import { Button } from '~/components/ui/Button';
-import { ProjectCardSkeleton } from '~/components/ui/LoadingSkeletons';
 import { classNames } from '~/utils/classNames';
 
 interface ProjectListProps {
@@ -37,31 +36,6 @@ interface ProjectListProps {
    * Total number of projects (for pagination info)
    */
   total?: number;
-
-  /**
-   * Current offset in pagination
-   */
-  offset?: number;
-
-  /**
-   * Whether this is the first page
-   */
-  isFirstPage?: boolean;
-
-  /**
-   * Whether there are more projects available
-   */
-  hasNextPage?: boolean;
-
-  /**
-   * Callback to load next page
-   */
-  onNextPage?: () => void;
-
-  /**
-   * Callback to load previous page
-   */
-  onPrevPage?: () => void;
 
   /**
    * Callback to rename a project
@@ -92,50 +66,6 @@ interface ProjectListProps {
 /**
  * Status badge component
  */
-function StatusBadge({ status }: { status: ProjectStatus }) {
-  const getStatusConfig = (status: ProjectStatus) => {
-    switch (status) {
-      case 'draft':
-        return {
-          className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-          label: 'Draft',
-          icon: 'i-ph-note-pencil',
-        };
-      case 'published':
-        return {
-          className: 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300',
-          label: 'Published',
-          icon: 'i-ph-check-circle',
-        };
-      case 'archived':
-        return {
-          className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-300',
-          label: 'Archived',
-          icon: 'i-ph-archive',
-        };
-      default:
-        return {
-          className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-          label: status,
-          icon: 'i-ph-circle',
-        };
-    }
-  };
-
-  const config = getStatusConfig(status);
-
-  return (
-    <span
-      className={classNames(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-        config.className,
-      )}
-    >
-      <div className={classNames('w-3 h-3 mr-1', config.icon)} />
-      {config.label}
-    </span>
-  );
-}
 
 /**
  * Project actions dropdown component
@@ -225,28 +155,28 @@ function ProjectActions({
             e.stopPropagation();
             setIsOpen(!isOpen);
           }}
-          className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none"
           title="Project actions"
         >
-          <div className="i-ph-dots-three-vertical w-4 h-4 text-bolt-elements-textTertiary" />
+          <div className="i-ph-dots-three-vertical-bold w-5 h-5 text-gray-400" />
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-md shadow-lg z-10">
+          <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-2xl shadow-xl z-20 overflow-hidden">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setShowRenameModal(true);
                 setIsOpen(false);
               }}
-              className="w-full px-3 py-2 text-left text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive flex items-center"
+              className="w-full px-4 py-3 text-left text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive flex items-center transition-colors"
             >
-              <div className="i-ph-pencil-simple w-4 h-4 mr-2" />
+              <div className="i-ph-pencil-simple-bold w-4 h-4 mr-3 text-gray-400" />
               Rename
             </button>
 
             {/* Divider */}
-            {onStatusChange && <div className="h-px bg-bolt-elements-borderColor my-1" />}
+            {onStatusChange && <div className="h-px bg-bolt-elements-borderColor" />}
 
             {/* Status change options */}
             {onStatusChange && project.status !== 'published' && (
@@ -256,9 +186,9 @@ function ProjectActions({
                   handleStatusChange('published');
                 }}
                 disabled={isChangingStatus}
-                className="w-full px-3 py-2 text-left text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 text-left text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <div className="i-ph-check-circle w-4 h-4 mr-2" />
+                <div className="i-ph-check-circle-bold w-4 h-4 mr-3" />
                 {isChangingStatus ? 'Publishing...' : 'Publish'}
               </button>
             )}
@@ -270,9 +200,9 @@ function ProjectActions({
                   handleStatusChange('archived');
                 }}
                 disabled={isChangingStatus}
-                className="w-full px-3 py-2 text-left text-sm text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 text-left text-sm text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <div className="i-ph-archive w-4 h-4 mr-2" />
+                <div className="i-ph-archive-bold w-4 h-4 mr-3" />
                 {isChangingStatus ? 'Archiving...' : 'Archive'}
               </button>
             )}
@@ -284,15 +214,15 @@ function ProjectActions({
                   handleStatusChange('draft');
                 }}
                 disabled={isChangingStatus}
-                className="w-full px-3 py-2 text-left text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900/20 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 text-left text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900/20 flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <div className="i-ph-note-pencil w-4 h-4 mr-2" />
+                <div className="i-ph-note-pencil-bold w-4 h-4 mr-3" />
                 {isChangingStatus ? 'Setting to Draft...' : 'Set to Draft'}
               </button>
             )}
 
             {/* Divider */}
-            <div className="h-px bg-bolt-elements-borderColor my-1" />
+            <div className="h-px bg-bolt-elements-borderColor" />
 
             <button
               onClick={(e) => {
@@ -300,9 +230,9 @@ function ProjectActions({
                 setShowDeleteModal(true);
                 setIsOpen(false);
               }}
-              className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
+              className="w-full px-4 py-3 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center transition-colors"
             >
-              <div className="i-ph-trash w-4 h-4 mr-2" />
+              <div className="i-ph-trash-bold w-4 h-4 mr-3" />
               Delete
             </button>
           </div>
@@ -312,7 +242,7 @@ function ProjectActions({
       {/* Rename Modal */}
       {showRenameModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]"
           onClick={(e) => {
             e.stopPropagation();
 
@@ -323,10 +253,11 @@ function ProjectActions({
           }}
         >
           <div
-            className="bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-lg p-6 w-96 max-w-full mx-4"
+            className="bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-3xl p-8 w-[400px] max-w-full mx-4 shadow-2xl animate-in fade-in zoom-in duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-4">Rename Project</h3>
+            <h3 className="text-xl font-black text-bolt-elements-textPrimary mb-2 tracking-tight">Rename Project</h3>
+            <p className="text-sm text-bolt-elements-textSecondary mb-6">Give your project a new descriptive name.</p>
             <input
               type="text"
               value={newName}
@@ -342,17 +273,17 @@ function ProjectActions({
                 }
               }}
               placeholder="Enter new project name"
-              className="w-full px-3 py-2 border border-bolt-elements-borderColor rounded-md bg-white dark:bg-gray-800 text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focusRing mb-4"
+              className="w-full px-4 py-3.5 border border-bolt-elements-borderColor rounded-xl bg-white dark:bg-gray-900 text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 mb-6 transition-all"
               maxLength={255}
               autoFocus
             />
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-end space-x-3">
               <button
                 onClick={() => {
                   setShowRenameModal(false);
                   setNewName(project.name);
                 }}
-                className="px-4 py-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                className="px-6 py-2.5 text-sm font-bold text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
                 disabled={isRenaming}
               >
                 Cancel
@@ -360,9 +291,9 @@ function ProjectActions({
               <button
                 onClick={handleRename}
                 disabled={!newName.trim() || newName.trim() === project.name || isRenaming}
-                className="px-4 py-2 text-sm bg-bolt-elements-button-primaryBg text-bolt-elements-button-primaryText rounded-md hover:bg-bolt-elements-button-primaryBgHover disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 text-sm font-bold bg-[#1a1b26] text-white rounded-xl hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg"
               >
-                {isRenaming ? 'Renaming...' : 'Rename'}
+                {isRenaming ? 'Renaming...' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -372,7 +303,7 @@ function ProjectActions({
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]"
           onClick={(e) => {
             e.stopPropagation();
 
@@ -382,22 +313,27 @@ function ProjectActions({
           }}
         >
           <div
-            className="bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-lg p-6 w-96 max-w-full mx-4"
+            className="bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-3xl p-8 w-[400px] max-w-full mx-4 shadow-2xl animate-in fade-in zoom-in duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center mb-4">
-              <div className="i-ph-warning-circle text-red-500 text-2xl mr-3" />
-              <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Delete Project</h3>
+            <div className="flex items-center mb-4 text-red-500">
+              <div className="i-ph-warning-circle-fill text-3xl mr-3" />
+              <h3 className="text-xl font-black tracking-tight">Delete Project</h3>
             </div>
-            <p className="text-bolt-elements-textSecondary mb-2">Are you sure you want to delete "{project.name}"?</p>
-            <p className="text-sm text-bolt-elements-textTertiary mb-6">
-              This action cannot be undone and will permanently delete all messages, code, and data associated with this
-              project.
+            <p className="text-bolt-elements-textSecondary mb-4 leading-relaxed">
+              Are you sure you want to delete{' '}
+              <span className="font-bold text-bolt-elements-textPrimary">"{project.name}"</span>?
             </p>
-            <div className="flex justify-end space-x-2">
+            <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/20 mb-8">
+              <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                This action cannot be undone. All data, messages, and code associated with this project will be
+                permanently removed.
+              </p>
+            </div>
+            <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                className="px-6 py-2.5 text-sm font-bold text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
                 disabled={isDeleting}
               >
                 Cancel
@@ -405,9 +341,9 @@ function ProjectActions({
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 text-sm font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg"
               >
-                {isDeleting ? 'Deleting...' : 'Delete Project'}
+                {isDeleting ? 'Deleting...' : 'Delete Permanently'}
               </button>
             </div>
           </div>
@@ -420,7 +356,7 @@ function ProjectActions({
 /**
  * Project card component
  */
-type ProjectCardVariant = 'featured' | 'carousel';
+type ProjectCardVariant = 'featured' | 'grid';
 
 function ProjectCard({
   project,
@@ -428,7 +364,7 @@ function ProjectCard({
   onRename,
   onDelete,
   onStatusChange,
-  variant = 'carousel',
+  variant = 'grid',
 }: {
   project: ProjectSummary;
   onClick: () => void;
@@ -442,17 +378,21 @@ function ProjectCard({
       const date = new Date(dateString);
       const now = new Date();
       const diffMs = now.getTime() - date.getTime();
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffSeconds = Math.floor(diffMs / 1000);
+      const diffMinutes = Math.floor(diffSeconds / 60);
+      const diffHours = Math.floor(diffMinutes / 60);
+      const diffDays = Math.floor(diffHours / 24);
 
-      if (diffDays === 0) {
-        return 'Today';
+      if (diffSeconds < 60) {
+        return 'just now';
+      } else if (diffMinutes < 60) {
+        return `${diffMinutes}m ago`;
+      } else if (diffHours < 24) {
+        return `${diffHours}h ago`;
       } else if (diffDays === 1) {
         return 'Yesterday';
       } else if (diffDays < 7) {
         return `${diffDays} days ago`;
-      } else if (diffDays < 30) {
-        const weeks = Math.floor(diffDays / 7);
-        return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
       } else {
         return date.toLocaleDateString('en-US', {
           month: 'short',
@@ -465,96 +405,134 @@ function ProjectCard({
     }
   };
 
-  const cardClassName =
-    variant === 'featured'
-      ? 'group relative bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-3xl p-6 shadow-soft hover:shadow-xl transition-all duration-300 cursor-pointer'
-      : 'group flex-none w-[340px] bg-white dark:bg-gray-950 rounded-2xl shadow-soft hover:shadow-lg transition-all duration-300 border border-bolt-elements-borderColor hover:border-bolt-elements-item-backgroundAccent overflow-hidden cursor-pointer';
+  const placeholderImages = [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=800', // Restaurant
+    'https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&q=80&w=800', // Bar
+    'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80&w=800', // Fine dining
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800', // Pizza
+  ];
+
+  const projectImage =
+    placeholderImages[
+      Math.abs(project.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % placeholderImages.length
+    ];
+
+  if (variant === 'featured') {
+    return (
+      <div className="bg-white dark:bg-gray-900 rounded-[32px] overflow-hidden shadow-sm border border-bolt-elements-borderColor flex flex-col lg:flex-row min-h-[450px]">
+        <div className="lg:w-3/5 relative min-h-[300px]">
+          <img src={projectImage} alt={project.name} className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute top-6 left-6">
+            <span className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 text-gray-900 dark:text-white shadow-sm border border-white/20">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+              Live Now
+            </span>
+          </div>
+        </div>
+        <div className="lg:w-2/5 p-10 flex flex-col justify-center relative">
+          <div className="absolute top-8 right-8">
+            <ProjectActions project={project} onRename={onRename} onDelete={onDelete} onStatusChange={onStatusChange} />
+          </div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="i-ph-star-fill w-3.5 h-3.5 text-blue-500" />
+            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Primary Business</span>
+          </div>
+          <h3 className="text-4xl font-black text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">
+            {project.name}
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed text-sm">
+            Your business's digital presence is performing well. Update your content or track recent visits.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={onClick}
+              className="bg-[#1a1b26] hover:bg-black text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 group"
+            >
+              <div className="i-ph-eye-bold w-5 h-5 group-hover:scale-110 transition-transform" />
+              View Live Site
+            </button>
+            <button
+              onClick={onClick}
+              className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-100 px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95 group"
+            >
+              <div className="i-ph-pencil-simple-bold w-5 h-5 group-hover:scale-110 transition-transform" />
+              Edit Content
+            </button>
+          </div>
+          <div className="mt-10 pt-8 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[11px] text-gray-400 font-bold uppercase tracking-wider">
+            <div className="flex items-center gap-2">
+              <div className="i-ph-clock-bold w-3.5 h-3.5 text-gray-300" />
+              Last edited {formatDate(project.updated_at)}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="i-ph-chart-bar-bold w-3.5 h-3.5 text-gray-300" />
+              1.2k visits this week
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={cardClassName} onClick={onClick}>
-      <div className={variant === 'featured' ? 'flex items-start justify-between gap-4' : 'p-6'}>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3
-                className={classNames(
-                  'font-bold text-bolt-elements-textPrimary truncate',
-                  variant === 'featured' ? 'text-4xl lg:text-5xl leading-tight' : 'text-xl',
-                )}
-              >
-                {project.name}
-              </h3>
-              {project.description && (
-                <p
-                  className={classNames(
-                    'mt-2 text-bolt-elements-textSecondary',
-                    variant === 'featured' ? 'text-lg' : 'text-sm',
-                  )}
-                >
-                  {project.description}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <StatusBadge status={project.status} />
-              <ProjectActions
-                project={project}
-                onRename={onRename}
-                onDelete={onDelete}
-                onStatusChange={onStatusChange}
-              />
-            </div>
-          </div>
-
-          <div
+    <div
+      className="bg-white dark:bg-gray-900 rounded-[24px] overflow-hidden border border-bolt-elements-borderColor shadow-sm hover:shadow-xl transition-all group flex flex-col cursor-pointer hover:-translate-y-1 duration-300"
+      onClick={onClick}
+    >
+      <div className="aspect-[4/3] relative overflow-hidden">
+        <img
+          src={projectImage}
+          alt={project.name}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+        <div className="absolute top-4 right-4">
+          <span
             className={classNames(
-              'mt-6 flex items-center justify-between text-xs text-bolt-elements-textTertiary',
-              variant === 'featured' ? 'pt-6 border-t border-bolt-elements-borderColor' : '',
+              'px-3 py-1 rounded-lg text-[10px] font-bold uppercase shadow-sm backdrop-blur-md',
+              project.status === 'published' ? 'bg-white/90 text-blue-600' : 'bg-yellow-400 text-gray-900',
             )}
           >
-            <div className="flex items-center gap-4">
-              <div className="flex items-center">
-                <div className="i-ph-chat-text w-4 h-4 mr-1" />
-                {project.message_count} message{project.message_count !== 1 ? 's' : ''}
-              </div>
-              {project.has_snapshot && (
-                <div className="flex items-center">
-                  <div className="i-ph-code w-4 h-4 mr-1" />
-                  Has code
-                </div>
-              )}
-            </div>
-            <div className="flex items-center">
-              <div className="i-ph-clock w-4 h-4 mr-1" />
-              {formatDate(project.updated_at)}
-            </div>
-          </div>
+            {project.status === 'published' ? 'Published' : 'Draft'}
+          </span>
+        </div>
+      </div>
+      <div className="p-6 flex flex-col flex-1">
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <h4 className="font-bold text-gray-900 dark:text-white truncate text-xl tracking-tight">{project.name}</h4>
+          <ProjectActions project={project} onRename={onRename} onDelete={onDelete} onStatusChange={onStatusChange} />
+        </div>
+        <p className="text-gray-400 text-xs font-medium mb-6 uppercase tracking-wide">
+          Business Concept • {project.status === 'published' ? 'Multi Page' : 'Draft'}
+        </p>
 
-          {variant === 'featured' && (
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick();
-                }}
-                className="px-6 py-3 rounded-xl"
-              >
-                <div className="i-ph-eye w-4 h-4 mr-2" />
-                Open Project
-              </Button>
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick();
-                }}
-                variant="outline"
-                className="px-6 py-3 rounded-xl"
-              >
-                <div className="i-ph-pencil-simple w-4 h-4 mr-2" />
-                Edit Content
-              </Button>
-            </div>
+        <div className="mt-auto flex items-center justify-between text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-5">
+          <div className="flex items-center gap-1.5">
+            <div className="i-ph-clock-bold w-3.5 h-3.5 text-gray-300" />
+            Edited {formatDate(project.updated_at)}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            className="flex-1 bg-white hover:bg-gray-50 text-gray-900 border border-gray-100 py-3 rounded-xl font-bold text-xs transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+          >
+            <div className="i-ph-pencil-simple-bold w-4 h-4 text-gray-400" />
+            {project.status === 'published' ? 'Edit' : 'Continue Editing'}
+          </button>
+          {project.status === 'published' && (
+            <button
+              className="bg-[#1a1b26] hover:bg-black text-white p-3 rounded-xl transition-all active:scale-95 shadow-md group"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+              }}
+            >
+              <div className="i-ph-export-bold w-4 h-4 group-hover:scale-110 transition-transform" />
+            </button>
           )}
         </div>
       </div>
@@ -575,10 +553,10 @@ function StatusFilter({
   const [isOpen, setIsOpen] = useState(false);
 
   const statusOptions = [
-    { value: 'all', label: 'All Projects', icon: 'i-ph-folder' },
-    { value: 'draft', label: 'Draft', icon: 'i-ph-note-pencil' },
-    { value: 'published', label: 'Published', icon: 'i-ph-check-circle' },
-    { value: 'archived', label: 'Archived', icon: 'i-ph-archive' },
+    { value: 'all', label: 'All Projects', icon: 'i-ph-folder-bold' },
+    { value: 'draft', label: 'Draft', icon: 'i-ph-note-pencil-bold' },
+    { value: 'published', label: 'Published', icon: 'i-ph-check-circle-bold' },
+    { value: 'archived', label: 'Archived', icon: 'i-ph-archive-bold' },
   ] as const;
 
   const selectedOption = statusOptions.find((option) => option.value === currentStatus) || statusOptions[0];
@@ -586,37 +564,53 @@ function StatusFilter({
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-md hover:bg-bolt-elements-item-backgroundActive transition-colors"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className="flex items-center space-x-2 px-5 py-2.5 bg-white dark:bg-gray-900 border border-bolt-elements-borderColor rounded-full hover:bg-bolt-elements-item-backgroundActive transition-all shadow-sm focus:outline-none"
       >
-        <div className={classNames('w-4 h-4', selectedOption.icon)} />
-        <span className="text-sm font-medium text-bolt-elements-textPrimary">{selectedOption.label}</span>
-        <div className={classNames('w-4 h-4 transition-transform', isOpen ? 'rotate-180' : '', 'i-ph-caret-down')} />
+        <div className={classNames('w-4 h-4 text-gray-400', selectedOption.icon)} />
+        <span className="text-sm font-bold text-bolt-elements-textPrimary tracking-tight">{selectedOption.label}</span>
+        <div
+          className={classNames(
+            'w-4 h-4 text-gray-300 transition-transform duration-300',
+            isOpen ? 'rotate-180' : '',
+            'i-ph-caret-down-bold',
+          )}
+        />
       </button>
 
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-md shadow-lg z-20">
+          <div className="absolute top-full right-0 mt-2 w-52 bg-white dark:bg-gray-950 border border-bolt-elements-borderColor rounded-2xl shadow-xl z-20 overflow-hidden">
             {statusOptions.map((option) => (
               <button
                 key={option.value}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onStatusChange?.(option.value);
                   setIsOpen(false);
                 }}
                 className={classNames(
-                  'w-full px-3 py-2 text-left text-sm flex items-center space-x-2 hover:bg-bolt-elements-item-backgroundActive transition-colors',
+                  'w-full px-5 py-4 text-left text-sm flex items-center space-x-3 hover:bg-bolt-elements-item-backgroundActive transition-colors',
                   currentStatus === option.value
                     ? 'bg-bolt-elements-item-backgroundActive text-bolt-elements-textPrimary'
                     : 'text-bolt-elements-textPrimary',
                 )}
               >
-                <div className={classNames('w-4 h-4', option.icon)} />
-                <span>{option.label}</span>
-                {currentStatus === option.value && (
-                  <div className="i-ph-check w-4 h-4 ml-auto text-bolt-elements-focusRing" />
-                )}
+                <div
+                  className={classNames(
+                    'w-4 h-4',
+                    option.icon,
+                    currentStatus === option.value ? 'text-blue-500' : 'text-gray-400',
+                  )}
+                />
+                <span className={classNames('font-semibold', currentStatus === option.value ? 'text-blue-500' : '')}>
+                  {option.label}
+                </span>
+                {currentStatus === option.value && <div className="i-ph-check-bold w-4 h-4 ml-auto text-blue-500" />}
               </button>
             ))}
           </div>
@@ -631,12 +625,6 @@ export function ProjectList({
   isLoading = false,
   error = null,
   onRefresh,
-  total = 0,
-  offset = 0,
-  isFirstPage = true,
-  hasNextPage = false,
-  onNextPage,
-  onPrevPage,
   onRenameProject,
   onDeleteProject,
   onStatusChangeProject,
@@ -646,8 +634,6 @@ export function ProjectList({
   const navigate = useNavigate();
 
   const handleProjectClick = (project: ProjectSummary) => {
-    console.log('project', project);
-
     if (project.url_id) {
       navigate(`/chat/${project.url_id}`);
     } else {
@@ -658,9 +644,13 @@ export function ProjectList({
   // Loading state
   if (isLoading && projects.length === 0) {
     return (
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="col-span-full h-[450px] rounded-[32px] bg-white dark:bg-gray-950 border border-bolt-elements-borderColor animate-pulse" />
         {Array.from({ length: 3 }).map((_, i) => (
-          <ProjectCardSkeleton key={i} />
+          <div
+            key={i}
+            className="aspect-[4/5] rounded-[24px] bg-white dark:bg-gray-950 border border-bolt-elements-borderColor animate-pulse"
+          />
         ))}
       </div>
     );
@@ -669,13 +659,13 @@ export function ProjectList({
   // Error state
   if (error && projects.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="i-ph-warning-circle text-red-500 text-5xl mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">Failed to load projects</h3>
-        <p className="text-bolt-elements-textSecondary mb-4">{error}</p>
+      <div className="text-center py-24 bg-white dark:bg-gray-950 rounded-[40px] border border-bolt-elements-borderColor shadow-sm">
+        <div className="i-ph-warning-circle-bold text-red-500 text-6xl mx-auto mb-6" />
+        <h3 className="text-2xl font-black text-bolt-elements-textPrimary mb-3 tracking-tight">Something went wrong</h3>
+        <p className="text-bolt-elements-textSecondary mb-8 max-w-md mx-auto">{error}</p>
         {onRefresh && (
-          <Button onClick={onRefresh} variant="outline">
-            <div className="i-ph-arrow-clockwise w-4 h-4 mr-2" />
+          <Button onClick={onRefresh} variant="outline" className="rounded-2xl px-8 py-6 font-bold">
+            <div className="i-ph-arrow-clockwise-bold w-5 h-5 mr-2" />
             Try Again
           </Button>
         )}
@@ -683,92 +673,23 @@ export function ProjectList({
     );
   }
 
-  // Empty state
-  if (projects.length === 0 && !isLoading) {
-    const isFilterActive = currentStatusFilter !== 'all';
-
-    return (
-      <div className="text-center py-12">
-        <div
-          className={classNames(
-            isFilterActive
-              ? 'i-ph-funnel text-bolt-elements-textTertiary text-5xl mx-auto mb-4'
-              : 'i-ph-folder-open text-bolt-elements-textTertiary text-5xl mx-auto mb-4',
-          )}
-        />
-        <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">
-          {isFilterActive ? `No ${currentStatusFilter} projects` : 'No projects yet'}
-        </h3>
-        <p className="text-bolt-elements-textSecondary mb-4">
-          {isFilterActive
-            ? `No projects with status "${currentStatusFilter}" found. Try changing the filter or create a new project.`
-            : 'Create your first project to get started with your website.'}
-        </p>
-        {!isFilterActive && (
-          <p className="text-sm text-bolt-elements-textTertiary">You can create up to 10 projects.</p>
-        )}
-        {isFilterActive && onStatusFilterChange && (
-          <Button onClick={() => onStatusFilterChange('all')} variant="outline" className="mt-4">
-            Show All Projects
-          </Button>
-        )}
-      </div>
-    );
-  }
-
-  const featuredProject = (() => {
-    if (projects.length === 0) {
-      return null;
-    }
-
-    return projects.slice().sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
-  })();
-
-  const carouselProjects = (() => {
-    if (!featuredProject) {
-      return projects;
-    }
-
-    return projects.filter((p) => p.id !== featuredProject.id);
-  })();
-
-  const showingText = (() => {
-    if (total <= 0) {
-      return null;
-    }
-
-    return `Showing ${offset + 1} to ${Math.min(offset + projects.length, total)} of ${total} projects`;
-  })();
+  // Logic to separate projects
+  const sortedProjects = projects
+    .slice()
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  const featuredProject = sortedProjects[0];
+  const otherProjects = sortedProjects.slice(1);
 
   return (
-    <div className="space-y-10">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="i-ph-dashboard w-5 h-5 text-bolt-elements-textTertiary" />
-          <h2 className="text-xl font-bold text-bolt-elements-textPrimary">All Projects</h2>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <StatusFilter currentStatus={currentStatusFilter} onStatusChange={onStatusFilterChange} />
-
-          <div className="flex items-center gap-2">
-            <Button onClick={onPrevPage} disabled={isFirstPage || isLoading} variant="outline" size="sm">
-              <div className="i-ph-caret-left w-4 h-4" />
-            </Button>
-            <Button onClick={onNextPage} disabled={!hasNextPage || isLoading} variant="outline" size="sm">
-              <div className="i-ph-caret-right w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {showingText && <div className="text-sm text-bolt-elements-textTertiary">{showingText}</div>}
-
-      {featuredProject && (
+    <div className="space-y-24">
+      {/* Featured Section */}
+      {featuredProject && currentStatusFilter === 'all' && (
         <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="i-ph-star w-5 h-5 text-bolt-elements-item-backgroundAccent" />
-            <h3 className="text-xl font-bold text-bolt-elements-textPrimary">Featured Project</h3>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="i-ph-star-fill w-6 h-6 text-blue-500" />
+            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-[0.2em]">
+              Featured Live Project
+            </h3>
           </div>
           <ProjectCard
             project={featuredProject}
@@ -781,26 +702,39 @@ export function ProjectList({
         </section>
       )}
 
+      {/* Grid Section */}
       <section>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-10">
           <div className="flex items-center gap-3">
-            <div className="i-ph-layout w-5 h-5 text-bolt-elements-textTertiary" />
-            <h3 className="text-xl font-bold text-bolt-elements-textPrimary">All Projects</h3>
+            <div className="i-ph-grid-four-bold w-6 h-6 text-gray-400" />
+            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-[0.2em]">
+              {currentStatusFilter === 'all' ? 'All Projects' : `${currentStatusFilter} Projects`}
+            </h3>
           </div>
+          <StatusFilter currentStatus={currentStatusFilter} onStatusChange={onStatusFilterChange} />
         </div>
 
-        <div
-          className={classNames(
-            'flex overflow-x-auto gap-6 pb-6 -mx-2 px-2 scroll-smooth',
-            'sm:scrollbar-none',
-            '[&::-webkit-scrollbar]:h-2',
-            '[&::-webkit-scrollbar-thumb]:bg-bolt-elements-borderColor',
-            '[&::-webkit-scrollbar-thumb]:hover:bg-bolt-elements-borderColorHover',
-            '[&::-webkit-scrollbar-thumb]:rounded-full',
-            '[&::-webkit-scrollbar-track]:bg-transparent',
-          )}
-        >
-          {carouselProjects.map((project) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {/* Action Card: Start New Project */}
+          <button
+            onClick={() => navigate('/app/projects/new')}
+            className="group min-h-[400px] h-full bg-white dark:bg-gray-900 rounded-[28px] border-2 border-dashed border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center p-10 space-y-6 hover:border-blue-500/50 hover:bg-blue-50/10 transition-all cursor-pointer shadow-sm hover:shadow-xl duration-300"
+          >
+            <div className="w-16 h-16 rounded-full border-2 border-gray-50 dark:border-gray-800 flex items-center justify-center bg-white dark:bg-gray-800 shadow-soft transition-all duration-500 group-hover:scale-110 group-hover:bg-blue-500 group-hover:border-blue-500">
+              <div className="i-ph-plus-bold w-8 h-8 text-blue-500 transition-colors duration-500 group-hover:text-white" />
+            </div>
+            <div className="text-center">
+              <h4 className="font-black text-gray-900 dark:text-white text-xl tracking-tight mb-2">
+                Start New Project
+              </h4>
+              <p className="text-xs text-gray-400 font-medium max-w-[200px] mx-auto leading-relaxed">
+                Build a website for another business concept in minutes.
+              </p>
+            </div>
+          </button>
+
+          {/* Actual Project Cards */}
+          {(currentStatusFilter === 'all' ? otherProjects : sortedProjects).map((project) => (
             <ProjectCard
               key={project.id}
               project={project}
@@ -808,82 +742,52 @@ export function ProjectList({
               onRename={onRenameProject}
               onDelete={onDeleteProject}
               onStatusChange={onStatusChangeProject}
-              variant="carousel"
+              variant="grid"
             />
           ))}
-
-          <div className="w-2 flex-none" />
         </div>
       </section>
 
-      {isLoading && projects.length > 0 && (
-        <div className="text-center py-4">
-          <div className="i-ph-spinner-gap-bold animate-spin text-bolt-elements-textTertiary text-2xl mx-auto" />
-          <p className="text-sm text-bolt-elements-textTertiary mt-2">Loading more projects...</p>
-        </div>
-      )}
-
-      {error && projects.length > 0 && onRefresh && (
-        <div className="text-center py-4">
-          <p className="text-sm text-red-500 mb-2">{error}</p>
-          <Button onClick={onRefresh} variant="outline" size="sm">
-            <div className="i-ph-arrow-clockwise w-4 h-4 mr-2" />
-            Retry
-          </Button>
-        </div>
-      )}
-
-      <section className="border-t border-bolt-elements-borderColor pt-10">
-        <h3 className="text-xl font-bold text-bolt-elements-textPrimary mb-6">Resources for You</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Resources Section */}
+      <section className="pt-20 border-t border-gray-100 dark:border-gray-800">
+        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-10 tracking-tight">Resources for You</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <a
-            className="flex items-start gap-4 p-5 rounded-2xl bg-white dark:bg-gray-950 border border-bolt-elements-borderColor hover:border-bolt-elements-item-backgroundAccent/50 hover:shadow-soft transition-all group"
+            className="flex items-center gap-6 p-8 rounded-[32px] bg-white dark:bg-gray-900 border border-bolt-elements-borderColor hover:border-blue-500/30 hover:shadow-xl transition-all duration-300 group"
             href="/docs"
           >
-            <div className="w-12 h-12 rounded-xl bg-bolt-elements-item-backgroundAccent/10 flex items-center justify-center flex-shrink-0 text-bolt-elements-item-backgroundAccent group-hover:scale-110 transition-transform">
-              <div className="i-ph-graduation-cap w-6 h-6" />
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 text-blue-600 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <div className="i-ph-graduation-cap-bold w-7 h-7" />
             </div>
             <div>
-              <h4 className="font-bold text-bolt-elements-textPrimary text-base mb-1 group-hover:text-bolt-elements-item-backgroundAccent transition-colors">
-                Tutorials
-              </h4>
-              <p className="text-sm text-bolt-elements-textSecondary leading-snug">
-                Learn how to customize your site efficiently.
-              </p>
+              <h4 className="font-bold text-gray-900 dark:text-white text-lg mb-1 tracking-tight">Tutorials</h4>
+              <p className="text-sm text-gray-400 font-medium">Learn how to customize your site efficiently.</p>
             </div>
           </a>
 
           <a
-            className="flex items-start gap-4 p-5 rounded-2xl bg-white dark:bg-gray-950 border border-bolt-elements-borderColor hover:border-bolt-elements-item-backgroundAccent/50 hover:shadow-soft transition-all group"
+            className="flex items-center gap-6 p-8 rounded-[32px] bg-white dark:bg-gray-900 border border-bolt-elements-borderColor hover:border-purple-500/30 hover:shadow-xl transition-all duration-300 group"
             href="/docs/seo"
           >
-            <div className="w-12 h-12 rounded-xl bg-purple-100/70 dark:bg-purple-950/40 flex items-center justify-center flex-shrink-0 text-purple-600 dark:text-purple-300 group-hover:scale-110 transition-transform">
-              <div className="i-ph-trend-up w-6 h-6" />
+            <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0 text-purple-600 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <div className="i-ph-trend-up-bold w-7 h-7" />
             </div>
             <div>
-              <h4 className="font-bold text-bolt-elements-textPrimary text-base mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
-                SEO Guide
-              </h4>
-              <p className="text-sm text-bolt-elements-textSecondary leading-snug">
-                Tips to rank higher on Google Search.
-              </p>
+              <h4 className="font-bold text-gray-900 dark:text-white text-lg mb-1 tracking-tight">SEO Guide</h4>
+              <p className="text-sm text-gray-400 font-medium">Tips to rank higher on Google Search.</p>
             </div>
           </a>
 
           <a
-            className="flex items-start gap-4 p-5 rounded-2xl bg-white dark:bg-gray-950 border border-bolt-elements-borderColor hover:border-bolt-elements-item-backgroundAccent/50 hover:shadow-soft transition-all group"
+            className="flex items-center gap-6 p-8 rounded-[32px] bg-white dark:bg-gray-900 border border-bolt-elements-borderColor hover:border-yellow-500/30 hover:shadow-xl transition-all duration-300 group"
             href="/docs/domains"
           >
-            <div className="w-12 h-12 rounded-xl bg-yellow-100/70 dark:bg-yellow-950/40 flex items-center justify-center flex-shrink-0 text-yellow-700 dark:text-yellow-300 group-hover:scale-110 transition-transform">
-              <div className="i-ph-globe-hemisphere-west w-6 h-6" />
+            <div className="w-14 h-14 rounded-2xl bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0 text-yellow-600 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <div className="i-ph-globe-hemisphere-west-bold w-7 h-7" />
             </div>
             <div>
-              <h4 className="font-bold text-bolt-elements-textPrimary text-base mb-1 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors">
-                Domain Setup
-              </h4>
-              <p className="text-sm text-bolt-elements-textSecondary leading-snug">
-                Connect your custom domain name easily.
-              </p>
+              <h4 className="font-bold text-gray-900 dark:text-white text-lg mb-1 tracking-tight">Domain Setup</h4>
+              <p className="text-sm text-gray-400 font-medium">Connect your custom domain name easily.</p>
             </div>
           </a>
         </div>
