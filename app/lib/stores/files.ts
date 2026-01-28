@@ -41,8 +41,10 @@ function validateAndNormalizePath(workdir: string, filePath: string): string {
     // Already absolute within workdir - use as-is
     normalizedPath = filePath;
   } else if (filePath.startsWith('/')) {
-    // Absolute path but not starting with workdir - treat as relative to workdir
-    // Strip the leading slash and join with workdir
+    /*
+     * Absolute path but not starting with workdir - treat as relative to workdir
+     * Strip the leading slash and join with workdir
+     */
     const pathWithoutSlash = filePath.slice(1);
     normalizedPath = path.join(workdir, pathWithoutSlash);
   } else {
@@ -792,8 +794,10 @@ export class FilesStore {
         }
         case 'add_file':
         case 'change': {
-          // Skip watcher updates for files that were just saved programmatically
-          // to prevent race condition where watcher receives empty content first
+          /*
+           * Skip watcher updates for files that were just saved programmatically
+           * to prevent race condition where watcher receives empty content first
+           */
           if (this.#recentlySavedFiles.has(sanitizedPath)) {
             logger.debug('Skipping watcher update for recently saved file', { path: sanitizedPath });
             break;
@@ -885,8 +889,10 @@ export class FilesStore {
       if (dirPath !== '.') {
         await webcontainer.fs.mkdir(dirPath, { recursive: true });
 
-        // Add folder entries to FilesStore immediately
-        // This prevents race condition with file watcher
+        /*
+         * Add folder entries to FilesStore immediately
+         * This prevents race condition with file watcher
+         */
         this.#ensureParentFolders(relativePath);
       }
 

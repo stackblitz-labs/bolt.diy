@@ -782,11 +782,11 @@ function buildFileList(
   }
 
   for (const [filePath, dirent] of Object.entries(files)) {
-    // Handle both absolute and relative paths
-    // If path doesn't start with /, prepend rootFolder for consistent processing
-    const normalizedFilePath = filePath.startsWith('/')
-      ? filePath
-      : `${rootFolder}/${filePath}`;
+    /*
+     * Handle both absolute and relative paths
+     * If path doesn't start with /, prepend rootFolder for consistent processing
+     */
+    const normalizedFilePath = filePath.startsWith('/') ? filePath : `${rootFolder}/${filePath}`;
 
     const segments = normalizedFilePath.split('/').filter((segment) => segment);
     const fileName = segments.at(-1);

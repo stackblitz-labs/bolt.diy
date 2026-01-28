@@ -21,8 +21,10 @@ export class EditorStore {
       return undefined;
     }
 
-    // Normalize path: strip /home/project/ prefix if present
-    // FilesStore uses relative paths but FileTree passes absolute paths
+    /*
+     * Normalize path: strip /home/project/ prefix if present
+     * FilesStore uses relative paths but FileTree passes absolute paths
+     */
     let lookupPath = selectedFile;
 
     if (selectedFile.startsWith(WORK_DIR + '/')) {

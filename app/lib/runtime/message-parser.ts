@@ -18,15 +18,17 @@ const logger = createScopedLogger('MessageParser');
  * native Artifact format instead of the custom bolt format.
  */
 function normalizeArtifactTags(input: string): string {
-  return input
-    // Normalize opening artifact tags: <artifact -> <boltArtifact (but not <boltArtifact)
-    .replace(/<artifact(?![A-Za-z])/g, '<boltArtifact')
-    // Normalize closing artifact tags: </artifact> -> </boltArtifact>
-    .replace(/<\/artifact>/g, '</boltArtifact>')
-    // Normalize opening action tags: <action -> <boltAction (but not <boltAction)
-    .replace(/<action(?![A-Za-z])/g, '<boltAction')
-    // Normalize closing action tags: </action> -> </boltAction>
-    .replace(/<\/action>/g, '</boltAction>');
+  return (
+    input
+      // Normalize opening artifact tags: <artifact -> <boltArtifact (but not <boltArtifact)
+      .replace(/<artifact(?![A-Za-z])/g, '<boltArtifact')
+      // Normalize closing artifact tags: </artifact> -> </boltArtifact>
+      .replace(/<\/artifact>/g, '</boltArtifact>')
+      // Normalize opening action tags: <action -> <boltAction (but not <boltAction)
+      .replace(/<action(?![A-Za-z])/g, '<boltAction')
+      // Normalize closing action tags: </action> -> </boltAction>
+      .replace(/<\/action>/g, '</boltAction>')
+  );
 }
 
 export interface ArtifactCallbackData extends BoltArtifactData {
@@ -97,8 +99,10 @@ export class StreamingMessageParser {
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
   parse(messageId: string, input: string) {
-    // Normalize <artifact>/<action> to <boltArtifact>/<boltAction>
-    // Claude models often output their native Artifact format
+    /*
+     * Normalize <artifact>/<action> to <boltArtifact>/<boltAction>
+     * Claude models often output their native Artifact format
+     */
     const normalizedInput = normalizeArtifactTags(input);
 
     let state = this.#messages.get(messageId);

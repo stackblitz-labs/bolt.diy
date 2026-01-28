@@ -273,6 +273,7 @@ export class WorkbenchStore {
       const newUnsavedFiles = new Set(this.unsavedFiles.get());
       newUnsavedFiles.delete(filePath);
       this.unsavedFiles.set(newUnsavedFiles);
+
       return;
     }
 
@@ -530,6 +531,7 @@ export class WorkbenchStore {
         oldMessageId: artifact.messageId,
         newMessageId: messageId,
       });
+
       // Fall through to create a new artifact
     } else if (artifact) {
       // Artifact exists and belongs to the same message, skip

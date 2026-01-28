@@ -666,8 +666,10 @@ export const ChatImpl = memo(
           );
         }
 
-        // Check if files already exist in workbench (persists across component remounts)
-        // This handles the case where website was generated, navigation occurred, and component remounted
+        /*
+         * Check if files already exist in workbench (persists across component remounts)
+         * This handles the case where website was generated, navigation occurred, and component remounted
+         */
         const hasExistingFiles = Object.keys(files).length > 0;
 
         logger.info('[TEMPLATE_FLOW] Auto-select decision point', {
@@ -680,20 +682,26 @@ export const ChatImpl = memo(
 
         if (hasExistingFiles) {
           logger.info('[TEMPLATE_FLOW] Skipping template selection - files already exist in workbench');
-          // Files exist from previous generation - use the normal append flow instead of resetting messages
-          // Mark chat as started since we have an existing project
+
+          /*
+           * Files exist from previous generation - use the normal append flow instead of resetting messages
+           * Mark chat as started since we have an existing project
+           */
           setChatStarted(true);
           chatStore.setKey('started', true);
           setFakeLoading(false);
 
           // Use append (like the chatStarted flow) instead of setMessages (which resets everything)
           const modifiedFiles = workbenchStore.getModifiedFiles();
-          const messageText = modifiedFiles !== undefined
-            ? `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${filesToArtifacts(modifiedFiles, `${Date.now()}`)}${finalMessageContent}`
-            : `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
+          const messageText =
+            modifiedFiles !== undefined
+              ? `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${filesToArtifacts(modifiedFiles, `${Date.now()}`)}${finalMessageContent}`
+              : `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
 
           const attachmentOptions =
-            uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
+            uploadedFiles.length > 0
+              ? { experimental_attachments: await filesToAttachments(uploadedFiles) }
+              : undefined;
 
           append(
             {
