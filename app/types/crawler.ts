@@ -16,7 +16,11 @@ export interface CrawlSession {
 
 export interface CrawlRequest {
   session_id: string;
-  google_maps_url: string;
+  google_maps_url?: string;
+  business_name?: string;
+  address?: string;
+  website_url?: string;
+  place_id?: string;
 }
 
 export interface CrawlResponse {
@@ -181,4 +185,30 @@ export interface ExtractedData {
   instagramPosts?: unknown[];
   websiteUrl?: string;
   pagesAnalyzed?: number;
+}
+
+export interface SearchRestaurantRequest {
+  business_name: string;
+  address: string;
+}
+
+export interface VerifiedRestaurantData {
+  name: string;
+  place_id: string;
+  data_id: string;
+  address: string;
+  phone?: string;
+  website?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+    zoom?: number;
+  };
+}
+
+export interface SearchRestaurantResponse {
+  success: boolean;
+  data?: VerifiedRestaurantData;
+  error?: string;
+  statusCode?: number;
 }

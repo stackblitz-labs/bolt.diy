@@ -2,7 +2,7 @@ import { useNavigate } from '@remix-run/react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useProjects } from '~/lib/persistence/useProjects';
-import type { BusinessData } from '~/types/crawler';
+import type { BusinessData, VerifiedRestaurantData } from '~/types/crawler';
 import type { CreateProjectInput, Project } from '~/types/project';
 import type { GeneratedFile, GenerationProgress, GenerationResult } from '~/types/generation';
 import { classNames } from '~/utils/classNames';
@@ -10,7 +10,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { UserMenu } from '~/components/auth/UserMenu';
 import { ClientOnly } from 'remix-utils/client-only';
 
-type Step = 'details' | 'maps' | 'crawling' | 'review' | 'confirm' | 'mapsError' | 'building';
+type Step = 'details' | 'verify_search' | 'maps' | 'crawling' | 'building';
 
 export default function CreateProjectPage() {
   const navigate = useNavigate();
@@ -27,7 +27,11 @@ export default function CreateProjectPage() {
   const [crawledData, setCrawledData] = useState<BusinessData | null>(null);
   const [crawlError, setCrawlError] = useState<string | null>(null);
   const [isCrawling, setIsCrawling] = useState(false);
-  const [websiteCrawled, setWebsiteCrawled] = useState(false);
+
+  // Search state
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchResult, setSearchResult] = useState<VerifiedRestaurantData | null>(null);
 
   // Generation state (Phase 3)
   const [createdProject, setCreatedProject] = useState<Project | null>(null);
@@ -41,13 +45,6 @@ export default function CreateProjectPage() {
   const generationStartedAtRef = useRef<number | null>(null);
   const generationAbortRef = useRef<AbortController | null>(null);
   const completionHandledRef = useRef<boolean>(false);
-
-  // Review/edit state
-  const [editedName, setEditedName] = useState('');
-  const [editedAddress, setEditedAddress] = useState('');
-  const [editedPhone, setEditedPhone] = useState('');
-  const [editedWebsite, setEditedWebsite] = useState('');
-  const [showHours, setShowHours] = useState(false);
 
   // Progress indicator for crawling step
   const [crawlProgress, setCrawlProgress] = useState<'connecting' | 'extracting' | 'done'>('connecting');
@@ -90,16 +87,7 @@ export default function CreateProjectPage() {
     return undefined;
   }, [step, isCrawling]);
 
-  // Initialize edit fields when entering review step
-  useEffect(() => {
-    if (step === 'review' && crawledData) {
-      setEditedName(crawledData.name || businessName);
-      setEditedAddress(crawledData.address || businessAddress);
-      setEditedPhone(crawledData.phone || '');
-      setEditedWebsite(crawledData.website || '');
-      setWebsiteCrawled(!!crawledData.website && crawledData.website.trim().length > 0);
-    }
-  }, [step, crawledData, businessName, businessAddress]);
+  // Progress indicator for crawling step
 
   const mapsUrlValid = useMemo(() => {
     if (!mapsUrl.trim()) {
@@ -135,78 +123,20 @@ export default function CreateProjectPage() {
   const addressError = touched.address && !businessAddress.trim() ? 'Business address is required' : null;
   const mapsError = touched.maps && !mapsUrlValid ? 'Enter a valid Google Maps link' : null;
 
-  const handleContinueDetails = () => {
-    setTouched((prev) => ({ ...prev, name: true, address: true }));
+  /*
+   * Refactored: Logic to handle creating project directly
+   * Used by both:
+   * 1. Auto-build after successful crawl
+   * 2. Manual "Create Project" from review step (fallback)
+   */
+  const handleAutoBuild = async (data: BusinessData) => {
+    // Determine final values
+    const finalName = data.name || businessName;
+    const finalAddress = data.address || businessAddress;
 
-    if (!businessName.trim() || !businessAddress.trim()) {
-      return;
-    }
-
-    setStep('maps');
-  };
-
-  const handleSubmitMaps = async () => {
-    setTouched((prev) => ({ ...prev, maps: true }));
-
-    if (!mapsUrlValid) {
-      setStep('mapsError');
-      return;
-    }
-
-    setStep('crawling');
-    setIsCrawling(true);
-    setCrawlProgress('connecting');
-
-    try {
-      const response = await fetch('/api/crawler/extract', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          google_maps_url: mapsUrl.trim(),
-        }),
-      });
-
-      const result: { success?: boolean; data?: BusinessData; error?: string | { message?: string } } =
-        await response.json();
-
-      if (response.ok && result.success && result.data) {
-        setCrawledData(result.data);
-        setWebsiteCrawled(!!result.data.website && result.data.website.trim().length > 0);
-        setIsCrawling(false);
-        setStep('review');
-      } else {
-        const errorMessage =
-          typeof result.error === 'string' ? result.error : result.error?.message || 'Failed to extract business data';
-        setCrawlError(errorMessage);
-        setIsCrawling(false);
-        setStep('mapsError');
-      }
-    } catch (err) {
-      console.error('Crawler error:', err);
-      setCrawlError('Failed to connect to data extraction service. Please try again.');
-      setIsCrawling(false);
-      setStep('mapsError');
-    }
-  };
-
-  const handleContinueFromReview = () => {
-    if (!editedName.trim() || !editedAddress.trim()) {
-      return;
-    }
-
-    setBusinessName(editedName.trim());
-    setBusinessAddress(editedAddress.trim());
-    setStep('confirm');
-  };
-
-  const handleConfirm = async () => {
-    if (!businessName.trim() || !businessAddress.trim()) {
-      setStep('details');
-      setTouched((prev) => ({ ...prev, name: true, address: true }));
-
+    // If somehow we have no valid data (should be guarded before calling), return
+    if (!finalName || !finalAddress) {
+      console.error('Missing name or address for auto-build');
       return;
     }
 
@@ -217,21 +147,18 @@ export default function CreateProjectPage() {
     setGeneratedFiles([]);
     setGenerationComplete(null);
 
-    // Always attach a minimal businessProfile so generation can proceed even in fallback mode
+    // Prepare payload
     const businessProfile = {
       session_id: sessionId,
       gmaps_url: mapsUrl.trim() || undefined,
-      crawled_data: (crawledData ?? {
-        name: businessName.trim(),
-        address: businessAddress.trim(),
-      }) as BusinessData,
+      crawled_data: data,
       crawled_at: new Date().toISOString(),
     };
 
     const payload: CreateProjectInput = {
-      name: businessName.trim(),
+      name: finalName,
       gmaps_url: mapsUrl.trim() || undefined,
-      address: { line1: businessAddress.trim() },
+      address: { line1: finalAddress },
       session_id: sessionId,
       businessProfile,
     };
@@ -244,6 +171,128 @@ export default function CreateProjectPage() {
     }
 
     setCreatedProject(project);
+  };
+
+  const handleContinueDetails = async () => {
+    setTouched((prev) => ({ ...prev, name: true, address: true }));
+    setSearchError(null);
+
+    if (!businessName.trim() || !businessAddress.trim()) {
+      return;
+    }
+
+    setIsSearching(true);
+
+    try {
+      const response = await fetch('/api/crawler/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          business_name: businessName,
+          address: businessAddress,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        success?: boolean;
+        data?: VerifiedRestaurantData;
+        error?: { message?: string };
+      };
+
+      if (response.ok && result?.success && result?.data) {
+        setSearchResult(result.data);
+        setStep('verify_search');
+      } else {
+        const msg = result?.error?.message || 'Could not find business with those details.';
+        setSearchError(msg);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setSearchError('Failed to connect to search service.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const executeCrawl = async (
+    payload: Partial<BusinessData> & {
+      google_maps_url?: string;
+      business_name?: string;
+      address?: string;
+      place_id?: string;
+    },
+  ) => {
+    setStep('crawling');
+    setIsCrawling(true);
+    setCrawlProgress('connecting');
+
+    try {
+      const response = await fetch('/api/crawler/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          ...payload,
+        }),
+      });
+
+      const result: { success?: boolean; data?: BusinessData; error?: string | { message?: string } } =
+        await response.json();
+
+      if (response.ok && result.success && result.data) {
+        setCrawledData(result.data);
+
+        // setWebsiteCrawled(!!result.data.website && result.data.website.trim().length > 0);
+        setIsCrawling(false);
+
+        // AUTO-PROCEED: Skip 'review' step and go straight to building
+        await handleAutoBuild(result.data);
+      } else {
+        const errorMessage =
+          typeof result.error === 'string' ? result.error : result.error?.message || 'Failed to extract business data';
+        setCrawlError(errorMessage);
+        setIsCrawling(false);
+        setStep('maps');
+      }
+    } catch (err) {
+      console.error('Crawler error:', err);
+      setCrawlError('Failed to connect to data extraction service. Please try again.');
+      setIsCrawling(false);
+      setStep('maps');
+    }
+  };
+
+  const handleSubmitMaps = async () => {
+    setTouched((prev) => ({ ...prev, maps: true }));
+
+    if (!mapsUrlValid) {
+      return;
+    }
+
+    // Go directly to crawling
+    await executeCrawl({ google_maps_url: mapsUrl.trim() });
+  };
+
+  const handleConfirmVerified = async () => {
+    if (!searchResult) {
+      setStep('maps');
+      return;
+    }
+
+    // Send verified data directly - preferred method over URL construction
+    await executeCrawl({
+      business_name: searchResult.name,
+      address: searchResult.address,
+      place_id: searchResult.place_id,
+    });
+  };
+
+  const handleRejectVerified = () => {
+    setStep('maps');
   };
 
   // Effect for generation stream
@@ -422,21 +471,19 @@ export default function CreateProjectPage() {
   const currentStep = useMemo(() => {
     switch (step) {
       case 'details':
+      case 'verify_search':
         return 1;
       case 'maps':
       case 'crawling':
         return 2;
-      case 'review':
-      case 'confirm':
-        return 3;
       case 'building':
-        return 4;
+        return 3;
       default:
         return 1;
     }
   }, [step]);
 
-  const totalSteps = 4;
+  const totalSteps = 3;
   const progressPercentage = (currentStep / totalSteps) * 100;
 
   return (
@@ -572,19 +619,106 @@ export default function CreateProjectPage() {
                   {addressError && <p className="text-sm text-red-500 pl-1">{addressError}</p>}
                 </div>
 
+                {/* Error Message */}
+                {searchError && (
+                  <div className="p-4 rounded-xl border border-red-100 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 text-sm flex items-start gap-3">
+                    <div className="i-ph-warning-circle-bold text-lg shrink-0 mt-0.5" />
+                    <p>{searchError}</p>
+                  </div>
+                )}
+
                 {/* Button */}
                 <div className="flex flex-col gap-3 pt-4 relative z-10">
                   <button
                     onClick={handleContinueDetails}
-                    className="w-full py-4 bg-[#1A1A2E] dark:bg-[#25253E] hover:bg-[#25253E] dark:hover:bg-[#303050] text-white text-lg font-bold rounded-xl shadow-lg shadow-[#1A1A2E]/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 group"
+                    disabled={isSearching}
+                    className="w-full py-4 bg-[#1A1A2E] dark:bg-[#25253E] hover:bg-[#25253E] dark:hover:bg-[#303050] text-white text-lg font-bold rounded-xl shadow-lg shadow-[#1A1A2E]/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    Continue
-                    <div className="i-ph-arrow-right text-[20px] group-hover:translate-x-1 transition-transform" />
+                    {isSearching ? (
+                      <>
+                        <div className="i-ph-spinner-gap-bold animate-spin text-xl" />
+                        Searching...
+                      </>
+                    ) : (
+                      <>
+                        Continue
+                        <div className="i-ph-arrow-right text-[20px] group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
             </div>
           </>
+        )}
+
+        {/* VERIFY SEARCH STEP */}
+        {step === 'verify_search' && searchResult && (
+          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-soft dark:shadow-none border border-neutral-400/20 dark:border-gray-800 transition-colors duration-300 animate-in fade-in slide-in-from-bottom-4 overflow-hidden max-w-md mx-auto">
+            {/* Map Preview Header */}
+            <div className="h-32 bg-[#F3F4F6] dark:bg-gray-800 relative w-full overflow-hidden">
+              <div
+                className="absolute inset-0 opacity-10 dark:opacity-5"
+                style={{
+                  backgroundImage: 'radial-gradient(#9ca3af 1px, transparent 1px)',
+                  backgroundSize: '20px 20px',
+                }}
+              ></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="i-ph-map-pin-fill text-4xl text-[#21C6FF] drop-shadow-md pb-2" />
+              </div>
+              <div className="absolute bottom-4 right-4 flex flex-col gap-1">
+                <div className="w-8 h-8 bg-white dark:bg-gray-700 rounded-md shadow-sm flex items-center justify-center">
+                  <div className="i-ph-plus text-gray-500 text-xs" />
+                </div>
+                <div className="w-8 h-8 bg-white dark:bg-gray-700 rounded-md shadow-sm flex items-center justify-center">
+                  <div className="i-ph-minus text-gray-500 text-xs" />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 pt-6 text-center">
+              <h2 className="text-2xl font-bold mb-2 text-[#212121] dark:text-white">Is this your company?</h2>
+              <p className="text-neutral-500 dark:text-gray-400 mb-8 font-light text-sm">
+                We found a match on Google Maps based on your details.
+              </p>
+
+              <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm mb-8 text-left flex items-start gap-4">
+                <div className="h-12 w-12 rounded-xl bg-[#21C6FF]/10 flex items-center justify-center shrink-0">
+                  <div className="i-ph-storefront-fill text-[#21C6FF] text-2xl" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#212121] dark:text-white leading-tight">
+                    {searchResult.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{searchResult.address}</p>
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-[#21C6FF]" />
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">
+                      Google Maps Found
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleConfirmVerified}
+                  className="w-full py-4 bg-[#1A1A2E] dark:bg-[#25253E] hover:bg-[#25253E] dark:hover:bg-[#303050] text-white font-bold rounded-xl shadow-lg transition-all transform active:scale-[0.99] flex items-center justify-center gap-2"
+                >
+                  Yes, this is my business
+                  <div className="i-ph-check-circle-fill text-lg" />
+                </button>
+
+                <button
+                  onClick={handleRejectVerified}
+                  className="w-full py-4 bg-white dark:bg-transparent border border-gray-200 dark:border-gray-700 text-[#525252] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold rounded-xl transition-all"
+                >
+                  No, provide a Google Maps link
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* MAPS STEP */}
@@ -644,24 +778,26 @@ export default function CreateProjectPage() {
 
               {/* API Error Alert */}
               {crawlError && (
-                <div className="flex items-start gap-4 p-5 rounded-2xl border border-red-100 bg-red-50/50 dark:bg-red-900/10">
-                  <div className="shrink-0">
-                    <div className="i-ph-warning-fill text-[#FF4081] text-2xl mt-0.5" />
+                <div className="flex items-center justify-between gap-4 p-5 rounded-2xl border border-red-100 bg-red-50/50 dark:bg-red-900/10">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="shrink-0">
+                      <div className="i-ph-warning-fill text-[#FF4081] text-2xl mt-0.5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
+                        Oops! We couldn't find a suitable business with that link.
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Please check the link and try again, or enter your details manually.
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
-                      Oops! We couldn't find a suitable business with that link.
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Please check the link and try again, or enter your details manually.
-                    </p>
-                    <button
-                      onClick={() => navigate('/app')}
-                      className="mt-4 px-5 py-2.5 bg-[#1A1A2E] hover:bg-[#25253E] text-white text-xs font-bold rounded-lg transition-colors border border-white/10"
-                    >
-                      Return to Dashboard
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => navigate('/app')}
+                    className="shrink-0 px-5 py-2.5 bg-[#1A1A2E] hover:bg-[#25253E] text-white text-xs font-bold rounded-lg transition-colors border border-white/10"
+                  >
+                    Return to Dashboard
+                  </button>
                 </div>
               )}
 
@@ -694,24 +830,14 @@ export default function CreateProjectPage() {
               {/* Buttons */}
               <div className="flex flex-col gap-3 sm:flex-row pt-2">
                 {crawlError ? (
-                  <>
-                    {/* Retry State Buttons */}
-                    <button
-                      type="button"
-                      onClick={() => setStep('details')}
-                      className="w-full sm:w-auto px-6 py-3.5 bg-[#1A1A2E] hover:bg-[#25253E] text-white font-bold rounded-xl shadow-lg shadow-[#1A1A2E]/10 transition-all flex items-center justify-center gap-2"
-                    >
-                      Go Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSubmitMaps}
-                      className="flex-1 py-3.5 bg-gradient-to-r from-[#21C6FF] to-[#00B0FF] hover:brightness-110 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
-                    >
-                      Retry
-                      <div className="i-ph-arrow-clockwise-bold text-lg" />
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    onClick={handleSubmitMaps}
+                    className="w-full py-3.5 bg-[#21C6FF] hover:bg-[#1bb1e6] text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    Retry Submission
+                    <div className="i-ph-arrow-clockwise-bold text-lg" />
+                  </button>
                 ) : (
                   <>
                     {/* Normal State Buttons */}
@@ -738,7 +864,7 @@ export default function CreateProjectPage() {
         )}
 
         {/* Placeholder for other steps */}
-        {['crawling', 'review', 'confirm', 'mapsError', 'building'].includes(step) && (
+        {['crawling', 'building'].includes(step) && (
           <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-soft dark:shadow-none border border-neutral-400/20 dark:border-gray-800 p-8 transition-colors duration-300">
             {step === 'crawling' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -817,245 +943,6 @@ export default function CreateProjectPage() {
               </div>
             )}
 
-            {step === 'mapsError' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center space-y-2">
-                  <div className="h-16 w-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <div className="i-ph-link-break-bold text-3xl" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-[#212121] dark:text-white">Google Maps Link</h2>
-                  <p className="text-[#525252] dark:text-gray-300">{crawlError || 'We could not verify that link.'}</p>
-                </div>
-
-                {crawlError && crawlError.toLowerCase().includes('timeout') && (
-                  <div className="p-4 rounded-2xl border border-orange-100 bg-orange-50/50 dark:bg-orange-900/10 text-sm text-orange-600 dark:text-orange-400">
-                    <div className="flex gap-3">
-                      <div className="i-ph-clock-fill text-xl shrink-0" />
-                      <p>
-                        The data extraction is taking longer than expected. You can try again or proceed with the
-                        information you provided.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-3 pt-2">
-                  <button
-                    onClick={() => {
-                      setCrawlError(null);
-                      setStep('maps');
-                    }}
-                    className="w-full py-4 bg-[#1A1A2E] dark:bg-[#25253E] text-white font-bold rounded-xl shadow-lg hover:brightness-110 transition-all"
-                  >
-                    Try Again
-                  </button>
-                  <button
-                    onClick={() => {
-                      setCrawlError(null);
-                      setCrawledData(null);
-                      setStep('confirm');
-                    }}
-                    className="w-full py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[#212121] dark:text-white font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-                  >
-                    Continue with Manual Entry
-                  </button>
-                  <button
-                    onClick={() => setStep('details')}
-                    className="w-full py-3 text-[#9E9E9E] hover:text-[#212121] dark:hover:text-white font-medium transition-colors"
-                  >
-                    Go Back
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {step === 'review' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center space-y-2">
-                  <h2 className="text-2xl font-bold text-[#212121] dark:text-white">Review information</h2>
-                  <p className="text-[#525252] dark:text-gray-300 font-light">
-                    We found the following details. Edit if needed.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide text-[#9E9E9E] dark:text-gray-400 mb-1.5 pl-1">
-                      Business Name *
-                    </label>
-                    <input
-                      value={editedName}
-                      onChange={(e) => setEditedName(e.target.value)}
-                      className="w-full h-14 px-4 border border-[#9E9E9E]/30 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 rounded-xl text-[#212121] dark:text-white focus:ring-4 focus:ring-[#21C6FF]/15 focus:border-[#21C6FF] outline-none transition-all"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide text-[#9E9E9E] dark:text-gray-400 mb-1.5 pl-1">
-                      Address *
-                    </label>
-                    <input
-                      value={editedAddress}
-                      onChange={(e) => setEditedAddress(e.target.value)}
-                      className="w-full h-14 px-4 border border-[#9E9E9E]/30 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 rounded-xl text-[#212121] dark:text-white focus:ring-4 focus:ring-[#21C6FF]/15 focus:border-[#21C6FF] outline-none transition-all"
-                      required
-                    />
-                  </div>
-                  {editedPhone && (
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wide text-[#9E9E9E] dark:text-gray-400 mb-1.5 pl-1">
-                        Phone
-                      </label>
-                      <input
-                        type="tel"
-                        value={editedPhone}
-                        onChange={(e) => setEditedPhone(e.target.value)}
-                        className="w-full h-14 px-4 border border-[#9E9E9E]/30 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 rounded-xl text-[#212121] dark:text-white focus:ring-4 focus:ring-[#21C6FF]/15 focus:border-[#21C6FF] outline-none transition-all"
-                      />
-                    </div>
-                  )}
-                  {editedWebsite && (
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wide text-[#9E9E9E] dark:text-gray-400 mb-1.5 pl-1">
-                        Website
-                      </label>
-                      <input
-                        type="url"
-                        value={editedWebsite}
-                        onChange={(e) => setEditedWebsite(e.target.value)}
-                        className="w-full h-14 px-4 border border-[#9E9E9E]/30 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 rounded-xl text-[#212121] dark:text-white focus:ring-4 focus:ring-[#21C6FF]/15 focus:border-[#21C6FF] outline-none transition-all"
-                      />
-                    </div>
-                  )}
-
-                  {/* Additional info cards */}
-                  {crawledData && (crawledData.rating || crawledData.reviews_count) && (
-                    <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        {crawledData.rating && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-lg font-bold text-[#212121] dark:text-white">
-                              {crawledData.rating.toFixed(1)}
-                            </span>
-                            <div className="i-ph-star-fill text-yellow-400 text-xl" />
-                          </div>
-                        )}
-                        {crawledData.reviews_count && (
-                          <span className="text-sm text-[#9E9E9E] dark:text-gray-400">
-                            {crawledData.reviews_count} reviews
-                          </span>
-                        )}
-                      </div>
-                      <div className="i-ph-google-logo-bold text-gray-300 dark:text-gray-600 text-xl" />
-                    </div>
-                  )}
-
-                  {/* Hours accordion placeholder style */}
-                  {crawledData?.hours && Object.keys(crawledData.hours).length > 0 && (
-                    <div className="rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800/50">
-                      <button
-                        type="button"
-                        onClick={() => setShowHours(!showHours)}
-                        className="w-full px-4 py-3.5 flex items-center justify-between text-left"
-                      >
-                        <span className="text-sm font-bold text-[#212121] dark:text-white">Operating Hours</span>
-                        <div
-                          className={classNames(
-                            'i-ph-caret-down-bold text-gray-400 transition-transform duration-300',
-                            showHours ? 'rotate-180' : '',
-                          )}
-                        />
-                      </button>
-                      {showHours && (
-                        <div className="px-4 pb-4 space-y-2 border-t border-gray-50 dark:border-gray-700/50 pt-3">
-                          {Object.entries(crawledData.hours).map(([day, hours]) => (
-                            <div key={day} className="flex justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400 capitalize">{day}</span>
-                              <span className="text-[#212121] dark:text-white font-medium">{hours}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Status indicators */}
-                  {websiteCrawled ? (
-                    <div className="p-3 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800 rounded-xl flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
-                      <div className="i-ph-check-circle-fill" />
-                      <span>Website content extracted successfully</span>
-                    </div>
-                  ) : (
-                    crawledData && (
-                      <div className="p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm">
-                        <div className="i-ph-info-fill" />
-                        <span>Using Google Maps data only</span>
-                      </div>
-                    )
-                  )}
-
-                  <div className="flex flex-col gap-3 pt-4 relative z-10">
-                    <button
-                      onClick={handleContinueFromReview}
-                      className="w-full py-4 bg-[#1A1A2E] dark:bg-[#25253E] hover:bg-[#25253E] dark:hover:bg-[#303050] text-white text-lg font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group"
-                      disabled={!editedName.trim() || !editedAddress.trim()}
-                    >
-                      Continue
-                      <div className="i-ph-arrow-right text-[20px] group-hover:translate-x-1 transition-transform" />
-                    </button>
-                    <button
-                      onClick={() => setStep('maps')}
-                      className="w-full py-3 text-[#9E9E9E] hover:text-[#212121] dark:hover:text-white font-medium transition-colors"
-                    >
-                      Go Back
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {step === 'confirm' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center space-y-2">
-                  <h2 className="text-2xl font-bold text-[#212121] dark:text-white">Is this your company?</h2>
-                  <p className="text-[#525252] dark:text-gray-300">We found a match based on your details.</p>
-                </div>
-
-                <div className="p-8 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl space-y-6 relative overflow-hidden text-center">
-                  <div className="absolute top-0 right-0 p-4 opacity-5">
-                    <div className="i-ph-storefront text-8xl" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-2xl font-black text-[#212121] dark:text-white">{businessName}</h3>
-                    <p className="text-[#525252] dark:text-gray-400 font-light">{businessAddress}</p>
-                  </div>
-
-                  <div className="flex flex-col gap-3 pt-4">
-                    <button
-                      onClick={handleConfirm}
-                      className="w-full py-4 bg-[#FFC000] hover:bg-[#FFD000] text-black font-black text-lg rounded-xl shadow-lg shadow-yellow-500/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <div className="i-ph-spinner-gap-bold animate-spin w-5 h-5" />
-                          Creating...
-                        </>
-                      ) : (
-                        'Yes, this is my business'
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setStep('review')}
-                      className="w-full py-3 text-[#9E9E9E] hover:text-[#212121] dark:hover:text-white font-medium transition-colors"
-                      disabled={isLoading}
-                    >
-                      Edit information
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
             {step === 'building' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center space-y-4">
@@ -1239,7 +1126,11 @@ export default function CreateProjectPage() {
                             setShowTakingLonger(false);
                             setGenerationAttempt((n) => n + 1);
                           } else {
-                            void handleConfirm();
+                            if (crawledData) {
+                              void handleAutoBuild(crawledData);
+                            } else {
+                              void handleAutoBuild({ name: businessName, address: businessAddress } as BusinessData);
+                            }
                           }
                         }}
                         className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors"
@@ -1247,10 +1138,10 @@ export default function CreateProjectPage() {
                         Try Again
                       </button>
                       <button
-                        onClick={() => setStep('confirm')}
+                        onClick={() => navigate('/app')}
                         className="flex-1 py-3 border border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50 transition-colors"
                       >
-                        Go Back
+                        Exit
                       </button>
                     </div>
                   </div>

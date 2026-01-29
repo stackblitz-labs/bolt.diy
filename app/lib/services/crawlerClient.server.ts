@@ -14,7 +14,7 @@
  */
 
 import { logger } from '~/utils/logger';
-import type { CrawlResponse, GenerateContentResponse } from '~/types/crawler';
+import type { CrawlRequest, CrawlResponse, GenerateContentResponse, SearchRestaurantResponse } from '~/types/crawler';
 
 // Environment configuration
 const CRAWLER_API_URL = process.env.CRAWLER_API_URL || 'http://localhost:4999';
@@ -50,27 +50,28 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
 }
 
 /**
- * Extract business data from Google Maps URL
+ * Extract business data from Google Maps
  *
- * Calls the crawler API's /crawl endpoint to extract:
- * - Business name, address, phone
- * - Website URL (if available)
- * - Rating, reviews
- * - Operating hours
- * - Menu (for restaurants)
- * - Photos
+ * Supports multiple input methods:
+ * 1. Google Maps URL (full or share link)
+ * 2. Business Name + Address
+ * 3. Website URL
+ * 4. Verified Data (via Search)
  *
- * @param sessionId - Unique session ID for caching (1:1 with project)
- * @param googleMapsUrl - Google Maps URL to extract data from
+ * @param payload - Crawl request payload
  * @returns CrawlResponse with extracted business data or error
  */
-export async function extractBusinessData(sessionId: string, googleMapsUrl: string): Promise<CrawlResponse> {
+export async function extractBusinessData(
+  payload: Omit<CrawlRequest, 'session_id'> & { session_id: string },
+): Promise<CrawlResponse> {
   const startTime = Date.now();
+  const { session_id: sessionId, ...rest } = payload;
 
   try {
     logger.info(`[Crawler] Extracting business data`, {
       sessionId,
-      url: googleMapsUrl,
+      method: payload.google_maps_url ? 'URL' : payload.business_name ? 'Name+Address' : 'Other',
+      payload: rest,
     });
 
     const response = await fetchWithTimeout(
@@ -80,10 +81,7 @@ export async function extractBusinessData(sessionId: string, googleMapsUrl: stri
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          session_id: sessionId,
-          google_maps_url: googleMapsUrl,
-        }),
+        body: JSON.stringify(payload),
       },
       CRAWLER_TIMEOUT,
     );
@@ -286,6 +284,116 @@ export async function generateWebsiteContent(sessionId: string): Promise<Generat
       session_id: sessionId,
       error: `Crawler API unavailable (${errorMessage})`,
       statusCode: 503, // Service Unavailable
+    };
+  }
+}
+
+/**
+ * Search for a restaurant to verify its details
+ *
+ * Calls the crawler API's /search-restaurant endpoint to:
+ * - Search for a business by name and address
+ * - Return potential matches with place_id and data_id
+ *
+ * @param businessName - Name of the business to search for
+ * @param address - Address or location context
+ * @returns SearchRestaurantResponse with verified data or error
+ */
+export async function searchRestaurant(businessName: string, address: string): Promise<SearchRestaurantResponse> {
+  const startTime = Date.now();
+
+  try {
+    logger.info(`[Crawler] Searching for restaurant`, {
+      businessName,
+      address,
+    });
+
+    const response = await fetchWithTimeout(
+      `${CRAWLER_API_URL}/search-restaurant`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          business_name: businessName,
+          address,
+        }),
+      },
+      CRAWLER_TIMEOUT,
+    );
+
+    const duration = Date.now() - startTime;
+
+    if (!response.ok) {
+      logger.error(`[Crawler] Search failed`, {
+        businessName,
+        status: response.status,
+        statusText: response.statusText,
+        duration: `${duration}ms`,
+      });
+
+      let errorDetails = `Crawler API returned ${response.status}: ${response.statusText}`;
+
+      try {
+        const errorBody = await response.json();
+
+        if (typeof errorBody === 'object' && errorBody !== null) {
+          const body = errorBody as Record<string, unknown>;
+
+          if (typeof body.error === 'string') {
+            errorDetails = body.error;
+          } else if (typeof body.message === 'string') {
+            errorDetails = body.message;
+          }
+        }
+      } catch {
+        // Use status text if JSON parsing fails
+      }
+
+      return {
+        success: false,
+        error: errorDetails,
+        statusCode: response.status,
+      };
+    }
+
+    const data: unknown = await response.json();
+
+    logger.info(`[Crawler] Search successful`, {
+      businessName,
+      duration: `${duration}ms`,
+      hasData: !!(data as any)?.data,
+    });
+
+    return data as SearchRestaurantResponse;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+
+    if (error instanceof Error && error.message.includes('timed out')) {
+      logger.error(`[Crawler] Search timed out`, {
+        businessName,
+        duration: `${duration}ms`,
+      });
+
+      return {
+        success: false,
+        error: `Request timed out after ${CRAWLER_TIMEOUT}ms`,
+        statusCode: 408,
+      };
+    }
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`[Crawler] Network error during search`, {
+      businessName,
+      error: errorMessage,
+      duration: `${duration}ms`,
+    });
+
+    return {
+      success: false,
+      error: `Crawler API unavailable (${errorMessage})`,
+      statusCode: 503,
     };
   }
 }
