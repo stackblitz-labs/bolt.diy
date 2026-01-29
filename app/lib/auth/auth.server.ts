@@ -31,6 +31,9 @@ export const auth = betterAuth({
     schema,
   }),
 
+  emailAndPassword: {
+    enabled: true,
+  },
   socialProviders: {
     google: {
       clientId: env.GOOGLE_CLIENT_ID,
