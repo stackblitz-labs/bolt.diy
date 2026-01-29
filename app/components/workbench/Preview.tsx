@@ -34,6 +34,14 @@ const WINDOW_SIZES: WindowSize[] = [
     hasFrame: true,
     frameType: 'mobile',
   },
+  {
+    name: 'Tablet (1024×768)',
+    width: 1024,
+    height: 768,
+    icon: 'i-ph:device-tablet',
+    hasFrame: true,
+    frameType: 'tablet',
+  },
   { name: 'iPad Mini', width: 768, height: 1024, icon: 'i-ph:device-tablet', hasFrame: true, frameType: 'tablet' },
   { name: 'iPad Air', width: 820, height: 1180, icon: 'i-ph:device-tablet', hasFrame: true, frameType: 'tablet' },
   { name: 'iPad Pro 11"', width: 834, height: 1194, icon: 'i-ph:device-tablet', hasFrame: true, frameType: 'tablet' },
@@ -83,7 +91,7 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
   const SCALING_FACTOR = 1;
 
   const [isWindowSizeDropdownOpen, setIsWindowSizeDropdownOpen] = useState(false);
-  const [selectedWindowSize, setSelectedWindowSize] = useState<WindowSize>(WINDOW_SIZES[0]);
+  const [selectedWindowSize, setSelectedWindowSize] = useState<WindowSize>(WINDOW_SIZES[10]); // Default to Desktop
   const [isLandscape, setIsLandscape] = useState(false);
   const [showDeviceFrame, setShowDeviceFrame] = useState(true);
   const [showDeviceFrameInPreview, setShowDeviceFrameInPreview] = useState(false);
@@ -395,9 +403,35 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
 
         // Create a window with device frame if enabled
         if (showDeviceFrame && size.hasFrame) {
-          // Calculate frame dimensions
-          const frameWidth = size.frameType === 'mobile' ? (isLandscape ? 120 : 40) : 60; // Width padding on each side
-          const frameHeight = size.frameType === 'mobile' ? (isLandscape ? 80 : 80) : isLandscape ? 60 : 100; // Height padding on top and bottom
+          /*
+           * Calculate frame dimensions
+           * Calculate frame padding based on device type
+           */
+          const isTabletDevice = size.frameType === 'tablet';
+          const frameWidth =
+            size.frameType === 'mobile'
+              ? isLandscape
+                ? 120
+                : 40
+              : isTabletDevice
+                ? isLandscape
+                  ? 120
+                  : 100 // Tablet: 100px total (50px each side)
+                : isLandscape
+                  ? 120
+                  : 80;
+          const frameHeight =
+            size.frameType === 'mobile'
+              ? isLandscape
+                ? 80
+                : 80
+              : isTabletDevice
+                ? isLandscape
+                  ? 80
+                  : 80 // Tablet: 80px total (40px top/bottom)
+                : isLandscape
+                  ? 80
+                  : 120;
 
           // Create a window with the correct dimensions first
           const newWindow = window.open(
@@ -419,9 +453,13 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
               ? isLandscape
                 ? '40px 60px'
                 : '40px 20px'
-              : isLandscape
-                ? '30px 50px'
-                : '50px 30px';
+              : isTabletDevice
+                ? isLandscape
+                  ? '40px 60px'
+                  : '40px 50px' // Tablet landscape default: 40px top/bottom, 50px left/right
+                : isLandscape
+                  ? '40px 60px'
+                  : '60px 40px';
 
           // Position notch and home button based on orientation
           const notchTop = isLandscape ? '50%' : '20px';
@@ -562,32 +600,69 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
     }
 
     const isMobile = selectedWindowSize.frameType === 'mobile';
+    const isTablet = selectedWindowSize.frameType === 'tablet';
 
-    if (isLandscape) {
-      // Increase horizontal padding in landscape mode to ensure full device frame is visible
-      return isMobile ? '40px 60px' : '30px 50px';
+    // For the standard tablet view (1024×768 landscape by default)
+    if (isTablet && !isLandscape) {
+      return '40px 50px'; // 40px top/bottom, 50px left/right for bezels
     }
 
-    return isMobile ? '40px 20px' : '50px 30px';
+    if (isLandscape) {
+      return isMobile ? '40px 60px' : '40px 60px';
+    }
+
+    return isMobile ? '40px 20px' : '60px 40px';
   }, [isLandscape, selectedWindowSize]);
 
   // Function to get the scale factor for the device frame
   const getDeviceScale = useCallback(() => {
-    // Always return 1 to ensure the device frame is shown at its exact size
-    return 1;
-  }, [isLandscape, selectedWindowSize, widthPercent]);
+    if (!containerRef.current || !selectedWindowSize || !showDeviceFrameInPreview) {
+      return 1;
+    }
+
+    const containerWidth = containerRef.current.clientWidth;
+    const containerHeight = containerRef.current.clientHeight;
+
+    // Calculate frame dimensions including padding and margin
+    const isTablet = selectedWindowSize.frameType === 'tablet';
+    const marginSize = selectedWindowSize.frameType === 'mobile' ? 80 : 40; // margin on both sides
+    const paddingH = selectedWindowSize.frameType === 'mobile' ? 40 : isTablet ? 100 : 80; // horizontal padding
+    const paddingV = selectedWindowSize.frameType === 'mobile' ? 80 : isTablet ? 80 : 120; // vertical padding
+
+    const frameWidth = isLandscape
+      ? selectedWindowSize.height + paddingH + marginSize
+      : selectedWindowSize.width + paddingH + marginSize;
+
+    const frameHeight = isLandscape
+      ? selectedWindowSize.width + paddingV + marginSize
+      : selectedWindowSize.height + paddingV + marginSize;
+
+    // Calculate scale to fit within container (with some breathing room)
+    const scaleX = containerWidth > frameWidth ? 1 : (containerWidth - 40) / frameWidth;
+    const scaleY = containerHeight > frameHeight ? 1 : (containerHeight - 40) / frameHeight;
+
+    // Use the smaller scale to ensure it fits in both dimensions
+    const scale = Math.min(scaleX, scaleY, 1);
+
+    return scale;
+  }, [isLandscape, selectedWindowSize, showDeviceFrameInPreview]);
 
   // Update the device scale when needed
   useEffect(() => {
-    /*
-     * Intentionally disabled - we want to maintain scale of 1
-     * No dynamic scaling to ensure device frame matches external window exactly
-     */
-    // Intentionally empty cleanup function - no cleanup needed
-    return () => {
-      // No cleanup needed
+    const handleResize = () => {
+      // Force re-render to recalculate scale
+      if (isDeviceModeOn && showDeviceFrameInPreview) {
+        // Trigger a re-render by updating a dummy state
+        setShowDeviceFrameInPreview(true);
+      }
     };
-  }, [isDeviceModeOn, showDeviceFrameInPreview, getDeviceScale, isLandscape, selectedWindowSize]);
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [isDeviceModeOn, showDeviceFrameInPreview]);
 
   // Function to get the frame color based on dark mode
   const getFrameColor = useCallback(() => {
@@ -660,18 +735,163 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
     }
   };
 
+  // Simplified device mode types for quick selection
+  const deviceModeTypes = [
+    { id: 'desktop', icon: 'i-ph:monitor', label: 'Desktop', width: 1920 },
+    { id: 'tablet', icon: 'i-ph:device-tablet', label: 'Tablet', width: 1024 },
+    { id: 'mobile', icon: 'i-ph:device-mobile', label: 'Mobile', width: 390 },
+  ];
+
+  const [activeDeviceType, setActiveDeviceType] = useState('desktop');
+
+  const handleDeviceTypeSelect = (deviceId: string) => {
+    console.log('🔍 [Device Selector] Clicked:', deviceId);
+    console.log('📊 [Device Selector] Current State:', {
+      activeDeviceType,
+      isDeviceModeOn,
+      showDeviceFrameInPreview,
+      widthPercent,
+      selectedWindowSize: selectedWindowSize.name,
+    });
+
+    // Toggle off device mode if desktop is clicked when already in desktop mode
+    if (deviceId === 'desktop' && activeDeviceType === 'desktop' && isDeviceModeOn) {
+      console.log('🔄 [Device Selector] Toggling OFF desktop mode');
+      setIsDeviceModeOn(false);
+      setShowDeviceFrameInPreview(false);
+
+      return;
+    }
+
+    setActiveDeviceType(deviceId);
+
+    const device = deviceModeTypes.find((d) => d.id === deviceId);
+    console.log('🎯 [Device Selector] Found device:', device);
+
+    if (device) {
+      // Find matching window size
+      const matchingSize = WINDOW_SIZES.find((ws) => ws.width === device.width);
+      console.log('📐 [Device Selector] Matching size:', matchingSize);
+
+      if (matchingSize) {
+        setSelectedWindowSize(matchingSize);
+
+        // Always enable device mode when selecting a device
+        setIsDeviceModeOn(true);
+        console.log('✅ [Device Selector] Device mode ON');
+
+        // Enable device frame for mobile and tablet for better visualization
+        if (deviceId === 'mobile' || deviceId === 'tablet') {
+          console.log('📱 [Device Selector] Enabling device frame for', deviceId);
+          setShowDeviceFrameInPreview(true);
+
+          // Reset landscape mode for mobile/tablet
+          setIsLandscape(false);
+        } else {
+          console.log('🖥️ [Device Selector] Desktop - no frame, calculating width');
+
+          // Desktop: no frame, use percentage width
+          setShowDeviceFrameInPreview(false);
+
+          // Calculate appropriate width percentage for desktop
+          if (containerRef.current) {
+            const containerWidth = containerRef.current.clientWidth;
+            let newWidthPercent = (matchingSize.width / containerWidth) * 100;
+            console.log('📏 [Device Selector] Container width:', containerWidth);
+            console.log('📏 [Device Selector] Calculated percent:', newWidthPercent);
+
+            // Clamp between 20% and 100% (allow full width for desktop)
+            newWidthPercent = Math.max(20, Math.min(newWidthPercent, 100));
+            console.log('📏 [Device Selector] Clamped percent:', newWidthPercent);
+            setWidthPercent(newWidthPercent);
+          } else {
+            console.log('⚠️ [Device Selector] No container ref, using 100%');
+
+            // Fallback: desktop uses 100% (full width)
+            setWidthPercent(100);
+          }
+        }
+
+        console.log('🎬 [Device Selector] Final state will be:', {
+          deviceId,
+          isDeviceModeOn: true,
+          showDeviceFrameInPreview: deviceId === 'mobile' || deviceId === 'tablet',
+          selectedSize: matchingSize.name,
+        });
+      }
+    }
+  };
+
+  console.log('🔄 [Preview Component] Re-rendering with:', {
+    activePreview: !!activePreview,
+    isDeviceModeOn,
+    showDeviceFrameInPreview,
+    selectedWindowSize: selectedWindowSize.name,
+    widthPercent,
+  });
+
   return (
     <div ref={containerRef} className={`w-full h-full flex flex-col relative`}>
       {isPortDropdownOpen && (
         <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
       )}
-      <div className="bg-bolt-elements-background-depth-2 p-2 flex items-center gap-2">
+
+      {/* Preview Toolbar */}
+      <div
+        className="h-16 flex items-center justify-center px-6 shrink-0 z-10 relative"
+        style={{ background: 'var(--bolt-elements-bg-depth-2)' }}
+      >
+        {/* Left - Decorative dots (subtle) */}
+        <div className="absolute left-6 hidden xl:flex gap-2 opacity-50">
+          <div className="w-3 h-3 rounded-full bg-bolt-elements-textTertiary/30" />
+          <div className="w-3 h-3 rounded-full bg-bolt-elements-textTertiary/30" />
+          <div className="w-3 h-3 rounded-full bg-bolt-elements-textTertiary/30" />
+        </div>
+
+        {/* Center - Device Selector Pill */}
+        <div className="bg-bolt-elements-bg-depth-1 rounded-xl p-1 shadow-sm border border-bolt-elements-borderColor flex gap-1">
+          {deviceModeTypes.map((device) => (
+            <button
+              key={device.id}
+              onClick={() => handleDeviceTypeSelect(device.id)}
+              className={`p-2 rounded-lg bg-transparent ${
+                activeDeviceType === device.id
+                  ? 'bg-bolt-elements-bg-depth-3 text-bolt-elements-item-contentAccent shadow-sm'
+                  : 'hover:bg-bolt-elements-bg-depth-2 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary'
+              }`}
+              title={device.label}
+            >
+              <div className={`${device.icon} text-xl`} />
+            </button>
+          ))}
+        </div>
+
+        {/* Right - Live Preview Badge */}
+        <div
+          className="absolute right-6 text-xs font-medium flex items-center gap-2 px-3 py-1.5 rounded-full"
+          style={{
+            background: 'var(--bolt-status-success-bg)',
+            color: 'var(--bolt-status-success-text)',
+            border: '1px solid var(--bolt-status-success-border)',
+          }}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ background: 'var(--bolt-status-success-dot)' }}
+          />
+          Live Preview
+        </div>
+      </div>
+
+      {/* Hidden controls bar - only show advanced controls */}
+      <div className="hidden">
         <div className="flex items-center gap-2">
-          <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
+          <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} title="Reload" />
           <IconButton
             icon="i-ph:selection"
             onClick={() => setIsSelectionMode(!isSelectionMode)}
             className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
+            title="Selection Mode"
           />
         </div>
 
@@ -897,151 +1117,205 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
         </div>
       </div>
 
-      <div className="flex-1 border-t border-bolt-elements-borderColor flex justify-center items-center overflow-auto">
+      <div
+        className="flex-1 overflow-hidden px-4 pb-8 lg:px-12 lg:pb-10 flex justify-center"
+        style={{ background: 'var(--bolt-elements-bg-depth-2)' }}
+      >
         <div
+          className="w-full h-full max-w-[1280px] rounded-xl shadow-2xl overflow-hidden flex flex-col transition-all duration-500 ease-in-out"
           style={{
-            width: isDeviceModeOn ? (showDeviceFrameInPreview ? '100%' : `${widthPercent}%`) : '100%',
-            height: '100%',
-            overflow: 'auto',
-            background: 'var(--bolt-elements-background-depth-1)',
-            position: 'relative',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            background: 'var(--bolt-elements-bg-depth-1)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05)',
           }}
         >
-          {activePreview ? (
-            <>
-              {isDeviceModeOn && showDeviceFrameInPreview ? (
-                <div
-                  className="device-wrapper"
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    width: '100%',
-                    height: '100%',
-                    padding: '0',
-                    overflow: 'auto',
-                    transition: 'all 0.3s ease',
-                    position: 'relative',
-                  }}
-                >
+          {/* Browser Chrome Bar */}
+          <div className="h-10 bg-bolt-elements-bg-depth-2 border-b border-bolt-elements-borderColor flex items-center px-4 gap-4 shrink-0">
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+            </div>
+            <div className="flex-1 max-w-xl mx-auto bg-bolt-elements-bg-depth-1 border border-bolt-elements-borderColor rounded-md h-6 flex items-center justify-center text-[10px] text-bolt-elements-textTertiary font-medium">
+              {activePreview ? new URL(activePreview.baseUrl).hostname : 'localhost'}
+            </div>
+            <div className="w-10 flex items-center justify-end gap-1">
+              <button
+                onClick={reloadPreview}
+                className="p-1 bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary transition-colors"
+              >
+                <div className="i-ph:arrow-clockwise text-sm" />
+              </button>
+            </div>
+          </div>
+
+          {/* Preview Content */}
+          <div
+            className="flex-1 overflow-auto"
+            style={{
+              width: isDeviceModeOn ? (showDeviceFrameInPreview ? '100%' : `${widthPercent}%`) : '100%',
+              margin: isDeviceModeOn && !showDeviceFrameInPreview ? '0 auto' : undefined,
+              position: 'relative',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            {(() => {
+              console.log('🔍 [Preview] Checking activePreview:', {
+                hasActivePreview: !!activePreview,
+                activePreviewUrl: activePreview?.baseUrl,
+                isDeviceModeOn,
+                showDeviceFrameInPreview,
+              });
+              return null;
+            })()}
+            {activePreview ? (
+              <>
+                {(() => {
+                  console.log('🎨 [Device Selector] Rendering with:', {
+                    isDeviceModeOn,
+                    showDeviceFrameInPreview,
+                    widthPercent,
+                    selectedWindowSize: selectedWindowSize.name,
+                    willShowFrame: isDeviceModeOn && showDeviceFrameInPreview,
+                  });
+                  return null;
+                })()}
+                {isDeviceModeOn && showDeviceFrameInPreview ? (
                   <div
-                    className="device-frame-container"
+                    className="device-wrapper"
                     style={{
-                      position: 'relative',
-                      borderRadius: selectedWindowSize.frameType === 'mobile' ? '36px' : '20px',
-                      background: getFrameColor(),
-                      padding: getFramePadding(),
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-                      overflow: 'hidden',
-                      transform: 'scale(1)',
-                      transformOrigin: 'center center',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      width: '100%',
+                      height: '100%',
+                      padding: '0',
+                      overflow: 'auto',
                       transition: 'all 0.3s ease',
-                      margin: '40px',
-                      width: isLandscape
-                        ? `${selectedWindowSize.height + (selectedWindowSize.frameType === 'mobile' ? 120 : 60)}px`
-                        : `${selectedWindowSize.width + (selectedWindowSize.frameType === 'mobile' ? 40 : 60)}px`,
-                      height: isLandscape
-                        ? `${selectedWindowSize.width + (selectedWindowSize.frameType === 'mobile' ? 80 : 60)}px`
-                        : `${selectedWindowSize.height + (selectedWindowSize.frameType === 'mobile' ? 80 : 100)}px`,
+                      position: 'relative',
                     }}
                   >
-                    {/* Notch - positioned based on orientation */}
                     <div
+                      className="device-frame-container"
                       style={{
-                        position: 'absolute',
-                        top: isLandscape ? '50%' : '20px',
-                        left: isLandscape ? '30px' : '50%',
-                        transform: isLandscape ? 'translateY(-50%)' : 'translateX(-50%)',
-                        width: isLandscape ? '8px' : selectedWindowSize.frameType === 'mobile' ? '60px' : '80px',
-                        height: isLandscape ? (selectedWindowSize.frameType === 'mobile' ? '60px' : '80px') : '8px',
-                        background: '#333',
-                        borderRadius: '4px',
-                        zIndex: 2,
+                        position: 'relative',
+                        borderRadius: selectedWindowSize.frameType === 'mobile' ? '36px' : '20px',
+                        background: getFrameColor(),
+                        padding: getFramePadding(),
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                        overflow: 'hidden',
+                        transform: `scale(${getDeviceScale()})`,
+                        transformOrigin: 'center center',
+                        transition: 'all 0.3s ease',
+                        margin: selectedWindowSize.frameType === 'mobile' ? '40px' : '20px',
+                        width: isLandscape
+                          ? `${selectedWindowSize.height + (selectedWindowSize.frameType === 'mobile' ? 120 : selectedWindowSize.frameType === 'tablet' ? 120 : 120)}px`
+                          : `${selectedWindowSize.width + (selectedWindowSize.frameType === 'mobile' ? 40 : selectedWindowSize.frameType === 'tablet' ? 100 : 80)}px`,
+                        height: isLandscape
+                          ? `${selectedWindowSize.width + (selectedWindowSize.frameType === 'mobile' ? 80 : selectedWindowSize.frameType === 'tablet' ? 80 : 80)}px`
+                          : `${selectedWindowSize.height + (selectedWindowSize.frameType === 'mobile' ? 80 : selectedWindowSize.frameType === 'tablet' ? 80 : 120)}px`,
                       }}
-                    />
+                    >
+                      {/* Notch - positioned based on orientation */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: isLandscape ? '50%' : '20px',
+                          left: isLandscape ? '30px' : '50%',
+                          transform: isLandscape ? 'translateY(-50%)' : 'translateX(-50%)',
+                          width: isLandscape ? '8px' : selectedWindowSize.frameType === 'mobile' ? '60px' : '80px',
+                          height: isLandscape ? (selectedWindowSize.frameType === 'mobile' ? '60px' : '80px') : '8px',
+                          background: '#333',
+                          borderRadius: '4px',
+                          zIndex: 2,
+                        }}
+                      />
 
-                    {/* Home button - positioned based on orientation */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: isLandscape ? '50%' : '15px',
-                        right: isLandscape ? '30px' : '50%',
-                        transform: isLandscape ? 'translateY(50%)' : 'translateX(50%)',
-                        width: isLandscape ? '4px' : '40px',
-                        height: isLandscape ? '40px' : '4px',
-                        background: '#333',
-                        borderRadius: '50%',
-                        zIndex: 2,
-                      }}
-                    />
+                      {/* Home button - positioned based on orientation */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: isLandscape ? '50%' : '15px',
+                          right: isLandscape ? '30px' : '50%',
+                          transform: isLandscape ? 'translateY(50%)' : 'translateX(50%)',
+                          width: isLandscape ? '4px' : '40px',
+                          height: isLandscape ? '40px' : '4px',
+                          background: '#333',
+                          borderRadius: '50%',
+                          zIndex: 2,
+                        }}
+                      />
 
-                    <iframe
-                      ref={iframeRef}
-                      title="preview"
-                      style={{
-                        border: 'none',
-                        width: isLandscape ? `${selectedWindowSize.height}px` : `${selectedWindowSize.width}px`,
-                        height: isLandscape ? `${selectedWindowSize.width}px` : `${selectedWindowSize.height}px`,
-                        background: 'white',
-                        display: 'block',
-                      }}
-                      src={iframeUrl}
-                      sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-                      allow="cross-origin-isolated"
-                    />
+                      <iframe
+                        ref={iframeRef}
+                        title="preview"
+                        style={{
+                          border: 'none',
+                          width: isLandscape ? `${selectedWindowSize.height}px` : `${selectedWindowSize.width}px`,
+                          height: isLandscape ? `${selectedWindowSize.width}px` : `${selectedWindowSize.height}px`,
+                          background: 'white',
+                          display: 'block',
+                        }}
+                        src={iframeUrl}
+                        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
+                        allow="cross-origin-isolated"
+                      />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <iframe
-                  ref={iframeRef}
-                  title="preview"
-                  className="border-none w-full h-full bg-bolt-elements-background-depth-1"
-                  src={iframeUrl}
-                  sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-                  allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
+                ) : (
+                  <iframe
+                    ref={iframeRef}
+                    title="preview"
+                    className="border-none w-full h-full bg-bolt-elements-background-depth-1"
+                    src={iframeUrl}
+                    sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
+                    allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
+                  />
+                )}
+                <ScreenshotSelector
+                  isSelectionMode={isSelectionMode}
+                  setIsSelectionMode={setIsSelectionMode}
+                  containerRef={iframeRef}
                 />
-              )}
-              <ScreenshotSelector
-                isSelectionMode={isSelectionMode}
-                setIsSelectionMode={setIsSelectionMode}
-                containerRef={iframeRef}
-              />
-            </>
-          ) : (
-            <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-              No preview available
-            </div>
-          )}
-
-          {isDeviceModeOn && !showDeviceFrameInPreview && (
-            <>
-              {/* Width indicator */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '-25px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: 'var(--bolt-elements-background-depth-3, rgba(0,0,0,0.7))',
-                  color: 'var(--bolt-elements-textPrimary, white)',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  pointerEvents: 'none',
-                  opacity: resizingState.current.isResizing ? 1 : 0,
-                  transition: 'opacity 0.3s',
-                }}
-              >
-                {currentWidth}px
+              </>
+            ) : (
+              <div className="flex flex-col w-full h-full justify-center items-center gap-4">
+                <div className="i-ph:browser-duotone text-6xl text-bolt-elements-textTertiary" />
+                <div className="text-bolt-elements-textSecondary font-medium">No preview available</div>
+                <div className="text-sm text-bolt-elements-textTertiary">
+                  Start a conversation to generate a website
+                </div>
               </div>
+            )}
 
-              <ResizeHandle side="left" />
-              <ResizeHandle side="right" />
-            </>
-          )}
+            {isDeviceModeOn && !showDeviceFrameInPreview && (
+              <>
+                {/* Width indicator */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-25px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'var(--bolt-elements-background-depth-3, rgba(0,0,0,0.7))',
+                    color: 'var(--bolt-elements-textPrimary, white)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    pointerEvents: 'none',
+                    opacity: resizingState.current.isResizing ? 1 : 0,
+                    transition: 'opacity 0.3s',
+                  }}
+                >
+                  {currentWidth}px
+                </div>
+
+                <ResizeHandle side="left" />
+                <ResizeHandle side="right" />
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

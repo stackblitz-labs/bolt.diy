@@ -1,7 +1,7 @@
+import GoogleProvider from './providers/google';
 import AnthropicProvider from './providers/anthropic';
 import CohereProvider from './providers/cohere';
 import DeepseekProvider from './providers/deepseek';
-import GoogleProvider from './providers/google';
 import GroqProvider from './providers/groq';
 import HuggingFaceProvider from './providers/huggingface';
 import LMStudioProvider from './providers/lmstudio';
@@ -20,10 +20,10 @@ import MoonshotProvider from './providers/moonshot';
 import ZAIProvider from './providers/zai';
 
 export {
+  GoogleProvider,
   AnthropicProvider,
   CohereProvider,
   DeepseekProvider,
-  GoogleProvider,
   GroqProvider,
   HuggingFaceProvider,
   HyperbolicProvider,
