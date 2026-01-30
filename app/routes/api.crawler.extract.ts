@@ -13,6 +13,7 @@
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/node';
 import { getSession } from '~/lib/auth/session.server';
 import { extractBusinessData } from '~/lib/services/crawlerClient.server';
+import type { CrawlRequest } from '~/types/crawler';
 import { logger } from '~/utils/logger';
 
 /**
@@ -48,138 +49,111 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     // Parse request body
     const body = await request.json();
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { session_id, google_maps_url } = body as { session_id?: string; google_maps_url?: string };
+    const payload = body as CrawlRequest;
 
-    // Log what we received for debugging
+    // Deconstruct for validation
+    const {
+      session_id: sessionId,
+      google_maps_url: googleMapsUrl,
+      business_name: businessName,
+      address,
+      website_url: websiteUrl,
+      place_id: placeId,
+    } = payload;
+
+    // Log what we received
     logger.info(`[API] Received crawler extract request`, {
-      hasSessionId: !!session_id,
-      sessionIdValue: session_id,
-      sessionType: typeof session_id,
-      hasUrl: !!google_maps_url,
-      urlValue: google_maps_url ? google_maps_url.substring(0, 50) + '...' : undefined,
-      urlType: typeof google_maps_url,
-      urlTrimmed: google_maps_url?.trim(),
+      sessionId,
+      hasUrl: !!googleMapsUrl,
+      hasNameAddress: !!(businessName && address),
+      hasWebsite: !!websiteUrl,
+      hasPlaceId: !!placeId,
     });
 
-    // Validate required fields
-    if (!session_id || typeof session_id !== 'string') {
-      logger.warn(`[API] Invalid session_id`, {
-        received: session_id,
-        type: typeof session_id,
-      });
-
+    // Validate session_id
+    if (!sessionId || typeof sessionId !== 'string') {
       return json(
         {
           error: {
             code: 'INVALID_INPUT',
-            message: 'session_id is required and must be a string',
-            details: `Received: ${typeof session_id} (${session_id ? 'defined' : 'undefined'})`,
+            message: 'session_id is required',
           },
         },
         { status: 400 },
       );
     }
 
-    if (!google_maps_url || typeof google_maps_url !== 'string') {
-      logger.warn(`[API] Invalid google_maps_url`, {
-        received: google_maps_url,
-        type: typeof google_maps_url,
-      });
+    // Validation strategy: At least one valid input method must be present
+    const hasValidUrl = googleMapsUrl && typeof googleMapsUrl === 'string' && googleMapsUrl.trim().length > 0;
+    const hasValidNameAddress =
+      businessName &&
+      typeof businessName === 'string' &&
+      businessName.trim().length > 0 &&
+      address &&
+      typeof address === 'string' &&
+      address.trim().length > 0;
+    const hasValidWebsite = websiteUrl && typeof websiteUrl === 'string' && websiteUrl.trim().length > 0;
 
+    if (!hasValidUrl && !hasValidNameAddress && !hasValidWebsite) {
       return json(
         {
           error: {
             code: 'INVALID_INPUT',
-            message: 'google_maps_url is required and must be a string',
-            details: `Received: ${typeof google_maps_url} (${google_maps_url ? 'defined' : 'undefined'})`,
+            message: 'Must provide either google_maps_url OR (business_name AND address) OR website_url',
           },
         },
         { status: 400 },
       );
     }
 
-    // Check if URL is empty after trimming
-    const trimmedUrl = google_maps_url.trim();
+    // Optional: Validate URL format if provided
+    if (hasValidUrl) {
+      try {
+        const urlObj = new URL(googleMapsUrl!);
+        const validHostnames = ['google.com', 'www.google.com', 'maps.google.com', 'maps.app.goo.gl', 'goo.gl'];
 
-    if (!trimmedUrl) {
-      logger.warn(`[API] Empty google_maps_url after trim`);
+        if (!validHostnames.includes(urlObj.hostname)) {
+          logger.warn(`[API] Invalid URL hostname`, { hostname: urlObj.hostname });
 
-      return json(
-        {
-          error: {
-            code: 'INVALID_INPUT',
-            message: 'google_maps_url cannot be empty or whitespace only',
-          },
-        },
-        { status: 400 },
-      );
-    }
-
-    // Validate Google Maps URL format
-    let url: URL;
-
-    try {
-      url = new URL(google_maps_url);
-
-      logger.info(`[API] URL parsing successful`, {
-        hostname: url.hostname,
-        validHostnames: ['google.com', 'www.google.com', 'maps.app.goo.gl', 'goo.gl'],
-        isValid: ['google.com', 'www.google.com', 'maps.app.goo.gl', 'goo.gl'].includes(url.hostname),
-      });
-    } catch (parseError) {
-      logger.error(`[API] URL parsing failed`, {
-        url: google_maps_url,
-        error: parseError instanceof Error ? parseError.message : String(parseError),
-      });
-
-      return json(
-        {
-          error: {
-            code: 'INVALID_INPUT',
-            message: 'Invalid URL format provided',
-            details: parseError instanceof Error ? parseError.message : 'Failed to parse URL',
-          },
-        },
-        { status: 400 },
-      );
-    }
-
-    const validHostnames = ['google.com', 'www.google.com', 'maps.app.goo.gl', 'goo.gl'];
-
-    if (!validHostnames.includes(url.hostname)) {
-      logger.warn(`[API] Invalid URL hostname`, {
-        hostname: url.hostname,
-        validHostnames,
-      });
-
-      return json(
-        {
-          error: {
-            code: 'INVALID_INPUT',
-            message: 'Invalid Google Maps URL format. URL must be from google.com, maps.app.goo.gl, or goo.gl',
-            details: `Received hostname: ${url.hostname}`,
-          },
-        },
-        { status: 400 },
-      );
+          // We allow it to proceed if other methods are valid, or return error if it's the only method
+          if (!hasValidNameAddress && !hasValidWebsite) {
+            return json(
+              { error: { code: 'INVALID_INPUT', message: 'Invalid Google Maps URL hostname' } },
+              { status: 400 },
+            );
+          }
+        }
+      } catch {
+        if (!hasValidNameAddress && !hasValidWebsite) {
+          return json({ error: { code: 'INVALID_INPUT', message: 'Invalid URL format' } }, { status: 400 });
+        }
+      }
     }
 
     // Log crawler configuration for debugging
     logger.info(`[API] Calling crawler API`, {
-      sessionId: session_id,
+      sessionId,
       crawlerUrl: process.env.CRAWLER_API_URL || 'http://localhost:4999',
-      googleMapsUrl: google_maps_url.substring(0, 50) + '...', // Sanitize URL
+      googleMapsUrl: googleMapsUrl?.substring(0, 50) + '...', // Sanitize URL
     });
 
     // Call crawler API
     const startTime = Date.now();
-    const result = await extractBusinessData(session_id, google_maps_url);
+
+    // Pass the already parsed payload which matches the expected type
+    const result = await extractBusinessData({
+      session_id: sessionId,
+      google_maps_url: googleMapsUrl,
+      business_name: businessName,
+      address,
+      website_url: websiteUrl,
+      place_id: placeId,
+    });
     const duration = Date.now() - startTime;
 
     // Log the extraction attempt
     logger.info(`[API] Crawler extraction`, {
-      sessionId: session_id,
+      sessionId,
       userId: session.user.id,
       duration: `${duration}ms`,
       success: result.success,
@@ -252,7 +226,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
       // Generic/unknown error
       logger.error(`[API] Unknown crawler error`, {
-        sessionId: session_id,
+        sessionId,
         error: result.error,
         statusCode,
       });

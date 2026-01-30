@@ -223,14 +223,19 @@ export async function getProjectsByUserId(
   const supabase = await createUserSupabaseClient(userId);
 
   // Build query with optional status filter
-  let query = supabase.from('projects').select(`
+  let query = supabase
+    .from('projects')
+    .select(
+      `
       id,
       name,
       description,
       status,
       url_id,
       updated_at
-    `);
+    `,
+    )
+    .eq('user_id', userId);
 
   // Add status filter if specified
   if (options.status) {
