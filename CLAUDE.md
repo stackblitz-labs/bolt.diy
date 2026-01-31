@@ -235,6 +235,8 @@ All PRs must pass:
 ## Active Technologies
 - TypeScript 5.7.2 (strict mode) + ai (Vercel AI SDK), nanostores, ignore (001-hybrid-context-selection)
 - N/A (in-memory only) (001-hybrid-context-selection)
+- TypeScript 5.7.2 (strict mode) + JSZip (already installed for GitHub zipball extraction), Remix 2.15.2, Node.js fs/promises (003-zip-template-support)
+- Local filesystem (`templates/*.zip`), no database changes (003-zip-template-support)
 
 ## Recent Changes
 - 001-hybrid-context-selection: Added TypeScript 5.7.2 (strict mode) + ai (Vercel AI SDK), nanostores, ignore

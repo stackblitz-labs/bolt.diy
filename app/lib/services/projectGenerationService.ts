@@ -289,8 +289,8 @@ export async function selectTemplate(
   });
 
   const fallback: TemplateSelection = {
-    themeId: 'classicminimalistv2',
-    name: 'Classic Minimalist v2',
+    themeId: 'indochineluxe',
+    name: 'Indochine Luxe',
     title: 'Restaurant Website',
     reasoning: 'Fallback template used due to selection failure.',
   };

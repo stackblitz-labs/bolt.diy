@@ -52,12 +52,21 @@
       "Bash(npm test:*)",
       "Bash(/opt/homebrew/bin/pnpm run typecheck:*)",
       "Bash(source:*)",
-      "Bash(./node_modules/.bin/pnpm run typecheck:*)"
+      "Bash(./node_modules/.bin/pnpm run typecheck:*)",
+      "mcp__nia__manage_resource",
+      "mcp__nia__search",
+      "mcp__nia__nia_explore",
+      "mcp__nia__nia_read",
+      "mcp__nia__nia_grep",
+      "Bash(unzip:*)",
+      "Bash(bd:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
   },
   "enabledPlugins": {
     "ui-ux-pro-max@ui-ux-pro-max-skill": true
-  }
+  },
+  "prompt": "Before starting any work, run 'bd onboard' to understand the current project state and available issues."
 }
