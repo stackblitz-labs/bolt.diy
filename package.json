@@ -134,6 +134,7 @@
     "js-cookie": "^3.0.5",
     "jspdf": "^2.5.2",
     "jszip": "^3.10.1",
+    "langfuse": "^3.30.0",
     "lucide-react": "^0.485.0",
     "mime": "^4.0.4",
     "nanostores": "^0.10.3",

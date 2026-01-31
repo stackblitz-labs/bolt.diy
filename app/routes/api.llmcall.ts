@@ -8,6 +8,7 @@ import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { createScopedLogger } from '~/utils/logger';
+import { createTrace, createGeneration, flushTraces, isLangfuseEnabled } from '~/lib/.server/telemetry/langfuse.server';
 
 export async function action(args: ActionFunctionArgs) {
   return llmCallAction(args);
@@ -94,8 +95,24 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
   const apiKeys = getApiKeysFromCookie(cookieHeader);
   const providerSettings = getProviderSettingsFromCookie(cookieHeader);
 
+  // Create Langfuse trace for observability
+  const env = context.cloudflare?.env;
+  const traceContext = createTrace(env, {
+    name: 'llmcall-request',
+    metadata: { model, provider: providerName, streamOutput },
+  });
+
   if (streamOutput) {
     try {
+      // Create Langfuse generation for streaming
+      const generation = traceContext
+        ? createGeneration(env, traceContext, {
+            name: 'stream-text',
+            model,
+          })
+        : null;
+      const startTime = performance.now();
+
       const result = await streamText({
         options: {
           system,
@@ -110,6 +127,17 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         apiKeys,
         providerSettings,
       });
+
+      // End generation (note: for streaming, we don't have usage data here)
+      generation?.end({
+        latencyMs: performance.now() - startTime,
+        provider: providerName,
+      });
+
+      // Flush traces before response
+      if (isLangfuseEnabled(env)) {
+        context.cloudflare?.ctx?.waitUntil(flushTraces(env));
+      }
 
       return new Response(result.textStream, {
         status: 200,
@@ -229,8 +257,33 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         ),
       );
 
+      // Create Langfuse generation for non-streaming
+      const generation = traceContext
+        ? createGeneration(env, traceContext, {
+            name: 'generate-text',
+            model: modelDetails.name,
+          })
+        : null;
+      const startTime = performance.now();
+
       const result = await generateText(finalParams);
       logger.info(`Generated response`);
+
+      // End generation with usage data
+      generation?.end({
+        promptTokens: result.usage?.promptTokens,
+        completionTokens: result.usage?.completionTokens,
+        totalTokens: result.usage?.totalTokens,
+        latencyMs: performance.now() - startTime,
+        output: result.text?.slice(0, 2000),
+        finishReason: result.finishReason,
+        provider: provider.name,
+      });
+
+      // Flush traces before response
+      if (isLangfuseEnabled(env)) {
+        context.cloudflare?.ctx?.waitUntil(flushTraces(env));
+      }
 
       return new Response(JSON.stringify(result), {
         status: 200,
