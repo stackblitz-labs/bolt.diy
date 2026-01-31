@@ -11,6 +11,8 @@ html,
 body {
   height: 100%;
   width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 :root {
@@ -18,55 +20,27 @@ body {
   --primary-color: rgba(158, 117, 240, var(--gradient-opacity));
   --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
   --accent-color: rgba(128, 59, 239, var(--gradient-opacity));
-  // --primary-color: rgba(147, 112, 219, var(--gradient-opacity));
-  // --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
-  // --accent-color: rgba(180, 170, 220, var(--gradient-opacity));
 }
 
 .modern-scrollbar {
   overflow: auto;
-
-  // WebKit scrollbar styling
   &::-webkit-scrollbar {
     width: 2px;
     height: 4px;
   }
-
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-
   &::-webkit-scrollbar-thumb {
-    // Use CSS variables for colors
     background-color: var(--modern-scrollbar-thumb-background);
-    border-radius: 9999px; // pill shape
-    border: 2px solid transparent; // for padding-like effect
+    border-radius: 9999px;
+    border: 2px solid transparent;
     background-clip: content-box;
-    transition: background-color 0.2s ease-in-out; // Add transition
+    transition: background-color 0.2s ease-in-out;
   }
-
   &::-webkit-scrollbar-thumb:hover {
-    // Use CSS variable for hover color
     background-color: var(--modern-scrollbar-thumb-backgroundHover);
   }
-
-  // Firefox support
   scrollbar-width: thin;
-  // Use CSS variables for Firefox colors
-  scrollbar-color: var(--modern-scrollbar-thumb-backgroundHover) transparent; // Use hover color for thumb for consistency
-}
-
-.modern-scrollbar-invert {
-  &::-webkit-scrollbar-thumb {
-    // Override with a contrasting color, e.g., primary text color with transparency
-    background-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 70%);
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    // Darker/more opaque version on hover
-    background-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 50%);
-  }
-
-  // Firefox support for inverted colors
-  scrollbar-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 50%) transparent;
+  scrollbar-color: var(--modern-scrollbar-thumb-backgroundHover) transparent;
 }
