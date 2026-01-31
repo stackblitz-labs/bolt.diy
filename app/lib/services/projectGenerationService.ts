@@ -10,7 +10,7 @@ import { saveSnapshot } from '~/lib/services/projects.server';
 import type { FileMap } from '~/lib/stores/files';
 import { WORK_DIR, MODEL_REGEX, PROVIDER_REGEX, STARTER_TEMPLATES } from '~/utils/constants';
 import { getFastModel } from '~/lib/services/fastModelResolver';
-import { fetchTemplateFromGitHub, applyIgnorePatterns, buildTemplatePrimingMessages } from '~/lib/.server/templates';
+import { resolveTemplate, applyIgnorePatterns, buildTemplatePrimingMessages } from '~/lib/.server/templates';
 
 const logger = createScopedLogger('projectGenerationService');
 
@@ -289,8 +289,8 @@ export async function selectTemplate(
   });
 
   const fallback: TemplateSelection = {
-    themeId: 'classicminimalistv2',
-    name: 'Classic Minimalist v2',
+    themeId: 'indochineluxe',
+    name: 'Indochine Luxe',
     title: 'Restaurant Website',
     reasoning: 'Fallback template used due to selection failure.',
   };
@@ -389,15 +389,19 @@ export async function* generateContent(
 
   logger.info(`[TEMPLATE_PRIMING] Using template: ${template.name} (${template.githubRepo})`);
 
-  // Try to fetch template from GitHub
+  // Resolve template from zip or GitHub
   let assistantMessage: string;
   let userMessage: string;
 
   try {
     const githubToken = env?.GITHUB_TOKEN;
-    const allFiles = await fetchTemplateFromGitHub(template.githubRepo, githubToken);
+    const resolved = await resolveTemplate(template.name, {
+      githubRepo: template.githubRepo,
+      githubToken,
+    });
+    const allFiles = resolved.files;
 
-    logger.info(`[TEMPLATE_PRIMING] Template fetched: ${allFiles.length} files`);
+    logger.info(`[TEMPLATE_PRIMING] Template loaded from ${resolved.source.type}: ${allFiles.length} files`);
 
     // Apply ignore patterns
     const { includedFiles, ignoredFiles } = applyIgnorePatterns(allFiles);
@@ -421,8 +425,8 @@ export async function* generateContent(
     assistantMessage = primingMessages.assistantMessage;
     userMessage = primingMessages.userMessage;
   } catch (error) {
-    // Fallback to from-scratch generation if GitHub fetch fails
-    logger.warn('[TEMPLATE_PRIMING] GitHub fetch failed, falling back to from-scratch generation', {
+    // Fallback to from-scratch generation if template resolution fails
+    logger.warn('[TEMPLATE_PRIMING] Template resolution failed, falling back to from-scratch generation', {
       error: error instanceof Error ? error.message : String(error),
     });
 
