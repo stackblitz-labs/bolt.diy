@@ -23,7 +23,6 @@ import { Preview } from './Preview';
 import useViewport from '~/lib/hooks';
 
 import { usePreviewStore } from '~/lib/stores/previews';
-import { chatStore } from '~/lib/stores/chat';
 import type { ElementInfo } from './Inspector';
 import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
 import { useChatHistory } from '~/lib/persistence';
@@ -31,7 +30,6 @@ import { streamingState } from '~/lib/stores/streaming';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 interface WorkspaceProps {
-  chatStarted?: boolean;
   isStreaming?: boolean;
   metadata?: {
     gitUrl?: string;
@@ -282,7 +280,6 @@ const FileModifiedDropdown = memo(
 
 export const Workbench = memo(
   ({
-    chatStarted,
     isStreaming,
     metadata: _metadata,
     updateChatMestaData: _updateChatMestaData,
@@ -301,8 +298,6 @@ export const Workbench = memo(
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
-    const { showChat } = useStore(chatStore);
-    const canHideChat = showWorkbench || !showChat;
 
     const isSmallViewport = useViewport(1024);
     const streaming = useStore(streamingState);
@@ -373,7 +368,7 @@ export const Workbench = memo(
     }, []);
 
     return (
-      (chatStarted || showWorkbench) && (
+      showWorkbench && (
         <motion.div
           initial="closed"
           animate={showWorkbench ? 'open' : 'closed'}
@@ -382,11 +377,12 @@ export const Workbench = memo(
         >
           <div
             className={classNames(
-              'fixed top-[calc(var(--header-height)+1.2rem)] bottom-6 w-[var(--workbench-inner-width)] z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
+              'fixed top-[calc(var(--header-height)+1.2rem)] bottom-6 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
               {
                 'w-full': isSmallViewport,
+                'w-[var(--workbench-inner-width)]': !isSmallViewport,
                 'left-0': showWorkbench && isSmallViewport,
-                'left-[var(--workbench-left)]': showWorkbench,
+                'left-[var(--workbench-left)]': showWorkbench && !isSmallViewport,
                 'left-[100%]': !showWorkbench,
               },
             )}
@@ -395,15 +391,6 @@ export const Workbench = memo(
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
                 {/* Top bar hidden for cleaner UI */}
                 <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1.5">
-                  <button
-                    className={`${showChat ? 'i-ph:sidebar-simple-fill' : 'i-ph:sidebar-simple'} text-lg text-bolt-elements-textSecondary mr-1`}
-                    disabled={!canHideChat || isSmallViewport}
-                    onClick={() => {
-                      if (canHideChat) {
-                        chatStore.setKey('showChat', !showChat);
-                      }
-                    }}
-                  />
                   <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
                   <div className="ml-auto" />
                   {selectedView === 'code' && (

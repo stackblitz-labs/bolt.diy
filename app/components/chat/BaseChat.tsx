@@ -14,12 +14,7 @@ import { getApiKeysFromCookies } from './APIKeyManager';
 import Cookies from 'js-cookie';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import styles from './BaseChat.module.scss';
-import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
-import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
-import GitCloneButton from './GitCloneButton';
-import { ClearChatHistoryButton } from './ClearChatHistoryButton';
 import type { ProviderInfo } from '~/types/model';
-import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
 import ChatAlert from './ChatAlert';
@@ -43,7 +38,6 @@ interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
   scrollRef?: RefCallback<HTMLDivElement> | undefined;
-  showChat?: boolean;
   chatStarted?: boolean;
   isStreaming?: boolean;
   onStreamingChange?: (streaming: boolean) => void;
@@ -95,7 +89,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   (
     {
       textareaRef,
-      showChat = true,
       chatStarted = false,
       isStreaming = false,
       onStreamingChange,
@@ -112,9 +105,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       enhancePrompt,
       sendMessage,
       handleStop,
-      importChat,
+      importChat: _importChat,
       exportChat,
-      clearChatHistory,
+      clearChatHistory: _clearChatHistory,
       hasOlderMessages,
       loadingOlder,
       loadingOlderError,
@@ -354,60 +347,44 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const baseChat = (
-      <div
-        ref={ref}
-        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
-        data-chat-visible={showChat}
-      >
+      <div ref={ref} className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}>
         <ClientOnly>{() => <Menu />}</ClientOnly>
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
-          <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
-            {!chatStarted && (
-              <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
-                <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
-                  Where ideas begin
-                </h1>
-                <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-                  Bring ideas to life in seconds or get help on existing projects.
-                </p>
-              </div>
+          <div
+            className={classNames(
+              styles.Chat,
+              'flex flex-col h-full',
+              'lg:w-[var(--chat-panel-width)] lg:max-w-[var(--chat-panel-max-width)]',
             )}
+          >
             <StickToBottom
-              className={classNames('pt-6 px-2 sm:px-6 relative', {
-                'h-full flex flex-col modern-scrollbar': chatStarted,
-              })}
+              className="pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar"
               resize="smooth"
               initial="smooth"
             >
               <StickToBottom.Content className="flex flex-col gap-4 relative ">
                 <ClientOnly>
-                  {() => {
-                    return chatStarted ? (
-                      <Messages
-                        className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
-                        messages={messages}
-                        isStreaming={isStreaming}
-                        append={append}
-                        chatMode={chatMode}
-                        setChatMode={setChatMode}
-                        provider={provider}
-                        model={model}
-                        addToolResult={addToolResult}
-                        hasOlderMessages={hasOlderMessages}
-                        loadingOlder={loadingOlder}
-                        loadingOlderError={loadingOlderError}
-                        onLoadOlderMessages={onLoadOlderMessages}
-                      />
-                    ) : null;
-                  }}
+                  {() => (
+                    <Messages
+                      className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
+                      messages={messages}
+                      isStreaming={isStreaming}
+                      append={append}
+                      chatMode={chatMode}
+                      setChatMode={setChatMode}
+                      provider={provider}
+                      model={model}
+                      addToolResult={addToolResult}
+                      hasOlderMessages={hasOlderMessages}
+                      loadingOlder={loadingOlder}
+                      loadingOlderError={loadingOlderError}
+                      onLoadOlderMessages={onLoadOlderMessages}
+                    />
+                  )}
                 </ClientOnly>
                 <ScrollToBottom />
               </StickToBottom.Content>
-              <div
-                className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
-                  'sticky bottom-2': chatStarted,
-                })}
-              >
+              <div className="my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6 sticky bottom-2">
                 <div className="flex flex-col gap-2">
                   {/* Show info collection progress when active */}
                   {infoCollectionSession && infoCollectionSession.status === 'in_progress' && <InfoCollectionStatus />}
@@ -488,37 +465,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
               </div>
             </StickToBottom>
-            <div className="flex flex-col justify-center">
-              {!chatStarted && (
-                <div className="flex justify-center gap-2">
-                  {ImportButtons(importChat)}
-                  <GitCloneButton importChat={importChat} />
-                </div>
-              )}
-              {/* Clear Chat History button hidden for cleaner UI - can be accessed via menu */}
-              {chatStarted && false && (
-                <div className="flex justify-center gap-2 pb-4">
-                  <ClearChatHistoryButton clearChatHistory={clearChatHistory} />
-                </div>
-              )}
-              <div className="flex flex-col gap-5">
-                {!chatStarted &&
-                  ExamplePrompts((event, messageInput) => {
-                    if (isStreaming) {
-                      handleStop?.();
-                      return;
-                    }
-
-                    handleSendMessage?.(event, messageInput);
-                  })}
-                {!chatStarted && <StarterTemplates />}
-              </div>
-            </div>
+            {/* Landing page content removed - always show clean chat interface */}
           </div>
           <ClientOnly>
-            {() => (
-              <Workbench chatStarted={chatStarted} isStreaming={isStreaming} setSelectedElement={setSelectedElement} />
-            )}
+            {() => <Workbench isStreaming={isStreaming} setSelectedElement={setSelectedElement} />}
           </ClientOnly>
         </div>
       </div>

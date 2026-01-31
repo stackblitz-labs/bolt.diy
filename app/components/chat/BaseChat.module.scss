@@ -1,17 +1,5 @@
 .BaseChat {
-  &[data-chat-visible='false'] {
-    --workbench-inner-width: 100%;
-    --workbench-left: 0;
-
-    .Chat {
-      --at-apply: bolt-ease-cubic-bezier;
-      transition-property: transform, opacity;
-      transition-duration: 0.3s;
-      will-change: transform, opacity;
-      transform: translateX(-50%);
-      opacity: 0;
-    }
-  }
+  /* Chat panel always visible - no conditional hiding */
 }
 
 .Chat {

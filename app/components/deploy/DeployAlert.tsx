@@ -172,7 +172,7 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
                     )}
                   >
                     <div className="i-ph:chat-circle-duotone"></div>
-                    Ask Bolt
+                    Ask HuskIT
                   </button>
                 )}
                 <button

@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import type { Message } from 'ai';
+import { generateId, type Message } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
@@ -196,7 +196,6 @@ export const ChatImpl = memo(
 
       return selectedProvider;
     });
-    const { showChat } = useStore(chatStore);
     const [animationScope, animate] = useAnimate();
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
@@ -407,15 +406,26 @@ export const ChatImpl = memo(
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
 
-    const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
+    const TEXTAREA_MAX_HEIGHT = 400;
 
     useEffect(() => {
       chatStore.setKey('started', initialMessages.length > 0);
 
-      /*
-       * Always show workbench on mount so preview is visible immediately
-       * workbenchStore.showWorkbench.set(true);
-       */
+      // Always show workbench side-by-side with chat panel
+      workbenchStore.showWorkbench.set(true);
+
+      // Add welcome message for newly created projects
+      if (initialMessages.length === 0 && Object.keys(files).length > 0) {
+        const { projectName } = chatStore.get();
+        const welcomeMessage: Message = {
+          id: generateId(),
+          role: 'assistant',
+          content: `I've generated the initial draft for ${projectName || 'your project'}. Feel free to ask for any changes!`,
+          createdAt: new Date(),
+        };
+        setMessages([welcomeMessage]);
+        setChatStarted(true);
+      }
     }, []);
 
     useEffect(() => {
@@ -959,7 +969,6 @@ export const ChatImpl = memo(
         ref={animationScope}
         textareaRef={textareaRef}
         input={input}
-        showChat={showChat}
         chatStarted={chatStarted}
         isStreaming={isLoading || fakeLoading}
         onStreamingChange={(streaming) => {
