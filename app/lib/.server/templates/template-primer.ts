@@ -167,7 +167,13 @@ export function buildTemplatePrimingMessages(
   logger.info(`[TEMPLATE_PRIMER] Building priming messages for template: ${templateName}`);
   logger.info(`[TEMPLATE_PRIMER] Included files: ${includedFiles.length}, Ignored files: ${ignoredFiles.length}`);
 
-  const assistantMessage = buildTemplateFilesMessage(includedFiles, templateName, title);
+  /*
+   * Include ALL files in the artifact so they're written to the file system
+   * Ignored files are still marked as read-only in the user message
+   */
+  const allFilesForArtifact = [...includedFiles, ...ignoredFiles];
+
+  const assistantMessage = buildTemplateFilesMessage(allFilesForArtifact, templateName, title);
   const userMessage = buildCustomizationMessage(businessProfile, themePrompt, ignoredFiles, templateName);
 
   logger.info(`[TEMPLATE_PRIMER] Assistant message length: ${assistantMessage.length}`);

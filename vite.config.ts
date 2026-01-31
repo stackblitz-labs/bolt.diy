@@ -18,8 +18,7 @@ export default defineConfig((config) => {
     },
     resolve: {
       alias: {
-        // Fix for istextorbinary browser edition requiring path.basename
-        path: 'path-browserify',
+        // Note: path alias moved to plugin for SSR-aware handling
         '@smithy/core/dist-es/getSmithyContext': '/test/stubs/smithy-get.ts',
         '@smithy/core/dist-es': '/test/stubs/smithy-index.ts',
       },
@@ -70,6 +69,28 @@ export default defineConfig((config) => {
         protocolImports: true,
         exclude: ['child_process', 'fs', 'path'],
       }),
+      {
+        name: 'path-browserify-client-only',
+        enforce: 'pre',
+        resolveId(id, importer, options) {
+          // Only alias 'path' to 'path-browserify' for client-side code
+          // Server-side (.server files) should use native Node.js path
+          if (id === 'path') {
+            // Check if this is SSR or a server file
+            const isSsr = options?.ssr === true;
+            const isServerFile = importer?.includes('.server');
+
+            if (isSsr || isServerFile) {
+              // Use native Node.js path module
+              return { id: 'path', external: true };
+            }
+
+            // For client-side, use path-browserify
+            return 'path-browserify';
+          }
+          return null;
+        },
+      },
       {
         name: 'fix-node-protocol-imports',
         enforce: 'pre',
@@ -231,6 +252,10 @@ export default defineConfig((config) => {
       'LMSTUDIO_API_BASE_URL',
       'TOGETHER_API_BASE_URL',
     ],
+    ssr: {
+      // Don't apply browser polyfills in SSR - use native Node.js modules
+      external: ['path', 'fs', 'fs/promises'],
+    },
     css: {
       preprocessorOptions: {
         scss: {
