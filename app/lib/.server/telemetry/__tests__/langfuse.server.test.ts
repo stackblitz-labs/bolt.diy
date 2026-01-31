@@ -66,6 +66,12 @@ describe('langfuse.server', () => {
 
     // Reset module to clear singleton
     vi.resetModules();
+
+    // Clear process.env Langfuse variables to prevent fallback interference
+    delete process.env.LANGFUSE_ENABLED;
+    delete process.env.LANGFUSE_PUBLIC_KEY;
+    delete process.env.LANGFUSE_SECRET_KEY;
+    delete process.env.LANGFUSE_BASE_URL;
   });
 
   describe('getLangfuseClient', () => {
