@@ -700,9 +700,15 @@ function composeContentPrompt(businessProfile: BusinessProfile, themePrompt: str
 
   if (hasMarkdown) {
     // Use markdown content directly (enhanced flow)
-    const websiteContext = businessProfile.website_markdown
+    const hasWebsiteAnalysis = !!businessProfile.website_markdown;
+    const websiteContext = hasWebsiteAnalysis
       ? `\n\nEXISTING WEBSITE ANALYSIS:\n${businessProfile.website_markdown}`
       : '';
+
+    // Log graceful degradation when website analysis is not available
+    if (!hasWebsiteAnalysis) {
+      logger.info(`[CONTENT_GEN] Generating without website analysis (graceful degradation)`);
+    }
 
     return `
 THEME DESIGN INSTRUCTIONS:

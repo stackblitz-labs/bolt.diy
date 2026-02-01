@@ -277,23 +277,33 @@ export async function action({ request }: ActionFunctionArgs) {
         ? websiteMarkdownResult.value.data?.markdown
         : undefined;
 
-    // Log results
+    // Log results with graceful degradation messaging
+    const websiteSkipReason = !crawledWebsiteUrl
+      ? 'no_website_url'
+      : websiteMarkdownResult.status === 'rejected'
+        ? 'promise_rejected'
+        : !websiteMarkdownResult.value.success
+          ? websiteMarkdownResult.value.error
+          : undefined;
+
+    if (!websiteMarkdown && crawledWebsiteUrl) {
+      // Website crawl was attempted but failed - log warning (graceful degradation)
+      logger.warn(`[API] Website markdown skipped - proceeding with Google Maps data only`, {
+        sessionId,
+        websiteUrl: crawledWebsiteUrl,
+        reason: websiteSkipReason,
+      });
+    } else if (!crawledWebsiteUrl) {
+      // No website URL available - this is expected for some restaurants
+      logger.info(`[API] No website URL - generating from Google Maps data only`, { sessionId });
+    }
+
     logger.info(`[API] Markdown generation complete`, {
       sessionId,
       hasGoogleMapsMarkdown: !!googleMapsMarkdown,
       hasWebsiteMarkdown: !!websiteMarkdown,
-      gmapsError:
-        gmapsMarkdownResult.status === 'rejected'
-          ? gmapsMarkdownResult.reason
-          : gmapsMarkdownResult.value.success
-            ? undefined
-            : gmapsMarkdownResult.value.error,
-      websiteError:
-        websiteMarkdownResult.status === 'rejected'
-          ? websiteMarkdownResult.reason
-          : websiteMarkdownResult.value.success
-            ? undefined
-            : websiteMarkdownResult.value.error,
+      websiteSkipped: !websiteMarkdown,
+      websiteSkipReason,
     });
 
     // Return enhanced response with markdown fields
