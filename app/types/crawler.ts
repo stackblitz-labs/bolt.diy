@@ -212,3 +212,73 @@ export interface SearchRestaurantResponse {
   error?: string;
   statusCode?: number;
 }
+
+// ─── Google Maps Markdown Types ──────────────────────────────────────
+
+/**
+ * Request to generate markdown from previously crawled Google Maps data.
+ * Requires prior /crawl call with the same session_id.
+ */
+export interface GenerateGoogleMapsMarkdownRequest {
+  session_id: string;
+}
+
+/**
+ * Response containing LLM-processed markdown profile.
+ */
+export interface GenerateGoogleMapsMarkdownResponse {
+  success: boolean;
+
+  /** Markdown content (only present on success) */
+  markdown?: string;
+
+  /** Error message (only present on failure) */
+  error?: string;
+
+  /** HTTP status code from crawler API */
+  statusCode?: number;
+}
+
+// ─── Website Markdown Types ──────────────────────────────────────────
+
+/**
+ * Request to crawl a website and convert to rich markdown.
+ */
+export interface CrawlWebsiteMarkdownRequest {
+  /** Website URL to crawl */
+  url: string;
+
+  /** Session ID linking to prior /crawl operation */
+  session_id: string;
+
+  /** Maximum pages to crawl (default: 1, homepage only) */
+  max_pages?: number;
+
+  /** Enable LLM Vision analysis for visual descriptions (default: true) */
+  enable_visual_analysis?: boolean;
+}
+
+/**
+ * Response containing website markdown with visual analysis.
+ */
+export interface CrawlWebsiteMarkdownResponse {
+  success: boolean;
+
+  /** Response data (only present on success) */
+  data?: {
+    /** Markdown content with visual style descriptions */
+    markdown: string;
+
+    /** Session ID (echoed back) */
+    session_id: string;
+
+    /** Crawled URL */
+    url: string;
+  };
+
+  /** Error message (only present on failure) */
+  error?: string;
+
+  /** HTTP status code from crawler API */
+  statusCode?: number;
+}

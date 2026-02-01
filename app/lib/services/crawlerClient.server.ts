@@ -14,7 +14,15 @@
  */
 
 import { logger } from '~/utils/logger';
-import type { CrawlRequest, CrawlResponse, GenerateContentResponse, SearchRestaurantResponse } from '~/types/crawler';
+import type {
+  CrawlRequest,
+  CrawlResponse,
+  GenerateContentResponse,
+  SearchRestaurantResponse,
+  GenerateGoogleMapsMarkdownResponse,
+  CrawlWebsiteMarkdownRequest,
+  CrawlWebsiteMarkdownResponse,
+} from '~/types/crawler';
 
 // Environment configuration
 const CRAWLER_API_URL = process.env.CRAWLER_API_URL || 'http://localhost:4999';
@@ -395,5 +403,187 @@ export async function searchRestaurant(businessName: string, address: string): P
       error: `Crawler API unavailable (${errorMessage})`,
       statusCode: 503,
     };
+  }
+}
+
+// ─── Markdown Generation Methods ─────────────────────────────────────
+
+const MARKDOWN_TIMEOUT = 120_000; // 120 seconds for LLM Vision processing
+
+/**
+ * Generate markdown profile from previously crawled Google Maps data.
+ *
+ * Prerequisites: extractBusinessData() must have been called with the same sessionId.
+ * Caching: Crawler API caches results per session_id.
+ *
+ * @param sessionId - Session ID from prior /crawl operation
+ * @returns Markdown profile or error
+ */
+export async function generateGoogleMapsMarkdown(sessionId: string): Promise<GenerateGoogleMapsMarkdownResponse> {
+  const startTime = Date.now();
+
+  try {
+    logger.info(`[Crawler] Generating Google Maps markdown`, { sessionId });
+
+    const response = await fetchWithTimeout(
+      `${CRAWLER_API_URL}/generate-google-maps-markdown`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      },
+      MARKDOWN_TIMEOUT,
+    );
+
+    const duration = Date.now() - startTime;
+
+    if (!response.ok) {
+      logger.error(`[Crawler] Google Maps markdown failed`, {
+        sessionId,
+        status: response.status,
+        duration: `${duration}ms`,
+      });
+
+      let errorDetails = `Crawler API returned ${response.status}`;
+
+      try {
+        const errorBody = await response.json();
+
+        if (typeof errorBody === 'object' && errorBody !== null) {
+          const body = errorBody as Record<string, unknown>;
+
+          if (typeof body.error === 'string') {
+            errorDetails = body.error;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+
+      return {
+        success: false,
+        error: errorDetails,
+        statusCode: response.status,
+      };
+    }
+
+    const data = (await response.json()) as GenerateGoogleMapsMarkdownResponse;
+    logger.info(`[Crawler] Google Maps markdown success`, { sessionId, duration: `${duration}ms` });
+
+    return data;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes('timed out')) {
+      logger.error(`[Crawler] Google Maps markdown timed out`, { sessionId, duration: `${duration}ms` });
+
+      return { success: false, error: `Timed out after ${MARKDOWN_TIMEOUT}ms`, statusCode: 408 };
+    }
+
+    logger.error(`[Crawler] Google Maps markdown network error`, {
+      sessionId,
+      error: errorMessage,
+      duration: `${duration}ms`,
+    });
+
+    return { success: false, error: `Crawler unavailable (${errorMessage})`, statusCode: 503 };
+  }
+}
+
+/**
+ * Crawl a website and generate rich markdown with visual analysis.
+ *
+ * Uses LLM Vision to describe images, layout, and visual style.
+ * Timeout: 120 seconds to accommodate Vision processing.
+ *
+ * @param request - Website URL, session ID, and options
+ * @returns Website markdown or error
+ */
+export async function crawlWebsiteMarkdown(
+  request: CrawlWebsiteMarkdownRequest,
+): Promise<CrawlWebsiteMarkdownResponse> {
+  const startTime = Date.now();
+
+  try {
+    logger.info(`[Crawler] Crawling website for markdown`, {
+      url: request.url,
+      sessionId: request.session_id,
+    });
+
+    const response = await fetchWithTimeout(
+      `${CRAWLER_API_URL}/crawl-website-markdown`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: request.url,
+          max_pages: request.max_pages ?? 1,
+          session_id: request.session_id,
+          enable_visual_analysis: request.enable_visual_analysis ?? true,
+        }),
+      },
+      MARKDOWN_TIMEOUT,
+    );
+
+    const duration = Date.now() - startTime;
+
+    if (!response.ok) {
+      logger.error(`[Crawler] Website markdown failed`, {
+        url: request.url,
+        status: response.status,
+        duration: `${duration}ms`,
+      });
+
+      let errorDetails = `Crawler API returned ${response.status}`;
+
+      try {
+        const errorBody = await response.json();
+
+        if (typeof errorBody === 'object' && errorBody !== null) {
+          const body = errorBody as Record<string, unknown>;
+
+          if (typeof body.error === 'string') {
+            errorDetails = body.error;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+
+      return {
+        success: false,
+        error: errorDetails,
+        statusCode: response.status,
+      };
+    }
+
+    const data = (await response.json()) as CrawlWebsiteMarkdownResponse;
+    logger.info(`[Crawler] Website markdown success`, {
+      url: request.url,
+      duration: `${duration}ms`,
+    });
+
+    return data;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    if (errorMessage.includes('timed out')) {
+      logger.error(`[Crawler] Website markdown timed out`, {
+        url: request.url,
+        duration: `${duration}ms`,
+      });
+
+      return { success: false, error: `Timed out after ${MARKDOWN_TIMEOUT}ms`, statusCode: 408 };
+    }
+
+    logger.error(`[Crawler] Website markdown network error`, {
+      url: request.url,
+      error: errorMessage,
+      duration: `${duration}ms`,
+    });
+
+    return { success: false, error: `Crawler unavailable (${errorMessage})`, statusCode: 503 };
   }
 }

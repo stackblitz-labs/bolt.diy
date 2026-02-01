@@ -59,9 +59,29 @@ export interface CreateProjectInput {
 export interface BusinessProfile {
   session_id?: string;
   gmaps_url?: string;
-  crawled_data?: BusinessData;
-  generated_content?: GeneratedContent;
   crawled_at?: string;
+
+  // ─── Legacy Fields (existing projects) ───────────────────────────
+  /** Raw Google Maps data from /crawl endpoint */
+  crawled_data?: BusinessData;
+
+  /** AI-generated content from /generate-website-content endpoint */
+  generated_content?: GeneratedContent;
+
+  // ─── Enhanced Fields (new crawls) ────────────────────────────────
+  /**
+   * Markdown profile generated from Google Maps data.
+   * Contains structured sections: Basic Info, Hours, Menu, Reviews, etc.
+   * Pre-formatted for LLM prompt injection.
+   */
+  google_maps_markdown?: string;
+
+  /**
+   * Markdown from crawling the restaurant's existing website.
+   * Contains visual style descriptions, layout analysis, and content sections.
+   * Optional - only populated if restaurant has a website.
+   */
+  website_markdown?: string;
 }
 
 export interface UpdateProjectInput {

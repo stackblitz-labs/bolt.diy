@@ -2,7 +2,18 @@ import type { IProviderSetting, ProviderInfo } from '~/types/model';
 import type { RestaurantThemeId } from '~/types/restaurant-theme';
 import type { BusinessProfile, SaveSnapshotResponse } from '~/types/project';
 import type { GeneratedFile, GenerationSSEEvent } from '~/types/generation';
-import type { ColorPalette, Menu, Photo, Review, Typography } from '~/types/crawler';
+import type {
+  BusinessData,
+  ColorPalette,
+  ContentSections,
+  IndustryContext,
+  Logo,
+  Menu,
+  Photo,
+  ReputationData,
+  Review,
+  Typography,
+} from '~/types/crawler';
 import { createScopedLogger } from '~/utils/logger';
 import { getThemeByTemplateName, getThemePrompt, RESTAURANT_THEMES } from '~/theme-prompts/registry';
 import { streamText } from '~/lib/.server/llm/stream-text';
@@ -11,6 +22,7 @@ import type { FileMap } from '~/lib/stores/files';
 import { WORK_DIR, MODEL_REGEX, PROVIDER_REGEX, STARTER_TEMPLATES } from '~/utils/constants';
 import { getFastModel } from '~/lib/services/fastModelResolver';
 import { resolveTemplate, applyIgnorePatterns, buildTemplatePrimingMessages } from '~/lib/.server/templates';
+import { createTrace, createGeneration, flushTraces, isLangfuseEnabled } from '~/lib/.server/telemetry/langfuse.server';
 
 const logger = createScopedLogger('projectGenerationService');
 
@@ -34,22 +46,28 @@ export function validateBusinessProfile(profile: BusinessProfile | null | undefi
     return { valid: false, errors: ['No business profile data'], warnings: [], canProceedWithDefaults: false };
   }
 
-  const businessName = profile.generated_content?.businessIdentity?.displayName || profile.crawled_data?.name;
+  // Check for either legacy data OR markdown
+  const hasLegacyData = !!profile.crawled_data?.name || !!profile.generated_content?.businessIdentity?.displayName;
+  const hasMarkdown = !!profile.google_maps_markdown;
 
-  if (!businessName?.trim()) {
-    errors.push('Business name is required');
+  if (!hasLegacyData && !hasMarkdown) {
+    errors.push('Business data is required (crawled_data or google_maps_markdown)');
   }
 
-  // Warnings only (non-blocking)
-  if (!profile.crawled_data?.address) {
+  // Warnings for missing optional data
+  if (!profile.website_markdown && !profile.crawled_data?.website) {
+    warnings.push('No website data available');
+  }
+
+  if (!profile.crawled_data?.address && !hasMarkdown) {
     warnings.push('Address not provided');
   }
 
-  if (!profile.crawled_data?.phone) {
+  if (!profile.crawled_data?.phone && !hasMarkdown) {
     warnings.push('Phone not provided');
   }
 
-  if (!profile.crawled_data?.hours) {
+  if (!profile.crawled_data?.hours && !hasMarkdown) {
     warnings.push('Hours not provided');
   }
 
@@ -380,6 +398,13 @@ export async function* generateContent(
     businessProfile.crawled_data?.name ||
     'Restaurant';
 
+  // Create Langfuse trace for content generation
+  const traceContext = createTrace(env, {
+    name: 'content-generation',
+    metadata: { themeId, model, provider: provider.name, businessName },
+    input: { businessName, themeId, model },
+  });
+
   // Look up template in STARTER_TEMPLATES by themeId
   const template = STARTER_TEMPLATES.find((t) => t.restaurantThemeId === themeId);
 
@@ -474,6 +499,22 @@ export async function* generateContent(
 
   messages.push({ role: 'user', content: fullUserMessage });
 
+  // Create Langfuse generation for streamText - capture full input
+  const generation = traceContext
+    ? createGeneration(env, traceContext, {
+        name: 'stream-text-content',
+        model,
+        input: {
+          userMessage,
+          templateName: template?.name,
+          businessName,
+          themeId,
+          additionalSystemPrompt,
+        },
+      })
+    : null;
+  const startTime = performance.now();
+
   /*
    * streamText() returns an AI SDK stream result with a `textStream` we can parse incrementally.
    * We inject the theme prompt ourselves via `composeContentPrompt` to keep a single source of truth.
@@ -490,6 +531,7 @@ export async function* generateContent(
 
   const reader = result.textStream.getReader();
   let buffer = '';
+  let fullOutput = ''; // Accumulate full LLM output for Langfuse
 
   try {
     while (true) {
@@ -501,6 +543,7 @@ export async function* generateContent(
 
       // `textStream` yields string chunks (not bytes).
       buffer += value;
+      fullOutput += value; // Capture full output for Langfuse
 
       /*
        * Extract complete <boltAction ...>...</boltAction> blocks and emit file actions.
@@ -523,6 +566,18 @@ export async function* generateContent(
     }
   } finally {
     reader.releaseLock();
+
+    // End Langfuse generation with full output
+    generation?.end({
+      latencyMs: performance.now() - startTime,
+      output: fullOutput,
+      provider: provider.name,
+    });
+
+    // Flush Langfuse traces
+    if (isLangfuseEnabled(env)) {
+      flushTraces(env).catch((err) => logger.error('Failed to flush Langfuse traces', err));
+    }
   }
 }
 
@@ -640,7 +695,38 @@ function parseTemplateSelection(
 }
 
 function composeContentPrompt(businessProfile: BusinessProfile, themePrompt: string): string {
+  // Check if we have enhanced markdown content
+  const hasMarkdown = !!businessProfile.google_maps_markdown;
+
+  if (hasMarkdown) {
+    // Use markdown content directly (enhanced flow)
+    const websiteContext = businessProfile.website_markdown
+      ? `\n\nEXISTING WEBSITE ANALYSIS:\n${businessProfile.website_markdown}`
+      : '';
+
+    return `
+THEME DESIGN INSTRUCTIONS:
+${themePrompt}
+
+BUSINESS PROFILE (MARKDOWN FORMAT):
+${businessProfile.google_maps_markdown}
+${websiteContext}
+
+CONTENT REQUIREMENTS:
+1. MUST use the exact business name in header, footer, and meta title.
+2. MUST use the exact address and phone in the Contact section if provided.
+3. MUST use provided hours if available.
+4. MUST replace ALL placeholders with business data (no lorem ipsum).
+5. MUST generate complete file contents (no TODOs).
+6. SHOULD use the website analysis to match visual style if available.
+
+TASK: Generate a complete, production-ready restaurant website using the business information above.
+`.trim();
+  }
+
+  // Fall back to legacy formatting (existing projects with crawled_data)
   const generated = businessProfile.generated_content;
+  const crawled = businessProfile.crawled_data;
   const brandStrategy = generated?.brandStrategy;
   const visualAssets = generated?.visualAssets;
 
@@ -666,14 +752,59 @@ ${themePrompt}
 BRAND VOICE:
 ${[brandVoiceLine, uspLine, targetAudienceLine, visualStyleLine].filter(Boolean).join('\n') || 'N/A'}
 
+INDUSTRY CONTEXT:
+${formatIndustryContextForPrompt(generated?.industryContext)}
+
+REPUTATION & RATINGS:
+${formatReputationDataForPrompt(generated?.reputationData, crawled)}
+
 COLOR PALETTE (if provided):
 ${formatColorPaletteForPrompt(colorPalette)}
 
 TYPOGRAPHY (if provided):
 ${formatTypographyForPrompt(typography)}
 
+LOGO (if provided):
+${formatLogoForPrompt(visualAssets?.logo)}
+
 BUSINESS PROFILE (use EXACT values where provided):
 ${formattedBusinessProfile}
+
+PRE-GENERATED CONTENT SUGGESTIONS (use as inspiration):
+${formatContentSectionsForPrompt(generated?.contentSections)}
+
+FULL BUSINESS PROFILE (RAW JSON):
+${JSON.stringify(businessProfile, null, 2)}
+
+DATA USAGE INSTRUCTIONS:
+1. **Photos**: Use REAL image URLs from crawled_data.visual_content.image_collections:
+   - food: Use for menu section, hero backgrounds
+   - exterior: Use for hero section, about section
+   - interior: Use for atmosphere/ambiance section
+   - owner_uploads: High-quality official photos, prioritize these
+
+2. **Attributes**: Extract from crawled_data.operational_data.attributes:
+   - atmosphere: Use for describing the vibe (e.g., "Casual", "Cozy", "Trendy")
+   - offerings: Highlight in about section (e.g., "Vegetarian options", "Happy hour")
+   - highlights: Feature prominently (e.g., "Fast service")
+   - popular_for: Mention in hero/about (e.g., "Perfect for Lunch, Dinner, Solo dining")
+   - accessibility: Include in footer/contact (wheelchair accessible, etc.)
+
+3. **Reviews**: Use crawled_data.reviews_data.top_relevant_reviews:
+   - Extract 2-3 compelling quotes for testimonials section
+   - Use author_name for attribution
+   - Select reviews that highlight different strengths (food quality, service, atmosphere)
+
+4. **Menu**: Use crawled_data.operational_data.menu for complete menu section:
+   - Include ALL menu items with actual prices
+   - Group logically if categories aren't provided
+   - Use exact item names and prices from the data
+
+5. **Business Info**: Use crawled_data.operational_data for accurate details:
+   - phone_number: Exact phone number
+   - address_formatted: Full address
+   - open_hours_raw: Actual operating hours
+   - website_url_listed: Link to official website
 
 CONTENT REQUIREMENTS:
 1. MUST use the exact business name in header, footer, and meta title.
@@ -683,6 +814,8 @@ CONTENT REQUIREMENTS:
 5. MUST generate complete file contents (no TODOs).
 6. SHOULD incorporate the USP into the hero + about copy.
 7. SHOULD apply the provided color palette and typography (if present) while respecting the theme layout.
+8. SHOULD use the pre-generated content sections as a starting point for copy.
+9. SHOULD display rating/reviews count if available (e.g., "4.8★ from 120 reviews").
 
 TASK: Generate a complete, production-ready restaurant website using the business information above.
 
@@ -936,6 +1069,83 @@ function formatTypographyForPrompt(typography: Typography | undefined): string {
   const text = lines.join('\n').trim();
 
   return text.length ? text : 'N/A';
+}
+
+function formatIndustryContextForPrompt(context: IndustryContext | undefined): string {
+  if (!context) {
+    return 'N/A';
+  }
+
+  const lines = [
+    context.categories?.length ? `- Categories: ${context.categories.join(', ')}` : null,
+    context.pricingTier ? `- Pricing Tier: ${context.pricingTier}` : null,
+    context.operationalHighlights?.length ? `- Highlights: ${context.operationalHighlights.join(', ')}` : null,
+  ].filter((line): line is string => Boolean(line));
+
+  return lines.length ? lines.join('\n') : 'N/A';
+}
+
+function formatReputationDataForPrompt(
+  reputation: ReputationData | undefined,
+  crawled: BusinessData | undefined,
+): string {
+  const rating = reputation?.averageRating ?? crawled?.rating;
+  const count = reputation?.reviewsCount ?? crawled?.reviews_count;
+  const badges = reputation?.trustBadges;
+
+  const lines = [
+    typeof rating === 'number' ? `- Average Rating: ${rating}/5` : null,
+    typeof count === 'number' ? `- Total Reviews: ${count}` : null,
+    badges?.length ? `- Trust Badges: ${badges.join(', ')}` : null,
+  ].filter((line): line is string => Boolean(line));
+
+  return lines.length ? lines.join('\n') : 'N/A';
+}
+
+function formatContentSectionsForPrompt(sections: ContentSections | undefined): string {
+  if (!sections) {
+    return 'N/A';
+  }
+
+  const parts: string[] = [];
+
+  if (sections.hero) {
+    const heroLines = [`HERO:`, `- Heading: ${sections.hero.heading}`];
+
+    if (sections.hero.subheading) {
+      heroLines.push(`- Subheading: ${sections.hero.subheading}`);
+    }
+
+    parts.push(heroLines.join('\n'));
+  }
+
+  if (sections.about) {
+    parts.push(`ABOUT:\n- Heading: ${sections.about.heading}\n- Content: ${sections.about.content}`);
+  }
+
+  if (sections.products?.items?.length) {
+    const items = sections.products.items
+      .slice(0, 6)
+      .map((p) => `  - ${p.name}${p.description ? `: ${p.description}` : ''}`)
+      .join('\n');
+    parts.push(`PRODUCTS:\n- Heading: ${sections.products.heading}\n${items}`);
+  }
+
+  return parts.length ? parts.join('\n\n') : 'N/A';
+}
+
+function formatLogoForPrompt(logo: Logo | undefined): string {
+  if (!logo?.url) {
+    return 'N/A';
+  }
+
+  const lines = [
+    `- URL: ${logo.url}`,
+    logo.source ? `- Source: ${logo.source}` : null,
+    logo.description ? `- Description: ${logo.description}` : null,
+  ].filter((line): line is string => Boolean(line));
+
+  return lines.join('\n');
 }
 
 function inferPriceTier(input: { pricingTier: string; rating?: number }): PriceTier {

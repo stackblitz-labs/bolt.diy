@@ -12,7 +12,11 @@
 
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/node';
 import { getSession } from '~/lib/auth/session.server';
-import { extractBusinessData } from '~/lib/services/crawlerClient.server';
+import {
+  extractBusinessData,
+  generateGoogleMapsMarkdown,
+  crawlWebsiteMarkdown,
+} from '~/lib/services/crawlerClient.server';
 import type { CrawlRequest } from '~/types/crawler';
 import { logger } from '~/utils/logger';
 
@@ -243,8 +247,64 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    // Return successful response
-    return json(result, { status: 200 });
+    /*
+     * ─── Generate Markdown in Parallel ─────────────────────────────────
+     * After successful extractBusinessData(), call markdown endpoints
+     */
+    const crawledWebsiteUrl = result.data?.website;
+
+    const [gmapsMarkdownResult, websiteMarkdownResult] = await Promise.allSettled([
+      generateGoogleMapsMarkdown(sessionId),
+      crawledWebsiteUrl
+        ? crawlWebsiteMarkdown({
+            url: crawledWebsiteUrl,
+            session_id: sessionId,
+            enable_visual_analysis: true,
+          })
+        : Promise.resolve({ success: false, error: 'No website URL' } as const),
+    ]);
+
+    // Extract markdown values
+    const googleMapsMarkdown =
+      gmapsMarkdownResult.status === 'fulfilled' && gmapsMarkdownResult.value.success
+        ? gmapsMarkdownResult.value.markdown
+        : undefined;
+
+    const websiteMarkdown =
+      websiteMarkdownResult.status === 'fulfilled' &&
+      websiteMarkdownResult.value.success &&
+      'data' in websiteMarkdownResult.value
+        ? websiteMarkdownResult.value.data?.markdown
+        : undefined;
+
+    // Log results
+    logger.info(`[API] Markdown generation complete`, {
+      sessionId,
+      hasGoogleMapsMarkdown: !!googleMapsMarkdown,
+      hasWebsiteMarkdown: !!websiteMarkdown,
+      gmapsError:
+        gmapsMarkdownResult.status === 'rejected'
+          ? gmapsMarkdownResult.reason
+          : gmapsMarkdownResult.value.success
+            ? undefined
+            : gmapsMarkdownResult.value.error,
+      websiteError:
+        websiteMarkdownResult.status === 'rejected'
+          ? websiteMarkdownResult.reason
+          : websiteMarkdownResult.value.success
+            ? undefined
+            : websiteMarkdownResult.value.error,
+    });
+
+    // Return enhanced response with markdown fields
+    return json(
+      {
+        ...result,
+        google_maps_markdown: googleMapsMarkdown,
+        website_markdown: websiteMarkdown,
+      },
+      { status: 200 },
+    );
   } catch (error) {
     // Handle unexpected errors
     logger.error(`[API] Crawler extraction error`, {
