@@ -572,6 +572,9 @@ export class WorkbenchStore {
 
           this.deployAlert.set(alert);
         },
+        (relativePath, timeout) => {
+          this.#filesStore.markRecentlySaved(relativePath, timeout);
+        },
       ),
     });
   }

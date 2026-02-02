@@ -201,11 +201,27 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
   // Create Langfuse trace for observability
   const env = context.cloudflare?.env;
   const chatId = messages[messages.length - 1]?.id || 'unknown';
+  const lastUserMessage = messages.filter((m) => m.role === 'user').slice(-1)[0];
+  const userMessageContent = (() => {
+    if (typeof lastUserMessage?.content === 'string') {
+      return lastUserMessage.content;
+    }
+
+    if (Array.isArray(lastUserMessage?.content)) {
+      return (
+        (lastUserMessage.content as Array<{ type: string; text?: string }>).find((item) => item.type === 'text')
+          ?.text || ''
+      );
+    }
+
+    return '';
+  })();
   const traceContext = createTrace(env, {
     name: 'chat-request',
     userId: session?.user?.id,
     sessionId: chatId,
     metadata: { chatMode, restaurantThemeId, contextOptimization },
+    input: { userMessage: userMessageContent.slice(0, 2000) },
   });
 
   const stream = new SwitchableStream();
@@ -327,10 +343,15 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
           console.log(`Messages count: ${processedMessages.length}`);
 
           // Create Langfuse generation for summary
+          const summaryInputMessages = processedMessages.slice(-5).map((m) => ({
+            role: m.role,
+            content: typeof m.content === 'string' ? m.content.slice(0, 500) : '[complex content]',
+          }));
           const summaryGeneration = traceContext
             ? createGeneration(env, traceContext, {
                 name: 'create-summary',
                 model: 'default',
+                input: { messageCount: processedMessages.length, recentMessages: summaryInputMessages },
               })
             : null;
           const summaryStartTime = performance.now();
@@ -436,6 +457,7 @@ async function chatAction({ context, request }: ActionFunctionArgs, session: any
           ? createGeneration(env, traceContext, {
               name: 'stream-text-main',
               model: extractedModel || 'unknown',
+              input: { userMessage: userMessageContent.slice(0, 2000) },
             })
           : null;
         const mainStartTime = performance.now();

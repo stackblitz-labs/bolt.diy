@@ -24,7 +24,6 @@ export default function CreateProjectPage() {
 
   // Crawler state
   const [sessionId] = useState(() => crypto.randomUUID());
-  const [crawledData, setCrawledData] = useState<BusinessData | null>(null);
   const [crawlError, setCrawlError] = useState<string | null>(null);
   const [isCrawling, setIsCrawling] = useState(false);
 
@@ -32,6 +31,10 @@ export default function CreateProjectPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchResult, setSearchResult] = useState<VerifiedRestaurantData | null>(null);
+
+  // Markdown state (from extract API)
+  const [googleMapsMarkdown, setGoogleMapsMarkdown] = useState<string | null>(null);
+  const [websiteMarkdown, setWebsiteMarkdown] = useState<string | null>(null);
 
   // Generation state (Phase 3)
   const [createdProject, setCreatedProject] = useState<Project | null>(null);
@@ -129,7 +132,10 @@ export default function CreateProjectPage() {
    * 1. Auto-build after successful crawl
    * 2. Manual "Create Project" from review step (fallback)
    */
-  const handleAutoBuild = async (data: BusinessData) => {
+  const handleAutoBuild = async (
+    data: VerifiedRestaurantData,
+    markdown?: { googleMaps?: string; website?: string },
+  ) => {
     // Determine final values
     const finalName = data.name || businessName;
     const finalAddress = data.address || businessAddress;
@@ -147,11 +153,15 @@ export default function CreateProjectPage() {
     setGeneratedFiles([]);
     setGenerationComplete(null);
 
-    // Prepare payload
+    /*
+     * Prepare payload with markdown content
+     * Use passed markdown values first (fresh from API), then fall back to state
+     */
     const businessProfile = {
       session_id: sessionId,
       gmaps_url: mapsUrl.trim() || undefined,
-      crawled_data: data,
+      google_maps_markdown: markdown?.googleMaps ?? googleMapsMarkdown ?? undefined,
+      website_markdown: markdown?.website ?? websiteMarkdown ?? undefined,
       crawled_at: new Date().toISOString(),
     };
 
@@ -222,6 +232,7 @@ export default function CreateProjectPage() {
       business_name?: string;
       address?: string;
       place_id?: string;
+      website_url?: string;
     },
   ) => {
     setStep('crawling');
@@ -240,17 +251,35 @@ export default function CreateProjectPage() {
         }),
       });
 
-      const result: { success?: boolean; data?: BusinessData; error?: string | { message?: string } } =
-        await response.json();
+      const result: {
+        success?: boolean;
+        google_maps_markdown?: string;
+        website_markdown?: string;
+        has_website?: boolean;
+        error?: string | { message?: string };
+      } = await response.json();
 
-      if (response.ok && result.success && result.data) {
-        setCrawledData(result.data);
+      if (response.ok && result.success && result.google_maps_markdown) {
+        // Store markdown from extract response (for retry scenarios)
+        setGoogleMapsMarkdown(result.google_maps_markdown);
+        setWebsiteMarkdown(result.website_markdown || null);
 
-        // setWebsiteCrawled(!!result.data.website && result.data.website.trim().length > 0);
         setIsCrawling(false);
 
-        // AUTO-PROCEED: Skip 'review' step and go straight to building
-        await handleAutoBuild(result.data);
+        /*
+         * AUTO-PROCEED: Use searchResult for name/address (from search step)
+         * Pass markdown directly to avoid React state timing issues
+         */
+        if (searchResult) {
+          await handleAutoBuild(searchResult, {
+            googleMaps: result.google_maps_markdown,
+            website: result.website_markdown,
+          });
+        } else {
+          // Fallback: should not happen in normal flow
+          setCrawlError('Missing search result data');
+          setStep('maps');
+        }
       } else {
         const errorMessage =
           typeof result.error === 'string' ? result.error : result.error?.message || 'Failed to extract business data';
@@ -273,8 +302,11 @@ export default function CreateProjectPage() {
       return;
     }
 
-    // Go directly to crawling
-    await executeCrawl({ google_maps_url: mapsUrl.trim() });
+    // Go directly to crawling - preserve website from previous search if available
+    await executeCrawl({
+      google_maps_url: mapsUrl.trim(),
+      website_url: searchResult?.website,
+    });
   };
 
   const handleConfirmVerified = async () => {
@@ -288,6 +320,7 @@ export default function CreateProjectPage() {
       business_name: searchResult.name,
       address: searchResult.address,
       place_id: searchResult.place_id,
+      website_url: searchResult.website,
     });
   };
 
@@ -1126,10 +1159,13 @@ export default function CreateProjectPage() {
                             setShowTakingLonger(false);
                             setGenerationAttempt((n) => n + 1);
                           } else {
-                            if (crawledData) {
-                              void handleAutoBuild(crawledData);
+                            if (searchResult) {
+                              void handleAutoBuild(searchResult);
                             } else {
-                              void handleAutoBuild({ name: businessName, address: businessAddress } as BusinessData);
+                              void handleAutoBuild({
+                                name: businessName,
+                                address: businessAddress,
+                              } as VerifiedRestaurantData);
                             }
                           }
                         }}

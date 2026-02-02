@@ -142,6 +142,30 @@ CRITICAL INSTRUCTIONS:
 
 Begin customizing the template now.`);
 
+  // Format reminder - CRITICAL for parser compatibility - positioned LAST for recency effect
+  parts.push(`## OUTPUT FORMAT - FINAL REMINDER
+
+You are a code generator, NOT an assistant with function calls.
+
+Every file you create MUST use this exact format:
+
+<boltArtifact id="customize-template" title="Customize Template">
+  <boltAction type="file" filePath="src/data/content.ts">
+export const siteContent = {
+  seo: { title: "...", description: "..." },
+  // etc.
+};
+  </boltAction>
+</boltArtifact>
+
+CRITICAL - If you output any of these formats, the file will NOT be created:
+- <function_calls> - WILL BE IGNORED
+- <invoke> - WILL BE IGNORED
+- <parameter> - WILL BE IGNORED
+- bash heredoc (cat > file << EOF) - WILL BE IGNORED
+
+Only <boltArtifact> and <boltAction> tags are parsed. Use them now.`);
+
   return parts.join('\n\n');
 }
 

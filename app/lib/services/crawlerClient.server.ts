@@ -434,6 +434,11 @@ export async function generateGoogleMapsMarkdown(sessionId: string): Promise<Gen
       },
       MARKDOWN_TIMEOUT,
     );
+    logger.info(`[Crawler] Google Maps markdown response`, {
+      sessionId,
+      status: response.status,
+      ok: response.ok,
+    });
 
     const duration = Date.now() - startTime;
 
@@ -458,6 +463,7 @@ export async function generateGoogleMapsMarkdown(sessionId: string): Promise<Gen
         }
       } catch {
         /* ignore */
+        logger.error(`[Crawler] Error parsing error body`, { response });
       }
 
       return {
@@ -467,8 +473,30 @@ export async function generateGoogleMapsMarkdown(sessionId: string): Promise<Gen
       };
     }
 
-    const data = (await response.json()) as GenerateGoogleMapsMarkdownResponse;
-    logger.info(`[Crawler] Google Maps markdown success`, { sessionId, duration: `${duration}ms` });
+    const rawData = (await response.json()) as Record<string, unknown>;
+
+    // Debug logging to investigate response structure and error
+    logger.info(`[Crawler] Raw markdown response`, {
+      sessionId,
+      keys: Object.keys(rawData),
+      hasMarkdown: !!rawData.markdown,
+      hasData: !!rawData.data,
+      hasDataMarkdown: !!(rawData.data as Record<string, unknown> | undefined)?.markdown,
+      success: rawData.success,
+      error: rawData.error, // <-- Log the actual error message
+    });
+
+    const data = rawData as unknown as GenerateGoogleMapsMarkdownResponse;
+
+    if (data.success) {
+      logger.info(`[Crawler] Google Maps markdown success`, { sessionId, duration: `${duration}ms` });
+    } else {
+      logger.warn(`[Crawler] Google Maps markdown returned failure`, {
+        sessionId,
+        duration: `${duration}ms`,
+        error: data.error,
+      });
+    }
 
     return data;
   } catch (error) {

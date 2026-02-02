@@ -69,6 +69,7 @@ export class ActionRunner {
   #webcontainer: Promise<WebContainer>;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
   #shellTerminal: () => BoltShell;
+  #onMarkRecentlySaved?: (relativePath: string, timeout?: number) => void;
   runnerId = atom<string>(`${Date.now()}`);
   actions: ActionsMap = map({});
   onAlert?: (alert: ActionAlert) => void;
@@ -82,12 +83,14 @@ export class ActionRunner {
     onAlert?: (alert: ActionAlert) => void,
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
+    onMarkRecentlySaved?: (relativePath: string, timeout?: number) => void,
   ) {
     this.#webcontainer = webcontainerPromise;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
     this.onSupabaseAlert = onSupabaseAlert;
     this.onDeployAlert = onDeployAlert;
+    this.#onMarkRecentlySaved = onMarkRecentlySaved;
   }
 
   /**
@@ -347,6 +350,9 @@ export class ActionRunner {
     }
 
     try {
+      // Mark file as recently saved to prevent file watcher from overwriting with stale content
+      this.#onMarkRecentlySaved?.(relativePath, 1000);
+
       await webcontainer.fs.writeFile(relativePath, action.content);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {

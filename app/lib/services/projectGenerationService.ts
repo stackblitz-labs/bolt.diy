@@ -499,7 +499,7 @@ export async function* generateContent(
 
   messages.push({ role: 'user', content: fullUserMessage });
 
-  // Create Langfuse generation for streamText - capture full input
+  // Create Langfuse generation for streamText - capt`ure full input
   const generation = traceContext
     ? createGeneration(env, traceContext, {
         name: 'stream-text-content',
@@ -594,6 +594,22 @@ function buildFallbackUserMessage(businessName: string, _model: string, _provide
     'Replace ALL placeholder content with actual business data - no lorem ipsum or generic text.',
     '',
     'Begin generating files now.',
+    '',
+    '## CRITICAL: OUTPUT FORMAT REQUIREMENTS',
+    '',
+    'You MUST use EXACTLY this format when generating files:',
+    '',
+    '<boltAction type="file" filePath="path/to/file.ts">',
+    'file content goes here',
+    '</boltAction>',
+    '',
+    '**FORBIDDEN FORMATS** (these will NOT be parsed):',
+    '- DO NOT use <function_calls> tags',
+    '- DO NOT use <invoke> tags',
+    '- DO NOT use <parameter> tags',
+    '- DO NOT put content in markdown code fences outside the tags',
+    '',
+    'The content must be INSIDE the <boltAction>...</boltAction> tags.',
   ].join('\n');
 }
 
@@ -694,29 +710,54 @@ function parseTemplateSelection(
   };
 }
 
-function composeContentPrompt(businessProfile: BusinessProfile, themePrompt: string): string {
-  // Check if we have enhanced markdown content
+function composeContentPrompt(businessProfile: BusinessProfile, _themePrompt?: string): string {
+  /*
+   * NOTE: themePrompt parameter is kept for backward compatibility but is no longer used.
+   * Theme injection is handled in stream-text.ts via restaurantThemeId to avoid duplication.
+   * Check if we have enhanced markdown content
+   */
   const hasMarkdown = !!businessProfile.google_maps_markdown;
 
   if (hasMarkdown) {
-    // Use markdown content directly (enhanced flow)
+    /*
+     * Use markdown content directly (enhanced flow)
+     * NOTE: Theme prompt is NOT included here - it's injected in stream-text.ts via restaurantThemeId
+     * to avoid duplication. This function only provides business context data.
+     */
     const hasWebsiteAnalysis = !!businessProfile.website_markdown;
-    const websiteContext = hasWebsiteAnalysis
-      ? `\n\nEXISTING WEBSITE ANALYSIS:\n${businessProfile.website_markdown}`
-      : '';
 
     // Log graceful degradation when website analysis is not available
     if (!hasWebsiteAnalysis) {
       logger.info(`[CONTENT_GEN] Generating without website analysis (graceful degradation)`);
     }
 
-    return `
-THEME DESIGN INSTRUCTIONS:
-${themePrompt}
+    const websiteAnalysisSection = hasWebsiteAnalysis
+      ? `
+<existing_website_analysis>
+${businessProfile.website_markdown}
+</existing_website_analysis>
 
-BUSINESS PROFILE (MARKDOWN FORMAT):
+Use the existing website analysis to match visual style and tone where appropriate.
+`
+      : '';
+
+    return `
+---
+BUSINESS PROFILE (REFERENCE DATA)
+
+Use the following data as the primary source of truth for generating website content.
+
+INSTRUCTIONS:
+- Extract exact business name, address, phone, hours, and menu items from this data
+- Integrate relevant facts naturally into website copy - do NOT paste verbatim
+- If details are missing, use sensible defaults without inventing specific claims
+- This data takes precedence over any conflicting template placeholders
+
+<google_maps_data>
 ${businessProfile.google_maps_markdown}
-${websiteContext}
+</google_maps_data>
+${websiteAnalysisSection}
+---
 
 CONTENT REQUIREMENTS:
 1. MUST use the exact business name in header, footer, and meta title.
@@ -730,7 +771,11 @@ TASK: Generate a complete, production-ready restaurant website using the busines
 `.trim();
   }
 
-  // Fall back to legacy formatting (existing projects with crawled_data)
+  /*
+   * Fall back to legacy formatting (existing projects with crawled_data)
+   * NOTE: Theme prompt is NOT included here - it's injected in stream-text.ts via restaurantThemeId
+   * to avoid duplication. This function only provides business context data.
+   */
   const generated = businessProfile.generated_content;
   const crawled = businessProfile.crawled_data;
   const brandStrategy = generated?.brandStrategy;
@@ -752,8 +797,16 @@ TASK: Generate a complete, production-ready restaurant website using the busines
   const visualStyleLine = visualStyle ? `Visual style: ${visualStyle}` : '';
 
   return `
-THEME DESIGN INSTRUCTIONS:
-${themePrompt}
+---
+BUSINESS PROFILE (REFERENCE DATA)
+
+Use the following data as the primary source of truth for generating website content.
+
+INSTRUCTIONS:
+- Extract exact business name, address, phone, hours, and menu items from this data
+- Integrate relevant facts naturally into website copy - do NOT paste verbatim
+- If details are missing, use sensible defaults without inventing specific claims
+- This data takes precedence over any conflicting template placeholders
 
 BRAND VOICE:
 ${[brandVoiceLine, uspLine, targetAudienceLine, visualStyleLine].filter(Boolean).join('\n') || 'N/A'}
@@ -773,14 +826,17 @@ ${formatTypographyForPrompt(typography)}
 LOGO (if provided):
 ${formatLogoForPrompt(visualAssets?.logo)}
 
-BUSINESS PROFILE (use EXACT values where provided):
+<business_profile>
 ${formattedBusinessProfile}
+</business_profile>
 
 PRE-GENERATED CONTENT SUGGESTIONS (use as inspiration):
 ${formatContentSectionsForPrompt(generated?.contentSections)}
 
-FULL BUSINESS PROFILE (RAW JSON):
+<full_business_profile_json>
 ${JSON.stringify(businessProfile, null, 2)}
+</full_business_profile_json>
+---
 
 DATA USAGE INSTRUCTIONS:
 1. **Photos**: Use REAL image URLs from crawled_data.visual_content.image_collections:

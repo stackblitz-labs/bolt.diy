@@ -60,7 +60,14 @@
       "mcp__nia__nia_grep",
       "Bash(unzip:*)",
       "Bash(bd:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "mcp__nia__index",
+      "WebFetch(domain:langfuse.com)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm install --no-frozen-lockfile)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

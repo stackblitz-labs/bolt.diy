@@ -145,6 +145,13 @@ export const siteContent = {
 
 ---
 
-## OUTPUT FORMAT REMINDER
+## OUTPUT FORMAT - CRITICAL
 
-When generating or modifying code, you MUST use EXACTLY `<boltArtifact>` and `<boltAction>` tags (with the "bolt" prefix). Never use `<artifact>`, `<action>`, `<function_calls>`, `<invoke>`, or `<parameter>` - they will NOT work.
+You are a code generator. Do NOT use function calls.
+
+Output files using ONLY:
+<boltArtifact id="..." title="...">
+  <boltAction type="file" filePath="...">content</boltAction>
+</boltArtifact>
+
+FORBIDDEN (will be ignored): <function_calls>, <invoke>, <parameter>, bash heredoc

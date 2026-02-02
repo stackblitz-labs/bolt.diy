@@ -598,6 +598,20 @@ export class FilesStore {
     return Array.from(this.#modifiedFiles.keys());
   }
 
+  /**
+   * Mark a file as recently saved to prevent the file watcher from overwriting
+   * it with stale content. This is useful when writing files directly to WebContainer
+   * without going through saveFile().
+   *
+   * @param relativePath - The relative path of the file (from WebContainer workdir)
+   * @param timeout - How long to protect the file from watcher updates (default: 1000ms)
+   */
+  markRecentlySaved(relativePath: string, timeout: number = 1000) {
+    this.#recentlySavedFiles.add(relativePath);
+    setTimeout(() => this.#recentlySavedFiles.delete(relativePath), timeout);
+    logger.debug('Marked file as recently saved', { relativePath, timeout });
+  }
+
   async saveFile(filePath: string, content: string) {
     const webcontainer = await this.#webcontainer;
 
@@ -895,6 +909,9 @@ export class FilesStore {
          */
         this.#ensureParentFolders(relativePath);
       }
+
+      // Mark file as recently saved to prevent watcher from overwriting with stale content
+      this.markRecentlySaved(relativePath, 2000);
 
       const isBinary = content instanceof Uint8Array;
 

@@ -1,0 +1,1101 @@
+{
+    "crawled_at": "2026-01-31T17:39:32.224Z",
+    "session_id": "6e1091de-c360-4b6f-a0cb-40a6037bb797",
+    "crawled_data": {
+      "_id": "697e3e535d5f3e0438df0507",
+      "session_id": "6e1091de-c360-4b6f-a0cb-40a6037bb797",
+      "reviews_data": {
+        "top_relevant_reviews": [
+          {
+            "text": "A total accident!! But one of the best!!  Great food and lovely options for vegetarians too.   The shrimp tempura hand-roll was the best I've ever had.  We will be back.  Eat here - you won't be disappointed!!",
+            "rating": 5,
+            "author_name": "Valerie Walker",
+            "likes_count": null,
+            "relative_time": "2025-12-23T18:14:37Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Kuu Ramen is such a charming little spot — cozy, cute, and instantly comforting from the moment you walk in. The atmosphere feels warm and welcoming, perfect for a casual meal or when you’re craving true comfort food with great quality.\n\nThe food is outstanding. Their beef curry is incredibly flavorful — rich, tender, and deeply satisfying. I was also surprised by how good the burger was; juicy, well-seasoned, and way better than you’d expect from a ramen shop. Everything here is cooked with care and you can taste the quality in every bite.\n\nService is another highlight. The staff are friendly, attentive, and genuinely make you feel at home without being intrusive. It’s the kind of place where you feel taken care of.\n\nIf you’re looking for great comfort food, excellent quality, and a cozy atmosphere, Kuu Ramen is definitely worth a visit. Highly recommended!",
+            "rating": 5,
+            "author_name": "Tony Pensrinukoon",
+            "likes_count": null,
+            "relative_time": "2025-11-28T22:25:43Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Service and food is 10/10. I got the triple chicken yuzu ramen and my partner got the chicken katsu. We also got the chicken karaage- the chicken was juicy and cooked perfectly with a crunchy exterior. The yuzu ramen was delicious and light with a perfect amount of yuzu flavor. The soft boiled egg in the ramen was so good.\n\nI highly recommend this place!! I will definitely be back to try the different ramens 😋",
+            "rating": 5,
+            "author_name": "Nicole Alaverdian",
+            "likes_count": null,
+            "relative_time": "2025-10-27T22:48:11Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "The ambience is very cozy. Amazing service very attentive. The Ramen was quality and there are very unique ones as well. The cool spicy Ramen with pork belly was really good. I highly recommend anyone to come here.",
+            "rating": 5,
+            "author_name": "Shondraia Guo",
+            "likes_count": null,
+            "relative_time": "2026-01-10T22:52:01Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Very impressed by Kuu. The Butter Chicken Ramen is a bold fusion move - rich, fragrant with just enough spice to keep it interesting. One of the best I’ve had in the city. The Triple Chicken Yuzu Ramen was lighter and brighter, a nice balance of depth and citrus that cuts through the richness of a typical broth.\n\nThe Spicy Tuna Hand Roll was fresh and well-seasoned, and the fries were crispy and perfectly salted. Can’t forget about their house sake either.",
+            "rating": 5,
+            "author_name": "Malcolm Thaxton",
+            "likes_count": null,
+            "relative_time": "2025-10-16T01:03:13Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "We just finished a follow up doctor's appointment and were craving some ramen. Google search returned Kuu Ramen as it's first choice and it was an amazing meal. Both of our ramen's broth hit the spot and warmed up our souls!",
+            "rating": 5,
+            "author_name": "Albert Dominguez",
+            "likes_count": null,
+            "relative_time": "2026-01-05T19:52:25Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "This is some of the best ramen my partner and I had—exceptionally balanced, incredibly fresh, and clearly made with care. The broth is rich but clean, the noodles are perfect, and every topping complements the bowl. Absolutely worth returning for.",
+            "rating": 5,
+            "author_name": "Melisa Lopez",
+            "likes_count": null,
+            "relative_time": "2026-01-06T21:36:57Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "We stopped here for a late lunch and found a table right away. It's a small space so there were people waiting after us. Food was fast and really on par with the better ramen houses I've tried. I had the gyoza set with the spicy pulled pork ramen. Excellent broth. Would definitely come back.",
+            "rating": 5,
+            "author_name": "Ann Price",
+            "likes_count": null,
+            "relative_time": "2025-12-30T20:00:48Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "We tried the butter chicken and the spicy tonkotsu ramen. It felt like a warm hug on a cold afternoon. The butter chicken was more like a curry thickness than a soup and it came with a chicken skewer. The tonkotsu meat was very tender and the right amount of spice. Their buns are nice and pillowy, a must try.",
+            "rating": 5,
+            "author_name": "Sanjeet",
+            "likes_count": null,
+            "relative_time": "2025-10-17T17:40:05Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "I’ve been  an instant frequent customer here cause of their curry menu. Their sukiyaki beef curry is so rich and delicious. Very comforting and warm. Sometime I add a topping of their Menchi beef. Their hand rolls are pretty solid too— I tend to get their spicy tuna or shrimp tempura hand roll. The service is quick and they’re attentive to your needs. I would recommend this to anyone.",
+            "rating": 5,
+            "author_name": "Lance Michael Tan",
+            "likes_count": null,
+            "relative_time": "2025-09-16T00:10:10Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "I come here for Katsu with curry. I got pork this time. It’s the best I’ve had in NYC. I’m not an expert but I’ve tried several in Manhattan. This one is not too greasy, it’s served crispy, with hot tasty gravy and freshly made rice. I don’t take it with cheese. The red stuff, I think it’s something pickled, is amazing.\n\nThis place has a sister location in Fidi I believe. That one is busier than I’ve seen this one during the work week. So skip the line and come uptown to the UES. Both locations are pretty small. Otherwise, it’s a perfect 5 ⭐️s for me!",
+            "rating": 5,
+            "author_name": "Abraham C",
+            "likes_count": null,
+            "relative_time": "2025-11-24T19:50:27Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Staff is really polite and service is great. food is amazing. the crispy pork in the ramen is really fragrant and tender. Broth is rich and flavourful. and not too spicy. the sides - tuna tartar compliments well with the wonton skin and avocado. must try! pan fried gyoza (not in the pic) is good too. skin is just right and not too thick. pan fried really well while still keeping the skin’s softness and chewiness. highly recommended to visit this place! the soup’s gonna warm you up on a cold and rainy weather ◡̈",
+            "rating": 5,
+            "author_name": "Kerina",
+            "likes_count": null,
+            "relative_time": "2025-10-12T20:27:59Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Delicious food, very friendly staff. Highly recommend the crispy pork but can’t go wrong with any of them. They have a nice dine in deal where you can get a drink and app for cheaper!",
+            "rating": 5,
+            "author_name": "Sammi Hersh",
+            "likes_count": null,
+            "relative_time": "2025-12-07T21:46:28Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Beautiful happy people serving. Down to earth and calm. The ramen I had was incredible and fulfilling to my soul. I will definitely come back.\n\nThank you!",
+            "rating": 5,
+            "author_name": "Emmanuel Juanta",
+            "likes_count": null,
+            "relative_time": "2025-12-02T22:35:41Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Great food and fast service. I ordered the spicy pork ramen. I would definitely come back and recommend this place to others.",
+            "rating": 5,
+            "author_name": "Tri Tran",
+            "likes_count": null,
+            "relative_time": "2026-01-02T02:21:04Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "The food, service and atmosphere were all impeccable, definitely bring friends!",
+            "rating": 5,
+            "author_name": "Timothy Rivera",
+            "likes_count": null,
+            "relative_time": "2026-01-25T00:58:04Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "The ramen here was EXCELLENT! Before that the spicy karaage was the perfect spice level, the yuzu soda is a must and have to mention that whatever playlist they were playing was great!",
+            "rating": 5,
+            "author_name": "Danette Hinton",
+            "likes_count": null,
+            "relative_time": "2025-12-21T20:06:36Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Really great. Been here twice and food is consistent and very good",
+            "rating": 5,
+            "author_name": "Jackie volpeVEVO",
+            "likes_count": null,
+            "relative_time": "2026-01-10T22:58:19Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Cute little cozy place! Ramen is perfect for a rainy day but I couldn't resist getting the Beef Menchie Katsu Curry Rice.  Delicious and Kuu Ramen def doesn't skimp out on the patty.  Can't agree more with their slogan: Keep Kuu, Eat Ramen!",
+            "rating": 5,
+            "author_name": "Jenny Lam",
+            "likes_count": null,
+            "relative_time": "2025-08-20T22:46:03Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "What an adorable little place! Walked in on a random Tuesday at 1 for lunch and was sat right away! Had the pulled pork bun appetizer that was soo tasty and the pork was so well seasoned! Melted in your mouth! Then I got the signature pork ramen with chicken broth and it was exactly what I wanted!! I also enjoyed some of the hot house sake, and I left feeling full and happy.",
+            "rating": 5,
+            "author_name": "Amanda Cajano",
+            "likes_count": null,
+            "relative_time": "2025-12-30T18:54:37Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "The food was really good and fresh I would come again and recommend this place to friends",
+            "rating": 5,
+            "author_name": "Crystal Baby",
+            "likes_count": null,
+            "relative_time": "2026-01-11T21:38:48Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Staff is really friendly. I asked our waiter about their interesting butter chicken ramen and although I was a little skeptical about it, it did not disappoint! Would definitely come back!!",
+            "rating": 5,
+            "author_name": "Jennifer Ramirez",
+            "likes_count": null,
+            "relative_time": "2025-09-16T21:53:09Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "One of my favorite places to come… amazing food and service.",
+            "rating": 5,
+            "author_name": "Amarilis Sanchez",
+            "likes_count": null,
+            "relative_time": "2025-11-26T23:03:49Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "We had the Kuu Chili Ramen and the butter chicken ramen. Absolutely some of the best ramen we had. 10/10 recommend. Everyone else prob a hater or got some wack menu item. Also had the pumpkin croquettes. 🔥🔥🔥",
+            "rating": 5,
+            "author_name": "Justin Seetaram",
+            "likes_count": null,
+            "relative_time": "2025-11-01T22:01:36Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Came here two days in a row. First, the pulled pork sandwich (plus amazing fries) and today the ramen that is fair to say, this is the first time that I really enjoy a ramen this much.",
+            "rating": 5,
+            "author_name": "Oscar Manuel PIragauta Gomez",
+            "likes_count": null,
+            "relative_time": "2025-09-01T17:17:38Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Went here for lunch and they sure did not disappoint. I had the butter chicken ramen and their fries. The fries were super crispy and the ramen was very filling. Would definitely recommend! 👍🏽",
+            "rating": 5,
+            "author_name": "Arnaldo Martinez",
+            "likes_count": null,
+            "relative_time": "2025-09-23T19:55:37Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Amazing service. Great customer service. The food was great. Definitely worth to try it.😋😋😋",
+            "rating": 5,
+            "author_name": "Danny H",
+            "likes_count": null,
+            "relative_time": "2025-10-08T19:35:28Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          },
+          {
+            "text": "Stopped by Kuu on a perfect gloomy rainy day, it hit the spot. I had the Kuu Kakuni Pork ramen and it was delicious. Their pork bun and pomegranate tea is great too! If you’re in the area, I’d highly recommend to visit  .",
+            "rating": 5,
+            "author_name": "Agustin Castro",
+            "likes_count": null,
+            "relative_time": "2025-10-11T19:33:15Z",
+            "attached_photos": [],
+            "owner_response_text": null
+          }
+        ],
+        "review_topics_keywords": null
+      },
+      "posts_updates": null,
+      "place_metadata": {
+        "place_id": "ChIJZZGTpsRZwokR_Y_DVDs_wNM",
+        "url_map_link": "https://www.google.com/maps/place/?q=place_id:ChIJZZGTpsRZwokR_Y_DVDs_wNM",
+        "data_collection_timestamp": "2026-01-31T17:39:31.519000+00:00"
+      },
+      "profile_basics": {
+        "title": "Kuu",
+        "rating": 4.8,
+        "price_level": "Standard",
+        "reviews_count": 2030,
+        "category_primary": "Japanese Restaurant",
+        "subtitle_summary": "Kuu offers a cozy and welcoming Japanese dining experience, celebrated for its unique and exceptionally flavorful ramen, high-quality comfort food like curry katsu and hand rolls, and consistently friendly service.",
+        "categories_secondary": null
+      },
+      "visual_content": {
+        "logo_image_url": null,
+        "cover_image_url": null,
+        "image_collections": {
+          "food": [
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwepPIkl-Yx684fcbbURZekeBEyj4OIyRdQj8i6WJasgm53Sdlvft_Odc5kHwW1ZbHN3N_Orr3sfdr4rU0RKbPpnw-WqBGY7u0QWFmZ0u35hyfsKNf-poiBfftWJDymQvS50X0tI=w1080-h1920-k-no",
+              "width": 1080,
+              "height": 1920,
+              "caption": "Food",
+              "description": "Bowl of ramen with vegetables and egg on wooden table",
+              "upload_date": "2026-01-31T17:38:44.412989+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweoXs7Hnt_2I37RxtIPSjqmfqBuWxbOrSfNnE-ZDmL9DroBOB3TWC_T5aQXHR4__TrC0qDdLXgZFt0TesaqRq-ZBfWYHjSEmoBFRT45CdakrWHlYimnzwiYcR_IxrlAmHmYQ9HW3LR3Arewx=w3024-h4032-k-no",
+              "width": 3024,
+              "height": 4032,
+              "caption": "Food",
+              "description": "Bowl of ramen with egg, chicken, and lemon slices",
+              "upload_date": "2026-01-11 15:53:47"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwepSWGgjuwGoR8tqGtkid3pvpI_mKe_7sUwdVKoYm28bezhm4GdMGUNgbC1hJldkkvrL9oYMlPL9sGHSD-1o4WTLXH_e_fSkAGcxnh8o_g7qgt-aTZl6vBL2GH-KSsirHYkxq_GkAw7OU5Pe=w3024-h4032-k-no",
+              "width": 3024,
+              "height": 4032,
+              "caption": "Food",
+              "description": "Bowl of ramen with dumplings and drink",
+              "upload_date": "2026-01-23 15:37:01"
+            },
+            {
+              "url": "http://t1.gstatic.com/images?q=tbn:ANd9GcSnZ3pKnaPsS8TaomFm9FCuBUUsB-w7mhcnQdTcxM5QycTVWPW5",
+              "width": 1763,
+              "height": 1175,
+              "caption": "Food",
+              "description": "Bowl of ramen with pork, egg, and corn",
+              "upload_date": "2025-09-01T11:07:57+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwepEtgqI4gTQDh3NRJqudxb6ZYk8pqkmitPDBRGDr6VQczJd7TXI9SsHL3WdfvHhhnKrF6fvZ8R77p_K0CljhLo4IR1hYVSr2tUyiD-9SiuBC4iPnksZs8ncSaUn9xnZXtH5rumY=w1080-h1920-k-no",
+              "width": 1080,
+              "height": 1920,
+              "caption": "Food",
+              "description": "Steaming bowl of ramen with toppings and broth",
+              "upload_date": "2026-01-31T17:38:49.556454+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweqr4m_ttEc8pcNOBuQqoJEeqU13uFji8Az5ZIuJfbED_0nGJT3SZfviFDnX0yh3KwyO3awg3EdZfAdqOTrD4MT1oD6f_RffGPh3faNnydvWRZ4T5rEtzeMZxEeI1OGf-1ZKe4srGTp-3RM8=w960-h1280-k-no",
+              "width": 960,
+              "height": 1280,
+              "caption": "Food",
+              "description": "Two bowls of ramen with various toppings",
+              "upload_date": "2026-01-31T17:38:49.499744+00:00"
+            },
+            {
+              "url": "http://t0.gstatic.com/images?q=tbn:ANd9GcS3rNZgLKMdOMneby3bfzHv_QVxZxBhbSzLHN0b1VfTtEDch1AU",
+              "width": 1200,
+              "height": 1200,
+              "caption": "Food",
+              "description": "Sushi roll with salmon and avocado on wooden board",
+              "upload_date": "2025-09-07T10:45:25+00:00"
+            },
+            {
+              "url": "http://t1.gstatic.com/images?q=tbn:ANd9GcS4mB8DqZrvBM23UNynChDoXJ0p8rGDjzZIQZTsv8OidkgjZHp3",
+              "width": 1763,
+              "height": 1175,
+              "caption": "Food",
+              "description": "Bowl of chicken and vegetables on wooden table",
+              "upload_date": "2025-09-01T21:54:05+00:00"
+            },
+            {
+              "url": "http://t2.gstatic.com/images?q=tbn:ANd9GcTI5epYkBvEIp25GkjeoiTSo8Djkp1MXpmkLMl731OwRMqEe6Rr",
+              "width": 1763,
+              "height": 1175,
+              "caption": "Food",
+              "description": "Salmon tartare on mixed greens in black bowl",
+              "upload_date": "2025-09-06T08:28:18+00:00"
+            },
+            {
+              "url": "http://t1.gstatic.com/images?q=tbn:ANd9GcT1RdyAF4LrguFoswVdFIefn2kPeMacRiyw5oi5fadoMW4aJECk",
+              "width": 1175,
+              "height": 1763,
+              "caption": "Food",
+              "description": "Steamed bun filled with meat and sliced cucumber",
+              "upload_date": "2025-09-19T11:16:02+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwep9eqWMTZYhffGS_ycPxq5mcq8-dTL_iTvsCBVUZ24MvnSvElw8rxMejFIdkjxP-gUvhXqo5cL7N3usZ0-cP-PVtn2-jVWlI6Y6VLmfHgZRBV9Oa6SD6_1SBCb1aTAt_bPhHv1e=w1080-h1920-k-no",
+              "width": 1080,
+              "height": 1920,
+              "caption": "Food",
+              "description": "Bowl of ramen with noodles being lifted out",
+              "upload_date": "2026-01-31T17:38:51.159854+00:00"
+            },
+            {
+              "url": "http://t3.gstatic.com/images?q=tbn:ANd9GcRiqY0i2cfy7NcOV8VJewaEN4u2fCYlbWnSxi7T3hIDlwj-Sda8",
+              "width": 1763,
+              "height": 1175,
+              "caption": "Food",
+              "description": "Breaded cutlet in curry sauce with rice and kimchi",
+              "upload_date": "2025-09-12T05:08:45+00:00"
+            },
+            {
+              "url": "http://t1.gstatic.com/images?q=tbn:ANd9GcQQSHRxpKS-lGWDwI6qktNMQFVDLz8-JZMHSvywhstke2hf78C-",
+              "width": 1763,
+              "height": 1175,
+              "caption": "Food",
+              "description": "Bowl of poke with salmon, tuna, and vegetables",
+              "upload_date": "2025-09-09T00:04:41+00:00"
+            },
+            {
+              "url": "http://t0.gstatic.com/images?q=tbn:ANd9GcR_-Rbh9ndmXfYX1hh584CQoyVUGyH7Wz7CGAYqraCVJ8t26KTo",
+              "width": 1287,
+              "height": 1609,
+              "caption": "Food",
+              "description": "Steamed bun sandwich with sauce and green onions",
+              "upload_date": "2025-09-01T15:17:00+00:00"
+            },
+            {
+              "url": "http://t2.gstatic.com/images?q=tbn:ANd9GcR0NqyIZ-vgCitEe_2m9MhJQ0m5hRF-0r2z5nuSZVq8-m0OIALx",
+              "width": 1763,
+              "height": 1175,
+              "caption": "Food",
+              "description": "Pan-seared dumplings on a black oval plate",
+              "upload_date": "2025-09-01T03:49:24+00:00"
+            },
+            {
+              "url": "http://t0.gstatic.com/images?q=tbn:ANd9GcTycPCekLiLNGLyewAfuah9DluJRyrj3s7WSUzlkAEjGUy8a72X",
+              "width": 1763,
+              "height": 1175,
+              "caption": "Food",
+              "description": "Crispy fried cauliflower florets in spicy sauce, garnished with herbs",
+              "upload_date": "2025-09-06T22:36:13+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweo2hm5k_cuSAxnqOZtt7C4ahZk7YSAnbyEcxvdUFYEn15PNj2LjtZjzLJt6cqJ9jV1JVQSrsdZ8YrODnUXusKWc2aB1kwBg-L6u_IASpf44c3gcDoiG0EbndcOfSXX67NDUGm9wkg=w1080-h1920-k-no",
+              "width": 1080,
+              "height": 1920,
+              "caption": "Food",
+              "description": "Crispy pork held above a bowl of ramen",
+              "upload_date": "2026-01-31T17:38:52.781888+00:00"
+            }
+          ],
+          "exterior": [
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweqZQaLQK82sRRKsupvdgQi0jgUTTfH-Vm08Me_wnH2VL-PDgY6VrFJsm8MT7UHJSSICOMve6KKCjtLuoiLINtKgaAlVRn-EF3u7Z18bF8awBna7bRyzGrs8Lto-LWXua9Zb2JrttV6ujRQ=w2167-h2949-k-no",
+              "width": 2167,
+              "height": 2949,
+              "caption": "Exterior",
+              "description": "Restaurant storefront with black facade and yellow sign",
+              "upload_date": "2026-01-06 15:34:51"
+            }
+          ],
+          "interior": [
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwepY8ZHY8n9F8a_av56t3GxDxe9QGHYZw2cn9YiVOt_jKs6pLCWtGzfl8Tq2i3VnU3NsEIFhTF0tecuKTkaXqvyzUCtlrnv_ZbLFPSW9XYU_gj2t4aPIq-RgnLRJ2M5a7RvJRAk=w3024-h4032-k-no",
+              "width": 3024,
+              "height": 4032,
+              "caption": "Interior",
+              "description": "Modern restaurant interior with wooden tables and chairs",
+              "upload_date": "2025-02-22 16:11:26"
+            }
+          ],
+          "menu_photos": [
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweq4mp6VesOvAIbXirTvdUbudV-e2V2F1t24MwtWTWxogGt5k6iRbCxeEj660MgmR8aH7J_QG9zSLybOgeVAFaLTXo055ra8m4fDvjGYX_amlHREHo6fpYLLdAdd1h6AWCj3KZK9sA=w1011-h1593-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2026-01-31T17:39:08.508121+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweofYX9aMlcti24XIE-w0XIhKRdiE0sLBPdzN8al1a-k9tx_DYN5hvvVjHCSmMqpOgyKxWDBr_jmuSP5tXdWuv59j7Bxod9p1JvKz28iRjiMD9KykshBAMdgEGToMF3g3MvTdWnDGw=w5712-h4284-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2025-05-26 12:32:06"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweo87s9EJfQG2FU-Y4BL76GMm6BuVrZ_XfJHeeKfixKlQaG5Oba9PF29ClNzZy-PLm-IenO7tmcUbPlqLIBl-Y7j-8uzz8ir458jbWguGvce7TEpy7ekD4sxzjTbp0BIsPZ7AlM=w1015-h1644-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2026-01-31T17:39:08.583481+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweqlWeBZmWMB2LFjE1trXukGor5KzQBWVzpdUIBEEQ7CaP2yslKRxAarqyUep4Q-MtRDmVO5CPMGND-5RrrQix01ZfVwCtSY4bB0lm8oudw6JGKmWhi9ylYOfvEXetavvUq8SFgq=w1028-h1752-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2026-01-31T17:39:08.389139+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweqcOwofwR7vIfO3I4HHYeF7HxJ-z1VRWe1WuQsAruvNAehcTX-wbEz1g04AjS4Ey03wF-Zx_sdZVM9GO8TcyFSislnm9l0QBVVi7Sr4aCzIrWJFW84tppZ7l9PzuEGz4kk2pSIJ=w997-h1820-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2026-01-31T17:39:09.248395+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwepNvPVn5WujOer1XyYKB1S8PPWK1pGjkTr75I7NbRBwyP5mGBRLa18_uEINQpmjxlRjojIOgwYVcoaUe8gEQpi0_X25LBGhvqUTM6ujux8no78jqHSGZ5pdnTIZa7pqLeCpI_wxp89SBXnB=w3840-h2160-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2025-12-22 20:01:20"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwerBuUpMm0ken2wvpuQEUQ3iuR1k0MAmwaKdev02XvYcG6yf7m5X6LrNvYo4XRww5WpigCZ0XZT0o76ZOHkT9bks_CHuQmpCM3JAlVzTVUUxf8plkT-r0MZjQAuKVuID0tSDosQKCA=w5712-h4284-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2025-02-22 16:12:16"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweqTgVVe_U5rMayYBg2YUJkAOOapehJJuYmaeqeRx6ww7MvtJMsRlJ9Ar3FJUVyDdpclIAmmmELfLoZn_03KIHRVl7qtqoy5wYI_wg57jJBUMdabPss0-3aTiPCNYXDyqNIoVdIY=w5712-h4284-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2025-02-22 16:12:04"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwerluvzOIcdnBW-2kt9uwific7lo7BvfNfoDVonoMHCzJqUUyUed2wn57e1ttRM-wSACxJQWKlCdvkmCc263KShmwciK-BJot9nxxMgXFk4siKOsIgRzPE0slGD9f6M5AhmjSyMXMg=w2268-h4032-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2024-09-08 18:56:02"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweqzM0t6xX3INfZAZCJ1U1A1aHuwpFJKMwhTI0Xxn5BjQeY8duZUVuh6px8qPWeDYRBVLjEu7_MC17ZR7cYTCWoZPn8JQxHfWekiwFAyfkRyqjwva3_FqftZEiW7ise35zFDRD37mA=w4284-h5712-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2025-05-26 12:33:42"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwerFNDH2utvYdxh_2B00A-qpbtFavzNbduGYFz9WdoHSlvbSPrapvUjAJ4Ik1rjyycDauvPB0yaglyuX2Jnj5JHSjZ2l40YRhTvuvQb4rGup2kbTctdzaUZYoltzinjS9lFr-D563mFX7fx5=w5712-h4284-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2025-12-01 15:48:23"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwerPTGn6qSPivAeVYA_CllL415rlUNXCCKtKjt7A0-rLk5d8We32xNiOR-nisdE-h8l4uYYUMeDAVQtOqDsoKRExqlrrtkTm3E3JDWCkv9Yz15otX2fDK7gtA_hzB7Ygqy7b8_I=w5712-h4284-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2025-05-26 12:32:11"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwerbRXTlCTVoWlVGrG-QAolaTsLwyvpdnSObXlZK2ybF995qmwpxLXcJLZdFxaZLADAFb61rkGWAeJEGusyx5YfWY_o2dt4n8pH6YOtI5e6e1nyjhO46mCqBugj5-VfyziM5dA31NCfMCYRD=w4284-h5712-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2025-07-23 16:59:18"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweoB5j-TkpwxnsBTZx9ItFVo-ShQ0fYfgacHGBSx1GYnq91oGOiXM-lvbVmAS96Hil2qiWyYj-IQaKN9WW6Bb2lEkgYDJuNnxCOh2hpXezoeXyJQ6seJb6P2YxW5DxuMPN5Rjj8D=w3024-h4032-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2024-05-11 12:37:17"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweo1TmFzD-_0a_W-9VyWT5VuYgP5Wi7BYLFx7a-Z8R_ViktwtBz_z5DaODT_CdriS7etQET9tUmKKOer4WXOQ0BB2B0lfWcuuvaixxUmW_vJ3CTlFgYhHBIgeVgwmZlJOofn5hkQHGY0womX=w3024-h4032-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2025-06-27 14:23:24"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwer8sJshy2-Ae7Qx7BuMfpsHDh-kvFiSuZSrwkRehnWtBtdRLeACCYARoSe2Zc7HPPiGsV5_FhQFt90UsIQNCwDBRvAIQUnWswN3iQAYxaaBjjtxmqi7V4BKDcnp3EQEMnIqghDJ=w3024-h4032-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2023-08-31 14:24:28"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwerY8OJXZmNm2Kn_U483RBXxOL8vkLwibx7ts3pBWLLOzZIe0gACaTa75s8PcyeEb5l2XD7-EFBtfTRr5bo8t2Sp-lLV7fS3lwPV-6dz4frAMr8_KPC0LiLYqnzHGN4WuJTY_v4bkQ=w3024-h4032-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2026-01-31T17:39:15.305654+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwepc9Gq-vWKjFhYxWfVuOp0_nt2SsT3e4MHtTZ8pweA6OwQQmo8FJvLS7WN0FBohrCm9M75Zln1kLMi4PQKL7biUNv-1VUl6jF3k4tEQtPuVBAh_sibdBeDa_ELpCId0_RmxrF7niSZ6Rkg1=w3024-h4032-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2026-01-31T17:39:15.092292+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAweqf-oqvqcdXilb0uswcOuj7ytqw6ZTvXBfdNbc-1Sn9movUFB2DG4vyEjzdVc2MWzlhhU3LoZ2MQ8pxi3I4O_lrJ0i8IfVrfAacF1Eodp4vvvXcoMnGON7xuNQkGuqkzCBlkCZR=w2268-h4032-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2024-11-02 20:45:24"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/gps-cs-s/AHVAwep4YjRUc_5MIKHt5tw59y1YNB-ui7oZ0yoAS7DuZUFAMpb7tQwS_a5HaTioje0FW0i_I5tUg-HmvMqoHKVRDpcGkYh5hDEupTJ0mXu7UOAjRLjUtbX_LHjO8Euip_kS0rUH0Tg=w5712-h4284-k-no",
+              "width": null,
+              "height": null,
+              "caption": "Menu",
+              "description": "",
+              "upload_date": "2024-05-10 17:50:00"
+            }
+          ],
+          "owner_uploads": [
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipPNktALbq7DbO6gnPX4aYfmE5--Zx0LJsQSjv9Y=w952-h918-k-no",
+              "width": 952,
+              "height": 918,
+              "caption": "Food, By owner",
+              "description": "Bowl of ramen with pork, egg, and vegetables",
+              "upload_date": "2026-01-31T17:38:46.250643+00:00"
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipP1BUqhOE1JSzIHM1dUaWYkeW9N4jiYQg-rjQOK=w3024-h4032-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipMVxZtaM2GjbBoNt13xaRz5By6LeMQdRaaPzMUx=w2048-h1365-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipPu7m2RNGFqqqoeooVHH0rLi9Q6xK0juobq8hos=w1000-h666-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipNMpN7dxa-xYdmYme_an8TkWxQZlqH02R_o-Wzu=w2048-h1365-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipP4R124qAJCPgZtsl0P3VJSqWkUVJIMfRH46sjx=w2048-h1415-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipNi0N_ZT8LcXxcW2f6OMsCzyVuLCElJgYwHEZVU=w1365-h2048-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipPJ9iGTjQIyQmPTM1YpWOBT84lq1jE6w3-KOmRV=w4608-h3072-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipOP4Hl1kBFxwTTgFm2l7UKTTmVdBpYSYShoBHZy=w2048-h1365-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipM2QFT_btq_Yl2YywNRvteJ_4lebX5H9ysYQgFs=w3024-h3780-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipNi_gvXUcpORW3-5_allAQl5rBBRoErHy7D7UqP=w2048-h1365-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipNWEBcH14Ovgxps1_uCQTDihVVtsfOi3HvRPFvd=w2048-h1365-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipMjFiQRTYULJ7QmdZtJOICU6xXE9L-JCE63HDbP=w2400-h1935-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipMiOlnh4zDHuNJFwGbPlSxeOEpj6XJ4iF7PFbVb=w2997-h3747-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipN1xeAnAnVUG67P9XBnFha48yKL8hdTylJoV0Sw=w4608-h3072-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipOFf7mHSIGPmn-qKmhKnJC3uIjijZ8cxWvuxTZv=w2048-h1365-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipM-S2uh-xjK4NTdwFnEWnON_kd6JgcYKpQnQmDW=w3024-h4032-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipM9ZVrommP4FSwy6TjUoW0SmAmorYTDwXmEQmEC=w1365-h2048-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipOWgGjqZ7vhTCRYFPX4QE0TTYlYS_0NUOUI-m-I=w1365-h1464-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            },
+            {
+              "url": "https://lh3.googleusercontent.com/p/AF1QipNA_brsSLxeAFDxccgnh6Kn6Nhsh3cpTMjYbj6N=w2048-h1370-k-no",
+              "width": null,
+              "height": null,
+              "caption": "By owner",
+              "description": "",
+              "upload_date": null
+            }
+          ]
+        }
+      },
+      "operational_data": {
+        "menu": [
+          {
+            "name": "GYOZA",
+            "price": "$8"
+          },
+          {
+            "name": "TAKOYAKI",
+            "price": "$8"
+          },
+          {
+            "name": "SPICY TUNA",
+            "price": "$7"
+          },
+          {
+            "name": "SQUID LEGS",
+            "price": "$9"
+          },
+          {
+            "name": "CALIFORNIA HAND ROLL",
+            "price": "$9"
+          },
+          {
+            "name": "SALMON AVOCADO HAND ROLL",
+            "price": "5"
+          },
+          {
+            "name": "Gyoza",
+            "price": "$7"
+          },
+          {
+            "name": "Takoyaki",
+            "price": "$7"
+          },
+          {
+            "name": "Karaage",
+            "price": "$5"
+          },
+          {
+            "name": "Nori Fries",
+            "price": "$5"
+          },
+          {
+            "name": "Shishito Peppers",
+            "price": "$73"
+          },
+          {
+            "name": "Sapporo Draft (Glass)",
+            "price": "$7"
+          },
+          {
+            "name": "KUU CHILI",
+            "price": "17"
+          },
+          {
+            "name": "BEEF CURRY RAMEN",
+            "price": "18"
+          },
+          {
+            "name": "SHOYU",
+            "price": "16"
+          },
+          {
+            "name": "MISO PORK",
+            "price": "17"
+          },
+          {
+            "name": "MISO BEEF",
+            "price": "17"
+          },
+          {
+            "name": "OKINAWA SHIO CHICKEN",
+            "price": "16"
+          },
+          {
+            "name": "EXTRA NOODLE",
+            "price": "4"
+          },
+          {
+            "name": "BAMBOO",
+            "price": "3"
+          },
+          {
+            "name": "BUTTER",
+            "price": "1.5"
+          },
+          {
+            "name": "SLICED BEEF",
+            "price": "4"
+          },
+          {
+            "name": "ARUGULA",
+            "price": "3"
+          },
+          {
+            "name": "TOFU",
+            "price": "1.5"
+          },
+          {
+            "name": "SPICY PULLED PORK",
+            "price": "3"
+          },
+          {
+            "name": "AVOCADO",
+            "price": "2.5"
+          },
+          {
+            "name": "CHICKEN CHASHU (2pcs)",
+            "price": "3"
+          },
+          {
+            "name": "NARUTO (5pcs)",
+            "price": "2"
+          },
+          {
+            "name": "KAKUNI PORK (2pcs)",
+            "price": "3"
+          },
+          {
+            "name": "NORI SEAWEED",
+            "price": "2"
+          },
+          {
+            "name": "KIMCHI",
+            "price": "3"
+          },
+          {
+            "name": "SCALLIONS",
+            "price": "2"
+          },
+          {
+            "name": "CORN",
+            "price": "1.5"
+          },
+          {
+            "name": "HOMEMADE CHILI OIL",
+            "price": "1.5"
+          },
+          {
+            "name": "MARINATED HALF BOIED EGG (1pc)",
+            "price": "1.5"
+          },
+          {
+            "name": "VEGIE BROTH",
+            "price": "5"
+          },
+          {
+            "name": "MISO BROTH",
+            "price": "5"
+          },
+          {
+            "name": "SHOYU BROTH",
+            "price": "5"
+          },
+          {
+            "name": "TONKOTSU BROTH",
+            "price": "6"
+          },
+          {
+            "name": "KUU SPICY FRIED CHICKEN",
+            "price": "11"
+          },
+          {
+            "name": "KUU FRIED CHICKEN",
+            "price": "10"
+          },
+          {
+            "name": "HOMEMADE PORK GYOZA (5pcs)",
+            "price": "9"
+          },
+          {
+            "name": "TAKOYAKI (5pcs)",
+            "price": "8"
+          },
+          {
+            "name": "CRISPY SQUID LEGS",
+            "price": "9"
+          },
+          {
+            "name": "KAKUNI BUN (1pc)",
+            "price": "6"
+          },
+          {
+            "name": "SPICY PULLED PORK BUN (1pc)",
+            "price": "6"
+          },
+          {
+            "name": "SPICY TUNA TARTAR",
+            "price": "10"
+          },
+          {
+            "name": "KARAAGE BUN (1pc)",
+            "price": "6"
+          },
+          {
+            "name": "EDAMAME",
+            "price": "6"
+          },
+          {
+            "name": "PUMPKIN CROQUETTE BUN (1pc)",
+            "price": "6"
+          },
+          {
+            "name": "CUCUMBER SALAD",
+            "price": "7.5"
+          },
+          {
+            "name": "NORI SHOYU FRIES",
+            "price": "7.5"
+          },
+          {
+            "name": "HAND ROLL MEAL",
+            "price": "17"
+          },
+          {
+            "name": "SALMON AVOCADO",
+            "price": "7"
+          },
+          {
+            "name": "SPICY SALMON",
+            "price": "7"
+          },
+          {
+            "name": "SHRIMP TEMPURA",
+            "price": "7"
+          },
+          {
+            "name": "AVOCADO CUCUMBER",
+            "price": "6"
+          },
+          {
+            "name": "SPICY TUNA",
+            "price": "7"
+          },
+          {
+            "name": "SUKIYAKI BEEF",
+            "price": "6"
+          },
+          {
+            "name": "CALIFORNIA",
+            "price": "6"
+          }
+        ],
+        "attributes": {
+          "crowd": [
+            "Tourists"
+          ],
+          "parking": [
+            "Paid street parking"
+          ],
+          "payments": [
+            "Credit cards",
+            "Debit cards",
+            "NFC mobile payments"
+          ],
+          "planning": [
+            "Accepts reservations"
+          ],
+          "amenities": [
+            "Restroom"
+          ],
+          "offerings": [
+            "Alcohol",
+            "Beer",
+            "Comfort food",
+            "Happy hour drinks",
+            "Happy hour food",
+            "Healthy options",
+            "Quick bite",
+            "Small plates",
+            "Vegetarian options"
+          ],
+          "atmosphere": [
+            "Casual",
+            "Cozy",
+            "Trendy"
+          ],
+          "highlights": [
+            "Fast service"
+          ],
+          "popular_for": [
+            "Lunch",
+            "Dinner",
+            "Solo dining"
+          ],
+          "accessibility": [
+            "Wheelchair accessible entrance",
+            "Wheelchair accessible restroom"
+          ],
+          "dining_options": [
+            "Lunch",
+            "Dinner",
+            "Catering",
+            "Dessert",
+            "Seating",
+            "Table service"
+          ],
+          "service_options": [
+            "Outdoor seating",
+            "Delivery",
+            "Onsite services",
+            "Takeout",
+            "Dine-in"
+          ]
+        },
+        "phone_number": "(646) 838-5828",
+        "open_hours_raw": [
+          {
+            "saturday": "12–9:30 PM"
+          },
+          {
+            "sunday": "12–9:30 PM"
+          },
+          {
+            "monday": "11:30 AM–9:30 PM"
+          },
+          {
+            "tuesday": "11:30 AM–9:30 PM"
+          },
+          {
+            "wednesday": "11:30 AM–9:30 PM"
+          },
+          {
+            "thursday": "11:30 AM–9:30 PM"
+          },
+          {
+            "friday": "11:30 AM–9:30 PM"
+          }
+        ],
+        "address_formatted": "1275 1st Ave, New York, NY 10065",
+        "booking_action_url": null,
+        "website_url_listed": "https://www.kuuramen.com/"
+      }
+    }
+  }

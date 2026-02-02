@@ -138,21 +138,35 @@ export async function action({ request }: ActionFunctionArgs) {
     logger.info(`[API] Calling crawler API`, {
       sessionId,
       crawlerUrl: process.env.CRAWLER_API_URL || 'http://localhost:4999',
-      googleMapsUrl: googleMapsUrl?.substring(0, 50) + '...', // Sanitize URL
+      googleMapsUrl: googleMapsUrl ? googleMapsUrl.substring(0, 50) + '...' : undefined,
     });
 
     // Call crawler API
     const startTime = Date.now();
 
-    // Pass the already parsed payload which matches the expected type
-    const result = await extractBusinessData({
+    /*
+     * Build crawl payload with only ONE crawl method (crawler rejects multiple)
+     * Priority: google_maps_url > place_id+name+address > name+address > website_url
+     * Note: websiteUrl is preserved separately for markdown crawling at line 254
+     */
+    const crawlPayload: CrawlRequest = {
       session_id: sessionId,
-      google_maps_url: googleMapsUrl,
-      business_name: businessName,
-      address,
-      website_url: websiteUrl,
-      place_id: placeId,
-    });
+    };
+
+    if (googleMapsUrl) {
+      crawlPayload.google_maps_url = googleMapsUrl;
+    } else if (placeId && businessName && address) {
+      crawlPayload.place_id = placeId;
+      crawlPayload.business_name = businessName;
+      crawlPayload.address = address;
+    } else if (businessName && address) {
+      crawlPayload.business_name = businessName;
+      crawlPayload.address = address;
+    } else if (websiteUrl) {
+      crawlPayload.website_url = websiteUrl;
+    }
+
+    const result = await extractBusinessData(crawlPayload);
     const duration = Date.now() - startTime;
 
     // Log the extraction attempt
@@ -251,7 +265,7 @@ export async function action({ request }: ActionFunctionArgs) {
      * ─── Generate Markdown in Parallel ─────────────────────────────────
      * After successful extractBusinessData(), call markdown endpoints
      */
-    const crawledWebsiteUrl = result.data?.website;
+    const crawledWebsiteUrl = result.data?.website || websiteUrl;
 
     const [gmapsMarkdownResult, websiteMarkdownResult] = await Promise.allSettled([
       generateGoogleMapsMarkdown(sessionId),
@@ -306,12 +320,14 @@ export async function action({ request }: ActionFunctionArgs) {
       websiteSkipReason,
     });
 
-    // Return enhanced response with markdown fields
+    // Return markdown-only response (without crawler JSON)
     return json(
       {
-        ...result,
+        success: true,
+        session_id: sessionId,
         google_maps_markdown: googleMapsMarkdown,
         website_markdown: websiteMarkdown,
+        has_website: !!crawledWebsiteUrl,
       },
       { status: 200 },
     );

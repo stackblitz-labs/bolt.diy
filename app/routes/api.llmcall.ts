@@ -100,6 +100,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
   const traceContext = createTrace(env, {
     name: 'llmcall-request',
     metadata: { model, provider: providerName, streamOutput },
+    input: { systemPrompt: system, userMessage: message },
   });
 
   if (streamOutput) {
@@ -109,6 +110,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         ? createGeneration(env, traceContext, {
             name: 'stream-text',
             model,
+            input: { systemPrompt: system, userMessage: message },
           })
         : null;
       const startTime = performance.now();
@@ -262,6 +264,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         ? createGeneration(env, traceContext, {
             name: 'generate-text',
             model: modelDetails.name,
+            input: { systemPrompt: system, userMessage: message },
           })
         : null;
       const startTime = performance.now();
