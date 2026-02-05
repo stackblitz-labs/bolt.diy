@@ -2,7 +2,14 @@
 
 [![bolt.diy: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.diy)
 
-Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together, Perplexity, Moonshot (Kimi), Hyperbolic, GitHub Models, Amazon Bedrock, and OpenAI-like providers - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together, Perplexity, Moonshot (Kimi), Hyperbolic, GitHub Models, Amazon Bedrock, Azure OpenAI, Vertex AI, and OpenAI-like providers - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+
+## What's New
+- Agent mode for multi-step planning
+- Confirm file changes with a review queue and diffs
+- Performance mode for faster iterations
+- Framework lock, custom shortcuts, and preview pause/resume
+- Azure OpenAI and Vertex AI provider support
 
 -----
 Check the [bolt.diy Docs](https://stackblitz-labs.github.io/bolt.diy/) for more official installation instructions and additional information.
@@ -17,6 +24,7 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 ## Table of Contents
 
 - [Join the Community](#join-the-community)
+- [What's New](#whats-new)
 - [Recent Major Additions](#recent-major-additions)
 - [Features](#features)
 - [Setup](#setup)
@@ -44,7 +52,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 ## Recent Major Additions
 
 ### ✅ Completed Features
-- **19+ AI Provider Integrations** - OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, Cohere, Together, Perplexity, HuggingFace, Ollama, LM Studio, OpenRouter, Moonshot, Hyperbolic, GitHub Models, Amazon Bedrock, OpenAI-like
+- **21+ AI Provider Integrations** - OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, Cohere, Together, Perplexity, HuggingFace, Ollama, LM Studio, OpenRouter, Moonshot, Hyperbolic, GitHub Models, Amazon Bedrock, Azure OpenAI, Vertex AI, OpenAI-like
 - **Electron Desktop App** - Native desktop experience with full functionality
 - **Advanced Deployment Options** - Netlify, Vercel, and GitHub Pages deployment
 - **Supabase Integration** - Database management and query capabilities
@@ -53,11 +61,19 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - **Search Functionality** - Codebase search and navigation
 - **File Locking System** - Prevents conflicts during AI code generation
 - **Diff View** - Visual representation of AI-made changes
+- **Confirm File Changes** - Review queue with diffs before writing to disk
+- **Agent Mode** - Multi-step planning for more complex tasks
+- **Performance Mode** - Faster iterations by reducing extra overhead
+- **Auto Prompt Enhancement Controls** - Toggle smart prompt improvements on/off
+- **Mobile-Friendly Chat Toggle** - Quick switch between chat/workspace on small screens
 - **Git Integration** - Clone, import, and deployment capabilities
 - **Expo App Creation** - React Native development support
 - **Voice Prompting** - Audio input for prompts
 - **Bulk Chat Operations** - Delete multiple chats at once
 - **Project Snapshot Restoration** - Restore projects from snapshots on reload
+- **Framework Lock** - Keep the assistant aligned to detected project stack
+- **Custom Keyboard Shortcuts** - Configure key bindings for core actions
+- **Preview Pause/Resume** - Stop or resume the live preview without losing state
 
 ### 🔄 In Progress / Planned
 - **File Locking & Diff Improvements** - Enhanced conflict prevention
@@ -66,12 +82,12 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - **Project Planning Documentation** - LLM-generated project plans in markdown
 - **VSCode Integration** - Git-like confirmations and workflows
 - **Document Upload for Knowledge** - Reference materials and coding style guides
-- **Additional Provider Integrations** - Azure OpenAI, Vertex AI, Granite
+- **Additional Provider Integrations** - Granite and more
 
 ## Features
 
 - **AI-powered full-stack web development** for **NodeJS based applications** directly in your browser.
-- **Support for 19+ LLMs** with an extensible architecture to integrate additional models.
+- **Support for 21+ LLMs** with an extensible architecture to integrate additional models.
 - **Attach images to prompts** for better contextual understanding.
 - **Integrated terminal** to view output of LLM-run commands.
 - **Revert code to earlier versions** for easier debugging and quicker changes.
@@ -85,6 +101,14 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - **Search functionality** to search through your codebase.
 - **File locking system** to prevent conflicts during AI code generation.
 - **Diff view** to see changes made by the AI.
+- **Confirm file changes** with a review queue and diffs.
+- **Agent mode** for multi-step planning.
+- **Performance mode** to reduce latency on larger projects.
+- **Auto prompt enhancement controls** to toggle smart prompt improvements.
+- **Mobile-friendly chat toggle** for compact screens.
+- **Framework lock** to keep the assistant aligned to your stack.
+- **Custom keyboard shortcuts** for core actions.
+- **Preview pause/resume** to temporarily stop the preview.
 - **Supabase integration** for database management and queries.
 - **Expo app creation** for React Native development.
 
@@ -229,6 +253,7 @@ The desktop app provides the same full functionality as the web version with add
 ## Configuring API Keys and Providers
 
 Bolt.diy features a modern, intuitive settings interface for managing AI providers and API keys. The settings are organized into dedicated panels for easy navigation and configuration.
+Newer feature toggles live in the **Features** tab, including Agent Mode, Confirm File Changes, Performance Mode, Auto Prompt Enhancement, and Framework Lock.
 
 ### Accessing Provider Settings
 
@@ -241,7 +266,7 @@ Bolt.diy features a modern, intuitive settings interface for managing AI provide
 The Cloud Providers tab displays all cloud-based AI services in an organized card layout:
 
 #### Adding API Keys
-1. **Select Provider**: Browse the grid of available cloud providers (OpenAI, Anthropic, Google, etc.)
+1. **Select Provider**: Browse the grid of available cloud providers (OpenAI, Anthropic, Google, Azure OpenAI, Vertex AI, etc.)
 2. **Toggle Provider**: Use the switch to enable/disable each provider
 3. **Set API Key**:
    - Click the provider card to expand its configuration
@@ -331,8 +356,10 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 
 #### Cloud Providers
 - **OpenAI** - GPT-4, GPT-3.5, and other OpenAI models
+- **Azure OpenAI** - Azure-hosted OpenAI models
 - **Anthropic** - Claude 3.5 Sonnet, Claude 3 Opus, and other Claude models
 - **Google (Gemini)** - Gemini 1.5 Pro, Gemini 1.5 Flash, and other Gemini models
+- **Vertex AI** - Google Vertex-hosted models
 - **Groq** - Fast inference with Llama, Mixtral, and other models
 - **xAI** - Grok models including Grok-2 and Grok-2 Vision
 - **DeepSeek** - DeepSeek Coder and other DeepSeek models
