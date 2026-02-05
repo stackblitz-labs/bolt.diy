@@ -65,6 +65,7 @@ export async function streamText(props: {
   messageSliceId?: number;
   chatMode?: 'discuss' | 'build';
   designScheme?: DesignScheme;
+  agentMode?: boolean;
 }) {
   const {
     messages,
@@ -79,6 +80,7 @@ export async function streamText(props: {
     summary,
     chatMode,
     designScheme,
+    agentMode,
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -219,10 +221,53 @@ export async function streamText(props: {
     console.log('No locked files found from any source for prompt.');
   }
 
+  const isReasoning = isReasoningModel(modelDetails.name);
+
+  if (agentMode && chatMode === 'build') {
+    const planTokenLimit = Math.min(1200, safeMaxTokens);
+    const planTokenParams = isReasoning ? { maxCompletionTokens: planTokenLimit } : { maxTokens: planTokenLimit };
+
+    const planPrompt = `${systemPrompt}
+
+    AGENT MODE:
+    Create a concise execution plan (3-7 bullets) for the user's request.
+    - Focus on concrete steps and file targets
+    - Do not include implementation details
+    - Return ONLY the plan, no extra text
+    `;
+
+    try {
+      const planResult = await _streamText({
+        model: provider.getModelInstance({
+          model: modelDetails.name,
+          serverEnv,
+          apiKeys,
+          providerSettings,
+        }),
+        system: planPrompt,
+        messages: convertToCoreMessages(processedMessages as any),
+        ...planTokenParams,
+        ...(isReasoning ? { temperature: 1 } : { temperature: 0.3 }),
+      });
+
+      const planText = sanitizeText(await planResult.text);
+
+      if (planText) {
+        systemPrompt = `${systemPrompt}
+
+        AGENT PLAN (BACKEND):
+        ${planText}
+        ---
+        `;
+      }
+    } catch (error) {
+      logger.warn('Agent mode planning step failed, continuing without plan', error);
+    }
+  }
+
   logger.info(`Sending llm call to ${provider.name} with model ${modelDetails.name}`);
 
   // Log reasoning model detection and token parameters
-  const isReasoning = isReasoningModel(modelDetails.name);
   logger.info(
     `Model "${modelDetails.name}" is reasoning model: ${isReasoning}, using ${isReasoning ? 'maxCompletionTokens' : 'maxTokens'}: ${safeMaxTokens}`,
   );

@@ -2,6 +2,9 @@ import React from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
+import { useStore } from '@nanostores/react';
+import { chatStore } from '~/lib/stores/chat';
+import { workbenchStore } from '~/lib/stores/workbench';
 import { ModelSelector } from '~/components/chat/ModelSelector';
 import { APIKeyManager } from './APIKeyManager';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
@@ -55,6 +58,15 @@ interface ChatBoxProps {
   handleStop?: (() => void) | undefined;
   enhancingPrompt?: boolean | undefined;
   enhancePrompt?: (() => void) | undefined;
+  autoPromptEnhancement?: boolean;
+  setAutoPromptEnhancement?: ((enabled: boolean) => void) | undefined;
+  agentMode?: boolean;
+  setAgentMode?: ((enabled: boolean) => void) | undefined;
+  performanceMode?: boolean;
+  setPerformanceMode?: ((enabled: boolean) => void) | undefined;
+  isAutoEnhancing?: boolean;
+  confirmFileWrites?: boolean;
+  setConfirmFileWrites?: ((enabled: boolean) => void) | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   designScheme?: DesignScheme;
@@ -64,10 +76,22 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  const showEffects = !props.performanceMode;
+  const showWorkbench = useStore(workbenchStore.showWorkbench);
+
+  const toggleMobileView = () => {
+    const nextShowWorkbench = !showWorkbench;
+    workbenchStore.showWorkbench.set(nextShowWorkbench);
+    chatStore.setKey('showChat', !nextShowWorkbench);
+  };
+
   return (
     <div
       className={classNames(
-        'relative bg-bolt-elements-background-depth-2 backdrop-blur p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt',
+        'relative bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-full sm:max-w-chat mx-auto z-prompt',
+        {
+          'backdrop-blur': showEffects,
+        },
 
         /*
          * {
@@ -76,32 +100,34 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
          */
       )}
     >
-      <svg className={classNames(styles.PromptEffectContainer)}>
-        <defs>
-          <linearGradient
-            id="line-gradient"
-            x1="20%"
-            y1="0%"
-            x2="-14%"
-            y2="10%"
-            gradientUnits="userSpaceOnUse"
-            gradientTransform="rotate(-45)"
-          >
-            <stop offset="0%" stopColor="#b44aff" stopOpacity="0%"></stop>
-            <stop offset="40%" stopColor="#b44aff" stopOpacity="80%"></stop>
-            <stop offset="50%" stopColor="#b44aff" stopOpacity="80%"></stop>
-            <stop offset="100%" stopColor="#b44aff" stopOpacity="0%"></stop>
-          </linearGradient>
-          <linearGradient id="shine-gradient">
-            <stop offset="0%" stopColor="white" stopOpacity="0%"></stop>
-            <stop offset="40%" stopColor="#ffffff" stopOpacity="80%"></stop>
-            <stop offset="50%" stopColor="#ffffff" stopOpacity="80%"></stop>
-            <stop offset="100%" stopColor="white" stopOpacity="0%"></stop>
-          </linearGradient>
-        </defs>
-        <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round"></rect>
-        <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1"></rect>
-      </svg>
+      {showEffects && (
+        <svg className={classNames(styles.PromptEffectContainer)}>
+          <defs>
+            <linearGradient
+              id="line-gradient"
+              x1="20%"
+              y1="0%"
+              x2="-14%"
+              y2="10%"
+              gradientUnits="userSpaceOnUse"
+              gradientTransform="rotate(-45)"
+            >
+              <stop offset="0%" stopColor="#b44aff" stopOpacity="0%"></stop>
+              <stop offset="40%" stopColor="#b44aff" stopOpacity="80%"></stop>
+              <stop offset="50%" stopColor="#b44aff" stopOpacity="80%"></stop>
+              <stop offset="100%" stopColor="#b44aff" stopOpacity="0%"></stop>
+            </linearGradient>
+            <linearGradient id="shine-gradient">
+              <stop offset="0%" stopColor="white" stopOpacity="0%"></stop>
+              <stop offset="40%" stopColor="#ffffff" stopOpacity="80%"></stop>
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="80%"></stop>
+              <stop offset="100%" stopColor="white" stopOpacity="0%"></stop>
+            </linearGradient>
+          </defs>
+          <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round"></rect>
+          <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1"></rect>
+        </svg>
+      )}
       <div>
         <ClientOnly>
           {() => (
@@ -167,7 +193,9 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </div>
       )}
       <div
-        className={classNames('relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg')}
+        className={classNames('relative shadow-xs border border-bolt-elements-borderColor rounded-lg', {
+          'backdrop-blur': showEffects,
+        })}
       >
         <textarea
           ref={props.textareaRef}
@@ -258,27 +286,89 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             />
           )}
         </ClientOnly>
-        <div className="flex justify-between items-center text-sm p-4 pt-2">
-          <div className="flex gap-1 items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center text-sm p-3 sm:p-4 pt-2">
+          <div className="flex flex-wrap gap-1 items-center">
+            <IconButton
+              title={showWorkbench ? 'Show chat' : 'Show workspace'}
+              className="transition-all sm:hidden"
+              onClick={toggleMobileView}
+            >
+              <div className={showWorkbench ? 'i-ph:chat-circle-dots text-xl' : 'i-ph:code text-xl'} />
+            </IconButton>
             <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
             <McpTools />
+            <IconButton
+              title="Agent mode"
+              className={classNames(
+                'transition-all flex items-center gap-1 px-1.5',
+                props.agentMode
+                  ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                  : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
+              )}
+              onClick={() => props.setAgentMode?.(!props.agentMode)}
+            >
+              <div className="i-ph:robot text-xl" />
+              {props.agentMode ? <span>Agent</span> : <span />}
+            </IconButton>
+            <IconButton
+              title="Confirm file changes"
+              className={classNames(
+                'transition-all flex items-center gap-1 px-1.5',
+                props.confirmFileWrites
+                  ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                  : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
+              )}
+              onClick={() => props.setConfirmFileWrites?.(!props.confirmFileWrites)}
+            >
+              <div className="i-ph:git-diff text-xl" />
+              {props.confirmFileWrites ? <span>Confirm</span> : <span />}
+            </IconButton>
+            <IconButton
+              title="Performance mode"
+              className={classNames(
+                'transition-all flex items-center gap-1 px-1.5',
+                props.performanceMode
+                  ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                  : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
+              )}
+              onClick={() => props.setPerformanceMode?.(!props.performanceMode)}
+            >
+              <div className="i-ph:speedometer text-xl" />
+              {props.performanceMode ? <span>Perf</span> : <span />}
+            </IconButton>
             <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
             <IconButton
               title="Enhance prompt"
-              disabled={props.input.length === 0 || props.enhancingPrompt}
-              className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
+              disabled={props.input.length === 0 || props.enhancingPrompt || props.isAutoEnhancing}
+              className={classNames(
+                'transition-all',
+                props.enhancingPrompt || props.isAutoEnhancing ? 'opacity-100' : '',
+              )}
               onClick={() => {
                 props.enhancePrompt?.();
                 toast.success('Prompt enhanced!');
               }}
             >
-              {props.enhancingPrompt ? (
+              {props.enhancingPrompt || props.isAutoEnhancing ? (
                 <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
               ) : (
                 <div className="i-bolt:stars text-xl"></div>
               )}
+            </IconButton>
+            <IconButton
+              title="Auto enhance prompt"
+              className={classNames(
+                'transition-all flex items-center gap-1 px-1.5',
+                props.autoPromptEnhancement
+                  ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                  : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
+              )}
+              onClick={() => props.setAutoPromptEnhancement?.(!props.autoPromptEnhancement)}
+            >
+              <div className="i-ph:sparkle text-xl" />
+              {props.autoPromptEnhancement ? <span>Auto</span> : <span />}
             </IconButton>
 
             <SpeechRecognitionButton

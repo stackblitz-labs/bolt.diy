@@ -396,7 +396,7 @@ export const Workbench = memo(
                 <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1.5">
                   <button
                     className={`${showChat ? 'i-ph:sidebar-simple-fill' : 'i-ph:sidebar-simple'} text-lg text-bolt-elements-textSecondary mr-1`}
-                    disabled={!canHideChat || isSmallViewport}
+                    disabled={!canHideChat}
                     onClick={() => {
                       if (canHideChat) {
                         chatStore.setKey('showChat', !showChat);

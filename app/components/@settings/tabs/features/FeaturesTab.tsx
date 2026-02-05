@@ -111,10 +111,18 @@ export default function FeaturesTab() {
     isLatestBranch,
     contextOptimizationEnabled,
     eventLogs,
+    autoPromptEnhancement,
+    confirmFileWrites,
+    performanceMode,
+    agentMode,
     setAutoSelectTemplate,
     enableLatestBranch,
     enableContextOptimization,
     setEventLogs,
+    setAutoPromptEnhancement,
+    setConfirmFileWrites,
+    setPerformanceMode,
+    setAgentMode,
     setPromptId,
     promptId,
   } = useSettings();
@@ -169,12 +177,41 @@ export default function FeaturesTab() {
           toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
           break;
         }
+        case 'autoPromptEnhancement': {
+          setAutoPromptEnhancement(enabled);
+          toast.success(`Auto prompt enhancement ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
+        case 'confirmFileWrites': {
+          setConfirmFileWrites(enabled);
+          toast.success(`Confirm file writes ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
+        case 'performanceMode': {
+          setPerformanceMode(enabled);
+          toast.success(`Performance mode ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
+        case 'agentMode': {
+          setAgentMode(enabled);
+          toast.success(`Agent mode ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
 
         default:
           break;
       }
     },
-    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs],
+    [
+      enableLatestBranch,
+      setAutoSelectTemplate,
+      enableContextOptimization,
+      setEventLogs,
+      setAutoPromptEnhancement,
+      setConfirmFileWrites,
+      setPerformanceMode,
+      setAgentMode,
+    ],
   );
 
   const features = {
@@ -210,6 +247,41 @@ export default function FeaturesTab() {
         icon: 'i-ph:list-bullets',
         enabled: eventLogs,
         tooltip: 'Enabled by default to record detailed logs of system events and user actions',
+      },
+      {
+        id: 'autoPromptEnhancement',
+        title: 'Auto Prompt Enhancement',
+        description: 'Automatically enhance prompts before sending',
+        icon: 'i-bolt:stars',
+        enabled: autoPromptEnhancement,
+        beta: true,
+        tooltip: 'Adds an extra LLM step to refine prompts for clarity and completeness',
+      },
+      {
+        id: 'confirmFileWrites',
+        title: 'Confirm File Changes',
+        description: 'Require approval before applying file edits',
+        icon: 'i-ph:git-diff',
+        enabled: confirmFileWrites,
+        beta: true,
+        tooltip: 'Stages AI file changes for review, similar to git confirmations',
+      },
+      {
+        id: 'performanceMode',
+        title: 'Performance Mode',
+        description: 'Reduce visual effects for better performance',
+        icon: 'i-ph:speedometer',
+        enabled: performanceMode,
+        tooltip: 'Disables heavy visuals and blur effects to reduce CPU/GPU usage',
+      },
+      {
+        id: 'agentMode',
+        title: 'Agent Mode',
+        description: 'Run a planning step before responses',
+        icon: 'i-ph:robot',
+        enabled: agentMode,
+        experimental: true,
+        tooltip: 'Adds a backend planning step to improve multi-step task execution',
       },
     ],
     beta: [],

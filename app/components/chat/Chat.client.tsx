@@ -100,8 +100,22 @@ export const ChatImpl = memo(
       (project) => project.id === supabaseConn.selectedProjectId,
     );
     const supabaseAlert = useStore(workbenchStore.supabaseAlert);
-    const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
+    const {
+      activeProviders,
+      promptId,
+      autoSelectTemplate,
+      contextOptimizationEnabled,
+      autoPromptEnhancement,
+      agentMode,
+      performanceMode,
+      confirmFileWrites,
+      setAutoPromptEnhancement,
+      setAgentMode,
+      setPerformanceMode,
+      setConfirmFileWrites,
+    } = useSettings();
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
+    const [isAutoEnhancing, setIsAutoEnhancing] = useState(false);
     const [model, setModel] = useState(() => {
       const savedModel = Cookies.get('selectedModel');
       return savedModel || DEFAULT_MODEL;
@@ -140,6 +154,7 @@ export const ChatImpl = memo(
         contextOptimization: contextOptimizationEnabled,
         chatMode,
         designScheme,
+        agentMode,
         supabase: {
           isConnected: supabaseConn.isConnected,
           hasSelectedProject: !!selectedProject,
@@ -386,6 +401,59 @@ export const ChatImpl = memo(
       return attachments;
     };
 
+    const enhancePromptForSend = async (rawPrompt: string): Promise<string> => {
+      if (!rawPrompt?.trim()) {
+        return rawPrompt;
+      }
+
+      setIsAutoEnhancing(true);
+
+      try {
+        const response = await fetch('/api/enhancer', {
+          method: 'POST',
+          body: JSON.stringify({
+            message: rawPrompt,
+            model,
+            provider,
+            apiKeys,
+          }),
+        });
+
+        if (!response.ok || !response.body) {
+          throw new Error(`Enhancer failed: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let enhanced = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          enhanced += decoder.decode(value);
+        }
+
+        const trimmed = enhanced.trim();
+
+        if (trimmed && trimmed !== rawPrompt.trim()) {
+          toast.success('Prompt enhanced');
+          return trimmed;
+        }
+
+        return rawPrompt;
+      } catch (error) {
+        console.error('Auto prompt enhancement failed:', error);
+        toast.error('Auto prompt enhancement failed');
+        return rawPrompt;
+      } finally {
+        setIsAutoEnhancing(false);
+      }
+    };
+
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
       const messageContent = messageInput || input;
 
@@ -400,11 +468,15 @@ export const ChatImpl = memo(
 
       let finalMessageContent = messageContent;
 
+      if (autoPromptEnhancement && !messageInput) {
+        finalMessageContent = await enhancePromptForSend(finalMessageContent);
+      }
+
       if (selectedElement) {
         console.log('Selected Element:', selectedElement);
 
         const elementInfo = `<div class=\"__boltSelectedElement__\" data-element='${JSON.stringify(selectedElement)}'>${JSON.stringify(`${selectedElement.displayText}`)}</div>`;
-        finalMessageContent = messageContent + elementInfo;
+        finalMessageContent = finalMessageContent + elementInfo;
       }
 
       runAnimation();
@@ -643,6 +715,15 @@ export const ChatImpl = memo(
             apiKeys,
           );
         }}
+        autoPromptEnhancement={autoPromptEnhancement}
+        setAutoPromptEnhancement={setAutoPromptEnhancement}
+        agentMode={agentMode}
+        setAgentMode={setAgentMode}
+        performanceMode={performanceMode}
+        setPerformanceMode={setPerformanceMode}
+        isAutoEnhancing={isAutoEnhancing}
+        confirmFileWrites={confirmFileWrites}
+        setConfirmFileWrites={setConfirmFileWrites}
         uploadedFiles={uploadedFiles}
         setUploadedFiles={setUploadedFiles}
         imageDataList={imageDataList}

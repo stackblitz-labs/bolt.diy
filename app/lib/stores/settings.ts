@@ -258,6 +258,10 @@ const SETTINGS_KEYS = {
   EVENT_LOGS: 'isEventLogsEnabled',
   PROMPT_ID: 'promptId',
   DEVELOPER_MODE: 'isDeveloperMode',
+  AUTO_PROMPT_ENHANCEMENT: 'autoPromptEnhancement',
+  CONFIRM_FILE_WRITES: 'confirmFileWrites',
+  PERFORMANCE_MODE: 'performanceMode',
+  AGENT_MODE: 'agentMode',
 } as const;
 
 // Initialize settings from localStorage or defaults
@@ -287,6 +291,10 @@ const getInitialSettings = () => {
     eventLogs: getStoredBoolean(SETTINGS_KEYS.EVENT_LOGS, true),
     promptId: isBrowser ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default' : 'default',
     developerMode: getStoredBoolean(SETTINGS_KEYS.DEVELOPER_MODE, false),
+    autoPromptEnhancement: getStoredBoolean(SETTINGS_KEYS.AUTO_PROMPT_ENHANCEMENT, false),
+    confirmFileWrites: getStoredBoolean(SETTINGS_KEYS.CONFIRM_FILE_WRITES, false),
+    performanceMode: getStoredBoolean(SETTINGS_KEYS.PERFORMANCE_MODE, false),
+    agentMode: getStoredBoolean(SETTINGS_KEYS.AGENT_MODE, false),
   };
 };
 
@@ -298,6 +306,10 @@ export const autoSelectStarterTemplate = atom<boolean>(initialSettings.autoSelec
 export const enableContextOptimizationStore = atom<boolean>(initialSettings.contextOptimization);
 export const isEventLogsEnabled = atom<boolean>(initialSettings.eventLogs);
 export const promptStore = atom<string>(initialSettings.promptId);
+export const autoPromptEnhancementStore = atom<boolean>(initialSettings.autoPromptEnhancement);
+export const confirmFileWritesStore = atom<boolean>(initialSettings.confirmFileWrites);
+export const performanceModeStore = atom<boolean>(initialSettings.performanceMode);
+export const agentModeStore = atom<boolean>(initialSettings.agentMode);
 
 // Helper functions to update settings with persistence
 export const updateLatestBranch = (enabled: boolean) => {
@@ -323,6 +335,26 @@ export const updateEventLogs = (enabled: boolean) => {
 export const updatePromptId = (id: string) => {
   promptStore.set(id);
   localStorage.setItem(SETTINGS_KEYS.PROMPT_ID, id);
+};
+
+export const updateAutoPromptEnhancement = (enabled: boolean) => {
+  autoPromptEnhancementStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.AUTO_PROMPT_ENHANCEMENT, JSON.stringify(enabled));
+};
+
+export const updateConfirmFileWrites = (enabled: boolean) => {
+  confirmFileWritesStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.CONFIRM_FILE_WRITES, JSON.stringify(enabled));
+};
+
+export const updatePerformanceMode = (enabled: boolean) => {
+  performanceModeStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.PERFORMANCE_MODE, JSON.stringify(enabled));
+};
+
+export const updateAgentMode = (enabled: boolean) => {
+  agentModeStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.AGENT_MODE, JSON.stringify(enabled));
 };
 
 // Initialize tab configuration from localStorage or defaults

@@ -33,6 +33,7 @@ import { ChatBox } from './ChatBox';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
+import { PendingFileActions } from './PendingFileActions';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -49,6 +50,15 @@ interface BaseChatProps {
   enhancingPrompt?: boolean;
   promptEnhanced?: boolean;
   input?: string;
+  autoPromptEnhancement?: boolean;
+  setAutoPromptEnhancement?: (enabled: boolean) => void;
+  agentMode?: boolean;
+  setAgentMode?: (enabled: boolean) => void;
+  performanceMode?: boolean;
+  setPerformanceMode?: (enabled: boolean) => void;
+  isAutoEnhancing?: boolean;
+  confirmFileWrites?: boolean;
+  setConfirmFileWrites?: (enabled: boolean) => void;
   model?: string;
   setModel?: (model: string) => void;
   provider?: ProviderInfo;
@@ -97,6 +107,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setProvider,
       providerList,
       input = '',
+      autoPromptEnhancement,
+      setAutoPromptEnhancement,
+      agentMode,
+      setAgentMode,
+      performanceMode,
+      setPerformanceMode,
+      isAutoEnhancing,
+      confirmFileWrites,
+      setConfirmFileWrites,
       enhancingPrompt,
       handleInputChange,
 
@@ -370,7 +389,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   {() => {
                     return chatStarted ? (
                       <Messages
-                        className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
+                        className="flex flex-col w-full flex-1 max-w-full sm:max-w-chat pb-4 mx-auto z-1"
                         messages={messages}
                         isStreaming={isStreaming}
                         append={append}
@@ -386,7 +405,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <ScrollToBottom />
               </StickToBottom.Content>
               <div
-                className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
+                className={classNames('my-auto flex flex-col gap-2 w-full max-w-full sm:max-w-chat mx-auto z-prompt mb-6', {
                   'sticky bottom-2': chatStarted,
                 })}
               >
@@ -424,6 +443,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
                 </div>
                 {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+                <PendingFileActions />
                 <ChatBox
                   isModelSettingsCollapsed={isModelSettingsCollapsed}
                   setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
@@ -450,6 +470,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   handleStop={handleStop}
                   handleSendMessage={handleSendMessage}
                   enhancingPrompt={enhancingPrompt}
+                  autoPromptEnhancement={autoPromptEnhancement}
+                  setAutoPromptEnhancement={setAutoPromptEnhancement}
+                  agentMode={agentMode}
+                  setAgentMode={setAgentMode}
+                  performanceMode={performanceMode}
+                  setPerformanceMode={setPerformanceMode}
+                  isAutoEnhancing={isAutoEnhancing}
+                  confirmFileWrites={confirmFileWrites}
+                  setConfirmFileWrites={setConfirmFileWrites}
                   enhancePrompt={enhancePrompt}
                   isListening={isListening}
                   startListening={startListening}

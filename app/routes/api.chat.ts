@@ -48,7 +48,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     },
   });
 
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
+  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps, agentMode } =
     await request.json<{
       messages: Messages;
       files: any;
@@ -56,6 +56,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       contextOptimization: boolean;
       chatMode: 'discuss' | 'build';
       designScheme?: DesignScheme;
+      agentMode?: boolean;
       supabase?: {
         isConnected: boolean;
         hasSelectedProject: boolean;
@@ -280,6 +281,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               designScheme,
               summary,
               messageSliceId,
+              agentMode,
             });
 
             result.mergeIntoDataStream(dataStream);
@@ -321,6 +323,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           designScheme,
           summary,
           messageSliceId,
+          agentMode,
         });
 
         (async () => {

@@ -18,6 +18,7 @@ import { description } from '~/lib/persistence';
 import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
+import { confirmFileWritesStore } from './settings';
 
 const { saveAs } = fileSaver;
 
@@ -31,9 +32,20 @@ export interface ArtifactState {
 
 export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
 
+export interface PendingFileAction {
+  actionId: string;
+  artifactId: string;
+  messageId: string;
+  filePath: string;
+  actionFilePath: string;
+  content: string;
+  createdAt: number;
+}
+
 type Artifacts = MapStore<Record<string, ArtifactState>>;
 
 export type WorkbenchViewType = 'code' | 'diff' | 'preview';
+type RunActionOptions = { skipConfirmation?: boolean };
 
 export class WorkbenchStore {
   #previewsStore = new PreviewsStore(webcontainer);
@@ -54,6 +66,8 @@ export class WorkbenchStore {
     import.meta.hot?.data.supabaseAlert ?? atom<SupabaseAlert | undefined>(undefined);
   deployAlert: WritableAtom<DeployAlert | undefined> =
     import.meta.hot?.data.deployAlert ?? atom<DeployAlert | undefined>(undefined);
+  pendingFileActions: MapStore<Record<string, PendingFileAction>> =
+    import.meta.hot?.data.pendingFileActions ?? map({});
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
   #globalExecutionQueue = Promise.resolve();
@@ -66,6 +80,7 @@ export class WorkbenchStore {
       import.meta.hot.data.actionAlert = this.actionAlert;
       import.meta.hot.data.supabaseAlert = this.supabaseAlert;
       import.meta.hot.data.deployAlert = this.deployAlert;
+      import.meta.hot.data.pendingFileActions = this.pendingFileActions;
 
       // Ensure binary files are properly preserved across hot reloads
       const filesMap = this.files.get();
@@ -539,14 +554,122 @@ export class WorkbenchStore {
     return artifact.runner.addAction(data);
   }
 
-  runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+  private _queuePendingFileAction(data: ActionCallbackData, fullPath: string) {
+    const action = data.action;
+
+    if (action.type !== 'file') {
+      return;
+    }
+
+    const artifact = this.#getArtifact(data.artifactId);
+
+    if (artifact) {
+      const existing = artifact.runner.actions.get()[data.actionId];
+
+      if (existing) {
+        artifact.runner.actions.setKey(data.actionId, {
+          ...existing,
+          executed: false,
+          status: 'pending',
+        });
+      }
+    }
+
+    this.pendingFileActions.setKey(data.actionId, {
+      actionId: data.actionId,
+      artifactId: data.artifactId,
+      messageId: data.messageId,
+      filePath: fullPath,
+      actionFilePath: action.filePath,
+      content: action.content,
+      createdAt: Date.now(),
+    });
+  }
+
+  private _removePendingFileAction(actionId: string) {
+    const pending = this.pendingFileActions.get();
+
+    if (!pending[actionId]) {
+      return;
+    }
+
+    const { [actionId]: _removed, ...rest } = pending;
+    this.pendingFileActions.set(rest);
+  }
+
+  async applyPendingFileAction(actionId: string) {
+    const pending = this.pendingFileActions.get()[actionId];
+
+    if (!pending) {
+      return;
+    }
+
+    await this._runAction(
+      {
+        artifactId: pending.artifactId,
+        messageId: pending.messageId,
+        actionId: pending.actionId,
+        action: {
+          type: 'file',
+          filePath: pending.actionFilePath,
+          content: pending.content,
+        },
+      },
+      false,
+      { skipConfirmation: true },
+    );
+
+    this._removePendingFileAction(actionId);
+  }
+
+  discardPendingFileAction(actionId: string) {
+    const pending = this.pendingFileActions.get()[actionId];
+
+    if (!pending) {
+      return;
+    }
+
+    const artifact = this.#getArtifact(pending.artifactId);
+
+    if (artifact) {
+      const action = artifact.runner.actions.get()[pending.actionId];
+
+      if (action) {
+        artifact.runner.actions.setKey(pending.actionId, {
+          ...action,
+          executed: true,
+          status: 'aborted',
+        });
+      }
+    }
+
+    this._removePendingFileAction(actionId);
+  }
+
+  async applyAllPendingFileActions() {
+    const pendingIds = Object.keys(this.pendingFileActions.get());
+
+    for (const actionId of pendingIds) {
+      await this.applyPendingFileAction(actionId);
+    }
+  }
+
+  discardAllPendingFileActions() {
+    const pendingIds = Object.keys(this.pendingFileActions.get());
+
+    for (const actionId of pendingIds) {
+      this.discardPendingFileAction(actionId);
+    }
+  }
+
+  runAction(data: ActionCallbackData, isStreaming: boolean = false, options: RunActionOptions = {}) {
     if (isStreaming) {
       this.actionStreamSampler(data, isStreaming);
     } else {
-      this.addToExecutionQueue(() => this._runAction(data, isStreaming));
+      this.addToExecutionQueue(() => this._runAction(data, isStreaming, options));
     }
   }
-  async _runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+  async _runAction(data: ActionCallbackData, isStreaming: boolean = false, options: RunActionOptions = {}) {
     const { artifactId } = data;
 
     const artifact = this.#getArtifact(artifactId);
@@ -564,6 +687,15 @@ export class WorkbenchStore {
     if (data.action.type === 'file') {
       const wc = await webcontainer;
       const fullPath = path.join(wc.workdir, data.action.filePath);
+      const confirmFileWrites = confirmFileWritesStore.get();
+
+      if (confirmFileWrites && !options.skipConfirmation) {
+        if (!isStreaming) {
+          this._queuePendingFileAction(data, fullPath);
+        }
+
+        return;
+      }
 
       /*
        * For scoped locks, we would need to implement diff checking here

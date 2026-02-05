@@ -1,0 +1,8 @@
+Issue 2097 Momentum Tracker
+
+Wave 2 - Next 5 Community Requests
+- [x] Agent Mode (backend planning step before responses)
+- [x] Confirm file changes (git-like approvals)
+- [x] Auto prompt enhancement toggle
+- [x] Mobile-friendly workspace toggle + responsive chat width
+- [x] Performance mode (reduced visual effects)
