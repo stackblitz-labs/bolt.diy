@@ -1,0 +1,10 @@
+Issue 2097 Momentum Tracker
+
+Goal: demonstrate active development by shipping five high-impact improvements.
+
+Features
+- [x] Project Memory per chat (prompt-injected notes)
+- [x] Plan Mode (auto-generate and maintain PLAN.md before changes)
+- [x] Document uploads (text + PDF attachments in chat)
+- [x] Quick lock/unlock for current file (prevent unintended overwrites)
+- [x] Auto prompt optimization for small models

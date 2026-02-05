@@ -19,6 +19,8 @@ import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { McpTools } from './MCPTools';
+import { ProjectMemoryDialog } from './ProjectMemoryDialog';
+import { MAX_ATTACHMENT_BYTES, isSupportedAttachment, isImageFile, readFileAsDataUrl } from './uploadUtils';
 
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;
@@ -55,6 +57,10 @@ interface ChatBoxProps {
   handleStop?: (() => void) | undefined;
   enhancingPrompt?: boolean | undefined;
   enhancePrompt?: (() => void) | undefined;
+  projectMemory?: string;
+  setProjectMemory?: ((value: string) => void) | undefined;
+  planMode?: boolean;
+  setPlanMode?: ((enabled: boolean) => void) | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   designScheme?: DesignScheme;
@@ -193,18 +199,40 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
 
             const files = Array.from(e.dataTransfer.files);
-            files.forEach((file) => {
-              if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
+            const uploads: Array<{ file: File; imageData?: string }> = [];
 
-                reader.onload = (e) => {
-                  const base64Image = e.target?.result as string;
-                  props.setUploadedFiles?.([...props.uploadedFiles, file]);
-                  props.setImageDataList?.([...props.imageDataList, base64Image]);
-                };
-                reader.readAsDataURL(file);
+            files.forEach((file) => {
+              if (file.size > MAX_ATTACHMENT_BYTES) {
+                toast.error(`\"${file.name}\" exceeds the ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)}MB limit`);
+                return;
               }
+
+              if (!isSupportedAttachment(file)) {
+                toast.error(`\"${file.name}\" is not a supported attachment type`);
+                return;
+              }
+
+              uploads.push({ file });
             });
+
+            if (!uploads.length) {
+              return;
+            }
+
+            Promise.all(
+              uploads.map(async (item) => ({
+                ...item,
+                imageData: isImageFile(item.file) ? await readFileAsDataUrl(item.file) : '',
+              })),
+            )
+              .then((resolved) => {
+                props.setUploadedFiles?.([...props.uploadedFiles, ...resolved.map((item) => item.file)]);
+                props.setImageDataList?.([...props.imageDataList, ...resolved.map((item) => item.imageData || '')]);
+              })
+              .catch((error) => {
+                console.error('Failed to read dropped files', error);
+                toast.error('Failed to read one or more dropped files');
+              });
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
@@ -262,6 +290,26 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <div className="flex gap-1 items-center">
             <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
             <McpTools />
+            <ProjectMemoryDialog
+              memory={props.projectMemory}
+              onSave={(value) => {
+                props.setProjectMemory?.(value);
+                toast.success(value ? 'Project memory saved' : 'Project memory cleared');
+              }}
+            />
+            <IconButton
+              title="Plan mode"
+              className={classNames(
+                'transition-all flex items-center gap-1 px-1.5',
+                props.planMode
+                  ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                  : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
+              )}
+              onClick={() => props.setPlanMode?.(!props.planMode)}
+            >
+              <div className="i-ph:list-checks text-xl" />
+              {props.planMode ? <span>Plan</span> : <span />}
+            </IconButton>
             <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
