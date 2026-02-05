@@ -57,6 +57,57 @@ export default class CerebrasProvider extends BaseProvider {
     },
   ];
 
+  async getDynamicModels(
+    apiKeys?: Record<string, string>,
+    settings?: IProviderSetting,
+    serverEnv?: Record<string, string>,
+  ): Promise<ModelInfo[]> {
+    const { apiKey } = this.getProviderBaseUrlAndKey({
+      apiKeys,
+      providerSettings: settings,
+      serverEnv: serverEnv as any,
+      defaultBaseUrlKey: '',
+      defaultApiTokenKey: 'CEREBRAS_API_KEY',
+    });
+
+    if (!apiKey) {
+      return [];
+    }
+
+    try {
+      const response = await fetch('https://api.cerebras.ai/v1/models', {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: this.createTimeoutSignal(5000),
+      });
+
+      if (!response.ok) {
+        console.error(`Cerebras API error: ${response.statusText}`);
+        return [];
+      }
+
+      const data = (await response.json()) as any;
+      const staticModelIds = this.staticModels.map((m) => m.name);
+
+      // Filter out models we already have in staticModels
+      const dynamicModels =
+        data.data
+          ?.filter((model: any) => !staticModelIds.includes(model.id))
+          .map((m: any) => ({
+            name: m.id,
+            label: `${m.id} (Dynamic)`,
+            provider: this.name,
+            maxTokenAllowed: 32000, // Default, Cerebras typically has good context
+          })) || [];
+
+      return dynamicModels;
+    } catch (error) {
+      console.error(`Failed to fetch Cerebras models:`, error);
+      return [];
+    }
+  }
+
   getModelInstance(options: {
     model: string;
     serverEnv: Env;
