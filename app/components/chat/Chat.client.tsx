@@ -594,6 +594,20 @@ export const ChatImpl = memo(
       Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
     };
 
+    const handleWebSearchResult = useCallback(
+      (result: string) => {
+        const currentInput = input || '';
+        const newInput = currentInput.length > 0 ? `${result}\n\n${currentInput}` : result;
+
+        // Update the input via the same mechanism as handleInputChange
+        const syntheticEvent = {
+          target: { value: newInput },
+        } as React.ChangeEvent<HTMLTextAreaElement>;
+        handleInputChange(syntheticEvent);
+      },
+      [input, handleInputChange],
+    );
+
     return (
       <BaseChat
         ref={animationScope}
@@ -664,6 +678,7 @@ export const ChatImpl = memo(
         selectedElement={selectedElement}
         setSelectedElement={setSelectedElement}
         addToolResult={addToolResult}
+        onWebSearchResult={handleWebSearchResult}
       />
     );
   },
