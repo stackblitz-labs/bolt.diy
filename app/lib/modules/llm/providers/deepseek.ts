@@ -34,6 +34,20 @@ export default class DeepseekProvider extends BaseProvider {
       maxTokenAllowed: 8000,
       maxCompletionTokens: 8192,
     },
+    {
+      name: 'deepseek-v3.2',
+      label: 'DeepSeek V3.2 (Coding + Tool Use)',
+      provider: 'Deepseek',
+      maxTokenAllowed: 64000,
+      maxCompletionTokens: 8192,
+    },
+    {
+      name: 'deepseek-v3.2-speciale',
+      label: 'DeepSeek V3.2 Speciale (High-Compute)',
+      provider: 'Deepseek',
+      maxTokenAllowed: 64000,
+      maxCompletionTokens: 8192,
+    },
   ];
 
   getModelInstance(options: {

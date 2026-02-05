@@ -14,6 +14,18 @@ export default class FireworksProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'accounts/fireworks/models/qwen3-coder-480b-a35b-instruct',
+      label: 'Qwen3-Coder 480B (Best for Coding)',
+      provider: 'Fireworks',
+      maxTokenAllowed: 262000,
+    },
+    {
+      name: 'accounts/fireworks/models/qwen3-coder-30b-a3b-instruct',
+      label: 'Qwen3-Coder 30B (Fast Coding)',
+      provider: 'Fireworks',
+      maxTokenAllowed: 262000,
+    },
+    {
       name: 'accounts/fireworks/models/llama-v3p1-405b-instruct',
       label: 'Llama 3.1 405B Instruct',
       provider: 'Fireworks',

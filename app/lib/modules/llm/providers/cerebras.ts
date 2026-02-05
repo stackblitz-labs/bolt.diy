@@ -14,26 +14,20 @@ export default class CerebrasProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'qwen3-coder-480b',
+      label: 'Qwen3-Coder 480B (2000 tok/s, Best for Coding)',
+      provider: 'Cerebras',
+      maxTokenAllowed: 262000,
+    },
+    {
       name: 'llama3.1-8b',
       label: 'Llama 3.1 8B',
       provider: 'Cerebras',
       maxTokenAllowed: 8000,
     },
     {
-      name: 'llama-3.3-70b',
-      label: 'Llama 3.3 70B',
-      provider: 'Cerebras',
-      maxTokenAllowed: 8000,
-    },
-    {
       name: 'gpt-oss-120b',
       label: 'GPT OSS 120B (Reasoning)',
-      provider: 'Cerebras',
-      maxTokenAllowed: 8000,
-    },
-    {
-      name: 'qwen-3-32b',
-      label: 'Qwen 3 32B',
       provider: 'Cerebras',
       maxTokenAllowed: 8000,
     },
@@ -51,7 +45,7 @@ export default class CerebrasProvider extends BaseProvider {
     },
     {
       name: 'zai-glm-4.6',
-      label: 'ZAI GLM 4.6',
+      label: 'ZAI GLM 4.6 (Coding: 73.8% SWE-bench)',
       provider: 'Cerebras',
       maxTokenAllowed: 8000,
     },
