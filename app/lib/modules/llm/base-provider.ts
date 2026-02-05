@@ -4,6 +4,9 @@ import type { IProviderSetting } from '~/types/model';
 import { createOpenAI } from '@ai-sdk/openai';
 import { LLMManager } from './manager';
 
+/** Default timeout for model listing API calls (5 seconds) */
+const MODEL_FETCH_TIMEOUT = 5_000;
+
 export abstract class BaseProvider implements ProviderInfo {
   abstract name: string;
   abstract staticModels: ModelInfo[];
@@ -16,6 +19,48 @@ export abstract class BaseProvider implements ProviderInfo {
   getApiKeyLink?: string;
   labelForGetApiKey?: string;
   icon?: string;
+
+  /**
+   * Convert Cloudflare Env bindings to a plain Record<string, string>.
+   * Useful because provider methods expect Record<string, string> but
+   * Cloudflare Workers pass an Env interface.
+   */
+  protected convertEnvToRecord(env?: Env): Record<string, string> {
+    if (!env) {
+      return {};
+    }
+
+    return Object.entries(env).reduce(
+      (acc, [key, value]) => {
+        acc[key] = String(value);
+
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
+  }
+
+  /**
+   * Rewrite localhost / 127.0.0.1 URLs to host.docker.internal when
+   * running inside Docker. Only applies on the server side.
+   */
+  protected resolveDockerUrl(baseUrl: string, serverEnv?: Record<string, string>): string {
+    const isDocker = process?.env?.RUNNING_IN_DOCKER === 'true' || serverEnv?.RUNNING_IN_DOCKER === 'true';
+
+    if (!isDocker) {
+      return baseUrl;
+    }
+
+    return baseUrl.replace('localhost', 'host.docker.internal').replace('127.0.0.1', 'host.docker.internal');
+  }
+
+  /**
+   * Create an AbortSignal that times out after the given milliseconds.
+   * Used to prevent model-listing fetches from hanging indefinitely.
+   */
+  protected createTimeoutSignal(ms: number = MODEL_FETCH_TIMEOUT): AbortSignal {
+    return AbortSignal.timeout(ms);
+  }
 
   getProviderBaseUrlAndKey(options: {
     apiKeys?: Record<string, string>;
@@ -59,7 +104,6 @@ export abstract class BaseProvider implements ProviderInfo {
     serverEnv?: Record<string, string>;
   }): ModelInfo[] | null {
     if (!this.cachedDynamicModels) {
-      // console.log('no dynamic models',this.name);
       return null;
     }
 
@@ -67,8 +111,8 @@ export abstract class BaseProvider implements ProviderInfo {
     const generatedCacheKey = this.getDynamicModelsCacheKey(options);
 
     if (cacheKey !== generatedCacheKey) {
-      // console.log('cache key mismatch',this.name,cacheKey,generatedCacheKey);
       this.cachedDynamicModels = undefined;
+
       return null;
     }
 
@@ -79,10 +123,20 @@ export abstract class BaseProvider implements ProviderInfo {
     providerSettings?: Record<string, IProviderSetting>;
     serverEnv?: Record<string, string>;
   }) {
+    // Only include provider-relevant env keys, not the entire server environment
+    const relevantEnvKeys = [this.config.baseUrlKey, this.config.apiTokenKey].filter(Boolean) as string[];
+    const relevantEnv: Record<string, string> = {};
+
+    for (const key of relevantEnvKeys) {
+      if (options.serverEnv?.[key]) {
+        relevantEnv[key] = options.serverEnv[key];
+      }
+    }
+
     return JSON.stringify({
       apiKeys: options.apiKeys?.[this.name],
       providerSettings: options.providerSettings?.[this.name],
-      serverEnv: options.serverEnv,
+      serverEnv: relevantEnv,
     });
   }
   storeDynamicModels(
@@ -95,7 +149,6 @@ export abstract class BaseProvider implements ProviderInfo {
   ) {
     const cacheId = this.getDynamicModelsCacheKey(options);
 
-    // console.log('caching dynamic models',this.name,cacheId);
     this.cachedDynamicModels = {
       cacheId,
       models,

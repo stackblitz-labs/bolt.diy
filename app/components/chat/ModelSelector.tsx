@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { classNames } from '~/utils/classNames';
+import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 
 // Fuzzy search utilities
 const levenshteinDistance = (str1: string, str2: string): number => {
@@ -129,6 +130,32 @@ export const ModelSelector = ({
   const providerOptionsRef = useRef<(HTMLDivElement | null)[]>([]);
   const providerDropdownRef = useRef<HTMLDivElement>(null);
   const [showFreeModelsOnly, setShowFreeModelsOnly] = useState(false);
+
+  type ConnectionStatus = 'unknown' | 'connected' | 'disconnected';
+
+  const [localProviderStatus, setLocalProviderStatus] = useState<Record<string, ConnectionStatus>>({});
+
+  // Check connectivity of local providers when provider list changes
+  useEffect(() => {
+    const checkLocalProviders = async () => {
+      const statuses: Record<string, 'connected' | 'disconnected'> = {};
+
+      for (const p of providerList) {
+        if (!LOCAL_PROVIDERS.includes(p.name)) {
+          continue;
+        }
+
+        // If the provider has models loaded, it's connected
+        const hasModels = modelList.some((m) => m.provider === p.name);
+
+        statuses[p.name] = hasModels ? 'connected' : 'disconnected';
+      }
+
+      setLocalProviderStatus(statuses);
+    };
+
+    checkLocalProviders();
+  }, [providerList, modelList]);
 
   // Debounce search queries
   useEffect(() => {
@@ -440,7 +467,28 @@ export const ModelSelector = ({
           tabIndex={0}
         >
           <div className="flex items-center justify-between">
-            <div className="truncate">{provider?.name || 'Select provider'}</div>
+            <div className="flex items-center gap-2 truncate">
+              {provider?.name && LOCAL_PROVIDERS.includes(provider.name) && (
+                <span
+                  className={classNames(
+                    'inline-block w-2 h-2 rounded-full flex-shrink-0',
+                    localProviderStatus[provider.name] === 'connected'
+                      ? 'bg-green-500'
+                      : localProviderStatus[provider.name] === 'disconnected'
+                        ? 'bg-red-400'
+                        : 'bg-bolt-elements-textTertiary',
+                  )}
+                  title={
+                    localProviderStatus[provider.name] === 'connected'
+                      ? `${provider.name} is running`
+                      : localProviderStatus[provider.name] === 'disconnected'
+                        ? `${provider.name} is not reachable`
+                        : 'Checking...'
+                  }
+                />
+              )}
+              {provider?.name || 'Select provider'}
+            </div>
             <div
               className={classNames(
                 'i-ph:caret-down w-4 h-4 text-bolt-elements-textSecondary opacity-75',
@@ -559,11 +607,25 @@ export const ModelSelector = ({
                     }}
                     tabIndex={focusedProviderIndex === index ? 0 : -1}
                   >
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: (providerOption as any).highlightedName || providerOption.name,
-                      }}
-                    />
+                    <div className="flex items-center gap-2">
+                      {LOCAL_PROVIDERS.includes(providerOption.name) && (
+                        <span
+                          className={classNames(
+                            'inline-block w-2 h-2 rounded-full flex-shrink-0',
+                            localProviderStatus[providerOption.name] === 'connected'
+                              ? 'bg-green-500'
+                              : localProviderStatus[providerOption.name] === 'disconnected'
+                                ? 'bg-red-400'
+                                : 'bg-bolt-elements-textTertiary',
+                          )}
+                        />
+                      )}
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: (providerOption as any).highlightedName || providerOption.name,
+                        }}
+                      />
+                    </div>
                   </div>
                 ))
               )}
@@ -717,8 +779,17 @@ export const ModelSelector = ({
                       ? `No models match "${debouncedModelSearchQuery}"${showFreeModelsOnly ? ' (free only)' : ''}`
                       : showFreeModelsOnly
                         ? 'No free models available'
-                        : 'No models available'}
+                        : provider?.name && LOCAL_PROVIDERS.includes(provider.name)
+                          ? `No models found — is ${provider.name} running?`
+                          : 'No models available'}
                   </div>
+                  {!debouncedModelSearchQuery && provider?.name && LOCAL_PROVIDERS.includes(provider.name) && (
+                    <div className="text-xs text-bolt-elements-textTertiary mt-1">
+                      Make sure {provider.name} is running and has at least one model loaded.
+                      {provider.name === 'Ollama' && ' Try: ollama pull llama3.2'}
+                      {provider.name === 'LMStudio' && ' Load a model in LM Studio first.'}
+                    </div>
+                  )}
                   {debouncedModelSearchQuery && (
                     <div className="text-xs text-bolt-elements-textTertiary">
                       Try searching for model names, context sizes (e.g., "128k", "1M"), or capabilities
