@@ -156,7 +156,6 @@
     "unist-util-visit": "^5.0.0",
     "use-debounce": "^10.0.4",
     "vite-plugin-node-polyfills": "^0.22.0",
-    "zod": "^3.24.1",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
@@ -165,6 +164,7 @@
     "@electron/notarize": "^2.5.0",
     "@iconify-json/ph": "^1.2.1",
     "@iconify/types": "^2.0.0",
+    "@mendable/firecrawl-js": "^1.24.0",
     "@remix-run/dev": "^2.15.2",
     "@remix-run/serve": "^2.15.2",
     "@testing-library/jest-dom": "^6.6.3",
@@ -204,6 +204,8 @@
     "vite-plugin-optimize-css-modules": "^1.1.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^2.1.7",
+    "wrangler": "^4.5.1",
+    "zod": "^3.24.3"
     "wrangler": "^4.44.0"
   },
   "resolutions": {

@@ -594,6 +594,11 @@ export const ChatImpl = memo(
       Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
     };
 
+    const handleWebSearchResult = (result: string) => {
+      setInput(result);
+      textareaRef.current?.focus();
+    };
+
     return (
       <BaseChat
         ref={animationScope}
@@ -656,6 +661,7 @@ export const ChatImpl = memo(
         llmErrorAlert={llmErrorAlert}
         clearLlmErrorAlert={clearApiErrorAlert}
         data={chatData}
+        onWebSearchResult={handleWebSearchResult}
         chatMode={chatMode}
         setChatMode={setChatMode}
         append={append}
