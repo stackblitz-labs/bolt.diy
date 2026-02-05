@@ -59,6 +59,9 @@ export async function streamText(props: {
   files?: FileMap;
   providerSettings?: Record<string, IProviderSetting>;
   promptId?: string;
+  projectMemory?: string;
+  planMode?: boolean;
+  autoPromptOptimization?: boolean;
   contextOptimization?: boolean;
   contextFiles?: FileMap;
   summary?: string;
@@ -74,6 +77,9 @@ export async function streamText(props: {
     files,
     providerSettings,
     promptId,
+    projectMemory,
+    planMode,
+    autoPromptOptimization,
     contextOptimization,
     contextFiles,
     summary,
@@ -149,8 +155,15 @@ export async function streamText(props: {
     `Token limits for model ${modelDetails.name}: maxTokens=${safeMaxTokens}, maxTokenAllowed=${modelDetails.maxTokenAllowed}, maxCompletionTokens=${modelDetails.maxCompletionTokens}`,
   );
 
+  const shouldAutoOptimize =
+    !!autoPromptOptimization &&
+    (promptId === undefined || promptId === 'default') &&
+    !!modelDetails?.maxTokenAllowed &&
+    modelDetails.maxTokenAllowed <= 16000;
+  const effectivePromptId = shouldAutoOptimize ? 'optimized' : promptId;
+
   let systemPrompt =
-    PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
+    PromptLibrary.getPropmtFromLibrary(effectivePromptId || 'default', {
       cwd: WORK_DIR,
       allowedHtmlElements: allowedHTMLElements,
       modificationTagName: MODIFICATIONS_TAG_NAME,
@@ -161,6 +174,10 @@ export async function streamText(props: {
         credentials: options?.supabaseConnection?.credentials || undefined,
       },
     }) ?? getSystemPrompt();
+
+  if (shouldAutoOptimize) {
+    logger.info(`Auto prompt optimization enabled: using optimized prompt for ${modelDetails?.name}`);
+  }
 
   if (chatMode === 'build' && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);
@@ -217,6 +234,26 @@ export async function streamText(props: {
     `;
   } else {
     console.log('No locked files found from any source for prompt.');
+  }
+
+  if (projectMemory?.trim()) {
+    const trimmedMemory = projectMemory.trim().slice(0, 2000);
+    systemPrompt = `${systemPrompt}
+
+    PROJECT MEMORY (USER-PROVIDED):
+    ${trimmedMemory}
+    ---
+    `;
+  }
+
+  if (planMode) {
+    systemPrompt = `${systemPrompt}
+
+    PLANNING MODE:
+    - Before making code changes, create or update a PLAN.md file with a concise checklist of steps.
+    - Keep the plan scoped and actionable, and update it as steps are completed.
+    - After PLAN.md exists, proceed with the requested changes.
+    `;
   }
 
   logger.info(`Sending llm call to ${provider.name} with model ${modelDetails.name}`);

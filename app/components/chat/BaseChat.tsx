@@ -28,11 +28,19 @@ import type { ProgressAnnotation } from '~/types/context';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
+import { toast } from 'react-toastify';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 import { ChatBox } from './ChatBox';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
+import {
+  ACCEPTED_ATTACHMENT_TYPES,
+  MAX_ATTACHMENT_BYTES,
+  isImageFile,
+  isSupportedAttachment,
+  readFileAsDataUrl,
+} from './uploadUtils';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -49,6 +57,10 @@ interface BaseChatProps {
   enhancingPrompt?: boolean;
   promptEnhanced?: boolean;
   input?: string;
+  projectMemory?: string;
+  setProjectMemory?: (value: string) => void;
+  planMode?: boolean;
+  setPlanMode?: (enabled: boolean) => void;
   model?: string;
   setModel?: (model: string) => void;
   provider?: ProviderInfo;
@@ -97,6 +109,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setProvider,
       providerList,
       input = '',
+      projectMemory,
+      setProjectMemory,
+      planMode,
+      setPlanMode,
       enhancingPrompt,
       handleInputChange,
 
@@ -287,24 +303,51 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
+    const appendUploads = (items: Array<{ file: File; imageData?: string }>) => {
+      if (!setUploadedFiles || !setImageDataList || items.length === 0) {
+        return;
+      }
+
+      setUploadedFiles([...uploadedFiles, ...items.map((item) => item.file)]);
+      setImageDataList([...imageDataList, ...items.map((item) => item.imageData || '')]);
+    };
+
     const handleFileUpload = () => {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*';
+      input.accept = ACCEPTED_ATTACHMENT_TYPES;
+      input.multiple = true;
 
       input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
+        const files = Array.from((e.target as HTMLInputElement).files || []);
 
-        if (file) {
-          const reader = new FileReader();
-
-          reader.onload = (e) => {
-            const base64Image = e.target?.result as string;
-            setUploadedFiles?.([...uploadedFiles, file]);
-            setImageDataList?.([...imageDataList, base64Image]);
-          };
-          reader.readAsDataURL(file);
+        if (!files.length) {
+          return;
         }
+
+        const uploads: Array<{ file: File; imageData?: string }> = [];
+
+        for (const file of files) {
+          if (file.size > MAX_ATTACHMENT_BYTES) {
+            toast.error(`"${file.name}" exceeds the ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)}MB limit`);
+            continue;
+          }
+
+          if (!isSupportedAttachment(file)) {
+            toast.error(`"${file.name}" is not a supported attachment type`);
+            continue;
+          }
+
+          try {
+            const dataUrl = await readFileAsDataUrl(file);
+            uploads.push({ file, imageData: isImageFile(file) ? dataUrl : '' });
+          } catch (error) {
+            console.error('Failed to read file', error);
+            toast.error(`Failed to read "${file.name}"`);
+          }
+        }
+
+        appendUploads(uploads);
       };
 
       input.click();
@@ -318,24 +361,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          e.preventDefault();
-
-          const file = item.getAsFile();
-
-          if (file) {
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-              const base64Image = e.target?.result as string;
-              setUploadedFiles?.([...uploadedFiles, file]);
-              setImageDataList?.([...imageDataList, base64Image]);
-            };
-            reader.readAsDataURL(file);
-          }
-
-          break;
+        if (!item.type.startsWith('image/')) {
+          continue;
         }
+
+        e.preventDefault();
+
+        const file = item.getAsFile();
+
+        if (!file) {
+          continue;
+        }
+
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+          toast.error(`"${file.name}" exceeds the ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)}MB limit`);
+          continue;
+        }
+
+        try {
+          const base64Image = await readFileAsDataUrl(file);
+          appendUploads([{ file, imageData: base64Image }]);
+        } catch (error) {
+          console.error('Failed to read pasted image', error);
+          toast.error(`Failed to read "${file.name}"`);
+        }
+
+        break;
       }
     };
 
@@ -442,6 +493,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   setImageDataList={setImageDataList}
                   textareaRef={textareaRef}
                   input={input}
+                  projectMemory={projectMemory}
+                  setProjectMemory={setProjectMemory}
+                  planMode={planMode}
+                  setPlanMode={setPlanMode}
                   handleInputChange={handleInputChange}
                   handlePaste={handlePaste}
                   TEXTAREA_MIN_HEIGHT={TEXTAREA_MIN_HEIGHT}
