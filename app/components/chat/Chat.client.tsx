@@ -2,7 +2,7 @@ import { useStore } from '@nanostores/react';
 import type { Message } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
@@ -10,6 +10,7 @@ import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
+import { detectFrameworkFromFiles } from '~/utils/framework';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
 import Cookies from 'js-cookie';
@@ -109,11 +110,25 @@ export const ChatImpl = memo(
       agentMode,
       performanceMode,
       confirmFileWrites,
+      frameworkLock,
       setAutoPromptEnhancement,
       setAgentMode,
       setPerformanceMode,
       setConfirmFileWrites,
     } = useSettings();
+    const frameworkHint = useMemo(() => {
+      if (!frameworkLock) {
+        return undefined;
+      }
+
+      const detected = detectFrameworkFromFiles(files);
+
+      if (!detected) {
+        return undefined;
+      }
+
+      return `Detected framework: ${detected}. Stay within this stack unless the user explicitly asks to change frameworks.`;
+    }, [files, frameworkLock]);
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
     const [isAutoEnhancing, setIsAutoEnhancing] = useState(false);
     const [model, setModel] = useState(() => {
@@ -155,6 +170,7 @@ export const ChatImpl = memo(
         chatMode,
         designScheme,
         agentMode,
+        frameworkHint,
         supabase: {
           isConnected: supabaseConn.isConnected,
           hasSelectedProject: !!selectedProject,
@@ -441,6 +457,7 @@ export const ChatImpl = memo(
 
         if (trimmed && trimmed !== rawPrompt.trim()) {
           toast.success('Prompt enhanced');
+
           return trimmed;
         }
 
@@ -448,6 +465,7 @@ export const ChatImpl = memo(
       } catch (error) {
         console.error('Auto prompt enhancement failed:', error);
         toast.error('Auto prompt enhancement failed');
+
         return rawPrompt;
       } finally {
         setIsAutoEnhancing(false);

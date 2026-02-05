@@ -11,6 +11,10 @@ import {
   confirmFileWritesStore,
   performanceModeStore,
   agentModeStore,
+  frameworkLockStore,
+  shortcutsStore,
+  type ShortcutBinding,
+  type Shortcuts,
   tabConfigurationStore,
   resetTabConfiguration as resetTabConfig,
   updateProviderSettings as updateProviderSettingsStore,
@@ -23,6 +27,9 @@ import {
   updateConfirmFileWrites,
   updatePerformanceMode,
   updateAgentMode,
+  updateFrameworkLock,
+  updateShortcutBinding,
+  resetShortcuts,
 } from '~/lib/stores/settings';
 import { useCallback, useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
@@ -74,6 +81,11 @@ export interface UseSettingsReturn {
   setPerformanceMode: (enabled: boolean) => void;
   agentMode: boolean;
   setAgentMode: (enabled: boolean) => void;
+  frameworkLock: boolean;
+  setFrameworkLock: (enabled: boolean) => void;
+  shortcuts: Shortcuts;
+  updateShortcutBinding: (shortcutId: keyof Shortcuts, binding: Partial<ShortcutBinding>) => void;
+  resetShortcuts: () => void;
 
   // Tab configuration
   tabConfiguration: TabWindowConfig;
@@ -98,6 +110,8 @@ export function useSettings(): UseSettingsReturn {
   const confirmFileWrites = useStore(confirmFileWritesStore);
   const performanceMode = useStore(performanceModeStore);
   const agentMode = useStore(agentModeStore);
+  const frameworkLock = useStore(frameworkLockStore);
+  const shortcuts = useStore(shortcutsStore);
   const tabConfiguration = useStore(tabConfigurationStore);
   const [settings, setSettings] = useState<Settings>(() => {
     const storedSettings = getLocalStorage('settings');
@@ -183,6 +197,11 @@ export function useSettings(): UseSettingsReturn {
     logStore.logSystem(`Agent mode ${enabled ? 'enabled' : 'disabled'}`);
   }, []);
 
+  const setFrameworkLock = useCallback((enabled: boolean) => {
+    updateFrameworkLock(enabled);
+    logStore.logSystem(`Framework lock ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
   const setTheme = useCallback(
     (theme: Settings['theme']) => {
       saveSettings({ theme });
@@ -245,6 +264,11 @@ export function useSettings(): UseSettingsReturn {
     setPerformanceMode,
     agentMode,
     setAgentMode,
+    frameworkLock,
+    setFrameworkLock,
+    shortcuts,
+    updateShortcutBinding,
+    resetShortcuts,
     setTheme,
     setLanguage,
     setNotifications,

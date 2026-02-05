@@ -64,6 +64,7 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
   const activePreview = previews[activePreviewIndex];
   const [displayPath, setDisplayPath] = useState('/');
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
+  const [isPreviewPaused, setIsPreviewPaused] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isInspectorMode, setIsInspectorMode] = useState(false);
   const [isDeviceModeOn, setIsDeviceModeOn] = useState(false);
@@ -669,6 +670,11 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
         <div className="flex items-center gap-2">
           <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
           <IconButton
+            icon={isPreviewPaused ? 'i-ph:play' : 'i-ph:pause'}
+            onClick={() => setIsPreviewPaused((prev) => !prev)}
+            title={isPreviewPaused ? 'Resume Preview' : 'Pause Preview'}
+          />
+          <IconButton
             icon="i-ph:selection"
             onClick={() => setIsSelectionMode(!isSelectionMode)}
             className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
@@ -912,7 +918,11 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
         >
           {activePreview ? (
             <>
-              {isDeviceModeOn && showDeviceFrameInPreview ? (
+              {isPreviewPaused ? (
+                <div className="flex h-full w-full items-center justify-center text-sm text-bolt-elements-textSecondary">
+                  Preview paused. Click the play icon to resume.
+                </div>
+              ) : isDeviceModeOn && showDeviceFrameInPreview ? (
                 <div
                   className="device-wrapper"
                   style={{
@@ -1004,11 +1014,13 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
                   allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
                 />
               )}
-              <ScreenshotSelector
-                isSelectionMode={isSelectionMode}
-                setIsSelectionMode={setIsSelectionMode}
-                containerRef={iframeRef}
-              />
+              {!isPreviewPaused && (
+                <ScreenshotSelector
+                  isSelectionMode={isSelectionMode}
+                  setIsSelectionMode={setIsSelectionMode}
+                  containerRef={iframeRef}
+                />
+              )}
             </>
           ) : (
             <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">

@@ -66,6 +66,7 @@ export async function streamText(props: {
   chatMode?: 'discuss' | 'build';
   designScheme?: DesignScheme;
   agentMode?: boolean;
+  frameworkHint?: string;
 }) {
   const {
     messages,
@@ -81,6 +82,7 @@ export async function streamText(props: {
     chatMode,
     designScheme,
     agentMode,
+    frameworkHint,
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -219,6 +221,16 @@ export async function streamText(props: {
     `;
   } else {
     console.log('No locked files found from any source for prompt.');
+  }
+
+  if (frameworkHint) {
+    systemPrompt = `${systemPrompt}
+
+    PROJECT FRAMEWORK (DETECTED):
+    ${sanitizeText(frameworkHint)}
+    IMPORTANT: Stay within this framework unless the user explicitly asks to change stacks.
+    ---
+    `;
   }
 
   const isReasoning = isReasoningModel(modelDetails.name);

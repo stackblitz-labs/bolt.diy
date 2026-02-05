@@ -405,9 +405,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <ScrollToBottom />
               </StickToBottom.Content>
               <div
-                className={classNames('my-auto flex flex-col gap-2 w-full max-w-full sm:max-w-chat mx-auto z-prompt mb-6', {
-                  'sticky bottom-2': chatStarted,
-                })}
+                className={classNames(
+                  'my-auto flex flex-col gap-2 w-full max-w-full sm:max-w-chat mx-auto z-prompt mb-6',
+                  {
+                    'sticky bottom-2': chatStarted,
+                  },
+                )}
               >
                 <div className="flex flex-col gap-2">
                   {deployAlert && (

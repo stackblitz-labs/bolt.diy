@@ -19,6 +19,7 @@ import type { IconType } from 'react-icons';
 type ProviderName =
   | 'AmazonBedrock'
   | 'Anthropic'
+  | 'AzureOpenAI'
   | 'Cohere'
   | 'Deepseek'
   | 'Github'
@@ -31,12 +32,14 @@ type ProviderName =
   | 'OpenRouter'
   | 'Perplexity'
   | 'Together'
+  | 'VertexAI'
   | 'XAI';
 
 // Update the PROVIDER_ICONS type to use the ProviderName type
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   AmazonBedrock: SiAmazon,
   Anthropic: FaBrain,
+  AzureOpenAI: FaCloud,
   Cohere: BiChip,
   Deepseek: BiCodeBlock,
   Github: SiGithub,
@@ -49,6 +52,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   OpenRouter: FaCloud,
   Perplexity: SiPerplexity,
   Together: BsCloud,
+  VertexAI: SiGoogle,
   XAI: BsRobot,
 };
 
@@ -57,6 +61,8 @@ const PROVIDER_DESCRIPTIONS: Partial<Record<ProviderName, string>> = {
   Anthropic: 'Access Claude and other Anthropic models',
   Github: 'Use OpenAI models hosted through GitHub infrastructure',
   OpenAI: 'Use GPT-4, GPT-3.5, and other OpenAI models',
+  AzureOpenAI: 'Use Azure OpenAI deployments from your Azure resource',
+  VertexAI: 'Use Gemini models via Google Vertex AI',
 };
 
 const CloudProvidersTab = () => {

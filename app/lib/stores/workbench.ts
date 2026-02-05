@@ -66,8 +66,7 @@ export class WorkbenchStore {
     import.meta.hot?.data.supabaseAlert ?? atom<SupabaseAlert | undefined>(undefined);
   deployAlert: WritableAtom<DeployAlert | undefined> =
     import.meta.hot?.data.deployAlert ?? atom<DeployAlert | undefined>(undefined);
-  pendingFileActions: MapStore<Record<string, PendingFileAction>> =
-    import.meta.hot?.data.pendingFileActions ?? map({});
+  pendingFileActions: MapStore<Record<string, PendingFileAction>> = import.meta.hot?.data.pendingFileActions ?? map({});
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
   #globalExecutionQueue = Promise.resolve();

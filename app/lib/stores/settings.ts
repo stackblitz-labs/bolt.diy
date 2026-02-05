@@ -23,13 +23,19 @@ export interface Shortcuts {
   toggleTerminal: Shortcut;
 }
 
-export const URL_CONFIGURABLE_PROVIDERS = ['Ollama', 'LMStudio', 'OpenAILike'];
+export const URL_CONFIGURABLE_PROVIDERS = ['Ollama', 'LMStudio', 'OpenAILike', 'AzureOpenAI', 'VertexAI'];
 export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama'];
 
 export type ProviderSetting = Record<string, IProviderConfig>;
 
-// Simplified shortcuts store with only theme toggle
-export const shortcutsStore = map<Shortcuts>({
+// Add this helper function at the top of the file
+const isBrowser = typeof window !== 'undefined';
+
+export type ShortcutBinding = Pick<Shortcut, 'key' | 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey' | 'ctrlOrMetaKey'>;
+
+const SHORTCUTS_STORAGE_KEY = 'bolt_shortcuts';
+
+const DEFAULT_SHORTCUTS: Shortcuts = {
   toggleTheme: {
     key: 'd',
     metaKey: true,
@@ -48,14 +54,84 @@ export const shortcutsStore = map<Shortcuts>({
     description: 'Toggle terminal',
     isPreventDefault: true,
   },
+};
+
+const applyShortcutBindings = (bindings: Partial<Record<keyof Shortcuts, ShortcutBinding>> | undefined): Shortcuts => ({
+  toggleTheme: {
+    ...DEFAULT_SHORTCUTS.toggleTheme,
+    ...bindings?.toggleTheme,
+  },
+  toggleTerminal: {
+    ...DEFAULT_SHORTCUTS.toggleTerminal,
+    ...bindings?.toggleTerminal,
+  },
 });
+
+const getInitialShortcuts = (): Shortcuts => {
+  if (!isBrowser) {
+    return DEFAULT_SHORTCUTS;
+  }
+
+  const stored = localStorage.getItem(SHORTCUTS_STORAGE_KEY);
+
+  if (!stored) {
+    return DEFAULT_SHORTCUTS;
+  }
+
+  try {
+    const parsed = JSON.parse(stored) as Partial<Record<keyof Shortcuts, ShortcutBinding>>;
+    return applyShortcutBindings(parsed);
+  } catch (error) {
+    console.error('Error parsing stored shortcuts:', error);
+    return DEFAULT_SHORTCUTS;
+  }
+};
+
+const persistShortcuts = (shortcuts: Shortcuts) => {
+  if (!isBrowser) {
+    return;
+  }
+
+  const bindings: Partial<Record<keyof Shortcuts, ShortcutBinding>> = {
+    toggleTheme: {
+      key: shortcuts.toggleTheme.key,
+      ctrlKey: shortcuts.toggleTheme.ctrlKey,
+      shiftKey: shortcuts.toggleTheme.shiftKey,
+      altKey: shortcuts.toggleTheme.altKey,
+      metaKey: shortcuts.toggleTheme.metaKey,
+      ctrlOrMetaKey: shortcuts.toggleTheme.ctrlOrMetaKey,
+    },
+    toggleTerminal: {
+      key: shortcuts.toggleTerminal.key,
+      ctrlKey: shortcuts.toggleTerminal.ctrlKey,
+      shiftKey: shortcuts.toggleTerminal.shiftKey,
+      altKey: shortcuts.toggleTerminal.altKey,
+      metaKey: shortcuts.toggleTerminal.metaKey,
+      ctrlOrMetaKey: shortcuts.toggleTerminal.ctrlOrMetaKey,
+    },
+  };
+
+  localStorage.setItem(SHORTCUTS_STORAGE_KEY, JSON.stringify(bindings));
+};
+
+// Simplified shortcuts store with configurable bindings
+export const shortcutsStore = map<Shortcuts>(getInitialShortcuts());
+
+export const updateShortcutBinding = (shortcutId: keyof Shortcuts, binding: Partial<ShortcutBinding>) => {
+  const current = shortcutsStore.get();
+  const updated = { ...current[shortcutId], ...binding };
+  shortcutsStore.setKey(shortcutId, updated);
+  persistShortcuts(shortcutsStore.get());
+};
+
+export const resetShortcuts = () => {
+  shortcutsStore.set(DEFAULT_SHORTCUTS);
+  persistShortcuts(DEFAULT_SHORTCUTS);
+};
 
 // Create a single key for provider settings
 const PROVIDER_SETTINGS_KEY = 'provider_settings';
 const AUTO_ENABLED_KEY = 'auto_enabled_providers';
-
-// Add this helper function at the top of the file
-const isBrowser = typeof window !== 'undefined';
 
 // Interface for configured provider info from server
 interface ConfiguredProvider {
@@ -262,6 +338,7 @@ const SETTINGS_KEYS = {
   CONFIRM_FILE_WRITES: 'confirmFileWrites',
   PERFORMANCE_MODE: 'performanceMode',
   AGENT_MODE: 'agentMode',
+  FRAMEWORK_LOCK: 'frameworkLock',
 } as const;
 
 // Initialize settings from localStorage or defaults
@@ -295,6 +372,7 @@ const getInitialSettings = () => {
     confirmFileWrites: getStoredBoolean(SETTINGS_KEYS.CONFIRM_FILE_WRITES, false),
     performanceMode: getStoredBoolean(SETTINGS_KEYS.PERFORMANCE_MODE, false),
     agentMode: getStoredBoolean(SETTINGS_KEYS.AGENT_MODE, false),
+    frameworkLock: getStoredBoolean(SETTINGS_KEYS.FRAMEWORK_LOCK, true),
   };
 };
 
@@ -310,6 +388,7 @@ export const autoPromptEnhancementStore = atom<boolean>(initialSettings.autoProm
 export const confirmFileWritesStore = atom<boolean>(initialSettings.confirmFileWrites);
 export const performanceModeStore = atom<boolean>(initialSettings.performanceMode);
 export const agentModeStore = atom<boolean>(initialSettings.agentMode);
+export const frameworkLockStore = atom<boolean>(initialSettings.frameworkLock);
 
 // Helper functions to update settings with persistence
 export const updateLatestBranch = (enabled: boolean) => {
@@ -355,6 +434,11 @@ export const updatePerformanceMode = (enabled: boolean) => {
 export const updateAgentMode = (enabled: boolean) => {
   agentModeStore.set(enabled);
   localStorage.setItem(SETTINGS_KEYS.AGENT_MODE, JSON.stringify(enabled));
+};
+
+export const updateFrameworkLock = (enabled: boolean) => {
+  frameworkLockStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.FRAMEWORK_LOCK, JSON.stringify(enabled));
 };
 
 // Initialize tab configuration from localStorage or defaults
