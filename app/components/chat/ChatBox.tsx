@@ -55,6 +55,8 @@ interface ChatBoxProps {
   handleStop?: (() => void) | undefined;
   enhancingPrompt?: boolean | undefined;
   enhancePrompt?: (() => void) | undefined;
+  planMode?: boolean;
+  setPlanMode?: ((enabled: boolean) => void) | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   designScheme?: DesignScheme;
@@ -262,6 +264,19 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <div className="flex gap-1 items-center">
             <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
             <McpTools />
+            <IconButton
+              title="Plan mode"
+              className={classNames(
+                'transition-all flex items-center gap-1 px-1.5',
+                props.planMode
+                  ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                  : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
+              )}
+              onClick={() => props.setPlanMode?.(!props.planMode)}
+            >
+              <div className="i-ph:list-checks text-xl" />
+              {props.planMode ? <span>Plan</span> : <span />}
+            </IconButton>
             <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
