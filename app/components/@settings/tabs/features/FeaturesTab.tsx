@@ -111,10 +111,12 @@ export default function FeaturesTab() {
     isLatestBranch,
     contextOptimizationEnabled,
     eventLogs,
+    frameworkLock,
     setAutoSelectTemplate,
     enableLatestBranch,
     enableContextOptimization,
     setEventLogs,
+    setFrameworkLock,
     setPromptId,
     promptId,
   } = useSettings();
@@ -169,12 +171,17 @@ export default function FeaturesTab() {
           toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
           break;
         }
+        case 'frameworkLock': {
+          setFrameworkLock(enabled);
+          toast.success(`Framework lock ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
 
         default:
           break;
       }
     },
-    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs],
+    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs, setFrameworkLock],
   );
 
   const features = {
@@ -212,7 +219,17 @@ export default function FeaturesTab() {
         tooltip: 'Enabled by default to record detailed logs of system events and user actions',
       },
     ],
-    beta: [],
+    beta: [
+      {
+        id: 'frameworkLock',
+        title: 'Framework Lock',
+        description: 'Keep the assistant aligned with the detected stack unless you ask to change it',
+        icon: 'i-ph:lock-closed',
+        enabled: frameworkLock,
+        beta: true,
+        tooltip: 'Uses package.json to detect the framework and keeps suggestions within that stack',
+      },
+    ],
   };
 
   return (

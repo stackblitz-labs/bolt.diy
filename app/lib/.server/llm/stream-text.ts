@@ -65,6 +65,7 @@ export async function streamText(props: {
   messageSliceId?: number;
   chatMode?: 'discuss' | 'build';
   designScheme?: DesignScheme;
+  frameworkHint?: string;
 }) {
   const {
     messages,
@@ -79,6 +80,7 @@ export async function streamText(props: {
     summary,
     chatMode,
     designScheme,
+    frameworkHint,
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -217,6 +219,16 @@ export async function streamText(props: {
     `;
   } else {
     console.log('No locked files found from any source for prompt.');
+  }
+
+  if (frameworkHint) {
+    systemPrompt = `${systemPrompt}
+
+    PROJECT FRAMEWORK (DETECTED):
+    ${sanitizeText(frameworkHint)}
+    IMPORTANT: Stay within this framework unless the user explicitly asks to change stacks.
+    ---
+    `;
   }
 
   logger.info(`Sending llm call to ${provider.name} with model ${modelDetails.name}`);
