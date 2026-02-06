@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { memo, useMemo } from 'react';
+import { toast } from 'react-toastify';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
@@ -80,6 +81,34 @@ export const EditorPanel = memo(
       return unsavedFiles instanceof Set && unsavedFiles.has(editorDocument.filePath);
     }, [editorDocument, unsavedFiles]);
 
+    const lockState = useMemo(() => {
+      if (!editorDocument) {
+        return { locked: false, lockedBy: undefined as string | undefined };
+      }
+
+      return workbenchStore.isFileLocked(editorDocument.filePath);
+    }, [editorDocument, files]);
+
+    const isLockedByFolder = Boolean(
+      editorDocument && lockState.locked && lockState.lockedBy && lockState.lockedBy !== editorDocument.filePath,
+    );
+
+    const toggleFileLock = () => {
+      if (!editorDocument) {
+        return;
+      }
+
+      if (lockState.locked) {
+        const success = workbenchStore.unlockFile(editorDocument.filePath);
+        toast[success ? 'success' : 'error'](success ? 'File unlocked' : 'Failed to unlock file');
+
+        return;
+      }
+
+      const success = workbenchStore.lockFile(editorDocument.filePath);
+      toast[success ? 'success' : 'error'](success ? 'File locked' : 'Failed to lock file');
+    };
+
     return (
       <PanelGroup direction="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
@@ -148,18 +177,28 @@ export const EditorPanel = memo(
                 {activeFileSegments?.length && (
                   <div className="flex items-center flex-1 text-sm">
                     <FileBreadcrumb pathSegments={activeFileSegments} files={files} onFileSelect={onFileSelect} />
-                    {activeFileUnsaved && (
-                      <div className="flex gap-1 ml-auto -mr-1.5">
-                        <PanelHeaderButton onClick={onFileSave}>
-                          <div className="i-ph:floppy-disk-duotone" />
-                          Save
-                        </PanelHeaderButton>
-                        <PanelHeaderButton onClick={onFileReset}>
-                          <div className="i-ph:clock-counter-clockwise-duotone" />
-                          Reset
-                        </PanelHeaderButton>
-                      </div>
-                    )}
+                    <div className="flex gap-1 ml-auto -mr-1.5">
+                      <PanelHeaderButton
+                        onClick={toggleFileLock}
+                        disabled={!editorDocument || isLockedByFolder}
+                        title={isLockedByFolder ? 'Locked by folder' : lockState.locked ? 'Unlock file' : 'Lock file'}
+                      >
+                        <div className={lockState.locked ? 'i-ph:lock-simple-duotone' : 'i-ph:lock-key-open-duotone'} />
+                        {lockState.locked ? 'Unlock' : 'Lock'}
+                      </PanelHeaderButton>
+                      {activeFileUnsaved && (
+                        <>
+                          <PanelHeaderButton onClick={onFileSave}>
+                            <div className="i-ph:floppy-disk-duotone" />
+                            Save
+                          </PanelHeaderButton>
+                          <PanelHeaderButton onClick={onFileReset}>
+                            <div className="i-ph:clock-counter-clockwise-duotone" />
+                            Reset
+                          </PanelHeaderButton>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </PanelHeader>
