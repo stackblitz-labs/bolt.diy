@@ -1,6 +1,7 @@
 import Cookies from 'js-cookie';
 import { type Message } from 'ai';
 import { getAllChats, deleteChat } from '~/lib/persistence/chats';
+import { clearAllProjectMemory } from '~/lib/persistence/projectMemory';
 
 interface ExtendedMessage extends Message {
   name?: string;
@@ -329,6 +330,8 @@ export class ImportExportService {
       await Promise.all(deletePromises);
     }
 
+    clearAllProjectMemory();
+
     // 4. Clear any chat snapshots
     const snapshotKeys = Object.keys(localStorage).filter((key) => key.startsWith('snapshot:'));
     snapshotKeys.forEach((key) => {
@@ -357,6 +360,7 @@ export class ImportExportService {
     const chats = await getAllChats(db);
     const deletePromises = chats.map((chat) => deleteChat(db, chat.id));
     await Promise.all(deletePromises);
+    clearAllProjectMemory();
   }
 
   // Private helper methods

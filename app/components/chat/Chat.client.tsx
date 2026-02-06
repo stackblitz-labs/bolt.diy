@@ -6,6 +6,8 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
+import { chatId } from '~/lib/persistence/useChatHistory';
+import { getProjectMemory, setProjectMemory as persistProjectMemory } from '~/lib/persistence/projectMemory';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
@@ -101,6 +103,9 @@ export const ChatImpl = memo(
     );
     const supabaseAlert = useStore(workbenchStore.supabaseAlert);
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
+    const currentChatId = useStore(chatId);
+    const [projectMemory, setProjectMemory] = useState('');
+    const skipNextProjectMemorySave = useRef(false);
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
     const [model, setModel] = useState(() => {
       const savedModel = Cookies.get('selectedModel');
@@ -116,6 +121,33 @@ export const ChatImpl = memo(
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
+
+    useEffect(() => {
+      if (!currentChatId) {
+        setProjectMemory('');
+        skipNextProjectMemorySave.current = false;
+
+        return;
+      }
+
+      skipNextProjectMemorySave.current = true;
+
+      const settings = getProjectMemory(currentChatId);
+      setProjectMemory(settings.memory);
+    }, [currentChatId]);
+
+    useEffect(() => {
+      if (!currentChatId) {
+        return;
+      }
+
+      if (skipNextProjectMemorySave.current) {
+        skipNextProjectMemorySave.current = false;
+        return;
+      }
+
+      persistProjectMemory(currentChatId, { memory: projectMemory });
+    }, [currentChatId, projectMemory]);
 
     const {
       messages,
@@ -140,6 +172,7 @@ export const ChatImpl = memo(
         contextOptimization: contextOptimizationEnabled,
         chatMode,
         designScheme,
+        projectMemory,
         supabase: {
           isConnected: supabaseConn.isConnected,
           hasSelectedProject: !!selectedProject,
@@ -344,7 +377,7 @@ export const ChatImpl = memo(
       ];
 
       // Add image parts if any
-      images.forEach((imageData) => {
+      images.filter(Boolean).forEach((imageData) => {
         // Extract correct MIME type from the data URL
         const mimeType = imageData.split(';')[0].split(':')[1] || 'image/jpeg';
 
@@ -643,6 +676,8 @@ export const ChatImpl = memo(
             apiKeys,
           );
         }}
+        projectMemory={projectMemory}
+        setProjectMemory={setProjectMemory}
         uploadedFiles={uploadedFiles}
         setUploadedFiles={setUploadedFiles}
         imageDataList={imageDataList}
