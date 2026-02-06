@@ -19,6 +19,7 @@ import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { McpTools } from './MCPTools';
+import { ProjectMemoryDialog } from './ProjectMemoryDialog';
 
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;
@@ -55,6 +56,8 @@ interface ChatBoxProps {
   handleStop?: (() => void) | undefined;
   enhancingPrompt?: boolean | undefined;
   enhancePrompt?: (() => void) | undefined;
+  projectMemory?: string;
+  setProjectMemory?: ((value: string) => void) | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   designScheme?: DesignScheme;
@@ -262,6 +265,13 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <div className="flex gap-1 items-center">
             <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
             <McpTools />
+            <ProjectMemoryDialog
+              memory={props.projectMemory}
+              onSave={(value) => {
+                props.setProjectMemory?.(value);
+                toast.success(value ? 'Project memory saved' : 'Project memory cleared');
+              }}
+            />
             <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
