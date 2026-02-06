@@ -59,6 +59,7 @@ export async function streamText(props: {
   files?: FileMap;
   providerSettings?: Record<string, IProviderSetting>;
   promptId?: string;
+  planMode?: boolean;
   contextOptimization?: boolean;
   contextFiles?: FileMap;
   summary?: string;
@@ -74,6 +75,7 @@ export async function streamText(props: {
     files,
     providerSettings,
     promptId,
+    planMode,
     contextOptimization,
     contextFiles,
     summary,
@@ -217,6 +219,16 @@ export async function streamText(props: {
     `;
   } else {
     console.log('No locked files found from any source for prompt.');
+  }
+
+  if (planMode) {
+    systemPrompt = `${systemPrompt}
+
+    PLANNING MODE:
+    - Before making code changes, create or update a PLAN.md file with a concise checklist of steps.
+    - Keep the plan scoped and actionable, and update it as steps are completed.
+    - After PLAN.md exists, proceed with the requested changes.
+    `;
   }
 
   logger.info(`Sending llm call to ${provider.name} with model ${modelDetails.name}`);

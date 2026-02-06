@@ -49,6 +49,8 @@ interface BaseChatProps {
   enhancingPrompt?: boolean;
   promptEnhanced?: boolean;
   input?: string;
+  planMode?: boolean;
+  setPlanMode?: (enabled: boolean) => void;
   model?: string;
   setModel?: (model: string) => void;
   provider?: ProviderInfo;
@@ -97,6 +99,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setProvider,
       providerList,
       input = '',
+      planMode,
+      setPlanMode,
       enhancingPrompt,
       handleInputChange,
 
@@ -442,6 +446,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   setImageDataList={setImageDataList}
                   textareaRef={textareaRef}
                   input={input}
+                  planMode={planMode}
+                  setPlanMode={setPlanMode}
                   handleInputChange={handleInputChange}
                   handlePaste={handlePaste}
                   TEXTAREA_MIN_HEIGHT={TEXTAREA_MIN_HEIGHT}
