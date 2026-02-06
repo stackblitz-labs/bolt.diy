@@ -185,14 +185,17 @@ export const ScreenshotSelector = memo(
             // Get the setters from the BaseChat component
             const setUploadedFiles = (window as any).__BOLT_SET_UPLOADED_FILES__;
             const setImageDataList = (window as any).__BOLT_SET_IMAGE_DATA_LIST__;
+            const setAttachmentTextList = (window as any).__BOLT_SET_ATTACHMENT_TEXT_LIST__;
             const uploadedFiles = (window as any).__BOLT_UPLOADED_FILES__ || [];
             const imageDataList = (window as any).__BOLT_IMAGE_DATA_LIST__ || [];
+            const attachmentTextList = (window as any).__BOLT_ATTACHMENT_TEXT_LIST__ || [];
 
-            if (setUploadedFiles && setImageDataList) {
+            if (setUploadedFiles && setImageDataList && setAttachmentTextList) {
               // Update the files and image data
               const file = new File([blob], 'screenshot.png', { type: 'image/png' });
               setUploadedFiles([...uploadedFiles, file]);
               setImageDataList([...imageDataList, base64Image]);
+              setAttachmentTextList([...attachmentTextList, '']);
               toast.success('Screenshot captured and added to chat');
             } else {
               toast.error('Could not add screenshot to chat');

@@ -19,6 +19,16 @@ import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { McpTools } from './MCPTools';
+import {
+  MAX_ATTACHMENT_BYTES,
+  MAX_ATTACHMENT_TEXT_CHARS,
+  isSupportedAttachment,
+  isImageFile,
+  isPdfFile,
+  readFileAsDataUrl,
+  readFileAsText,
+  readPdfAsText,
+} from './uploadUtils';
 
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;
@@ -31,6 +41,7 @@ interface ChatBoxProps {
   onApiKeysChange: (providerName: string, apiKey: string) => void;
   uploadedFiles: File[];
   imageDataList: string[];
+  attachmentTextList: string[];
   textareaRef: React.RefObject<HTMLTextAreaElement> | undefined;
   input: string;
   handlePaste: (e: React.ClipboardEvent) => void;
@@ -51,6 +62,7 @@ interface ChatBoxProps {
   setModel?: ((model: string) => void) | undefined;
   setUploadedFiles?: ((files: File[]) => void) | undefined;
   setImageDataList?: ((dataList: string[]) => void) | undefined;
+  setAttachmentTextList?: ((dataList: string[]) => void) | undefined;
   handleInputChange?: ((event: React.ChangeEvent<HTMLTextAreaElement>) => void) | undefined;
   handleStop?: (() => void) | undefined;
   enhancingPrompt?: boolean | undefined;
@@ -138,6 +150,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         onRemove={(index) => {
           props.setUploadedFiles?.(props.uploadedFiles.filter((_, i) => i !== index));
           props.setImageDataList?.(props.imageDataList.filter((_, i) => i !== index));
+          props.setAttachmentTextList?.(props.attachmentTextList.filter((_, i) => i !== index));
         }}
       />
       <ClientOnly>
@@ -145,8 +158,10 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <ScreenshotStateManager
             setUploadedFiles={props.setUploadedFiles}
             setImageDataList={props.setImageDataList}
+            setAttachmentTextList={props.setAttachmentTextList}
             uploadedFiles={props.uploadedFiles}
             imageDataList={props.imageDataList}
+            attachmentTextList={props.attachmentTextList}
           />
         )}
       </ClientOnly>
@@ -193,18 +208,62 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
 
             const files = Array.from(e.dataTransfer.files);
-            files.forEach((file) => {
-              if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
+            const uploads: Array<{ file: File; imageData?: string; textData?: string }> = [];
 
-                reader.onload = (e) => {
-                  const base64Image = e.target?.result as string;
-                  props.setUploadedFiles?.([...props.uploadedFiles, file]);
-                  props.setImageDataList?.([...props.imageDataList, base64Image]);
-                };
-                reader.readAsDataURL(file);
+            files.forEach((file) => {
+              if (file.size > MAX_ATTACHMENT_BYTES) {
+                toast.error(`\"${file.name}\" exceeds the ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)}MB limit`);
+                return;
               }
+
+              if (!isSupportedAttachment(file)) {
+                toast.error(`\"${file.name}\" is not a supported attachment type`);
+                return;
+              }
+
+              uploads.push({ file });
             });
+
+            if (!uploads.length) {
+              return;
+            }
+
+            Promise.all(
+              uploads.map(async (item) => {
+                let imageData: string | undefined;
+                let textData: string | undefined;
+
+                if (isImageFile(item.file)) {
+                  imageData = await readFileAsDataUrl(item.file);
+                } else if (isPdfFile(item.file)) {
+                  textData = await readPdfAsText(item.file);
+                } else {
+                  textData = await readFileAsText(item.file);
+                }
+
+                if (textData && textData.length > MAX_ATTACHMENT_TEXT_CHARS) {
+                  textData = textData.slice(0, MAX_ATTACHMENT_TEXT_CHARS);
+                }
+
+                return {
+                  ...item,
+                  imageData: imageData || '',
+                  textData,
+                };
+              }),
+            )
+              .then((resolved) => {
+                props.setUploadedFiles?.([...props.uploadedFiles, ...resolved.map((item) => item.file)]);
+                props.setImageDataList?.([...props.imageDataList, ...resolved.map((item) => item.imageData || '')]);
+                props.setAttachmentTextList?.([
+                  ...props.attachmentTextList,
+                  ...resolved.map((item) => item.textData || ''),
+                ]);
+              })
+              .catch((error) => {
+                console.error('Failed to read dropped files', error);
+                toast.error('Failed to read one or more dropped files');
+              });
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
