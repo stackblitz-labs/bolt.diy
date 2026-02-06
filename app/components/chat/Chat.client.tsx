@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
 import { chatId } from '~/lib/persistence/useChatHistory';
-import { getProjectSettings, setProjectSettings } from '~/lib/persistence/projectSettings';
+import { getProjectMemory, setProjectMemory as persistProjectMemory } from '~/lib/persistence/projectMemory';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
@@ -105,7 +105,7 @@ export const ChatImpl = memo(
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
     const currentChatId = useStore(chatId);
     const [projectMemory, setProjectMemory] = useState('');
-    const skipNextProjectSettingsSave = useRef(false);
+    const skipNextProjectMemorySave = useRef(false);
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
     const [model, setModel] = useState(() => {
       const savedModel = Cookies.get('selectedModel');
@@ -125,14 +125,14 @@ export const ChatImpl = memo(
     useEffect(() => {
       if (!currentChatId) {
         setProjectMemory('');
-        skipNextProjectSettingsSave.current = false;
+        skipNextProjectMemorySave.current = false;
 
         return;
       }
 
-      skipNextProjectSettingsSave.current = true;
+      skipNextProjectMemorySave.current = true;
 
-      const settings = getProjectSettings(currentChatId);
+      const settings = getProjectMemory(currentChatId);
       setProjectMemory(settings.memory);
     }, [currentChatId]);
 
@@ -141,12 +141,12 @@ export const ChatImpl = memo(
         return;
       }
 
-      if (skipNextProjectSettingsSave.current) {
-        skipNextProjectSettingsSave.current = false;
+      if (skipNextProjectMemorySave.current) {
+        skipNextProjectMemorySave.current = false;
         return;
       }
 
-      setProjectSettings(currentChatId, { memory: projectMemory });
+      persistProjectMemory(currentChatId, { memory: projectMemory });
     }, [currentChatId, projectMemory]);
 
     const {

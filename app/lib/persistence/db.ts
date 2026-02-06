@@ -1,5 +1,5 @@
 import type { Message } from 'ai';
-import { clearProjectSettings } from './projectSettings';
+import { clearProjectMemory } from './projectMemory';
 import { createScopedLogger } from '~/utils/logger';
 import type { ChatHistoryItem } from './useChatHistory';
 import type { Snapshot } from './types'; // Import Snapshot type
@@ -136,7 +136,7 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
 
     const checkCompletion = () => {
       if (chatDeleted && snapshotDeleted) {
-        clearProjectSettings(id);
+        clearProjectMemory(id);
         resolve(undefined);
       }
     };

@@ -4,7 +4,7 @@
 
 import type { Message } from 'ai';
 import type { IChatMetadata } from './db'; // Import IChatMetadata
-import { clearProjectSettings } from './projectSettings';
+import { clearProjectMemory } from './projectMemory';
 
 export interface ChatMessage {
   id: string;
@@ -110,7 +110,7 @@ export async function deleteChat(db: IDBDatabase, id: string): Promise<void> {
     const request = store.delete(id);
 
     request.onsuccess = () => {
-      clearProjectSettings(id);
+      clearProjectMemory(id);
       resolve();
     };
 

@@ -1,34 +1,34 @@
 import { getLocalStorage, setLocalStorage } from './localStorage';
 
-const PROJECT_SETTINGS_PREFIX = 'bolt_project_settings';
+const PROJECT_MEMORY_PREFIX = 'bolt_project_memory';
 const isClient = typeof window !== 'undefined' && typeof localStorage !== 'undefined';
 
-export interface ProjectSettings {
+export interface ProjectMemory {
   memory: string;
 }
 
-const defaultSettings: ProjectSettings = {
+const defaultMemory: ProjectMemory = {
   memory: '',
 };
 
 function buildKey(chatId?: string) {
-  return chatId ? `${PROJECT_SETTINGS_PREFIX}:${chatId}` : undefined;
+  return chatId ? `${PROJECT_MEMORY_PREFIX}:${chatId}` : undefined;
 }
 
-export function getProjectSettings(chatId?: string): ProjectSettings {
+export function getProjectMemory(chatId?: string): ProjectMemory {
   if (!chatId) {
-    return { ...defaultSettings };
+    return { ...defaultMemory };
   }
 
   const stored = getLocalStorage(buildKey(chatId) as string);
 
   return {
-    ...defaultSettings,
+    ...defaultMemory,
     ...(stored || {}),
   };
 }
 
-export function setProjectSettings(chatId: string | undefined, updates: Partial<ProjectSettings>): void {
+export function setProjectMemory(chatId: string | undefined, updates: Partial<ProjectMemory>): void {
   if (!chatId) {
     return;
   }
@@ -39,11 +39,11 @@ export function setProjectSettings(chatId: string | undefined, updates: Partial<
     return;
   }
 
-  const current = getProjectSettings(chatId);
+  const current = getProjectMemory(chatId);
   setLocalStorage(key, { ...current, ...updates });
 }
 
-export function clearProjectSettings(chatId: string | undefined): void {
+export function clearProjectMemory(chatId: string | undefined): void {
   if (!chatId || !isClient) {
     return;
   }
@@ -57,22 +57,22 @@ export function clearProjectSettings(chatId: string | undefined): void {
   try {
     localStorage.removeItem(key);
   } catch (error) {
-    console.error(`Error clearing project settings for chat "${chatId}":`, error);
+    console.error(`Error clearing project memory for chat "${chatId}":`, error);
   }
 }
 
-export function clearAllProjectSettings(): void {
+export function clearAllProjectMemory(): void {
   if (!isClient) {
     return;
   }
 
   try {
     Object.keys(localStorage)
-      .filter((key) => key.startsWith(`${PROJECT_SETTINGS_PREFIX}:`))
+      .filter((key) => key.startsWith(`${PROJECT_MEMORY_PREFIX}:`))
       .forEach((key) => {
         localStorage.removeItem(key);
       });
   } catch (error) {
-    console.error('Error clearing project settings:', error);
+    console.error('Error clearing project memory:', error);
   }
 }
