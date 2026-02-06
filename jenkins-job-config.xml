@@ -1,0 +1,184 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <description>GameChanger CI/CD Pipeline - Automated build and test for the AI-Powered Video Game Development Platform</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.coravy.hudson.plugins.github.GitHubProjectProperty plugin="github@1.37.3.1">
+      <projectUrl>https://github.com/your-org/gamechanger/</projectUrl>
+      <displayName></displayName>
+    </com.coravy.hudson.plugins.github.GitHubProjectProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>NODE_VERSION</name>
+          <description>Node.js version to use</description>
+          <defaultValue>20</defaultValue>
+          <trim>false</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PNPM_VERSION</name>
+          <description>pnpm version to use</description>
+          <defaultValue>9</defaultValue>
+          <trim>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+          <name>RUN_DOCKER_BUILD</name>
+          <description>Whether to validate Docker builds</description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>RUN_ELECTRON_BUILD</name>
+          <description>Whether to build Electron packages (main branch only)</description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+        <com.cloudbees.jenkins.GitHubBranchSourcePlugin plugin="github@1.37.3.1">
+          <triggers>
+            <com.cloudbees.jenkins.GitHubPushTrigger plugin="github@1.37.3.1">
+              <id></id>
+            </com.cloudbees.jenkins.GitHubPushTrigger>
+          </triggers>
+        </com.cloudbees.jenkins.GitHubBranchSourcePlugin>
+        <hudson.triggers.TimerTrigger>
+          <spec>H 0 * * *</spec>
+        </hudson.triggers.TimerTrigger>
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <assignedNode>docker-agent</assignedNode>
+  <quietPeriod>5</quietPeriod>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <jdk></jdk>
+  <troncat></troncat>
+  <slaveAgentPort>-1</slaveAgentPort>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@5.2.2">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>https://github.com/your-org/gamechanger.git</url>
+        <credentialsId>github-credentials</credentialsId>
+        <refspec></refspec>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>*/main</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions/>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <com.cloudbees.jenkins.GitHubBranchSourcePlugin plugin="github@1.37.3.1">
+      <triggers>
+        <com.cloudbees.jenkins.GitHubPushTrigger plugin="github@1.37.3.1"/>
+      </triggers>
+    </com.cloudbees.jenkins.GitHubBranchSourcePlugin>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.plugins.pipelinebuildstep.PipelineBuilder plugin="pipeline-build-step@2.18">
+      <script>pipeline {
+    agent any
+
+    environment {
+        NODE_VERSION = '20'
+        PNPM_VERSION = '9'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup Node.js') {
+            steps {
+                nvm(nodeVersion: NODE_VERSION) {
+                    sh 'node --version'
+                    sh 'npm install -g pnpm@${PNPM_VERSION}'
+                    sh 'pnpm --version'
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'pnpm install --frozen-lockfile'
+            }
+        }
+
+        stage('Type Check') {
+            steps {
+                sh 'pnpm run typecheck'
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                sh 'pnpm run lint'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'pnpm run test'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'pnpm run build'
+            }
+        }
+    }
+}</script>
+      <sandbox>true</sandbox>
+    </hudson.plugins.pipelinebuildstep.PipelineBuilder>
+  </builders>
+  <publishers>
+    <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.60">
+      <testResults>junit.xml</testResults>
+      <healthScaleFactor>1.0</healthScaleFactor>
+      <allowEmptyResults>true</allowEmptyResults>
+    </hudson.tasks.junit.JUnitResultArchiver>
+    <hudson.plugins.htmlpublisher.HtmlPublisher plugin="htmlpublisher@1.33">
+      <reportTargets>
+        <hudson.plugins.htmlpublisher.PublisherTarget>
+          <reportName>Coverage Report</reportName>
+          <reportDir>coverage</reportDir>
+          <reportFiles>index.html</reportFiles>
+          <alwaysLinkToLastBuild>true</alwaysLinkToLastBuild>
+          <keepAll>false</keepAll>
+        </hudson.plugins.htmlpublisher.PublisherTarget>
+      </reportTargets>
+    </hudson.plugins.htmlpublisher.HtmlPublisher>
+    <hudson.tasks.BuildTrigger>
+      <childProjects></childProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</name>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </threshold>
+    </hudson.tasks.BuildTrigger>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.build timeout>
+      <strategy class="hudson.plugins.build timeout.LinearTimeOutStrategy">
+        <timeout>30</timeout>
+        <timeoutType>MINUTES</timeout>
+      </strategy>
+    </hudson.plugins.build>
+  </buildWrappers>
+</project>
+
