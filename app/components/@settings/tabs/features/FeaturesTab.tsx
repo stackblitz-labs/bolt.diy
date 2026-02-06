@@ -111,12 +111,14 @@ export default function FeaturesTab() {
     isLatestBranch,
     contextOptimizationEnabled,
     eventLogs,
+    autoPromptOptimization,
     setAutoSelectTemplate,
     enableLatestBranch,
     enableContextOptimization,
     setEventLogs,
     setPromptId,
     promptId,
+    setAutoPromptOptimization,
   } = useSettings();
 
   // Enable features by default on first load
@@ -140,6 +142,10 @@ export default function FeaturesTab() {
 
     if (eventLogs === undefined) {
       setEventLogs(true); // Default: ON - Enable event logging
+    }
+
+    if (autoPromptOptimization === undefined) {
+      setAutoPromptOptimization(true); // Default: ON - Optimize prompts for smaller models
     }
   }, []); // Only run once on component mount
 
@@ -169,12 +175,17 @@ export default function FeaturesTab() {
           toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
           break;
         }
+        case 'autoPromptOptimization': {
+          setAutoPromptOptimization(enabled);
+          toast.success(`Auto prompt optimization ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
 
         default:
           break;
       }
     },
-    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs],
+    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs, setAutoPromptOptimization],
   );
 
   const features = {
@@ -210,6 +221,14 @@ export default function FeaturesTab() {
         icon: 'i-ph:list-bullets',
         enabled: eventLogs,
         tooltip: 'Enabled by default to record detailed logs of system events and user actions',
+      },
+      {
+        id: 'autoPromptOptimization',
+        title: 'Auto Prompt Optimization',
+        description: 'Use optimized prompts for smaller models automatically',
+        icon: 'i-ph:magic-wand',
+        enabled: autoPromptOptimization,
+        tooltip: 'Enabled by default to keep prompts concise for smaller context windows',
       },
     ],
     beta: [],

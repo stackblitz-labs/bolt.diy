@@ -59,6 +59,7 @@ export async function streamText(props: {
   files?: FileMap;
   providerSettings?: Record<string, IProviderSetting>;
   promptId?: string;
+  autoPromptOptimization?: boolean;
   contextOptimization?: boolean;
   contextFiles?: FileMap;
   summary?: string;
@@ -74,6 +75,7 @@ export async function streamText(props: {
     files,
     providerSettings,
     promptId,
+    autoPromptOptimization,
     contextOptimization,
     contextFiles,
     summary,
@@ -149,8 +151,15 @@ export async function streamText(props: {
     `Token limits for model ${modelDetails.name}: maxTokens=${safeMaxTokens}, maxTokenAllowed=${modelDetails.maxTokenAllowed}, maxCompletionTokens=${modelDetails.maxCompletionTokens}`,
   );
 
+  const shouldAutoOptimize =
+    !!autoPromptOptimization &&
+    (promptId === undefined || promptId === 'default') &&
+    !!modelDetails?.maxTokenAllowed &&
+    modelDetails.maxTokenAllowed <= 16000;
+  const effectivePromptId = shouldAutoOptimize ? 'optimized' : promptId;
+
   let systemPrompt =
-    PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
+    PromptLibrary.getPropmtFromLibrary(effectivePromptId || 'default', {
       cwd: WORK_DIR,
       allowedHtmlElements: allowedHTMLElements,
       modificationTagName: MODIFICATIONS_TAG_NAME,
@@ -161,6 +170,10 @@ export async function streamText(props: {
         credentials: options?.supabaseConnection?.credentials || undefined,
       },
     }) ?? getSystemPrompt();
+
+  if (shouldAutoOptimize) {
+    logger.info(`Auto prompt optimization enabled: using optimized prompt for ${modelDetails?.name}`);
+  }
 
   if (chatMode === 'build' && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);
