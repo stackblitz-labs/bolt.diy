@@ -7,6 +7,7 @@ import { path } from '~/utils/path';
 import { useState } from 'react';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { chatId } from '~/lib/persistence/useChatHistory';
+import { formatBuildFailureOutput } from './deployUtils';
 
 export function useNetlifyDeploy() {
   const [isDeploying, setIsDeploying] = useState(false);
@@ -65,10 +66,12 @@ export function useNetlifyDeploy() {
       // Then run it
       await artifact.runner.runAction(actionData);
 
-      if (!artifact.runner.buildOutput) {
+      const buildOutput = artifact.runner.buildOutput;
+
+      if (!buildOutput || buildOutput.exitCode !== 0) {
         // Notify that build failed
         deployArtifact.runner.handleDeployAction('building', 'failed', {
-          error: 'Build failed. Check the terminal for details.',
+          error: formatBuildFailureOutput(buildOutput?.output),
           source: 'netlify',
         });
         throw new Error('Build failed');
@@ -81,7 +84,7 @@ export function useNetlifyDeploy() {
       const container = await webcontainer;
 
       // Remove /home/project from buildPath if it exists
-      const buildPath = artifact.runner.buildOutput.path.replace('/home/project', '');
+      const buildPath = buildOutput.path.replace('/home/project', '');
 
       console.log('Original buildPath', buildPath);
 

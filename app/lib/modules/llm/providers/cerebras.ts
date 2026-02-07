@@ -2,43 +2,59 @@ import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
 import type { LanguageModelV1 } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createCerebras } from '@ai-sdk/cerebras';
 
-export default class MoonshotProvider extends BaseProvider {
-  name = 'Moonshot';
-  getApiKeyLink = 'https://platform.moonshot.ai/console/api-keys';
+export default class CerebrasProvider extends BaseProvider {
+  name = 'Cerebras';
+  getApiKeyLink = 'https://cloud.cerebras.ai/settings';
 
   config = {
-    apiTokenKey: 'MOONSHOT_API_KEY',
+    apiTokenKey: 'CEREBRAS_API_KEY',
   };
 
   staticModels: ModelInfo[] = [
-    { name: 'moonshot-v1-8k', label: 'Moonshot v1 8K', provider: 'Moonshot', maxTokenAllowed: 8000 },
-    { name: 'moonshot-v1-32k', label: 'Moonshot v1 32K', provider: 'Moonshot', maxTokenAllowed: 32000 },
-    { name: 'moonshot-v1-128k', label: 'Moonshot v1 128K', provider: 'Moonshot', maxTokenAllowed: 128000 },
-    { name: 'moonshot-v1-auto', label: 'Moonshot v1 Auto', provider: 'Moonshot', maxTokenAllowed: 128000 },
     {
-      name: 'moonshot-v1-8k-vision-preview',
-      label: 'Moonshot v1 8K Vision',
-      provider: 'Moonshot',
+      name: 'qwen3-coder-480b',
+      label: 'Qwen3-Coder 480B (2000 tok/s, Best for Coding)',
+      provider: 'Cerebras',
+      maxTokenAllowed: 262000,
+    },
+    {
+      name: 'llama3.1-8b',
+      label: 'Llama 3.1 8B',
+      provider: 'Cerebras',
       maxTokenAllowed: 8000,
     },
     {
-      name: 'moonshot-v1-32k-vision-preview',
-      label: 'Moonshot v1 32K Vision',
-      provider: 'Moonshot',
-      maxTokenAllowed: 32000,
+      name: 'gpt-oss-120b',
+      label: 'GPT OSS 120B (Reasoning)',
+      provider: 'Cerebras',
+      maxTokenAllowed: 8000,
     },
     {
-      name: 'moonshot-v1-128k-vision-preview',
-      label: 'Moonshot v1 128K Vision',
-      provider: 'Moonshot',
-      maxTokenAllowed: 128000,
+      name: 'qwen-3-235b-a22b-instruct-2507',
+      label: 'Qwen 3 235B A22B Instruct',
+      provider: 'Cerebras',
+      maxTokenAllowed: 8000,
     },
-    { name: 'kimi-latest', label: 'Kimi Latest', provider: 'Moonshot', maxTokenAllowed: 128000 },
-    { name: 'kimi-k2-0711-preview', label: 'Kimi K2 Preview', provider: 'Moonshot', maxTokenAllowed: 128000 },
-    { name: 'kimi-k2-turbo-preview', label: 'Kimi K2 Turbo', provider: 'Moonshot', maxTokenAllowed: 128000 },
-    { name: 'kimi-thinking-preview', label: 'Kimi Thinking', provider: 'Moonshot', maxTokenAllowed: 128000 },
+    {
+      name: 'qwen-3-235b-a22b-thinking-2507',
+      label: 'Qwen 3 235B A22B Thinking',
+      provider: 'Cerebras',
+      maxTokenAllowed: 8000,
+    },
+    {
+      name: 'zai-glm-4.6',
+      label: 'ZAI GLM 4.6 (Coding: 73.8% SWE-bench)',
+      provider: 'Cerebras',
+      maxTokenAllowed: 8000,
+    },
+    {
+      name: 'zai-glm-4.7',
+      label: 'ZAI GLM 4.7 (Reasoning)',
+      provider: 'Cerebras',
+      maxTokenAllowed: 8000,
+    },
   ];
 
   async getDynamicModels(
@@ -51,7 +67,7 @@ export default class MoonshotProvider extends BaseProvider {
       providerSettings: settings,
       serverEnv: serverEnv as any,
       defaultBaseUrlKey: '',
-      defaultApiTokenKey: 'MOONSHOT_API_KEY',
+      defaultApiTokenKey: 'CEREBRAS_API_KEY',
     });
 
     if (!apiKey) {
@@ -59,7 +75,7 @@ export default class MoonshotProvider extends BaseProvider {
     }
 
     try {
-      const response = await fetch('https://api.moonshot.ai/v1/models', {
+      const response = await fetch('https://api.cerebras.ai/v1/models', {
         headers: {
           Authorization: `Bearer ${apiKey}`,
         },
@@ -67,7 +83,7 @@ export default class MoonshotProvider extends BaseProvider {
       });
 
       if (!response.ok) {
-        console.error(`Moonshot API error: ${response.statusText}`);
+        console.error(`Cerebras API error: ${response.statusText}`);
         return [];
       }
 
@@ -82,12 +98,12 @@ export default class MoonshotProvider extends BaseProvider {
             name: m.id,
             label: `${m.id} (Dynamic)`,
             provider: this.name,
-            maxTokenAllowed: 128000, // Kimi models typically have large context
+            maxTokenAllowed: 32000, // Default, Cerebras typically has good context
           })) || [];
 
       return dynamicModels;
     } catch (error) {
-      console.error(`Failed to fetch Moonshot models:`, error);
+      console.error(`Failed to fetch Cerebras models:`, error);
       return [];
     }
   }
@@ -105,18 +121,17 @@ export default class MoonshotProvider extends BaseProvider {
       providerSettings: providerSettings?.[this.name],
       serverEnv: serverEnv as any,
       defaultBaseUrlKey: '',
-      defaultApiTokenKey: 'MOONSHOT_API_KEY',
+      defaultApiTokenKey: 'CEREBRAS_API_KEY',
     });
 
     if (!apiKey) {
       throw new Error(`Missing API key for ${this.name} provider`);
     }
 
-    const openai = createOpenAI({
-      baseURL: 'https://api.moonshot.ai/v1',
+    const cerebras = createCerebras({
       apiKey,
     });
 
-    return openai(model);
+    return cerebras(model);
   }
 }

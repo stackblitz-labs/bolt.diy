@@ -7,6 +7,7 @@ import { useState } from 'react';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { getLocalStorage } from '~/lib/persistence/localStorage';
+import { formatBuildFailureOutput } from './deployUtils';
 
 export function useGitHubDeploy() {
   const [isDeploying, setIsDeploying] = useState(false);
@@ -65,10 +66,12 @@ export function useGitHubDeploy() {
       // Then run it
       await artifact.runner.runAction(actionData);
 
-      if (!artifact.runner.buildOutput) {
+      const buildOutput = artifact.runner.buildOutput;
+
+      if (!buildOutput || buildOutput.exitCode !== 0) {
         // Notify that build failed
         deployArtifact.runner.handleDeployAction('building', 'failed', {
-          error: 'Build failed. Check the terminal for details.',
+          error: formatBuildFailureOutput(buildOutput?.output),
           source: 'github',
         });
         throw new Error('Build failed');

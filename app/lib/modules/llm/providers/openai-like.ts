@@ -2,6 +2,11 @@ import { BaseProvider, getOpenAILikeModel } from '~/lib/modules/llm/base-provide
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
 import type { LanguageModelV1 } from 'ai';
+import { logger } from '~/utils/logger';
+
+interface OpenAIModelsResponse {
+  data: Array<{ id: string }>;
+}
 
 export default class OpenAILikeProvider extends BaseProvider {
   name = 'OpenAILike';
@@ -37,29 +42,31 @@ export default class OpenAILikeProvider extends BaseProvider {
         headers: {
           Authorization: `Bearer ${apiKey}`,
         },
+        signal: this.createTimeoutSignal(),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const res = (await response.json()) as any;
+      const res = (await response.json()) as OpenAIModelsResponse;
 
-      return res.data.map((model: any) => ({
+      return res.data.map((model) => ({
         name: model.id,
         label: model.id,
         provider: this.name,
         maxTokenAllowed: 8000,
       }));
     } catch (error) {
-      console.log(`${this.name}: Not allowed to GET /models endpoint for provider`, error);
+      logger.info(`${this.name}: Could not fetch /models endpoint, checking fallback env`, error);
 
       // Fallback to OPENAI_LIKE_API_MODELS if available
       // eslint-disable-next-line dot-notation
       const modelsEnv = serverEnv['OPENAI_LIKE_API_MODELS'] || settings?.OPENAI_LIKE_API_MODELS;
 
       if (modelsEnv) {
-        console.log(`${this.name}: OPENAI_LIKE_API_MODELS=${modelsEnv}`);
+        logger.info(`${this.name}: Using OPENAI_LIKE_API_MODELS fallback`);
+
         return this._parseModelsFromEnv(modelsEnv);
       }
 
@@ -107,11 +114,11 @@ export default class OpenAILikeProvider extends BaseProvider {
         });
       }
 
-      console.log(`${this.name}: Parsed Models:`, models);
+      logger.info(`${this.name}: Parsed ${models.length} models from env`);
 
       return models;
     } catch (error) {
-      console.error(`${this.name}: Error parsing OPENAI_LIKE_API_MODELS:`, error);
+      logger.error(`${this.name}: Error parsing OPENAI_LIKE_API_MODELS:`, error);
       return [];
     }
   }
@@ -149,11 +156,12 @@ export default class OpenAILikeProvider extends BaseProvider {
     providerSettings?: Record<string, IProviderSetting>;
   }): LanguageModelV1 {
     const { model, serverEnv, apiKeys, providerSettings } = options;
+    const envRecord = this.convertEnvToRecord(serverEnv);
 
     const { baseUrl, apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
       providerSettings: providerSettings?.[this.name],
-      serverEnv: serverEnv as any,
+      serverEnv: envRecord,
       defaultBaseUrlKey: 'OPENAI_LIKE_API_BASE_URL',
       defaultApiTokenKey: 'OPENAI_LIKE_API_KEY',
     });
