@@ -13,6 +13,7 @@ dotenv.config();
 
 export default defineConfig((config) => {
   return {
+    base: process.env.VITE_BASE_PATH || '/',
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
@@ -45,6 +46,7 @@ export default defineConfig((config) => {
       },
       config.mode !== 'test' && remixCloudflareDevProxy(),
       remixVitePlugin({
+        basename: process.env.VITE_BASE_PATH || '/',
         future: {
           v3_fetcherPersist: true,
           v3_relativeSplatPath: true,

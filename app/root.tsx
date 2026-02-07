@@ -25,7 +25,12 @@ const toastAnimation = cssTransition({
 export const links: LinksFunction = () => [
   {
     rel: 'icon',
-    href: '/favicon.svg',
+    href: (() => {
+      const envBasePath = typeof window !== 'undefined' ? import.meta.env.VITE_BASE_PATH : process.env.VITE_BASE_PATH;
+      const basePath = envBasePath ? (envBasePath.endsWith('/') ? envBasePath : envBasePath + '/') : '/';
+
+      return `${basePath}favicon.svg`;
+    })(),
     type: 'image/svg+xml',
   },
   { rel: 'stylesheet', href: reactToastifyStyles },

@@ -117,6 +117,8 @@ export const ChatImpl = memo(
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
 
+    const envBasePath = import.meta.env.VITE_BASE_PATH;
+    const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
     const {
       messages,
       isLoading,
@@ -132,7 +134,7 @@ export const ChatImpl = memo(
       setData,
       addToolResult,
     } = useChat({
-      api: '/api/chat',
+      api: `${basePath}/api/chat`.replace(/\/+/g, '/'),
       body: {
         apiKeys,
         files,

@@ -34,7 +34,11 @@ if (!import.meta.env.SSR) {
 
         const { workbenchStore } = await import('~/lib/stores/workbench');
 
-        const response = await fetch('/inspector-script.js');
+        // Ensure asset URLs always start with a leading slash
+        const envBasePath = import.meta.env.VITE_BASE_PATH;
+        const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+        const assetUrl = (file: string) => `${basePath}/${file}`.replace(/\/+/g, '/');
+        const response = await fetch(assetUrl('inspector-script.js'));
         const inspectorScript = await response.text();
         await webcontainer.setPreviewScript(inspectorScript);
 

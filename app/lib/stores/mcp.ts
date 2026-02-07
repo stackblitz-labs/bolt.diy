@@ -84,7 +84,7 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
     }
   },
   checkServersAvailabilities: async () => {
-    const response = await fetch('/api/mcp-check', {
+    const response = await fetch(`${import.meta.env.VITE_BASE_PATH || ''}/api/mcp-check`, {
       method: 'GET',
     });
 
@@ -99,7 +99,10 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
 }));
 
 async function updateServerConfig(config: MCPConfig) {
-  const response = await fetch('/api/mcp-update-config', {
+  const envBasePath = import.meta.env.VITE_BASE_PATH;
+  const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+  const apiUrl = `${basePath}/api/mcp-update-config`.replace(/\/+/g, '/');
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),

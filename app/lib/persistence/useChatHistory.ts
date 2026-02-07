@@ -145,7 +145,7 @@ ${value.content}
                       }
                     })
                     .join('\n')}
-                  ${commandActionsString} 
+                  ${commandActionsString}
                   </boltArtifact>
                   `, // Added commandActionsString, followupMessage, updated id and title
                   annotations: [
@@ -349,7 +349,11 @@ ${value.content}
 
       try {
         const newId = await duplicateChat(db, mixedId || listItemId);
-        navigate(`/chat/${newId}`);
+        const basePath =
+          import.meta.env.VITE_BASE_PATH && import.meta.env.VITE_BASE_PATH !== '/'
+            ? import.meta.env.VITE_BASE_PATH.replace(/\/$/, '')
+            : '';
+        navigate(`${basePath}/chat/${newId}`);
         toast.success('Chat duplicated successfully');
       } catch (error) {
         toast.error('Failed to duplicate chat');
@@ -363,7 +367,11 @@ ${value.content}
 
       try {
         const newId = await createChatFromMessages(db, description, messages, metadata);
-        window.location.href = `/chat/${newId}`;
+        const basePath =
+          import.meta.env.VITE_BASE_PATH && import.meta.env.VITE_BASE_PATH !== '/'
+            ? import.meta.env.VITE_BASE_PATH.replace(/\/$/, '')
+            : '';
+        window.location.href = `${basePath}/chat/${newId}`;
         toast.success('Chat imported successfully');
       } catch (error) {
         if (error instanceof Error) {
@@ -404,8 +412,10 @@ function navigateChat(nextId: string) {
    *
    * `navigate(`/chat/${nextId}`, { replace: true });`
    */
+  const envBasePath = import.meta.env.VITE_BASE_PATH;
+  const basePath = envBasePath && envBasePath !== '/' ? envBasePath.replace(/\/$/, '') : '';
   const url = new URL(window.location.href);
-  url.pathname = `/chat/${nextId}`;
+  url.pathname = `${basePath}/chat/${nextId}`;
 
   window.history.replaceState({}, '', url);
 }

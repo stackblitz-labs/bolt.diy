@@ -214,7 +214,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         setIsModelLoading('all');
-        fetch('/api/models')
+
+        const envBasePath = import.meta.env.VITE_BASE_PATH;
+        const basePath = envBasePath ? (envBasePath.startsWith('/') ? envBasePath : '/' + envBasePath) : '';
+        const apiUrl = `${basePath}/api/models`.replace(/\/+/g, '/');
+        fetch(apiUrl)
           .then((response) => response.json())
           .then((data) => {
             const typedData = data as { modelList: ModelInfo[] };
@@ -239,7 +243,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       let providerModels: ModelInfo[] = [];
 
       try {
-        const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`);
+        const envBasePath = import.meta.env.VITE_BASE_PATH || '';
+        const basePath = envBasePath.replace(/\/$/, '');
+        const response = await fetch(`${basePath}/api/models/${encodeURIComponent(providerName)}`);
         const data = await response.json();
         providerModels = (data as { modelList: ModelInfo[] }).modelList;
       } catch (error) {

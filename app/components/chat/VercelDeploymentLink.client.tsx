@@ -102,9 +102,14 @@ export function VercelDeploymentLink() {
         }
 
         // Fallback to API call if not found in fetched projects
-        const fallbackResponse = await fetch(`/api/vercel-deploy?projectId=${projectId}&token=${connection.token}`, {
-          method: 'GET',
-        });
+        const envBasePath = import.meta.env.VITE_BASE_PATH;
+        const basePath = envBasePath && envBasePath !== '/' ? envBasePath.replace(/\/$/, '') : '';
+        const fallbackResponse = await fetch(
+          `${basePath}/api/vercel-deploy?projectId=${projectId}&token=${connection.token}`,
+          {
+            method: 'GET',
+          },
+        );
 
         const data = await fallbackResponse.json();
 
