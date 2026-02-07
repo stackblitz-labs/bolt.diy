@@ -120,6 +120,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
           headers: {
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
+            'User-Agent': 'BoltAi/1.0',
           },
         });
 
@@ -146,6 +147,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
           headers: {
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
+            'User-Agent': 'BoltAi/1.0',
           },
         });
 
@@ -161,6 +163,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
           headers: {
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
+            'User-Agent': 'BoltAi/1.0',
           },
         });
 
@@ -189,6 +192,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
            *       headers: {
            *         Accept: 'application/vnd.github.v3+json',
            *         Authorization: `Bearer ${token}`,
+           *         'User-Agent': 'BoltAi/1.0',
            *       },
            *     });
            *
@@ -229,6 +233,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
           headers: {
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
+            'User-Agent': 'BoltAi/1.0',
           },
         });
 
@@ -275,6 +280,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
           headers: {
             Accept: 'application/vnd.github.v3+json',
             Authorization: `Bearer ${token}`,
+            'User-Agent': 'BoltAi/1.0',
           },
         });
 
