@@ -171,6 +171,12 @@ This option requires Docker and is great when you want an isolated environment o
    cp .env.example .env.local
    ```
 
+   Optional: use the interactive setup wizard instead (can init `.env.local`, sync `.env`, and prompt for keys):
+
+   ```bash
+   pnpm run setup
+   ```
+
    The runtime scripts inside the container source `.env` and `.env.local`, so keep any API keys you need in one of those files.
 
 2. **Build an Image**
