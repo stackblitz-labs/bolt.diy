@@ -16,6 +16,7 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 
 ## Table of Contents
 
+- [Alpha channel](#alpha-channel)
 - [Join the Community](#join-the-community)
 - [Recent Major Additions](#recent-major-additions)
 - [Features](#features)
@@ -28,6 +29,19 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 - [Contributing](#contributing)
 - [Roadmap](#roadmap)
 - [FAQ](#faq)
+
+## Alpha channel
+
+The **Alpha channel** is the `alpha` branch in the community fork (`embire2/bolt.diy`). This is where we test fixes and new features as a team before opening focused PRs against the official StackBlitz Labs repository.
+
+- Official upstream (source of truth): https://github.com/stackblitz-labs/bolt.diy
+- Alpha branch (community testing): https://github.com/embire2/bolt.diy/tree/alpha
+
+This is **not** a breakaway fork. It’s a staging channel run by an active community that wants to see `bolt.diy` succeed.
+
+### Coming soon
+
+- Automated **blank cloud sessions** where users bring their own API keys and the system provisions a fresh `bolt.diy.alpha` instance automatically.
 
 ## Join the community
 
