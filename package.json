@@ -48,8 +48,10 @@
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "1.0.6",
     "@ai-sdk/anthropic": "0.0.39",
+    "@ai-sdk/cerebras": "^0.2.16",
     "@ai-sdk/cohere": "1.0.3",
     "@ai-sdk/deepseek": "0.1.3",
+    "@ai-sdk/fireworks": "^0.2.16",
     "@ai-sdk/google": "0.0.52",
     "@ai-sdk/mistral": "0.0.43",
     "@ai-sdk/openai": "1.1.2",
