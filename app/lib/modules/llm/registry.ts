@@ -14,6 +14,7 @@ import OpenAILikeProvider from './providers/openai-like';
 import OpenAIProvider from './providers/openai';
 import PerplexityProvider from './providers/perplexity';
 import TogetherProvider from './providers/together';
+import TokenLabProvider from './providers/tokenlab';
 import XAIProvider from './providers/xai';
 import HyperbolicProvider from './providers/hyperbolic';
 import AmazonBedrockProvider from './providers/amazon-bedrock';
@@ -38,6 +39,7 @@ export {
   OpenRouterProvider,
   OpenAILikeProvider,
   PerplexityProvider,
+  TokenLabProvider,
   XAIProvider,
   TogetherProvider,
   LMStudioProvider,

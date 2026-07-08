@@ -2,7 +2,7 @@
 
 [![bolt.diy: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.diy)
 
-Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together, Perplexity, Moonshot (Kimi), Hyperbolic, GitHub Models, Amazon Bedrock, and OpenAI-like providers - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, TokenLab, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together, Perplexity, Moonshot (Kimi), Hyperbolic, GitHub Models, Amazon Bedrock, and OpenAI-like providers - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
 -----
 Check the [bolt.diy Docs](https://stackblitz-labs.github.io/bolt.diy/) for more official installation instructions and additional information.
@@ -44,7 +44,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 ## Recent Major Additions
 
 ### ✅ Completed Features
-- **19+ AI Provider Integrations** - OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, Cohere, Together, Perplexity, HuggingFace, Ollama, LM Studio, OpenRouter, Moonshot, Hyperbolic, GitHub Models, Amazon Bedrock, OpenAI-like
+- **20+ AI Provider Integrations** - OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, Cohere, Together, Perplexity, HuggingFace, Ollama, LM Studio, OpenRouter, TokenLab, Moonshot, Hyperbolic, GitHub Models, Amazon Bedrock, OpenAI-like
 - **Electron Desktop App** - Native desktop experience with full functionality
 - **Advanced Deployment Options** - Netlify, Vercel, and GitHub Pages deployment
 - **Supabase Integration** - Database management and query capabilities
@@ -342,6 +342,7 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 - **Perplexity** - Sonar models for search and reasoning
 - **HuggingFace** - Access to HuggingFace model hub
 - **OpenRouter** - Unified API for multiple model providers
+- **TokenLab** - Unified API with OpenAI-compatible chat completions plus native Responses, Anthropic Messages, and Gemini endpoints
 - **Moonshot (Kimi)** - Kimi AI models
 - **Hyperbolic** - High-performance model inference
 - **GitHub Models** - Models available through GitHub

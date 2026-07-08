@@ -30,6 +30,7 @@ type ProviderName =
   | 'OpenAI'
   | 'OpenRouter'
   | 'Perplexity'
+  | 'TokenLab'
   | 'Together'
   | 'XAI';
 
@@ -48,6 +49,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   OpenAI: SiOpenai,
   OpenRouter: FaCloud,
   Perplexity: SiPerplexity,
+  TokenLab: BsCloud,
   Together: BsCloud,
   XAI: BsRobot,
 };
@@ -57,6 +59,7 @@ const PROVIDER_DESCRIPTIONS: Partial<Record<ProviderName, string>> = {
   Anthropic: 'Access Claude and other Anthropic models',
   Github: 'Use OpenAI models hosted through GitHub infrastructure',
   OpenAI: 'Use GPT-4, GPT-3.5, and other OpenAI models',
+  TokenLab: 'Use TokenLab unified model access with OpenAI-compatible chat completions',
 };
 
 const CloudProvidersTab = () => {
