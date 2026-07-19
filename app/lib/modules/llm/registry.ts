@@ -19,9 +19,11 @@ import HyperbolicProvider from './providers/hyperbolic';
 import AmazonBedrockProvider from './providers/amazon-bedrock';
 import GithubProvider from './providers/github';
 import MoonshotProvider from './providers/moonshot';
+import DaoXEProvider from './providers/daoxe';
 import ZaiProvider from './providers/z-ai';
 
 export {
+  DaoXEProvider,
   AnthropicProvider,
   CerebrasProvider,
   CohereProvider,
