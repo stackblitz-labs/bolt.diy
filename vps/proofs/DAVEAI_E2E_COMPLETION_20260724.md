@@ -3,7 +3,7 @@
 - Date: 2026-07-25
 - Production: https://daveai.tech/
 - Brain: healthy, version 4.0.0
-- Canonical UI source SHA-256: `4fccbe111d4f45f475cd1614b9912cef6c5ca932e2c603a8bb9e5a0a582488bd`
+- Canonical UI source SHA-256: `a9dc0ebfb1e6e87f62329e642892e674a573bdddd70f8a0d5fd3408b826e3cff`
 - Canonical CSS source SHA-256: `bca841c9633c7ef3420865fbdf41872ef4cd4130f71004842aa084b4f2246392`
 - Last verified production UI SHA-256: `559af5fd4d958bb01f507907074c18d31ac9bfe0950158c89a7db1a620a0f59a`
 - Last verified production CSS SHA-256: `95ee7c8f9dd18a8a9b37a41bb7a64acc1918db2e744361f1e099bb0c3dbe1f51`
@@ -59,6 +59,8 @@ dynamic-ID audit.
   click handler is only an optional outside-dismiss affordance.
 - The 22 static service destinations are native links with safe new-tab
   attributes.
+- The stylesheet release key is `20260725-accessibility-1`, ensuring the
+  accessibility CSS is fetched instead of an older cached asset.
 - `fp-tool-count` is now a real live-status node in the Tools panel.
 - Seven referenced IDs are confirmed runtime-created:
   `admin-vps-dash`, `cmd-palette-overlay`, `demo-restore-btn`, `profile-box`,

@@ -80,7 +80,7 @@ def main() -> None:
     ui_text = UI.read_text(encoding="utf-8")
     css_text = CSS.read_text(encoding="utf-8")
     require(
-        '/assets/daveai-v6.css?v=20260724-responsive-workspace-6' in ui_text,
+        '/assets/daveai-v6.css?v=20260725-accessibility-1' in ui_text,
         "UI does not reference the canonical responsive workspace stylesheet",
     )
     for selector in (
