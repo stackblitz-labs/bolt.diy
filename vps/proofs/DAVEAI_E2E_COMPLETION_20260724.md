@@ -5,8 +5,9 @@
 - Brain: healthy, version 4.0.0
 - Canonical UI source SHA-256: `a9dc0ebfb1e6e87f62329e642892e674a573bdddd70f8a0d5fd3408b826e3cff`
 - Canonical CSS source SHA-256: `bca841c9633c7ef3420865fbdf41872ef4cd4130f71004842aa084b4f2246392`
-- Last verified production UI SHA-256: `559af5fd4d958bb01f507907074c18d31ac9bfe0950158c89a7db1a620a0f59a`
-- Last verified production CSS SHA-256: `95ee7c8f9dd18a8a9b37a41bb7a64acc1918db2e744361f1e099bb0c3dbe1f51`
+- Last verified production UI SHA-256: `a9dc0ebfb1e6e87f62329e642892e674a573bdddd70f8a0d5fd3408b826e3cff`
+- Last verified production CSS SHA-256: `bca841c9633c7ef3420865fbdf41872ef4cd4130f71004842aa084b4f2246392`
+- Accessibility deployment backup: `/opt/daveai/backups/20260725T104457Z-accessibility-contract`
 
 ## Outcome
 
@@ -18,10 +19,9 @@ wiring defect remains in the audited surfaces.
 The root page and V6 page contain the same deployed HTML. The Brain reports 120
 live runtime tools and four agents: Supervisor, Coder, Asset, and QA.
 
-The production UI was byte-identical to both canonical repository copies at
-the responsive-workspace acceptance point. The accessibility follow-up below
-advances the repository sources; it is not represented as production-deployed
-until a later release explicitly records matching production hashes.
+The production UI is byte-identical to both canonical repository copies. The
+accessibility follow-up below is deployed with matching production hashes and
+the `20260725-accessibility-1` stylesheet release key.
 
 A source-of-truth verifier blocks deployment when the UI copies, the responsive
 stylesheet contract, Sites truth, critical project statuses, mode/workspace
@@ -68,6 +68,10 @@ dynamic-ID audit.
 - The accessibility contract now fails for unresolved ID references or
   non-keyboard click targets. Canonical and runtime-mirror scans both pass with
   zero unresolved IDs, zero unnamed buttons, and zero non-keyboard targets.
+- Production keyboard verification passed for the Tools tab, prompt
+  suggestion, preview device switcher, game carousel, and Voice Studio Presets
+  tab. Desktop mode was restored, Voice Studio was closed, and the final
+  browser console contained no errors or warnings.
 
 ## Final Browser Regression
 
