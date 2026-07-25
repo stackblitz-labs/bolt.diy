@@ -1,0 +1,257 @@
+{
+  "sites": [
+    {
+      "id": "daveai-main",
+      "name": "DaveAI",
+      "domain": "daveai.tech",
+      "url": "https://daveai.tech",
+      "port": 3001,
+      "status": "live",
+      "category": "core",
+      "icon": "🌐",
+      "description": "Main DaveAI website"
+    },
+    {
+      "id": "daveai-auth",
+      "name": "Auth",
+      "domain": "auth.daveai.tech",
+      "url": "https://auth.daveai.tech",
+      "port": 8888,
+      "status": "live",
+      "category": "core",
+      "icon": "🔐",
+      "description": "Authelia SSO authentication"
+    },
+    {
+      "id": "daveai-api",
+      "name": "API",
+      "domain": "api.daveai.tech",
+      "url": "https://api.daveai.tech/health",
+      "port": 8888,
+      "status": "live",
+      "category": "core",
+      "icon": "⚡",
+      "description": "Agent Brain API gateway"
+    },
+    {
+      "id": "daveai-voice",
+      "name": "Voice",
+      "domain": "voice.daveai.tech",
+      "url": "https://voice.daveai.tech",
+      "port": 5050,
+      "status": "live",
+      "category": "ai",
+      "icon": "🎤",
+      "description": "Edge-TTS voice synthesis"
+    },
+    {
+      "id": "daveai-ai",
+      "name": "AI",
+      "domain": "ai.daveai.tech",
+      "url": "https://ai.daveai.tech",
+      "port": 4000,
+      "status": "live",
+      "category": "ai",
+      "icon": "🤖",
+      "description": "LiteLLM proxy for all models"
+    },
+    {
+      "id": "daveai-llm",
+      "name": "LLM",
+      "domain": "llm.daveai.tech",
+      "url": "https://llm.daveai.tech",
+      "port": 4000,
+      "status": "live",
+      "category": "ai",
+      "icon": "🧠",
+      "description": "LLM model serving endpoint"
+    },
+    {
+      "id": "daveai-openhands",
+      "name": "OpenHands",
+      "domain": "openhands.daveai.tech",
+      "url": "https://openhands.daveai.tech",
+      "port": 3333,
+      "status": "live",
+      "category": "ai",
+      "icon": "🖐️",
+      "description": "AI agent IDE"
+    },
+    {
+      "id": "daveai-diy",
+      "name": "Bolt.DIY",
+      "domain": "diy.daveai.tech",
+      "url": "https://diy.daveai.tech",
+      "port": 3300,
+      "status": "auth",
+      "category": "dev",
+      "icon": "🔧",
+      "description": "Protected project scaffold generator"
+    },
+    {
+      "id": "daveai-dev",
+      "name": "Dev",
+      "domain": "dev.daveai.tech",
+      "url": "https://dev.daveai.tech",
+      "port": 3398,
+      "status": "auth",
+      "category": "dev",
+      "icon": "💻",
+      "description": "Protected live dependency-health console"
+    },
+    {
+      "id": "daveai-staging",
+      "name": "Staging",
+      "domain": "staging.daveai.tech",
+      "url": "https://staging.daveai.tech",
+      "port": 3399,
+      "status": "auth",
+      "category": "dev",
+      "icon": "🧪",
+      "description": "Protected production release-readiness gate"
+    },
+    {
+      "id": "daveai-docs",
+      "name": "Docs",
+      "domain": "docs.daveai.tech",
+      "url": "https://docs.daveai.tech",
+      "port": 3100,
+      "status": "live",
+      "category": "docs",
+      "icon": "📚",
+      "description": "Documentation site"
+    },
+    {
+      "id": "daveai-git",
+      "name": "Git",
+      "domain": "git.daveai.tech",
+      "url": "https://git.daveai.tech",
+      "port": 3301,
+      "status": "auth",
+      "category": "dev",
+      "icon": "📦",
+      "description": "Protected persistent Gitea repository service"
+    },
+    {
+      "id": "daveai-db",
+      "name": "Database",
+      "domain": "db.daveai.tech",
+      "url": "https://db.daveai.tech",
+      "port": 8080,
+      "status": "auth",
+      "category": "infra",
+      "icon": "🗄️",
+      "description": "Protected Adminer console for the Bolt PostgreSQL service"
+    },
+    {
+      "id": "daveai-monitor",
+      "name": "Monitor",
+      "domain": "monitor.daveai.tech",
+      "url": "https://monitor.daveai.tech",
+      "port": 3030,
+      "status": "auth",
+      "category": "infra",
+      "icon": "📊",
+      "description": "Protected Grafana dashboard backed by Prometheus host metrics"
+    },
+    {
+      "id": "daveai-hermestv",
+      "name": "HermesTV",
+      "domain": "hermestv.daveai.tech",
+      "url": "https://hermestv.daveai.tech",
+      "port": 3080,
+      "status": "live",
+      "category": "media",
+      "icon": "📺",
+      "description": "TV streaming interface"
+    },
+    {
+      "id": "daveai-iptv",
+      "name": "IPTV",
+      "domain": "iptv.daveai.tech",
+      "url": "https://iptv.daveai.tech",
+      "port": 3103,
+      "status": "live",
+      "category": "media",
+      "icon": "📡",
+      "description": "IPTV restreaming"
+    },
+    {
+      "id": "daveai-hermes",
+      "name": "Hermes",
+      "domain": "hermes-webui.daveai.tech",
+      "url": "https://hermes-webui.daveai.tech",
+      "port": 8787,
+      "status": "live",
+      "category": "bots",
+      "icon": "🤖",
+      "description": "Discord bots WebUI"
+    },
+    {
+      "id": "daveai-apps",
+      "name": "Apps",
+      "domain": "apps.daveai.tech",
+      "url": "https://apps.daveai.tech",
+      "port": 3200,
+      "status": "live",
+      "category": "apps",
+      "icon": "📱",
+      "description": "Apps portal (DaveTV)"
+    },
+    {
+      "id": "daveai-fleet",
+      "name": "Fleet",
+      "domain": "fleet.daveai.tech",
+      "url": "https://fleet.daveai.tech",
+      "port": 3400,
+      "status": "auth",
+      "category": "infra",
+      "icon": "🚀",
+      "description": "Protected redacted PM2 and Docker runtime inventory"
+    },
+    {
+      "id": "daveai-ws",
+      "name": "WebSocket",
+      "domain": "ws.daveai.tech",
+      "url": "https://ws.daveai.tech",
+      "port": 3401,
+      "status": "live",
+      "category": "infra",
+      "icon": "🔌",
+      "description": "Public secure WebSocket echo and test console"
+    },
+    {
+      "id": "daveai-game",
+      "name": "Game",
+      "domain": "game.daveai.tech",
+      "url": "https://game.daveai.tech",
+      "port": 3500,
+      "status": "auth",
+      "category": "game",
+      "icon": "🎮",
+      "description": "Game server (coming soon)"
+    },
+    {
+      "id": "daveai-3d",
+      "name": "3D",
+      "domain": "hermes3d.daveai.tech",
+      "url": "https://hermes3d.daveai.tech",
+      "port": 3600,
+      "status": "live",
+      "category": "apps",
+      "icon": "🧊",
+      "description": "Interactive live DaveAI Brain and agent graph"
+    }
+  ],
+  "categories": {
+    "core": { "name": "Core", "color": "#00ff88" },
+    "ai": { "name": "AI/ML", "color": "#ff6b6b" },
+    "dev": { "name": "Development", "color": "#4ecdc4" },
+    "infra": { "name": "Infrastructure", "color": "#ffe66d" },
+    "media": { "name": "Media", "color": "#ff9f43" },
+    "bots": { "name": "Bots", "color": "#a29bfe" },
+    "apps": { "name": "Apps", "color": "#fd79a8" },
+    "game": { "name": "Gaming", "color": "#e17055" },
+    "future": { "name": "Future", "color": "#b2bec3" }
+  }
+}
