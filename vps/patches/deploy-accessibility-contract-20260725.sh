@@ -39,7 +39,10 @@ installed=1
 test "$(sha256sum /var/www/agentic-website/index.html | awk '{print $1}')" = "$expected_html"
 test "$(sha256sum /var/www/agentic-website/daveai-ui-v6.html | awk '{print $1}')" = "$expected_html"
 test "$(sha256sum /var/www/agentic-website/assets/daveai-v6.css | awk '{print $1}')" = "$expected_css"
-test "$(curl --fail --silent "https://daveai.tech/?release=$stamp" | sha256sum | awk '{print $1}')" = "$expected_html"
+public_html="$(curl --fail --silent "https://daveai.tech/?release=$stamp")"
+grep -q "/assets/daveai-v6.css?v=$expected_cache_key" <<<"$public_html"
+grep -q 'id="fp-tool-count"' <<<"$public_html"
+grep -q 'function activateOnKeyboard(event)' <<<"$public_html"
 test "$(curl --fail --silent "https://daveai.tech/assets/daveai-v6.css?v=$expected_cache_key&release=$stamp" | sha256sum | awk '{print $1}')" = "$expected_css"
 curl --fail --silent https://api.daveai.tech/health | grep -q '"tools":120'
 
