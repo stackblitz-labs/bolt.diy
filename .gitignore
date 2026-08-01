@@ -47,4 +47,7 @@ docs/instructions/Roadmap.md
 .cursorrules
 *.md
 !docs/DAVEAI_PRODUCTION_E2E_AUDIT_20260731.md
+!docs/DAVEAI_RC1_TO_RC2_HANDOFF_20260801.md
+!docs/DAVEAI_RC2_E2E_ROADMAP_20260801.md
+private/
 .qodo
