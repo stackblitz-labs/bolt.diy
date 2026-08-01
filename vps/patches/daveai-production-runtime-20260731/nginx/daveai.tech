@@ -1,0 +1,348 @@
+# daveai.tech  nginx reverse proxy
+# Cloudflare handles SSL (Full mode)  this listens on port 80
+# If you add Let's Encrypt: run certbot --nginx -d daveai.tech
+
+# Rate limiting: 10 requests/sec per IP for API, 2/sec for admin login
+limit_req_zone $kilo_client_key zone=api:10m rate=80r/s;
+limit_req_zone $kilo_client_key zone=login:10m rate=2r/s;
+
+server {
+    if ($kilo_bad_probe) { return 444; }
+    if ($kilo_bad_ua) { return 444; }
+    if ($kilo_bad_return_to) { return 444; }
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+    }
+
+    listen 80;
+    listen 443 ssl;
+    server_name daveai.tech;
+
+    # SSL certs for Cloudflare Full mode
+    ssl_certificate /etc/letsencrypt/live/daveai-root/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/daveai-root/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    client_max_body_size 50M;
+    proxy_read_timeout   300s;
+    proxy_connect_timeout 60s;
+    proxy_send_timeout   300s;
+
+    # Security headers
+    add_header X-Frame-Options       "SAMEORIGIN"    always;
+    add_header X-Content-Type-Options "nosniff"       always;
+    add_header Referrer-Policy        "no-referrer"   always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src 'self' https://daveai.tech wss://daveai.tech https://api-inference.huggingface.co https://worldtimeapi.org; media-src 'self' blob:;" always;
+    add_header Permissions-Policy "geolocation=(), microphone=(self), camera=()" always;
+
+    # Block private Playwright artifact / reference store from public access
+    # (per wave2-handoffs/16-PLAYWRIGHT-HERMES-VISUAL-E2E.md §6).
+    # All paths beginning with __ (double-underscore) are admin-only and must
+    # only be served via /api/playwright/artifact/* with admin JWT.
+    location ^~ /__ {
+        return 444;
+    }
+
+    # Import preview assets are API responses even when they end in .html/.css.
+    # Keep this ^~ block above regex static locations so tokenized preview files
+    # reach FastAPI instead of being treated as public website assets.
+    location ^~ /api/imports/preview-asset/ {
+        limit_req zone=api burst=160 nodelay;
+        proxy_pass         http://127.0.0.1:8888/imports/preview-asset/;
+        proxy_http_version 1.1;
+        proxy_set_header   Host      $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 60s;
+        proxy_hide_header  Content-Security-Policy;
+        proxy_hide_header  X-Frame-Options;
+        proxy_hide_header  X-Content-Type-Options;
+        add_header Cache-Control "no-store" always;
+        add_header Content-Security-Policy "default-src 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; media-src 'self' data:; script-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+    }
+
+    # Published DaveAI help and proof documents.
+    location ^~ /docs/ {
+        root /var/www/agentic-website;
+        try_files $uri =404;
+        default_type text/plain;
+    }
+
+    # Public previews for isolated DaveAI projects.  Only a project landing
+    # route and browser-safe static asset extensions are served; dotfiles,
+    # Git data, source secrets, and arbitrary workspace files fall through to
+    # the 404 location below.
+    location ~ ^/user-projects/user-[0-9]+/[0-9]+-[a-z0-9-]+/?$ {
+        root /var/www/agentic-website;
+        try_files $uri/index.html =404;
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    location ~* ^/user-projects/user-[0-9]+/[0-9]+-[a-z0-9-]+/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\.(?:html?|css|js|mjs|cjs|json|map|png|jpe?g|gif|ico|svg|webp|avif|woff2?|ttf|wasm|txt|mp3|wav|ogg|mp4|webm)$ {
+        root /var/www/agentic-website;
+        try_files $uri =404;
+        expires -1;
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+
+    location /user-projects/ {
+        return 404;
+    }
+
+    # HTML files: no-cache so updates deploy instantly
+    location ~* \.html$ {
+        root /var/www/agentic-website;
+        try_files $uri $uri/ @nextjs;
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+    }
+
+    # Other static assets (CSS, JS, images, fonts, media) — cached 1h
+    location ~* \.(css|js|json|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|mp3|wav|mp4|webm|ogg)$ {
+        root /var/www/agentic-website;
+        try_files $uri $uri/ @nextjs;
+        expires 1h;
+        add_header Cache-Control "public, must-revalidate";
+        access_log off;
+    }
+
+    # Named fallback to Next.js
+    location @nextjs {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Plain /login was receiving high bot/scanner volume. Keep it routed to
+    # the app, but throttle by CF-Connecting-IP when Cloudflare is present.
+    location = /login {
+        limit_req zone=kilo_login_guard burst=60 nodelay;
+        proxy_pass         http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade    $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+        proxy_set_header   Host       $host;
+        proxy_set_header   X-Real-IP  $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Static game files (served from /var/www/agentic-website/games/)
+    location /games/ {
+        root /var/www/agentic-website;
+        index index.html;
+        try_files $uri $uri/ $uri/index.html =404;
+        expires 1h;
+        add_header Cache-Control "public, must-revalidate";
+    }
+
+    # Chat attachment uploads (Wave B 2026-05-25 — brain_uploads_api).
+    # Stored by POST /api/uploads/image -> randomized uuid4.<ext> filenames.
+    # See /etc/nginx/conf.d/upload-static.conf for the canonical reference.
+    # STOP-4: nosniff + only image extensions served (everything else 404).
+    location /uploads/ {
+        alias /var/www/agentic-website/uploads/;
+        autoindex off;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Cache-Control "public, max-age=86400" always;
+        add_header Referrer-Policy "no-referrer" always;
+        location ~* ^/uploads/[A-Za-z0-9]+\.(png|jpg|jpeg|webp|gif)$ {
+            try_files $uri =404;
+        }
+        location ~ /uploads/ {
+            return 404;
+        }
+    }
+
+    # Root path: serve index.html (redirects to daveai-ui-v6.html with video intro)
+    location = / {
+        root /var/www/agentic-website;
+        index index.html;
+        try_files /index.html =404;
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # Open WebUI - Hermes Chat Interface
+    location /hermes/ {
+        proxy_pass http://localhost:7860/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 300s;
+        client_max_body_size 100m;
+        proxy_buffering off;
+        sub_filter '<head>' '<head><base href="/hermes/">';
+        sub_filter_once on;
+    }
+    location ~* ^/(?!hermes)(_app|static|assets|favicon)/ {
+        proxy_pass http://localhost:7860;
+    }
+
+    # Chat UI  Next.js on :3001
+    location / {
+        proxy_pass         http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade    $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+        proxy_set_header   Host       $host;
+        proxy_set_header   X-Real-IP  $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Admin login — strict rate limit (2 req/sec burst 5)
+    location = /api/admin/login {
+        limit_req zone=login burst=5 nodelay;
+        proxy_pass         http://127.0.0.1:8888/admin/login;
+        proxy_http_version 1.1;
+        proxy_set_header   Host      $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Auth login/register — rate limited (2 req/sec burst 5)
+    location = /api/auth/login {
+        limit_req zone=login burst=5 nodelay;
+        proxy_pass         http://127.0.0.1:8888/auth/login;
+        proxy_http_version 1.1;
+        proxy_set_header   Host      $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location = /api/auth/register {
+        limit_req zone=login burst=5 nodelay;
+        proxy_pass         http://127.0.0.1:8888/auth/register;
+        proxy_http_version 1.1;
+        proxy_set_header   Host      $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # SSE streaming endpoint — must come before /api/ block
+    location = /api/stream {
+        proxy_pass         http://127.0.0.1:8888/stream;
+        proxy_http_version 1.1;
+        proxy_set_header   Host      $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   Connection "";
+        proxy_buffering    off;
+        proxy_cache        off;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        add_header         X-Accel-Buffering no;
+        chunked_transfer_encoding on;
+    }
+
+    # Edge TTS — voice synthesis proxy (port 5050)
+    # Prefix match so /api/tts, /api/tts/health, /api/edge-tts/health etc all route here
+    location = /api/tts {
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        return 410 '{"error":"voice_route_retired","replacement":"/api/azure-tts"}';
+    }
+
+    location = /api/edge-tts {
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        return 410 '{"error":"voice_route_retired","replacement":"/api/azure-tts"}';
+    }
+
+    location = /api/voices {
+        proxy_pass http://127.0.0.1:8888/voices;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location = /api/agents/voices {
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        return 410 '{"error":"voice_route_retired","replacement":"/api/voices"}';
+    }
+
+
+    # Public health endpoint for frontend liveness checks — intentionally not API-rate-limited.
+    location = /api/health {
+        proxy_pass         http://127.0.0.1:8888/health;
+        proxy_http_version 1.1;
+        proxy_set_header   Host      $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        add_header         Cache-Control "no-store" always;
+    }
+
+    # Agent Brain REST API  strips /api prefix
+    # /api/chat  :8888/chat   |   /api/health  :8888/health
+    location /api/ {
+        limit_req zone=api burst=160 nodelay;
+        proxy_pass         http://127.0.0.1:8888/;
+        proxy_http_version 1.1;
+        proxy_set_header   Host      $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 300s;
+    }
+
+    # WebSocket real-time chat
+    location /ws {
+        proxy_pass         http://127.0.0.1:8888/ws;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade    $http_upgrade;
+        proxy_set_header   Connection "Upgrade";
+        proxy_set_header   Host       $host;
+        proxy_set_header   X-Real-IP  $remote_addr;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # ZeroClaw gateway  localhost only (internal tooling)
+    location /gateway/ {
+        allow  127.0.0.1;
+        deny   all;
+        proxy_pass http://127.0.0.1:3000/;
+    }
+
+    # Health check endpoint
+    location = /health {
+        proxy_pass http://127.0.0.1:8888/health;
+    }
+
+    # Next.js static assets  cache aggressively
+    location /_next/static/ {
+        proxy_pass http://127.0.0.1:3001;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Custom error pages
+    error_page 404 /404.html;
+    location = /404.html {
+        root /var/www/agentic-website;
+        internal;
+    }
+
+    error_page 502 503 504 /50x.html;
+    location = /50x.html {
+        root /var/www/agentic-website;
+        internal;
+    }
+}

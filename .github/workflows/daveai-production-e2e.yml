@@ -1,0 +1,43 @@
+name: DaveAI Production E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "DaveAI base URL"
+        required: false
+        default: "https://daveai.tech"
+  schedule:
+    - cron: "17 9 * * *"
+
+jobs:
+  production-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DAVEAI_BASE_URL: ${{ github.event.inputs.base_url || 'https://daveai.tech' }}
+      DAVEAI_E2E_EMAIL: ${{ secrets.DAVEAI_E2E_EMAIL }}
+      DAVEAI_E2E_PASSWORD: ${{ secrets.DAVEAI_E2E_PASSWORD }}
+      DAVEAI_PROOF_DIR: proofs/daveai-production-e2e
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Playwright runtime
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run DaveAI production E2E proof pack
+        run: node vps/production-e2e-runner.cjs
+
+      - name: Upload E2E proofs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daveai-production-e2e-proofs
+          path: proofs/daveai-production-e2e
+          if-no-files-found: warn

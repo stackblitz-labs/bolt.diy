@@ -1,0 +1,2375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DaveAI — Ops Control Panel</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --bg: #0a0a0a;
+      --bg2: #111;
+      --bg3: #1a1a1a;
+      --bg4: #222;
+      --border: #2a2a2a;
+      --border2: #333;
+      --text: #d0d0d0;
+      --dim: #666;
+      --bright: #f0f0f0;
+      --green: #00e676;
+      --green-dim: #00c853;
+      --yellow: #ffca28;
+      --orange: #ff6d00;
+      --red: #ff1744;
+      --red-dim: #c62828;
+      --blue: #2979ff;
+      --cyan: #00e5ff;
+      --stall: #ff3d00;
+      --mono: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    }
+
+    html,
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font: 13px/1.4 var(--mono)
+    }
+
+    /* ── Alert Banner ── */
+    #alert-banner {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: var(--stall);
+      color: #fff;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      border-bottom: 2px solid #ff6d00;
+      cursor: pointer;
+      text-align: center;
+      letter-spacing: .5px
+    }
+
+    #alert-banner.show {
+      display: block
+    }
+
+    /* ── Top Bar ── */
+    #topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 900;
+      height: 36px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      font-size: 11px
+    }
+
+    #topbar.has-alert {
+      top: 28px
+    }
+
+    .tb-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap
+    }
+
+    .tb-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--dim)
+    }
+
+    .tb-dot.green {
+      background: var(--green)
+    }
+
+    .tb-dot.red {
+      background: var(--red);
+      box-shadow: 0 0 6px var(--red)
+    }
+
+    .tb-dot.yellow {
+      background: var(--yellow)
+    }
+
+    .tb-sep {
+      flex: 1
+    }
+
+    #tb-cpu,
+    #tb-mem,
+    #tb-uptime {
+      color: var(--cyan);
+      font-weight: 700
+    }
+
+    #tb-refresh {
+      color: var(--dim);
+      font-size: 10px
+    }
+
+    .tb-btn {
+      background: var(--bg4);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 2px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font: 11px var(--mono)
+    }
+
+    .tb-btn:hover {
+      background: var(--bg3);
+      border-color: #555
+    }
+
+    .tb-btn.red {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    /* ── Layout ── */
+    #layout {
+      display: grid;
+      grid-template-columns: 220px 1fr 280px;
+      height: 100vh;
+      padding-top: 36px;
+      gap: 0
+    }
+
+    #layout.has-alert {
+      padding-top: 64px
+    }
+
+    /* ── Left Sidebar: Processes ── */
+    #sidebar {
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column
+    }
+
+    .sb-section {
+      border-bottom: 1px solid var(--border)
+    }
+
+    .sb-header {
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--dim);
+      text-transform: uppercase;
+      background: var(--bg3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .sb-header span {
+      color: var(--text);
+      font-size: 9px
+    }
+
+    .proc-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      cursor: default
+    }
+
+    .proc-row:hover {
+      background: var(--bg3)
+    }
+
+    .proc-name {
+      flex: 1;
+      font-weight: 700;
+      color: var(--bright)
+    }
+
+    .proc-badge {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-weight: 700;
+      letter-spacing: .5px
+    }
+
+    .badge-online {
+      background: #003322;
+      color: var(--green);
+      border: 1px solid var(--green)
+    }
+
+    .badge-errored {
+      background: #330008;
+      color: var(--red);
+      border: 1px solid var(--red);
+      animation: blink 1s infinite
+    }
+
+    .badge-stopped {
+      background: #1a1a1a;
+      color: var(--dim);
+      border: 1px solid var(--border)
+    }
+
+    .badge-idle {
+      background: #1a1a1a;
+      color: var(--dim);
+      border: 1px solid var(--border2)
+    }
+
+    .badge-working {
+      background: #003344;
+      color: var(--cyan);
+      border: 1px solid var(--cyan)
+    }
+
+    .badge-stalled {
+      background: #330a00;
+      color: var(--stall);
+      border: 1px solid var(--stall);
+      animation: blink 0.5s infinite
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    .proc-meta {
+      font-size: 10px;
+      color: var(--dim)
+    }
+
+    .proc-btns {
+      display: flex;
+      gap: 3px
+    }
+
+    .proc-btn {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 2px;
+      cursor: pointer;
+      border: 1px solid;
+      background: transparent;
+      font: 9px var(--mono)
+    }
+
+    .proc-btn.restart {
+      border-color: #444;
+      color: #aaa
+    }
+
+    .proc-btn.restart:hover {
+      border-color: var(--yellow);
+      color: var(--yellow)
+    }
+
+    .proc-btn.stop {
+      border-color: #444;
+      color: #888
+    }
+
+    .proc-btn.stop:hover {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    .proc-btn.logs {
+      border-color: #333;
+      color: #777
+    }
+
+    .proc-btn.logs:hover {
+      border-color: var(--cyan);
+      color: var(--cyan)
+    }
+
+    .restarts-high {
+      color: var(--orange)
+    }
+
+    /* ── Main Panel ── */
+    #main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    /* Tabs */
+    #tabs {
+      display: flex;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 8px;
+      flex-shrink: 0
+    }
+
+    .tab {
+      padding: 8px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: var(--dim);
+      white-space: nowrap;
+      user-select: none
+    }
+
+    .tab:hover {
+      color: var(--text)
+    }
+
+    .tab.active {
+      color: var(--bright);
+      border-bottom-color: var(--cyan)
+    }
+
+    .tab .badge {
+      background: var(--red);
+      color: #fff;
+      border-radius: 10px;
+      padding: 0 4px;
+      font-size: 9px;
+      margin-left: 4px
+    }
+
+    /* Tab content */
+    .tab-panel {
+      display: none;
+      flex: 1;
+      overflow: hidden;
+      flex-direction: column
+    }
+
+    .tab-panel.active {
+      display: flex
+    }
+
+    /* ── Monitor Tab ── */
+    #panel-monitor {
+      padding: 8px;
+      overflow-y: auto;
+      gap: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto 1fr;
+      align-content: start
+    }
+
+    .agent-grid {
+      grid-column: 1/-1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px
+    }
+
+    .agent-card {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      padding: 8px;
+      position: relative;
+      transition: border-color .3s
+    }
+
+    .agent-card.working {
+      border-color: var(--cyan)
+    }
+
+    .agent-card.stalled {
+      border-color: var(--stall);
+      animation: blink 1s infinite
+    }
+
+    .agent-card.errored {
+      border-color: var(--red)
+    }
+
+    .ac-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--bright);
+      margin-bottom: 4px
+    }
+
+    .ac-status {
+      font-size: 10px;
+      margin-bottom: 2px
+    }
+
+    .ac-task {
+      font-size: 10px;
+      color: var(--dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      margin-bottom: 4px;
+      min-height: 14px
+    }
+
+    .ac-timer {
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--mono);
+      letter-spacing: 1px
+    }
+
+    .ac-timer.ok {
+      color: var(--green)
+    }
+
+    .ac-timer.warn {
+      color: var(--yellow)
+    }
+
+    .ac-timer.danger {
+      color: var(--stall)
+    }
+
+    .ac-model {
+      font-size: 9px;
+      color: var(--dim);
+      margin-top: 4px
+    }
+
+    .ac-stop {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      font-size: 9px;
+      padding: 1px 5px;
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      cursor: pointer;
+      background: transparent;
+      color: var(--dim);
+      font: 9px var(--mono)
+    }
+
+    .ac-stop:hover {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    .task-feed {
+      grid-column: 1/-1;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    .feed-header {
+      padding: 5px 10px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--dim);
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .feed-items {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 200px;
+      padding: 4px 0
+    }
+
+    .feed-item {
+      padding: 3px 10px;
+      font-size: 10px;
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .feed-time {
+      color: var(--dim);
+      white-space: nowrap
+    }
+
+    .feed-agent {
+      font-weight: 700;
+      min-width: 70px
+    }
+
+    .feed-agent.supervisor {
+      color: #7c4dff
+    }
+
+    .feed-agent.coder {
+      color: var(--cyan)
+    }
+
+    .feed-agent.asset {
+      color: var(--yellow)
+    }
+
+    .feed-agent.qa {
+      color: var(--green)
+    }
+
+    .feed-msg {
+      color: var(--text);
+      word-break: break-word
+    }
+
+    /* ── Tasks/Command Tab ── */
+    .cmd-area {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden
+    }
+
+    .cmd-output {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg);
+      padding: 8px;
+      font-size: 11px;
+      font-family: var(--mono)
+    }
+
+    .cmd-line {
+      padding: 1px 0;
+      word-break: break-word
+    }
+
+    .cmd-line.cmd {
+      color: var(--yellow)
+    }
+
+    .cmd-line.out {
+      color: var(--text)
+    }
+
+    .cmd-line.ok {
+      color: var(--green)
+    }
+
+    .cmd-line.err {
+      color: var(--red)
+    }
+
+    .cmd-line.info {
+      color: var(--cyan)
+    }
+
+    .cmd-line.sys {
+      color: var(--dim);
+      font-style: italic
+    }
+
+    .cmd-input-row {
+      display: flex;
+      gap: 4px;
+      padding: 6px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0
+    }
+
+    .cmd-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--bright);
+      padding: 5px 8px;
+      font: 12px var(--mono);
+      border-radius: 3px
+    }
+
+    .cmd-input:focus {
+      outline: none;
+      border-color: var(--cyan)
+    }
+
+    .send-btn {
+      background: var(--bg4);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 5px 14px;
+      border-radius: 3px;
+      cursor: pointer;
+      font: 12px var(--mono)
+    }
+
+    .send-btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan)
+    }
+
+    /* ── Logs Tab ── */
+    #panel-logs {
+      flex-direction: column
+    }
+
+    .log-controls {
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap
+    }
+
+    .log-btn {
+      background: var(--bg4);
+      border: 1px solid var(--border2);
+      color: var(--dim);
+      padding: 3px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      font: 11px var(--mono)
+    }
+
+    .log-btn:hover,
+    .log-btn.active {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: var(--bg3)
+    }
+
+    .log-out {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg);
+      padding: 8px;
+      font: 11px var(--mono)
+    }
+
+    .log-line {
+      padding: 1px 0;
+      word-break: break-all
+    }
+
+    .log-line.error {
+      color: var(--red)
+    }
+
+    .log-line.warn {
+      color: var(--yellow)
+    }
+
+    .log-line.info {
+      color: var(--cyan)
+    }
+
+    .log-line.default {
+      color: var(--text)
+    }
+
+    .log-line.dim {
+      color: var(--dim)
+    }
+
+    .log-follow {
+      position: sticky;
+      bottom: 0
+    }
+
+    /* ── Tests Tab ── */
+    #panel-tests {
+      flex-direction: column
+    }
+
+    .test-controls {
+      display: flex;
+      gap: 6px;
+      padding: 8px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    .test-btn {
+      background: var(--bg4);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 5px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      font: 11px var(--mono);
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .test-btn:hover {
+      border-color: var(--green);
+      color: var(--green)
+    }
+
+    .test-btn:disabled {
+      opacity: .4;
+      cursor: default
+    }
+
+    .test-btn.running {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      animation: blink 1s infinite
+    }
+
+    .test-status {
+      font-size: 10px;
+      color: var(--dim);
+      flex: 1
+    }
+
+    .test-scores {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 8px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0
+    }
+
+    .score-box {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 6px;
+      text-align: center
+    }
+
+    .score-label {
+      font-size: 9px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .score-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--green)
+    }
+
+    .score-val.warn {
+      color: var(--yellow)
+    }
+
+    .score-val.bad {
+      color: var(--red)
+    }
+
+    /* ── Deploy Tab ── */
+    #panel-deploy {
+      flex-direction: column;
+      overflow-y: auto
+    }
+
+    .deploy-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 8px
+    }
+
+    .deploy-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px
+    }
+
+    .deploy-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--bright)
+    }
+
+    .deploy-desc {
+      font-size: 10px;
+      color: var(--dim);
+      margin-bottom: 10px;
+      line-height: 1.5
+    }
+
+    .deploy-btn {
+      width: 100%;
+      padding: 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      font: 12px var(--mono);
+      border: 1px solid;
+      background: transparent;
+      margin-top: 4px
+    }
+
+    .deploy-btn.staging {
+      border-color: #0044ff;
+      color: #2979ff
+    }
+
+    .deploy-btn.staging:hover {
+      background: #001144
+    }
+
+    .deploy-btn.production {
+      border-color: var(--orange);
+      color: var(--orange)
+    }
+
+    .deploy-btn.production:hover {
+      background: #1a0500
+    }
+
+    .deploy-btn.rollback {
+      border-color: var(--dim);
+      color: var(--dim)
+    }
+
+    .deploy-btn.rollback:hover {
+      border-color: var(--yellow);
+      color: var(--yellow)
+    }
+
+    .checkpoint-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px
+    }
+
+    .budget-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      margin: 6px 0;
+      overflow: hidden
+    }
+
+    .budget-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--green);
+      transition: width .5s
+    }
+
+    .budget-fill.warn {
+      background: var(--yellow)
+    }
+
+    .budget-fill.danger {
+      background: var(--red)
+    }
+
+    /* ── Discuss Tab ── */
+    #panel-discuss {
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .discuss-controls {
+      padding: 8px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .discuss-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--bright);
+      padding: 5px 8px;
+      font: 12px var(--mono);
+      border-radius: 3px;
+      min-width: 200px
+    }
+
+    .discuss-input:focus {
+      outline: none;
+      border-color: var(--cyan)
+    }
+
+    .discuss-agent-sel {
+      background: var(--bg4);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 4px 6px;
+      border-radius: 3px;
+      font: 11px var(--mono)
+    }
+
+    .disc-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px
+    }
+
+    .disc-item {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px;
+      cursor: pointer
+    }
+
+    .disc-item:hover {
+      border-color: var(--cyan)
+    }
+
+    .disc-item.active {
+      border-color: var(--cyan);
+      background: var(--bg3)
+    }
+
+    .disc-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--bright)
+    }
+
+    .disc-meta {
+      font-size: 10px;
+      color: var(--dim);
+      margin-top: 2px
+    }
+
+    .disc-msg {
+      font-size: 10px;
+      color: var(--text);
+      margin-top: 4px;
+      padding-top: 4px;
+      border-top: 1px solid var(--border)
+    }
+
+    /* ── Right Panel: Chat ── */
+    #chat-panel {
+      background: var(--bg2);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    .cp-header {
+      padding: 6px 10px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--bright);
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .cp-agent-sel {
+      background: var(--bg4);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font: 11px var(--mono);
+      flex: 1
+    }
+
+    #chat-feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px
+    }
+
+    .chat-msg {
+      padding: 5px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      word-break: break-word
+    }
+
+    .chat-msg.user {
+      background: var(--bg4);
+      border-left: 2px solid var(--blue);
+      color: var(--text)
+    }
+
+    .chat-msg.agent {
+      background: var(--bg3);
+      border-left: 2px solid var(--cyan)
+    }
+
+    .msg-agent {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: 2px;
+      text-transform: uppercase
+    }
+
+    .msg-text {
+      color: var(--text)
+    }
+
+    .pulsing {
+      animation: blink 1s infinite
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 4px;
+      padding: 6px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--bright);
+      padding: 5px 8px;
+      font: 12px var(--mono);
+      border-radius: 3px
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--cyan)
+    }
+
+    .chat-send {
+      background: var(--bg4);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      font: 12px var(--mono)
+    }
+
+    .chat-send:hover {
+      border-color: var(--cyan);
+      color: var(--cyan)
+    }
+
+    /* ── Toast ── */
+    #toasts {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 6px
+    }
+
+    .toast {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      padding: 8px 14px;
+      font-size: 11px;
+      max-width: 320px;
+      animation: slideIn .2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .toast.error {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    .toast.warn {
+      border-color: var(--yellow);
+      color: var(--yellow)
+    }
+
+    .toast.ok {
+      border-color: var(--green);
+      color: var(--green)
+    }
+
+    .toast.info {
+      border-color: var(--cyan);
+      color: var(--cyan)
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(20px);
+        opacity: 0
+      }
+
+      to {
+        transform: none;
+        opacity: 1
+      }
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 2px
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #444
+    }
+
+    /* ── Responsive util ── */
+    .flex-row {
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .label {
+      font-size: 10px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .val {
+      font-weight: 700;
+      color: var(--bright)
+    }
+
+    .sep {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0
+    }
+
+    /* ── Procs Tab ── */
+    #panel-procs {
+      overflow-y: auto;
+      padding: 8px;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .procs-section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 8px
+    }
+
+    .procs-section-header {
+      padding: 6px 10px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--dim);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .proc-table {
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    .proc-table th {
+      font-size: 9px;
+      color: var(--dim);
+      text-transform: uppercase;
+      padding: 4px 8px;
+      text-align: left;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .proc-table td {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .proc-table tr:last-child td {
+      border-bottom: none
+    }
+
+    .proc-table tr:hover td {
+      background: var(--bg3)
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Alert Banner -->
+  <div id="alert-banner" onclick="dismissAlert()">⚠ ALERT: <span id="alert-text"></span> — click to dismiss</div>
+
+  <!-- Top Bar -->
+  <div id="topbar">
+    <div class="tb-item">
+      <div class="tb-dot" id="dot-vps"></div><span id="tb-vps-label">VPS</span>
+    </div>
+    <div class="tb-item"><span class="label">CPU</span><span id="tb-cpu">–</span></div>
+    <div class="tb-item"><span class="label">MEM</span><span id="tb-mem">–</span></div>
+    <div class="tb-item"><span class="label">UPTIME</span><span id="tb-uptime">–</span></div>
+    <div class="tb-sep"></div>
+    <div class="tb-item" id="stall-indicator" style="display:none">
+      <div class="tb-dot red"></div><span style="color:var(--stall);font-weight:700">AGENT STALL DETECTED</span>
+    </div>
+    <div class="tb-item"><span id="tb-refresh" class="label">last poll –</span></div>
+    <button class="tb-btn" onclick="forceRefresh()">↻ Refresh</button>
+    <button class="tb-btn" id="mute-btn" onclick="toggleMute()">🔔 Alerts</button>
+    <button class="tb-btn red" onclick="window.open('https://daveai.tech','_blank')">← DaveAI</button>
+  </div>
+
+  <!-- Layout -->
+  <div id="layout">
+
+    <!-- ── LEFT SIDEBAR: Processes ── -->
+    <aside id="sidebar">
+      <div class="sb-section">
+        <div class="sb-header">PM2 Processes <span id="pm2-refresh-btn" onclick="fetchProcs()"
+            style="cursor:pointer;color:var(--cyan)">↻</span></div>
+        <div id="pm2-list"></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-header">Docker Containers <span style="font-size:9px;color:var(--dim)">(core only)</span></div>
+        <div id="docker-list"></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-header">AI Tools</div>
+        <div id="tools-list">
+          <div class="proc-row">
+            <div style="flex:1">
+              <div class="flex-row"><span class="proc-name" style="font-size:11px">goose</span><span
+                  class="proc-badge badge-online" style="font-size:8px">v1.27.2</span></div>
+              <div class="proc-meta" style="font-size:9px">/usr/local/bin/goose</div>
+            </div>
+            <div class="proc-btns">
+              <button class="proc-btn logs" onclick="quickCmd('goose --version')">ver</button>
+              <button class="proc-btn restart" onclick="fillCmd('goose run');switchTab('tab-command')">run</button>
+            </div>
+          </div>
+          <div class="proc-row" id="openhands-tool-row">
+            <div style="flex:1">
+              <div class="flex-row"><span class="proc-name" style="font-size:11px">openhands</span><span
+                  class="proc-badge badge-working" id="oh-badge" style="font-size:8px">docker</span></div>
+              <div class="proc-meta" style="font-size:9px">:3333 → <a href="http://187.77.30.206:3333" target="_blank"
+                  style="color:var(--cyan)">open</a></div>
+            </div>
+            <div class="proc-btns">
+              <button class="proc-btn restart" onclick="quickCmd('docker restart openhands')">↻</button>
+              <button class="proc-btn logs" onclick="quickCmd('docker logs --tail 50 openhands')">log</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-header">Quick Actions</div>
+        <div style="padding:6px;display:flex;flex-direction:column;gap:4px">
+          <button class="proc-btn restart" style="width:100%;font-size:10px;padding:4px"
+            onclick="quickCmd('pm2 restart all')">↻ Restart All PM2</button>
+          <button class="proc-btn restart" style="width:100%;font-size:10px;padding:4px"
+            onclick="quickCmd('pm2 restart agent-brain')">↻ Restart Brain</button>
+          <button class="proc-btn restart"
+            style="width:100%;font-size:10px;padding:4px;border-color:var(--red);color:var(--red)"
+            onclick="fixEdgeTts()">⚡ Fix edge-tts</button>
+          <button class="proc-btn logs" style="width:100%;font-size:10px;padding:4px" onclick="switchTab('tab-logs')">📄
+            View Logs</button>
+          <button class="proc-btn logs" style="width:100%;font-size:10px;padding:4px"
+            onclick="switchTab('tab-deploy')">🚀 Deploy</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN PANEL ── -->
+    <main id="main">
+      <div id="tabs">
+        <div class="tab active" data-tab="tab-monitor" onclick="switchTab('tab-monitor')">🚨 Monitor</div>
+        <div class="tab" data-tab="tab-command" onclick="switchTab('tab-command')">⌨ Command</div>
+        <div class="tab" data-tab="tab-procs" onclick="switchTab('tab-procs')">🖥 Procs</div>
+        <div class="tab" data-tab="tab-logs" onclick="switchTab('tab-logs')">📄 Logs</div>
+        <div class="tab" data-tab="tab-tests" onclick="switchTab('tab-tests')">🧪 Tests</div>
+        <div class="tab" data-tab="tab-deploy" onclick="switchTab('tab-deploy')">🚀 Deploy</div>
+        <div class="tab" data-tab="tab-discuss" onclick="switchTab('tab-discuss')">💬 Discuss</div>
+      </div>
+
+      <!-- MONITOR -->
+      <div class="tab-panel active" id="tab-monitor">
+        <div id="panel-monitor" style="overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px">
+          <div class="agent-grid" id="agent-grid"></div>
+          <div class="task-feed">
+            <div class="feed-header">
+              <span>Live Activity Feed</span>
+              <span style="font-size:9px;color:var(--dim)" id="feed-count">0 events</span>
+            </div>
+            <div class="feed-items" id="feed-items"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="task-feed">
+              <div class="feed-header">Budget Status</div>
+              <div id="budget-panel" style="padding:8px;font-size:11px"></div>
+            </div>
+            <div class="task-feed">
+              <div class="feed-header">Checkpoint</div>
+              <div id="checkpoint-panel" style="padding:8px;font-size:11px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMMAND -->
+      <div class="tab-panel" id="tab-command">
+        <div class="cmd-area">
+          <div
+            style="padding:6px 8px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:10px;color:var(--dim);display:flex;gap:12px;flex-wrap:wrap">
+            <span>Shell via <code style="color:var(--cyan)">/tools/shell/run</code></span>
+            <span>Common: <code onclick="fillCmd('pm2 list')" style="cursor:pointer;color:var(--yellow)">pm2 list</code>
+              · <code onclick="fillCmd('pm2 logs --lines 20 agent-brain')"
+                style="cursor:pointer;color:var(--yellow)">pm2 logs</code> · <code onclick="fillCmd('docker ps')"
+                style="cursor:pointer;color:var(--yellow)">docker ps</code> · <code onclick="fillCmd('df -h /')"
+                style="cursor:pointer;color:var(--yellow)">df -h</code> · <code onclick="fillCmd('free -m')"
+                style="cursor:pointer;color:var(--yellow)">free -m</code> · <code onclick="fillCmd('uptime')"
+                style="cursor:pointer;color:var(--yellow)">uptime</code></span>
+          </div>
+          <div class="cmd-output" id="cmd-output"></div>
+          <div class="cmd-input-row">
+            <span style="color:var(--yellow);font-size:12px">root@vps:~$</span>
+            <input class="cmd-input" id="cmd-input" placeholder="Enter shell command..."
+              onkeydown="if(e.key==='Enter'||event.key==='Enter')sendCmd()">
+            <button class="send-btn" onclick="sendCmd()">Run</button>
+            <button class="send-btn" onclick="clearOutput('cmd-output')" style="padding:5px 8px">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROCS -->
+      <div class="tab-panel" id="tab-procs">
+        <div id="panel-procs" style="overflow-y:auto;padding:8px">
+          <div class="procs-section">
+            <div class="procs-section-header">PM2 Processes <button class="proc-btn logs" onclick="fetchProcs()"
+                style="font-size:9px">↻ refresh</button></div>
+            <table class="proc-table" id="pm2-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>PID</th>
+                  <th>Restarts</th>
+                  <th>CPU</th>
+                  <th>Mem</th>
+                  <th>Uptime</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pm2-tbody"></tbody>
+            </table>
+          </div>
+          <div class="procs-section">
+            <div class="procs-section-header">Docker Containers <button class="proc-btn logs" onclick="fetchProcs()"
+                style="font-size:9px">↻ refresh</button></div>
+            <table class="proc-table" id="docker-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Ports</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="docker-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOGS -->
+      <div class="tab-panel" id="tab-logs">
+        <div class="log-controls">
+          <span class="label">Service:</span>
+          <button class="log-btn active" onclick="selectLog('agent-brain',this)">agent-brain</button>
+          <button class="log-btn" onclick="selectLog('daveai-api',this)">daveai-api</button>
+          <button class="log-btn" onclick="selectLog('agentic-ui',this)">agentic-ui</button>
+          <button class="log-btn" onclick="selectLog('edge-tts',this)">edge-tts</button>
+          <button class="log-btn" onclick="selectLog('litellm',this)">litellm</button>
+          <button class="log-btn" onclick="selectLog('zeroclaw',this)">zeroclaw</button>
+          <span class="tb-sep"></span>
+          <button class="log-btn" id="log-follow-btn" onclick="toggleLogFollow()">↓ Follow</button>
+          <button class="log-btn" onclick="clearOutput('log-output')">✕ Clear</button>
+        </div>
+        <div class="log-out" id="log-output"></div>
+      </div>
+
+      <!-- TESTS -->
+      <div class="tab-panel" id="tab-tests">
+        <div class="test-controls">
+          <button class="test-btn" id="btn-playwright" onclick="runTest('playwright e2e suite')">▶ Playwright
+            E2E</button>
+          <button class="test-btn" id="btn-playwright-hd"
+            onclick="runTest('playwright headless full suite --reporter=list')">▶ PW Headless</button>
+          <button class="test-btn" id="btn-k6" onclick="runTest('k6 load test 10 VUs 30 seconds')">▶ k6 Load</button>
+          <button class="test-btn" id="btn-k6-smoke" onclick="runTest('k6 smoke test 1 VU 10 seconds')">▶ k6
+            Smoke</button>
+          <button class="test-btn" id="btn-lh" onclick="runTest('lighthouse audit daveai.tech')">▶ Lighthouse</button>
+          <button class="test-btn" id="btn-axe" onclick="runTest('axe accessibility scan daveai.tech')">▶ axe
+            Scan</button>
+          <div class="test-status" id="test-status">Select a test to run</div>
+          <button class="log-btn" onclick="clearOutput('test-output')">✕ Clear</button>
+        </div>
+        <div class="test-scores">
+          <div class="score-box">
+            <div class="score-label">Perf</div>
+            <div class="score-val" id="lh-perf">–</div>
+          </div>
+          <div class="score-box">
+            <div class="score-label">A11y</div>
+            <div class="score-val" id="lh-a11y">–</div>
+          </div>
+          <div class="score-box">
+            <div class="score-label">Best P</div>
+            <div class="score-val" id="lh-bp">–</div>
+          </div>
+          <div class="score-box">
+            <div class="score-label">SEO</div>
+            <div class="score-val" id="lh-seo">–</div>
+          </div>
+        </div>
+        <div class="cmd-output" id="test-output" style="flex:1"></div>
+      </div>
+
+      <!-- DEPLOY -->
+      <div class="tab-panel" id="tab-deploy">
+        <div id="panel-deploy" style="overflow-y:auto;padding:8px">
+          <div class="deploy-grid">
+            <div class="deploy-card">
+              <div class="deploy-title">🧪 Deploy → Staging</div>
+              <div class="deploy-desc">Push current codebase to staging environment. Tests run automatically before
+                promotion.</div>
+              <button class="deploy-btn staging" onclick="triggerDeploy('staging')">▶ Deploy to Staging</button>
+            </div>
+            <div class="deploy-card">
+              <div class="deploy-title">🚀 Deploy → Production</div>
+              <div class="deploy-desc">Promote to daveai.tech production. Requires staging to be green.</div>
+              <button class="deploy-btn production" onclick="triggerDeploy('production')">▶ Deploy to
+                Production</button>
+            </div>
+            <div class="deploy-card">
+              <div class="deploy-title">⏪ Rollback</div>
+              <div class="deploy-desc">Roll back to previous checkpoint. Lists recent deployments to choose from.</div>
+              <button class="deploy-btn rollback" onclick="triggerRollback()">⏪ Rollback</button>
+            </div>
+            <div class="deploy-card">
+              <div class="deploy-title">📊 Checkpoint Status</div>
+              <div id="checkpoint-detail" style="font-size:10px;color:var(--dim);margin-bottom:8px">Loading...</div>
+              <div class="deploy-title" style="margin-top:8px">💰 Budget Status</div>
+              <div id="budget-detail" style="font-size:10px;color:var(--dim)">Loading...</div>
+            </div>
+          </div>
+          <div class="procs-section" style="margin-top:0">
+            <div class="procs-section-header">Deploy Output</div>
+            <div class="cmd-output" id="deploy-output" style="min-height:150px;max-height:300px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DISCUSS -->
+      <div class="tab-panel" id="tab-discuss">
+        <div class="discuss-controls">
+          <span class="label">Agents:</span>
+          <select class="discuss-agent-sel" id="disc-agent1">
+            <option value="supervisor">supervisor</option>
+            <option value="coder">coder</option>
+            <option value="asset">asset</option>
+            <option value="qa">qa</option>
+          </select>
+          <select class="discuss-agent-sel" id="disc-agent2">
+            <option value="coder">coder</option>
+            <option value="supervisor">supervisor</option>
+            <option value="qa">qa</option>
+            <option value="asset">asset</option>
+          </select>
+          <input class="discuss-input" id="disc-topic" placeholder="Discussion topic / task...">
+          <button class="send-btn" onclick="startDiscussion()">Start Discussion</button>
+          <button class="log-btn" onclick="loadDiscussions()">↻ Refresh List</button>
+        </div>
+        <div class="disc-list" id="disc-list"></div>
+      </div>
+
+    </main>
+
+    <!-- ── RIGHT PANEL: Chat ── -->
+    <div id="chat-panel">
+      <div class="cp-header">
+        <span>Agent Chat</span>
+        <select class="cp-agent-sel" id="chat-agent">
+          <option value="supervisor">supervisor</option>
+          <option value="coder">coder</option>
+          <option value="asset">asset</option>
+          <option value="qa">qa</option>
+        </select>
+      </div>
+      <div id="chat-feed"></div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chat-input" placeholder="Message agent..."
+          onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="chat-send" onclick="sendChat()">→</button>
+      </div>
+    </div>
+
+  </div><!-- /layout -->
+
+  <!-- Toasts -->
+  <div id="toasts"></div>
+
+  <script>
+    const API = 'https://daveai.tech/api';
+    const AGENTS = ['supervisor', 'coder', 'asset', 'qa'];
+    const STALL_THRESHOLD = 120; // seconds before flagging stall
+
+    let muted = false;
+    let alertActive = false;
+    let agentState = {};
+    let agentTimers = {};
+    let feedItems = [];
+    let logService = 'agent-brain';
+    let logFollowing = true;
+    let logInterval = null;
+    let procInterval = null;
+    let monitorInterval = null;
+    let prevPm2 = {};
+
+
+    function hasDaveAiAuthToken() {
+      try {
+        const token = localStorage.getItem('daveai_token') || '';
+        const parts = token.split('.');
+        if (parts.length !== 3) return false;
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (payload.exp && Date.now() >= payload.exp * 1000) return false;
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function renderAuthGate() {
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="windsurf-auth-gate" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(3,7,18,.94);color:#e5e7eb;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px">
+          <div style="max-width:560px;border:1px solid rgba(148,163,184,.28);background:linear-gradient(135deg,rgba(15,23,42,.98),rgba(30,41,59,.94));border-radius:20px;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.45)">
+            <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#a78bfa;margin-bottom:10px">DaveAI Ops</div>
+            <h1 style="margin:0 0 12px;font-size:28px;line-height:1.15;color:white">Windsurf is an authenticated control panel</h1>
+            <p style="margin:0 0 18px;color:#cbd5e1;line-height:1.6">This page controls VPS processes, deployment commands, logs, and agent operations. Sign in through DaveAI first, then reopen Windsurf from the launcher.</p>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              <a href="https://daveai.tech/" style="display:inline-flex;align-items:center;border-radius:12px;background:#7c3aed;color:white;text-decoration:none;padding:11px 16px;font-weight:700">Sign in to DaveAI</a>
+              <a href="https://daveai.tech/web-pages.html" style="display:inline-flex;align-items:center;border-radius:12px;border:1px solid rgba(148,163,184,.35);color:#e5e7eb;text-decoration:none;padding:11px 16px;font-weight:700">Back to launcher</a>
+            </div>
+            <p style="margin:18px 0 0;color:#94a3b8;font-size:12px">Public proof expectation: no protected admin API calls are made until auth is present.</p>
+          </div>
+        </div>`);
+      addFeed('sys', 'system', 'Auth required — Windsurf polling not started');
+    }
+
+    // ── Init ────────────────────────────────────────────────────────────────────
+
+    window.addEventListener('load', () => {
+      renderAgentCards();
+      if (!hasDaveAiAuthToken()) {
+        renderAuthGate();
+        return;
+      }
+      startMonitor();
+      startProcMonitor();
+      loadBudget();
+      loadCheckpoint();
+      loadDiscussions();
+      startLogStream();
+      addFeed('sys', 'system', 'Control panel loaded — polling active');
+    });
+
+    // ── Monitor Loop ─────────────────────────────────────────────────────────────
+
+    function startMonitor() {
+      fetchAgentStatus();
+      monitorInterval = setInterval(fetchAgentStatus, 5000);
+      setInterval(tickTimers, 1000);
+      setInterval(() => loadBudget(), 60000);
+      setInterval(() => loadCheckpoint(), 30000);
+    }
+
+    async function fetchVpsStats() {
+      try {
+        const r = await fetch(API + '/status', { signal: AbortSignal.timeout(5000) });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (d.cpu !== undefined) document.getElementById('tb-cpu').textContent = d.cpu + '%';
+        if (d.mem !== undefined) document.getElementById('tb-mem').textContent = d.mem + 'MB';
+        if (d.uptime !== undefined) document.getElementById('tb-uptime').textContent = fmtUptime(d.uptime * 1000);
+      } catch (e) { }
+    }
+
+    async function fetchAgentStatus() {
+      try {
+        const r = await fetch(API + '/agents/status', { signal: AbortSignal.timeout(8000) });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        processAgentData(data);
+        dotOk('dot-vps', 'VPS Online');
+        document.getElementById('tb-refresh').textContent = 'polled ' + new Date().toLocaleTimeString();
+      } catch (e) {
+        dotErr('dot-vps', 'VPS Error');
+        addFeed('sys', 'system', '⚠ Agent poll failed: ' + e.message);
+      }
+    }
+
+    function processAgentData(data) {
+      const agents = data.agents || {};
+      let hasStall = false;
+      Object.entries(agents).forEach(([name, info]) => {
+        const prev = agentState[name] || {};
+        // Detect meaningful status change (skip idle→idle with no task)
+        const meaningful = info.status !== 'idle' || info.task;
+        if (meaningful && (prev.status !== info.status || prev.task !== info.task)) {
+          addFeed(name, name, `[${info.status.toUpperCase()}]${info.task ? ' ' + info.task : ''}`);
+        }
+        agentState[name] = info;
+        // Stall detection: if working but ts is old
+        if (info.status === 'working' || info.status === 'busy' || info.status === 'running') {
+          const age = (Date.now() - new Date(info.ts).getTime()) / 1000;
+          if (age > STALL_THRESHOLD) {
+            hasStall = true;
+            agentState[name]._stalled = true;
+            if (!agentTimers[name]) agentTimers[name] = { start: new Date(info.ts).getTime(), status: info.status };
+          } else {
+            agentState[name]._stalled = false;
+            if (!agentTimers[name]) agentTimers[name] = { start: Date.now(), status: info.status };
+          }
+        } else {
+          agentState[name]._stalled = false;
+          agentTimers[name] = null;
+        }
+        updateAgentCard(name, info);
+      });
+      const stallInd = document.getElementById('stall-indicator');
+      if (hasStall) {
+        stallInd.style.display = 'flex';
+        if (!alertActive) showAlert('Agent stall detected — check monitor tab');
+        if (!muted) beep();
+      } else {
+        stallInd.style.display = 'none';
+        if (alertActive && !Object.values(agentState).some(a => a._stalled)) dismissAlert();
+      }
+    }
+
+    function tickTimers() {
+      AGENTS.forEach(name => {
+        const el = document.getElementById('timer-' + name);
+        if (!el) return;
+        const info = agentState[name];
+        if (!info) return;
+        const active = info.status !== 'idle' && info.status !== '' && info.status !== null;
+        if (active && agentTimers[name]) {
+          const secs = Math.floor((Date.now() - agentTimers[name].start) / 1000);
+          const m = String(Math.floor(secs / 60)).padStart(2, '0');
+          const s = String(secs % 60).padStart(2, '0');
+          el.textContent = `${m}:${s}`;
+          el.className = 'ac-timer' + (secs > STALL_THRESHOLD ? ' danger' : secs > 60 ? ' warn' : ' ok');
+        } else {
+          el.textContent = '–';
+          el.className = 'ac-timer ok';
+        }
+      });
+    }
+
+    // ── Agent Cards ───────────────────────────────────────────────────────────────
+
+    function renderAgentCards() {
+      const grid = document.getElementById('agent-grid');
+      grid.innerHTML = AGENTS.map(name => `
+    <div class="agent-card" id="card-${name}">
+      <button class="ac-stop" onclick="stopAgent('${name}')">■ stop</button>
+      <div class="ac-name">${name}</div>
+      <div class="ac-status"><span class="proc-badge badge-idle" id="badge-${name}">IDLE</span></div>
+      <div class="ac-task" id="task-${name}">–</div>
+      <div class="ac-timer ok" id="timer-${name}">–</div>
+      <div class="ac-model" id="model-${name}"></div>
+    </div>`).join('');
+    }
+
+    function updateAgentCard(name, info) {
+      const card = document.getElementById('card-' + name);
+      const badge = document.getElementById('badge-' + name);
+      const taskEl = document.getElementById('task-' + name);
+      const modelEl = document.getElementById('model-' + name);
+      if (!card) return;
+      const st = info.status || 'idle';
+      const stalled = info._stalled;
+      // Card border class
+      card.className = 'agent-card' + (stalled ? ' stalled' : st === 'working' || st === 'busy' ? ' working' : st === 'error' ? ' errored' : '');
+      // Badge
+      badge.textContent = stalled ? 'STALL' : st.toUpperCase();
+      badge.className = 'proc-badge ' + (stalled ? 'badge-stalled' : st === 'idle' || st === '' ? 'badge-idle' : st === 'working' || st === 'busy' || st === 'running' ? 'badge-working' : st === 'error' ? 'badge-errored' : 'badge-online');
+      taskEl.textContent = info.task || '–';
+      if (info.model) modelEl.textContent = 'model: ' + info.model;
+      if (st !== 'idle' && st !== '' && !agentTimers[name]) agentTimers[name] = { start: Date.now(), status: st };
+      if ((st === 'idle' || st === '') && agentTimers[name]) agentTimers[name] = null;
+    }
+
+    async function stopAgent(name) {
+      if (!confirm(`Stop agent: ${name}?`)) return;
+      try {
+        await fetch(API + '/agent/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: name }), signal: AbortSignal.timeout(8000) });
+        toast(`Stop signal sent to ${name}`, 'warn');
+        addFeed(name, name, '■ Stop requested');
+      } catch (e) { toast(`Stop failed: ${e.message}`, 'error'); }
+    }
+
+    // ── Feed ─────────────────────────────────────────────────────────────────────
+
+    function addFeed(id, agent, msg) {
+      feedItems.unshift({ id, agent, msg, ts: new Date().toLocaleTimeString() });
+      if (feedItems.length > 200) feedItems.pop();
+      const feed = document.getElementById('feed-items');
+      const el = document.createElement('div');
+      el.className = 'feed-item';
+      el.innerHTML = `<span class="feed-time">${feedItems[0].ts}</span><span class="feed-agent ${agent}">${agent}</span><span class="feed-msg">${escHtml(msg)}</span>`;
+      feed.insertBefore(el, feed.firstChild);
+      document.getElementById('feed-count').textContent = feedItems.length + ' events';
+    }
+
+    // ── Process Monitor ───────────────────────────────────────────────────────────
+
+    function startProcMonitor() {
+      fetchProcs();
+      procInterval = setInterval(fetchProcs, 15000);
+    }
+
+    async function fetchProcs() {
+      try {
+        const [pm2Res, dockerRes] = await Promise.allSettled([
+          shellRun('pm2 jlist'),
+          shellRun('docker ps --format "{{.Names}}\\t{{.Status}}\\t{{.Ports}}"')
+        ]);
+        if (pm2Res.status === 'fulfilled') renderPm2(pm2Res.value);
+        if (dockerRes.status === 'fulfilled') renderDocker(dockerRes.value);
+      } catch (e) { toast('Proc fetch failed: ' + e.message, 'error'); }
+    }
+
+    async function shellRun(cmd) {
+      const r = await fetch(API + '/tools/shell/run', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: cmd }), signal: AbortSignal.timeout(15000)
+      });
+      if (!r.ok) {
+        let msg = `HTTP ${r.status}`;
+        try { const e = await r.json(); msg = e.error || e.message || e.detail || msg; } catch { }
+        throw new Error(msg);
+      }
+      const d = await r.json();
+      return d.output || d.stdout || d.result || '';
+    }
+
+    function renderPm2(raw) {
+      let procs = [];
+      try { procs = JSON.parse(raw); } catch (e) {
+        // fallback: plain text
+        renderPm2Sidebar(null, raw); return;
+      }
+      renderPm2Sidebar(procs, null);
+      // full table
+      const tbody = document.getElementById('pm2-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = procs.map(p => {
+        const st = p.pm2_env?.status || 'unknown';
+        const restarts = p.pm2_env?.restart_time || 0;
+        const mem = p.monit?.memory ? Math.round(p.monit.memory / 1024 / 1024) + 'MB' : '–';
+        const cpu = p.monit?.cpu !== undefined ? p.monit.cpu + '%' : '–';
+        const up = p.pm2_env?.pm_uptime ? fmtUptime(Date.now() - p.pm2_env.pm_uptime) : '–';
+        const cls = st === 'online' ? 'badge-online' : st === 'errored' ? 'badge-errored' : 'badge-stopped';
+        const restCls = restarts > 5 ? 'restarts-high' : '';
+        return `<tr>
+      <td class="val">${p.name}</td>
+      <td><span class="proc-badge ${cls}">${st.toUpperCase()}</span></td>
+      <td class="proc-meta">${p.pid || '–'}</td>
+      <td class="proc-meta ${restCls}">${restarts}</td>
+      <td class="proc-meta">${cpu}</td>
+      <td class="proc-meta">${mem}</td>
+      <td class="proc-meta">${up}</td>
+      <td><div class="proc-btns">
+        <button class="proc-btn restart" onclick="quickCmd('pm2 restart ${p.name}')">↻</button>
+        <button class="proc-btn stop" onclick="quickCmd('pm2 stop ${p.name}')">■</button>
+        <button class="proc-btn logs" onclick="selectLog('${p.name}',null)">log</button>
+      </div></td>
+    </tr>`;
+      }).join('');
+      // alert on errored
+      procs.forEach(p => {
+        const st = p.pm2_env?.status;
+        const restarts = p.pm2_env?.restart_time || 0;
+        const prev = prevPm2[p.name];
+        if (st === 'errored' && prev !== 'errored') {
+          toast(`PM2: ${p.name} is ERRORED (${restarts} restarts)`, 'error');
+          showAlert(`PM2 process ${p.name} errored — ${restarts} restarts`);
+          addFeed('pm2', 'system', `⚠ PM2 ${p.name} errored (${restarts} restarts)`);
+        }
+        prevPm2[p.name] = st;
+      });
+    }
+
+    function renderPm2Sidebar(procs, raw) {
+      const list = document.getElementById('pm2-list');
+      if (!list) return;
+      if (!procs) { list.innerHTML = `<div class="proc-row"><span class="proc-meta">${escHtml(raw?.substring(0, 200) || 'error')}</span></div>`; return; }
+      list.innerHTML = procs.map(p => {
+        const st = p.pm2_env?.status || 'unknown';
+        const restarts = p.pm2_env?.restart_time || 0;
+        const mem = p.monit?.memory ? Math.round(p.monit.memory / 1024 / 1024) + 'MB' : '';
+        const cls = st === 'online' ? 'badge-online' : st === 'errored' ? 'badge-errored' : 'badge-stopped';
+        const restCls = restarts > 5 ? 'restarts-high' : '';
+        return `<div class="proc-row">
+      <div style="flex:1">
+        <div class="flex-row"><span class="proc-name" style="font-size:11px">${p.name}</span><span class="proc-badge ${cls}" style="font-size:8px">${st.toUpperCase()}</span></div>
+        <div class="proc-meta">${mem} · <span class="${restCls}">${restarts}r</span></div>
+      </div>
+      <div class="proc-btns">
+        <button class="proc-btn restart" onclick="quickCmd('pm2 restart ${p.name}')">↻</button>
+        <button class="proc-btn stop" onclick="quickCmd('pm2 stop ${p.name}')">■</button>
+      </div>
+    </div>`;
+      }).join('');
+    }
+
+    const SIDEBAR_DOCKER_EXCLUDE = ['slither-plus-'];
+    const SIDEBAR_DOCKER_IN_TOOLS = ['openhands'];
+
+    function renderDocker(raw) {
+      const lines = raw.trim().split('\n').filter(Boolean);
+      const list = document.getElementById('docker-list');
+      const tbody = document.getElementById('docker-tbody');
+      const items = lines.map(l => {
+        const [name, status, ports] = l.split('\t');
+        const up = (status || '').toLowerCase().startsWith('up');
+        const healthy = (status || '').includes('healthy');
+        const cls = up ? (healthy ? 'badge-online' : 'badge-working') : 'badge-errored';
+        return { name, status, ports, cls };
+      });
+      if (list) {
+        const sidebarItems = items.filter(i => !SIDEBAR_DOCKER_EXCLUDE.some(ex => (i.name || '').startsWith(ex)) && !SIDEBAR_DOCKER_IN_TOOLS.some(t => (i.name || '') === t));
+        list.innerHTML = sidebarItems.map(i => `
+      <div class="proc-row">
+        <div style="flex:1">
+          <div class="flex-row"><span class="proc-name" style="font-size:11px">${i.name || '–'}</span><span class="proc-badge ${i.cls}" style="font-size:8px">${(i.status || '').split(' ').slice(0, 2).join(' ')}</span></div>
+          <div class="proc-meta" style="font-size:9px">${(i.ports || '').substring(0, 40)}</div>
+        </div>
+        <div class="proc-btns">
+          <button class="proc-btn restart" onclick="quickCmd('docker restart ${i.name}')">↻</button>
+          <button class="proc-btn logs" onclick="quickCmd('docker logs --tail 50 ${i.name}')">log</button>
+        </div>
+      </div>`).join('');
+        const ohItem = items.find(i => i.name === 'openhands');
+        if (ohItem) { const b = document.getElementById('oh-badge'); if (b) { b.textContent = (ohItem.status || '').split(' ').slice(0, 2).join(' '); b.className = 'proc-badge ' + ohItem.cls + ' ' + 'badge'; b.style.fontSize = '8px'; } }
+      }
+      if (tbody) {
+        tbody.innerHTML = items.map(i => `<tr>
+      <td class="val">${i.name || '–'}</td>
+      <td><span class="proc-badge ${i.cls}">${(i.status || '').substring(0, 30)}</span></td>
+      <td class="proc-meta" style="font-size:10px">${(i.ports || '').substring(0, 60)}</td>
+      <td><div class="proc-btns">
+        <button class="proc-btn restart" onclick="quickCmd('docker restart ${i.name}')">↻</button>
+        <button class="proc-btn stop" onclick="quickCmd('docker stop ${i.name}')">■</button>
+        <button class="proc-btn logs" onclick="quickCmd('docker logs --tail 50 ${i.name}')">log</button>
+      </div></td>
+    </tr>`).join('');
+      }
+    }
+
+    async function fixEdgeTts() {
+      switchTab('tab-command');
+      appendOut('cmd-output', '$ pm2 restart edge-tts  (wrapper auto-clears port 5050)', 'cmd');
+      try {
+        const r1 = await shellRun('pm2 restart edge-tts');
+        r1.split('\n').filter(Boolean).forEach(l => appendOut('cmd-output', stripAnsi(l), 'out'));
+        appendOut('cmd-output', 'waiting 4s for startup...', 'out');
+        await new Promise(r => setTimeout(r, 4000));
+        appendOut('cmd-output', '$ pm2 show edge-tts', 'cmd');
+        const r2 = await shellRun('pm2 show edge-tts');
+        const lines = r2.split('\n').map(stripAnsi).filter(Boolean);
+        const statusLine = lines.find(l => /status/.test(l)) || '';
+        const isOnline = statusLine.includes('online');
+        lines.slice(0, 8).forEach(l => appendOut('cmd-output', l, l.includes('online') ? 'ok' : l.includes('errored') ? 'err' : 'out'));
+        await fetchProcs();
+        toast('edge-tts: ' + (isOnline ? 'online \u2713' : 'still errored \u2014 check logs'), isOnline ? 'ok' : 'warn');
+      } catch (e) { appendOut('cmd-output', '\u2717 ' + e.message, 'err'); }
+    }
+
+    // ── Command ───────────────────────────────────────────────────────────────────
+
+    async function sendCmd() {
+      const input = document.getElementById('cmd-input');
+      const cmd = input.value.trim();
+      if (!cmd) return;
+      input.value = '';
+      appendOut('cmd-output', '$ ' + cmd, 'cmd');
+      try {
+        const r = await fetch(API + '/tools/shell/run', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd }), signal: AbortSignal.timeout(30000)
+        });
+        const d = await r.json();
+        const out = d.output || d.stdout || d.result || JSON.stringify(d);
+        out.split('\n').forEach(l => appendOut('cmd-output', l, l.toLowerCase().includes('error') || l.toLowerCase().includes('err:') ? 'err' : 'out'));
+        if (d.stderr) d.stderr.split('\n').forEach(l => appendOut('cmd-output', l, 'err'));
+        appendOut('cmd-output', `→ exit ${d.exit_code ?? d.returncode ?? 0}`, 'ok');
+      } catch (e) {
+        appendOut('cmd-output', '✗ ' + e.message, 'err');
+      }
+    }
+
+    async function quickCmd(cmd) {
+      appendOut('cmd-output', '$ ' + cmd, 'cmd');
+      switchTab('tab-command');
+      try {
+        const r = await fetch(API + '/tools/shell/run', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd }), signal: AbortSignal.timeout(30000)
+        });
+        const d = await r.json();
+        const out = d.output || d.stdout || d.result || JSON.stringify(d);
+        out.split('\n').forEach(l => appendOut('cmd-output', l, 'out'));
+        if (d.stderr) d.stderr.split('\n').forEach(l => appendOut('cmd-output', l, 'err'));
+        appendOut('cmd-output', `→ done`, 'ok');
+        fetchProcs();
+      } catch (e) {
+        appendOut('cmd-output', '✗ ' + e.message, 'err');
+        toast('Command failed: ' + e.message, 'error');
+      }
+    }
+
+    function fillCmd(cmd) { document.getElementById('cmd-input').value = cmd; document.getElementById('cmd-input').focus(); }
+
+    // ── Logs ─────────────────────────────────────────────────────────────────────
+
+    function startLogStream() {
+      logInterval = setInterval(fetchLogs, 4000);
+      fetchLogs();
+    }
+
+    async function fetchLogs() {
+      if (document.getElementById('tab-logs')?.classList.contains('active') === false) return;
+      try {
+        const r = await fetch(`${API}/db/logs/${logService}`, { signal: AbortSignal.timeout(8000) });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        const rawLines = Array.isArray(d) ? d : (d.entries || d.logs || d.lines || [JSON.stringify(d)]);
+        const lines = rawLines.map(l => stripAnsi(String(l)));
+        const out = document.getElementById('log-output');
+        const prev = out.dataset.lastHash || '';
+        const hash = lines.slice(-5).join('|');
+        if (hash === prev) return;
+        out.dataset.lastHash = hash;
+        out.innerHTML = lines.map(l => {
+          const ls = String(l);
+          const cls = /error|err:|fatal|exception/i.test(ls) ? 'error' : /warn/i.test(ls) ? 'warn' : /info/i.test(ls) ? 'info' : /^\s*$/.test(ls) ? 'dim' : 'default';
+          return `<div class="log-line ${cls}">${escHtml(ls)}</div>`;
+        }).join('');
+        if (logFollowing) out.scrollTop = out.scrollHeight;
+      } catch (e) {
+        // silently fail for log polling
+      }
+    }
+
+    function selectLog(svc, btn) {
+      logService = svc;
+      document.querySelectorAll('.log-btn').forEach(b => b.classList.remove('active'));
+      if (btn) { btn.classList.add('active'); }
+      else { document.querySelectorAll('.log-btn').forEach(b => { if (b.textContent.trim() === svc) b.classList.add('active'); }); }
+      document.getElementById('log-output').innerHTML = '';
+      document.getElementById('log-output').dataset.lastHash = '';
+      switchTab('tab-logs');
+      fetchLogs();
+    }
+
+    function toggleLogFollow() {
+      logFollowing = !logFollowing;
+      document.getElementById('log-follow-btn').textContent = logFollowing ? '↓ Following' : '↕ Paused';
+      document.getElementById('log-follow-btn').classList.toggle('active', logFollowing);
+    }
+
+    // ── Tests ─────────────────────────────────────────────────────────────────────
+
+    async function runTest(type) {
+      document.getElementById('test-status').textContent = 'Running: ' + type + '...';
+      appendOut('test-output', '$ run test: ' + type, 'cmd');
+      try {
+        await processMessageToOutput(type, 'test-output');
+        document.getElementById('test-status').textContent = 'Completed: ' + type;
+      } catch (e) {
+        appendOut('test-output', '✗ ' + e.message, 'err');
+        document.getElementById('test-status').textContent = 'Failed: ' + e.message;
+      }
+    }
+
+    // ── Deploy ────────────────────────────────────────────────────────────────────
+
+    async function triggerDeploy(env) {
+      if (!confirm(`Deploy to ${env}?`)) return;
+      appendOut('deploy-output', `$ deploy to ${env}`, 'cmd');
+      try {
+        const r = await fetch(`${API}/deploy/${env}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}), signal: AbortSignal.timeout(60000)
+        });
+        const d = await r.json();
+        appendOut('deploy-output', JSON.stringify(d, null, 2), r.ok ? 'ok' : 'err');
+        toast(`Deploy ${env}: ${r.ok ? 'started' : 'failed'}`, r.ok ? 'ok' : 'error');
+        addFeed('deploy', 'system', `Deploy to ${env} ${r.ok ? 'started' : 'FAILED'}`);
+      } catch (e) {
+        appendOut('deploy-output', '✗ ' + e.message, 'err');
+        toast('Deploy failed: ' + e.message, 'error');
+      }
+    }
+
+    async function triggerRollback() {
+      if (!confirm('Rollback to previous checkpoint?')) return;
+      appendOut('deploy-output', '$ rollback', 'cmd');
+      try {
+        const r = await fetch(`${API}/deploy/rollback`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(30000) });
+        const d = await r.json();
+        appendOut('deploy-output', JSON.stringify(d, null, 2), r.ok ? 'ok' : 'err');
+        toast('Rollback ' + (r.ok ? 'initiated' : 'failed'), r.ok ? 'warn' : 'error');
+      } catch (e) { appendOut('deploy-output', '✗ ' + e.message, 'err'); }
+    }
+
+    async function loadCheckpoint() {
+      try {
+        const r = await fetch(API + '/checkpoint/status', { signal: AbortSignal.timeout(5000) });
+        if (r.status === 403) { ['checkpoint-panel', 'checkpoint-detail'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<span style="color:var(--dim)">Admin auth required</span>'; }); return; }
+        const d = await r.json();
+        const html = renderKV(d);
+        document.getElementById('checkpoint-panel').innerHTML = html;
+        document.getElementById('checkpoint-detail').innerHTML = html;
+      } catch (e) {
+        ['checkpoint-panel', 'checkpoint-detail'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerHTML = '<span style="color:var(--dim)">Unavailable</span>';
+        });
+      }
+    }
+
+    async function loadBudget() {
+      try {
+        const r = await fetch(API + '/budget/status', { signal: AbortSignal.timeout(5000) });
+        const d = await r.json();
+        const html = renderKV(d);
+        document.getElementById('budget-panel').innerHTML = html;
+        document.getElementById('budget-detail').innerHTML = html;
+      } catch (e) {
+        ['budget-panel', 'budget-detail'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = 'Unavailable: ' + e.message;
+        });
+      }
+    }
+
+    function renderKV(obj, depth = 0) {
+      if (!obj || typeof obj !== 'object') return `<span style="color:var(--cyan)">${escHtml(String(obj))}</span>`;
+      return Object.entries(obj).map(([k, v]) => `<div class="checkpoint-row"><span class="label">${escHtml(k)}</span><span style="color:var(--cyan);font-size:10px">${typeof v === 'object' ? renderKV(v, depth + 1) : escHtml(String(v))}</span></div>`).join('');
+    }
+
+    // ── Discuss ───────────────────────────────────────────────────────────────────
+
+    async function loadDiscussions() {
+      try {
+        const r = await fetch(API + '/discuss/list', { signal: AbortSignal.timeout(5000) });
+        const d = await r.json();
+        const list = document.getElementById('disc-list');
+        const items = Array.isArray(d) ? d : (d.discussions || d.items || []);
+        if (!items.length) { list.innerHTML = '<div style="padding:12px;color:var(--dim);font-size:11px">No discussions yet — start one above</div>'; return; }
+        list.innerHTML = items.map(i => `
+      <div class="disc-item" onclick="loadDiscussion('${i.id || i.disc_id || i._id}')">
+        <div class="disc-title">${escHtml(i.topic || i.title || i.id || 'Discussion')}</div>
+        <div class="disc-meta">${escHtml(String(i.agents || ''))}</div>
+        ${i.last_message ? `<div class="disc-msg">${escHtml(String(i.last_message).substring(0, 100))}</div>` : ''}
+      </div>`).join('');
+      } catch (e) {
+        document.getElementById('disc-list').innerHTML = `<div style="padding:12px;color:var(--dim);font-size:11px">Could not load discussions: ${e.message}</div>`;
+      }
+    }
+
+    async function loadDiscussion(id) {
+      try {
+        const r = await fetch(`${API}/discuss/${id}`, { signal: AbortSignal.timeout(5000) });
+        const d = await r.json();
+        const list = document.getElementById('disc-list');
+        const msgs = d.messages || d.turns || [];
+        list.innerHTML = `
+      <div style="padding:6px;font-size:10px;color:var(--dim);border-bottom:1px solid var(--border);display:flex;gap:8px">
+        <button class="log-btn" onclick="loadDiscussions()">← Back</button>
+        <span>${escHtml(d.topic || id)}</span>
+        <button class="log-btn" onclick="runDiscussion('${id}')">▶ Run</button>
+      </div>` +
+          msgs.map(m => `<div class="disc-item">
+        <div class="disc-title">${escHtml(m.agent || m.role || '?')}</div>
+        <div class="disc-msg">${escHtml(String(m.message || m.content || '').substring(0, 300))}</div>
+      </div>`).join('');
+      } catch (e) { toast('Load discussion failed: ' + e.message, 'error'); }
+    }
+
+    async function startDiscussion() {
+      const topic = document.getElementById('disc-topic').value.trim();
+      if (!topic) { toast('Enter a topic first', 'warn'); return; }
+      const agent1 = document.getElementById('disc-agent1').value;
+      const agent2 = document.getElementById('disc-agent2').value;
+      try {
+        const r = await fetch(`${API}/discuss/start`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic, agents: [agent1, agent2] }), signal: AbortSignal.timeout(15000)
+        });
+        const d = await r.json();
+        toast('Discussion started: ' + (d.id || d.disc_id || 'ok'), 'ok');
+        document.getElementById('disc-topic').value = '';
+        addFeed('discuss', 'system', 'Discussion started: ' + topic);
+        setTimeout(loadDiscussions, 1000);
+      } catch (e) { toast('Start discussion failed: ' + e.message, 'error'); }
+    }
+
+    async function runDiscussion(id) {
+      try {
+        const r = await fetch(`${API}/discuss/${id}/run`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(30000) });
+        const d = await r.json();
+        toast('Discussion running', 'ok');
+        setTimeout(() => loadDiscussion(id), 2000);
+      } catch (e) { toast('Run discussion failed: ' + e.message, 'error'); }
+    }
+
+    // ── Chat ──────────────────────────────────────────────────────────────────────
+
+    async function sendChat() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      const agent = document.getElementById('chat-agent').value;
+      addChatMsg('user', 'You', text);
+      const thinkDiv = addChatThink(agent);
+      try {
+        const r = await fetch(API + '/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, agent, mode: 'agent' }), signal: AbortSignal.timeout(30000)
+        });
+        const d = r.ok ? await r.json() : null;
+        thinkDiv.querySelector('span').textContent = d?.response || 'No response';
+        thinkDiv.querySelector('span').classList.remove('pulsing');
+      } catch (e) {
+        thinkDiv.querySelector('span').textContent = 'Command queued — agents processing';
+        thinkDiv.querySelector('span').classList.remove('pulsing');
+      }
+      document.getElementById('chat-feed').scrollTop = 999999;
+    }
+
+    function addChatMsg(type, name, text) {
+      const feed = document.getElementById('chat-feed');
+      const el = document.createElement('div');
+      el.className = 'chat-msg ' + type;
+      el.innerHTML = `<div class="msg-agent">${escHtml(name)}</div><div class="msg-text">${escHtml(text)}</div>`;
+      feed.appendChild(el);
+      feed.scrollTop = 999999;
+    }
+
+    function addChatThink(agent) {
+      const feed = document.getElementById('chat-feed');
+      const el = document.createElement('div');
+      el.className = 'chat-msg agent';
+      el.innerHTML = `<div class="msg-agent">${agent}</div><span class="pulsing" style="color:var(--dim)">Processing...</span>`;
+      feed.appendChild(el);
+      feed.scrollTop = 999999;
+      return el;
+    }
+
+    async function processMessageToOutput(text, outputId) {
+      appendOut(outputId, '→ sending to agent brain...', 'info');
+      const r = await fetch(API + '/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, agent: 'qa', mode: 'agent' }), signal: AbortSignal.timeout(30000)
+      });
+      const d = r.ok ? await r.json() : null;
+      const response = d?.response || 'Command queued';
+      response.split('\n').forEach(l => appendOut(outputId, l, 'out'));
+    }
+
+    // ── Alerts ───────────────────────────────────────────────────────────────────
+
+    function showAlert(msg) {
+      alertActive = true;
+      document.getElementById('alert-text').textContent = msg;
+      document.getElementById('alert-banner').classList.add('show');
+      document.getElementById('topbar').classList.add('has-alert');
+      document.getElementById('layout').classList.add('has-alert');
+    }
+
+    function dismissAlert() {
+      alertActive = false;
+      document.getElementById('alert-banner').classList.remove('show');
+      document.getElementById('topbar').classList.remove('has-alert');
+      document.getElementById('layout').classList.remove('has-alert');
+    }
+
+    function toast(msg, type = 'info') {
+      const c = document.getElementById('toasts');
+      const el = document.createElement('div');
+      el.className = 'toast ' + type;
+      el.textContent = (type === 'error' ? '✗ ' : type === 'warn' ? '⚠ ' : type === 'ok' ? '✓ ' : 'ℹ ') + msg;
+      c.appendChild(el);
+      setTimeout(() => { if (el.parentNode) el.remove(); }, 5000);
+    }
+
+    function beep() {
+      if (muted) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880; g.gain.value = 0.1;
+        o.start(); o.stop(ctx.currentTime + 0.15);
+      } catch (e) { }
+    }
+
+    function toggleMute() {
+      muted = !muted;
+      document.getElementById('mute-btn').textContent = muted ? '🔇 Muted' : '🔔 Alerts';
+    }
+
+    // ── Utils ─────────────────────────────────────────────────────────────────────
+
+    function switchTab(id) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(id)?.classList.add('active');
+      document.querySelector(`[data-tab="${id}"]`)?.classList.add('active');
+      if (id === 'tab-logs') fetchLogs();
+      if (id === 'tab-procs') fetchProcs();
+    }
+
+    function appendOut(id, text, cls = 'out') {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const line = document.createElement('div');
+      line.className = 'cmd-line ' + cls;
+      line.textContent = text;
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function clearOutput(id) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    }
+
+    function stripAnsi(s) {
+      return s.replace(/\x1b\[[0-9;]*[mGKHFABCDJsuhl]/g, '').replace(/\x1b\][^\x07]*\x07/g, '');
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function fmtUptime(ms) {
+      const s = Math.floor(ms / 1000);
+      if (s < 60) return s + 's';
+      if (s < 3600) return Math.floor(s / 60) + 'm';
+      if (s < 86400) return Math.floor(s / 3600) + 'h';
+      return Math.floor(s / 86400) + 'd';
+    }
+
+    function dotOk(id, label) {
+      const d = document.getElementById(id);
+      if (d) { d.className = 'tb-dot green'; }
+      if (label) document.getElementById('tb-vps-label').textContent = label;
+    }
+
+    function dotErr(id, label) {
+      const d = document.getElementById(id);
+      if (d) { d.className = 'tb-dot red'; }
+      if (label) document.getElementById('tb-vps-label').textContent = label;
+    }
+
+    function forceRefresh() {
+      fetchAgentStatus();
+      fetchProcs();
+      loadBudget();
+      loadCheckpoint();
+      if (document.getElementById('tab-logs').classList.contains('active')) fetchLogs();
+      toast('Refreshed', 'info');
+    }
+  </script>
+</body>
+
+</html>

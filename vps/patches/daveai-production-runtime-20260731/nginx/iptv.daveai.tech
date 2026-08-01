@@ -1,0 +1,143 @@
+# Wave 8 — iptv.daveai.tech (new vhost, fronts iptv-restream Docker on :3103)
+# Backend: 127.0.0.1:3103 (Docker container iptv-restream-iptv_restream_nginx-1)
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name iptv.daveai.tech;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+    }
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name iptv.daveai.tech;
+
+    ssl_certificate     /etc/nginx/ssl/daveai.tech/cloudflare-origin.pem;
+    ssl_certificate_key /etc/nginx/ssl/daveai.tech/cloudflare-origin.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    access_log /var/log/nginx/iptv-access.log combined;
+    error_log  /var/log/nginx/iptv-error.log warn;
+
+    client_max_body_size 50M;
+
+    location = /auth/check {
+        internal;
+        proxy_pass http://davetv_auth_gate/auth/check;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header X-Original-Host $host;
+    }
+
+    error_page 401 = @davetv_login_redirect;
+
+    location @davetv_login_redirect {
+        return 302 https://apps.daveai.tech/login?return_to=$scheme://$host$request_uri;
+    }
+
+    location = /login {
+        proxy_pass http://davetv_auth_gate;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location = /logout {
+        proxy_pass http://davetv_auth_gate;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location = /session {
+        proxy_pass http://davetv_auth_gate;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location = /auth/session {
+        proxy_pass http://davetv_auth_gate;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+
+    location = /api/provider-vault/providers {
+        auth_request /auth/check;
+        auth_request_set $davetv_user $upstream_http_x_daveai_user;
+        auth_request_set $davetv_email $upstream_http_x_daveai_email;
+        error_page 401 403 = @provider_vault_empty_providers;
+        proxy_pass http://127.0.0.1:3102;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-DaveTV-Authenticated 1;
+        proxy_set_header X-DaveAI-User $davetv_user;
+        proxy_set_header X-DaveAI-Email $davetv_email;
+    }
+
+    location @provider_vault_empty_providers {
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        return 200 '{"providers":[]}';
+    }
+
+    location ^~ /api/provider-vault/ {
+        auth_request /auth/check;
+        auth_request_set $davetv_user $upstream_http_x_daveai_user;
+        auth_request_set $davetv_email $upstream_http_x_daveai_email;
+        proxy_pass http://127.0.0.1:3102;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-DaveTV-Authenticated 1;
+        proxy_set_header X-DaveAI-User $davetv_user;
+        proxy_set_header X-DaveAI-Email $davetv_email;
+        proxy_set_header Range $http_range;
+        proxy_set_header If-Range $http_if_range;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+    }
+
+    location / {
+        proxy_pass         http://127.0.0.1:3103;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto https;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_buffering    off;
+    }
+}

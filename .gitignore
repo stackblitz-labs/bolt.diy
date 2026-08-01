@@ -7,6 +7,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+__pycache__/
 dist
 dist-ssr
 *.local
@@ -45,4 +46,5 @@ changelogUI.md
 docs/instructions/Roadmap.md
 .cursorrules
 *.md
+!docs/DAVEAI_PRODUCTION_E2E_AUDIT_20260731.md
 .qodo

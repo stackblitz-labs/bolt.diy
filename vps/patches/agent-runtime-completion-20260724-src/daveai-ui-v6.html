@@ -2375,6 +2375,50 @@
       const ts = parseInt(localStorage.getItem(TOKEN_TS_KEY) || '0', 10);
       return !ts || (Date.now() - ts) > TOKEN_TTL_MS;
     }
+    function getTokenClaims() {
+      const token = getToken();
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      try {
+        const json = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+        return JSON.parse(json);
+      } catch (e) {
+        return null;
+      }
+    }
+    function isAuthenticated() {
+      if (!getToken() || isTokenExpired()) return false;
+      const claims = getTokenClaims();
+      if (!claims) return false;
+      if (claims.exp && Date.now() >= claims.exp * 1000) return false;
+      return true;
+    }
+    function handleAuthFailure(message) {
+      clearToken();
+      localStorage.removeItem('daveai_user');
+      _setCurrentUser(null);
+      const tt = document.getElementById('tt');
+      if (tt) tt.textContent = message || 'Sign in to continue';
+      _showAuthIfNeeded();
+    }
+    (function installAuthFailureFetchGuard() {
+      const nativeFetch = window.fetch.bind(window);
+      window.fetch = async function guardedFetch(input, init) {
+        const response = await nativeFetch(input, init);
+        try {
+          const rawUrl = typeof input === 'string' ? input : (input && input.url) || '';
+          const url = new URL(rawUrl, location.href);
+          const publicPath = url.pathname === '/api/health'
+            || url.pathname === '/api/db/analytics'
+            || url.pathname.startsWith('/api/auth/')
+            || url.pathname === '/api/admin/login';
+          if (url.origin === location.origin && url.pathname.startsWith('/api/') && !publicPath && response.status === 401) {
+            handleAuthFailure('Sign in to continue');
+          }
+        } catch (e) { }
+        return response;
+      };
+    })();
 
     const ADMIN_EMAIL = 'fnice1971@gmail.com';
     let _authMode = 'signin'; // 'signin' or 'signup'
@@ -3010,6 +3054,10 @@
     async function loadPagesPanel() {
       const list = document.getElementById('pages-list');
       if (!list) return;
+      if (!isAuthenticated()) {
+        list.innerHTML = '<div style="padding:14px;color:var(--t3);font-size:10px">Sign in to view deployed pages.</div>';
+        return;
+      }
       list.innerHTML = '<div style="padding:14px;color:var(--t3);font-size:10px">Loading deployed pages…</div>';
       try {
         const r = await fetch('/api/pages', { cache: 'no-store', headers: authHeaders() });
@@ -3632,6 +3680,10 @@
     async function _refreshBuildTimeline() {
       const list = document.getElementById('bt-list');
       if (!list) return;
+      if (!isAuthenticated()) {
+        list.innerHTML = '<div style="padding:12px;text-align:center;color:var(--t3);font-size:10px">Sign in to view build history.</div>';
+        return;
+      }
       try {
         const _ah = { headers: typeof authHeaders === 'function' ? authHeaders() : {} };
         const [logRes, statusRes] = await Promise.allSettled([
@@ -3698,6 +3750,10 @@
     // ══════════════════════════════════════════════════════════
     async function fetchStats() {
       try {
+        if (!isAuthenticated()) {
+          await fetch('/api/health', { signal: AbortSignal.timeout(3000) }).then(r => r.ok ? r.json() : null).catch(() => null);
+          return;
+        }
         // Parallel fetch from confirmed live endpoints
         const _ah = { headers: authHeaders() };
         const [pagesRes, statusRes, healthRes, logRes] = await Promise.allSettled([
@@ -3817,6 +3873,12 @@
 
     async function updateStatusBar() {
       try {
+        if (!isAuthenticated()) {
+          const h = await fetch('/api/health', { signal: AbortSignal.timeout(4000) }).then(r => r.ok ? r.json() : null).catch(() => null);
+          const statusEl = document.getElementById('sb-ticker');
+          if (statusEl) statusEl.innerHTML = (h && h.status === 'ok') ? 'Brain online' + SB_SEP + 'Sign in for workspace stats' : 'Sign in for workspace stats';
+          return;
+        }
         const _sbh = { signal: AbortSignal.timeout(4000), headers: authHeaders() };
         const [hRes, pRes, sRes] = await Promise.allSettled([
           fetch('/api/health', _sbh).then(r => r.ok ? r.json() : null),
@@ -3887,6 +3949,10 @@
     const AGENT_NAMES = { sv: 'supervisor', cd: 'coder', qa: 'qa', as: 'asset' };
 
     async function fetchAgents() {
+      if (!isAuthenticated()) {
+        ['supervisor', 'coder', 'qa', 'asset'].forEach(role => updateAgentUI(role, { state: 'idle', task: 'sign in' }));
+        return;
+      }
       try {
         // /api/agents/status returns {supervisor:{status,task,progress,model,ts}, coder:{...}, ...}
         const r = await fetch('/api/agents/status', { signal: AbortSignal.timeout(4000), headers: authHeaders() });
@@ -3980,10 +4046,11 @@
     // ══════════════════════════════════════════════════════════
     async function checkApiHealth() {
       try {
-        const [hRes, tRes] = await Promise.allSettled([
+        const checks = [
           fetch('/api/health', { signal: AbortSignal.timeout(3000), headers: authHeaders() }),
-          fetch('/api/tools', { signal: AbortSignal.timeout(3000), headers: authHeaders() }),
-        ]);
+        ];
+        if (isAuthenticated()) checks.push(fetch('/api/tools', { signal: AbortSignal.timeout(3000), headers: authHeaders() }));
+        const [hRes, tRes] = await Promise.allSettled(checks);
         if (hRes.status === 'fulfilled' && hRes.value.ok) {
           setApiStatus('online');
         } else {
@@ -4135,6 +4202,14 @@
         const intro = document.getElementById('intro-ov');
         if (intro && !intro.classList.contains('hid') && typeof skipIntro === 'function') skipIntro();
       } catch { }
+      if (!isAuthenticated()) {
+        if (typeof showAuth === 'function') showAuth();
+        else if (typeof _showAuthIfNeeded === 'function') _showAuthIfNeeded();
+        const tt = document.getElementById('tt');
+        if (tt) tt.textContent = 'Sign in to continue';
+        addActivity('Sign in required before chat can run', 'error', 'auth');
+        return;
+      }
       inp.value = '';
       inp.style.height = '36px'; // reset textarea height
       setTimeout(() => { try { inp.focus(); } catch (e) { } }, 0);
@@ -4202,7 +4277,9 @@
           try {
             res = await fetch('/api/stream', { method: 'POST', headers: _sseHeaders, body: JSON.stringify(_ssePayload) });
             if (res.ok) break;
-            throw new Error('Chat API ' + res.status);
+            const apiError = new Error('Chat API ' + res.status);
+            apiError.status = res.status;
+            throw apiError;
           } catch (_sseErr) {
             if (_sseAttempt < _SSE_MAX_RETRIES) {
               const _backoff = Math.pow(2, _sseAttempt) * 1000;
@@ -4221,6 +4298,7 @@
         let isBuildMode = false; // Track if this is a build/code generation vs chat
         let streamBlocked = false; // P0: blocked/error streams must not be shown as "complete"
         let completionGate = null;
+        let sseBuffer = '';
         appendChatBubble('ai', '', bubbleId);
         setTypingIndicator(false);
 
@@ -4228,8 +4306,12 @@
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = dec.decode(value, { stream: true });
-          // parse SSE lines: "data: {json}\n\n"
-          chunk.split('\n').forEach(line => {
+          // Parse complete SSE frames only. Network chunks may split JSON lines.
+          sseBuffer += chunk;
+          const frames = sseBuffer.split(/\r?\n\r?\n/);
+          sseBuffer = frames.pop() || '';
+          frames.forEach(frame => {
+            frame.split(/\r?\n/).forEach(line => {
             if (!line.startsWith('data:')) return;
             const raw = line.slice(5).trim();
             if (raw === '[DONE]') return;
@@ -4267,7 +4349,10 @@
                 addActivity('Workspace ready: ' + (ev.project_name || 'DaveAI project'), 'done', 'workspace');
               }
               // Brain SSE uses 'msg' field for text content
-              const text = cleanAssistantForUser(ev.text || ev.msg || ev.content || ev.delta || ev.message || '');
+              const rawText = ev.type === 'token'
+                ? (ev.token || ev.delta || ev.text || ev.content || ev.msg || ev.message || '')
+                : (ev.text || ev.msg || ev.content || ev.delta || ev.message || '');
+              const text = ev.type === 'token' ? String(rawText || '') : cleanAssistantForUser(rawText || '');
               // Bug-fix 2026-05-24: step events (e.g. "💭 Thinking…") used to be concatenated
               // into the assistant bubble. They still flow to the activity panel + status bar
               // below, but only land in the chat bubble when the user opts in via
@@ -4337,6 +4422,8 @@
                   const html = ev.created_files.map(normalizePreviewTarget).find(f => /\.html(?:[?#].*)?$/i.test(f || ''));
                   if (html) setPreviewUrl(html);
                 }
+                const tt = document.getElementById('tt');
+                if (tt) tt.textContent = 'Ready';
               }
               if (ev.type === 'blocked' || ev.type === 'error') {
                 ['supervisor', 'coder', 'qa', 'asset'].forEach(r => updateAgentUI(r, { state: 'idle', task: 'needs proof' }));
@@ -4346,6 +4433,7 @@
                 }
               }
             } catch (e) { }
+            });
           });
         }
         fullText = cleanAssistantForUser(fullText);
@@ -4369,8 +4457,18 @@
         if (fullText && typeof vsNarrateChat === 'function') vsNarrateChat(fullText, activeAgent);
       } catch (e) {
         setTypingIndicator(false);
+        const statusCode = Number(e && e.status) || 0;
+        const isAuthError = statusCode === 401 || statusCode === 403 || /(?:^|\b)(401|403)(?:\b|$)|unauthori[sz]ed|forbidden/i.test(e.message || '');
         const isNetwork = /fetch|network|failed|502|503|504|timeout|abort/i.test(e.message);
-        if (isNetwork) {
+        if (isAuthError) {
+          if (typeof showAuth === 'function') showAuth();
+          else if (typeof _showAuthIfNeeded === 'function') _showAuthIfNeeded();
+          const tt = document.getElementById('tt');
+          if (tt) tt.textContent = 'Sign in to continue';
+          appendChatBubble('ai', '⚠ Please sign in to continue. Your message was not sent.');
+          addActivity('Chat blocked: sign-in required', 'error', 'auth');
+          if (typeof vsNarrateError === 'function') vsNarrateError('Please sign in to continue.');
+        } else if (isNetwork) {
           // ── Fallback: try DaveAI /stream in non-streaming mode (real reply endpoint, not the save-only fallback) ──
           try {
             const fbRes = await fetch('/api/stream', {
@@ -4401,7 +4499,7 @@
           appendChatBubble('ai', '⚠ ' + e.message);
           if (typeof vsNarrateError === 'function') vsNarrateError('Error: ' + e.message);
         }
-        if (typeof _dbTrack === 'function') _dbTrack('chat_error', { error: e.message, network: isNetwork });
+        if (typeof _dbTrack === 'function') _dbTrack('chat_error', { error: e.message, network: isNetwork, auth: isAuthError });
       }
     }
 
@@ -4561,10 +4659,14 @@
         // Also update thinking strip
         const tt = document.getElementById('tt');
         if (tt) tt.innerHTML = '<span class="ta" style="color:var(--sv)">' + agent + ':</span> thinking…';
-      } else if (!on && ti) {
-        const feed = ti.closest('#chat-feed');
-        ti.remove();
-        syncTranscriptLayoutState(feed);
+      } else if (!on) {
+        if (ti) {
+          const feed = ti.closest('#chat-feed');
+          ti.remove();
+          syncTranscriptLayoutState(feed);
+        }
+        const tt = document.getElementById('tt');
+        if (tt && /thinking/i.test(tt.textContent || '')) tt.textContent = 'Ready';
       }
     }
 
@@ -6057,22 +6159,46 @@
 
       // Render game cards
       cardsContainer.innerHTML = _carouselGames.map((game, i) => `
-        <div class="game-card ${i === _carouselIndex ? 'active' : ''}" role="option" tabindex="0"
-             aria-selected="${i === _carouselIndex}" aria-label="Select ${_escapeHTML(game.title)}"
-             onclick="selectCarouselGame(${i})" onkeydown="activateOnKeyboard(event)" data-index="${i}">
+        <button type="button" class="game-card ${i === _carouselIndex ? 'active' : ''}"
+             aria-label="Play ${_escapeHTML(game.title)}"
+             data-game-action="launch" data-index="${i}">
           <div class="game-card-title">${_escapeHTML(game.title)}</div>
           <div class="game-card-sub">${_escapeHTML(game.subtitle)}</div>
-        </div>
+        </button>
       `).join('');
 
       // Render navigation dots
       dotsContainer.innerHTML = _carouselGames.map((_, i) =>
-        `<div class="carousel-dot ${i === _carouselIndex ? 'active' : ''}" role="button" tabindex="0"
+        `<button type="button" class="carousel-dot ${i === _carouselIndex ? 'active' : ''}"
               aria-label="Show game ${i + 1}" aria-pressed="${i === _carouselIndex}"
-              onclick="selectCarouselGame(${i})" onkeydown="activateOnKeyboard(event)"></div>`
+              data-game-action="select" data-index="${i}"></button>`
       ).join('');
 
+      bindCarouselActionButtons();
       updateCarouselPosition();
+    }
+
+    function bindCarouselActionButtons() {
+      const cardsContainer = document.getElementById('carousel-cards');
+      const dotsContainer = document.getElementById('carousel-dots');
+      if (cardsContainer) {
+        cardsContainer.querySelectorAll('[data-game-action="launch"][data-index]').forEach(btn => {
+          btn.addEventListener('click', event => {
+            event.preventDefault();
+            const index = Number.parseInt(btn.getAttribute('data-index') || '', 10);
+            if (Number.isFinite(index)) launchCarouselGame(index);
+          });
+        });
+      }
+      if (dotsContainer) {
+        dotsContainer.querySelectorAll('[data-game-action="select"][data-index]').forEach(btn => {
+          btn.addEventListener('click', event => {
+            event.preventDefault();
+            const index = Number.parseInt(btn.getAttribute('data-index') || '', 10);
+            if (Number.isFinite(index)) selectCarouselGame(index);
+          });
+        });
+      }
     }
 
     function selectCarouselGame(index) {
@@ -6100,6 +6226,12 @@
       }
 
       renderCarousel();
+    }
+
+    function launchCarouselGame(index) {
+      if (index < 0 || index >= _carouselGames.length) return;
+      selectCarouselGame(index);
+      demoPlay();
     }
 
     function carouselPrev() {
@@ -6135,11 +6267,31 @@
       // Enter game mode — keeps chat accessible with floating controls
       _enterGameMode();
       addRichActivity({ msg: 'Game launched — chat + voice still active! Use the floating controls.', type: 'done', agent: 'System' });
-      // Greet with voice
-      if (!_vsMuted && typeof vsSpeakRaw === 'function') {
-        setTimeout(() => vsSpeakRaw("Game loaded! I'm here if you need anything. Just type or speak.", _vsState.voice, _vsState.speed), 1000);
+      // Optional greeting: keep game launch clean unless explicit game-launch narration is enabled.
+      const shouldNarrateGameLaunch = !!(_vsState && _vsState.narration && _vsState.narration.gameLaunch === true);
+      if (shouldNarrateGameLaunch && !_vsMuted && typeof vsSpeakRaw === 'function') {
+        setTimeout(() => {
+          try {
+            const spoken = vsSpeakRaw("Game loaded! I'm here if you need anything. Just type or speak.", _vsState.voice, _vsState.speed);
+            if (spoken && typeof spoken.catch === 'function') {
+              spoken.catch(error => console.warn('[game] voice greeting unavailable:', error.message || error));
+            }
+          } catch (error) {
+            console.warn('[game] voice greeting unavailable:', error.message || error);
+          }
+        }, 1000);
       }
     }
+
+    Object.assign(window, {
+      carouselNext,
+      carouselPrev,
+      demoPlay,
+      launchCarouselGame,
+      loadCarouselGames,
+      selectCarouselGame,
+      setPreviewUrl
+    });
 
     function demoCreate() {
       _hideDemoHero();
@@ -7515,7 +7667,7 @@
         format: 'mp3', rateLimit: 10, timeout: 12, maxLen: 800,
         cache: true, fallback: false, queue: true, muted: false,
         agentVoices: { supervisor: 'en-GB-MaisieNeural', coder: 'en-GB-RyanNeural', qa: 'en-GB-SoniaNeural', asset: 'en-US-GuyNeural' },
-        narration: { chat: true, build: false, error: true, activity: false, code: false },
+        narration: { chat: false, build: false, error: true, activity: false, code: false },
         userPresets: []
       };
     }
@@ -7763,6 +7915,7 @@
     }
 
     async function _vsTierAzureTTS(text, voice, speed) {
+      if (!isAuthenticated()) throw new Error('Sign in required for Azure TTS');
       const controller = new AbortController();
       const tout = setTimeout(() => controller.abort(), (_vsState.timeout || 12) * 1000);
       const t0 = performance.now();
@@ -8394,6 +8547,11 @@
       _vsDiag.checks.push({ name: 'Web Audio API', pass: hasAudioCtx, detail: hasAudioCtx ? 'Available' : 'Missing - playback disabled' });
       _vsDiag.checks.push({ name: 'Azure English Catalog', pass: VS_VOICES.length >= 90 && VS_VOICES.every(v => v.id.startsWith('en-')), detail: VS_VOICES.length + ' approved English Azure voices' });
       try {
+        if (!isAuthenticated()) {
+          _vsDiag.azureOnline = false;
+          _vsDiag.checks.push({ name: 'Azure Speech Proxy', pass: false, detail: 'Sign in required' });
+          throw new Error('Sign in required');
+        }
         const t0 = performance.now();
         const r = await fetch('/api/azure-tts', {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
@@ -8568,7 +8726,7 @@
     //  parses /voice slash commands, auto-reads AI responses.
     // ══════════════════════════════════════════════════════════
 
-    let _dvAutoRead = true;
+    let _dvAutoRead = false;
 
     function dvUpdateVoiceBar() {
       const dot = document.getElementById('dvb-dot');
@@ -8706,8 +8864,9 @@
         agent: 'System'
       }), 2000);
     }
-    // If saved mode has voice-out, ensure narration is on
-    if (_getChatMode().voiceOut) { _dvAutoRead = true; if (_vsState.narration) _vsState.narration.chat = true; }
+    // Text mode must stay text-only on cold load; voice-out modes opt in.
+    if (_vsState.narration) _vsState.narration.chat = !!_getChatMode().voiceOut;
+    _dvAutoRead = !!(_vsState.narration && _vsState.narration.chat);
 
     // ── Quick Voice Picker Popup ──
     function dvToggleVoicePicker() {
@@ -10063,7 +10222,7 @@
     }
 
     function _showAuthIfNeeded() {
-      if (!getToken() || isTokenExpired()) {
+      if (!isAuthenticated()) {
         const authOv = document.getElementById('am-ov');
         if (authOv) { authOv.classList.remove('hid'); authOv.style.opacity = 1; authOv.style.pointerEvents = ''; }
       }
@@ -10071,13 +10230,13 @@
 
     async function playIntro() {
       const pref = getIntroPref();
-      if (pref === 'off') { return; }
+      if (pref === 'off') { _showAuthIfNeeded(); return; }
       const manifest = await loadIntroManifest();
       const pick = pickIntroVideo(manifest, pref);
-      if (!pick) { return; }
+      if (!pick) { _showAuthIfNeeded(); return; }
       const ov = document.getElementById('intro-ov');
       const vid = document.getElementById('intro-video');
-      if (!ov || !vid) return;
+      if (!ov || !vid) { _showAuthIfNeeded(); return; }
       // Preload video but don't play yet — show device chooser
       vid.src = pick.file;
       vid.preload = 'auto';
@@ -10355,7 +10514,7 @@
         btn.setAttribute('aria-label', btn.getAttribute('title'));
       });
       // ── Session restore: skip auth overlay if valid token exists ──
-      if (getToken() && !isTokenExpired()) {
+      if (isAuthenticated()) {
         const ov = document.getElementById('am-ov');
         if (ov) ov.classList.add('hid');
         document.getElementById('ts')?.classList.add('vis');
@@ -10363,7 +10522,7 @@
       }
       // ── Token expiry watchdog: re-show auth overlay if token expires ──
       setInterval(() => {
-        if (getToken() && isTokenExpired()) { showAuth(); }
+        if (getToken() && !isAuthenticated()) { showAuth(); }
       }, 60000); // check every 60s
 
       // Restore saved chat history
@@ -10419,7 +10578,18 @@
       console.log('[DaveAI v6] Initialised — live tool registry, 4 agents, live status bar');
 
       // ── Play intro video FIRST on page load (login shows after) ──
-      setTimeout(() => { if (typeof playIntro === 'function') playIntro(); }, 300);
+      setTimeout(() => {
+        try {
+          if (typeof playIntro === 'function') {
+            const introRun = playIntro();
+            if (introRun && typeof introRun.catch === 'function') introRun.catch(() => _showAuthIfNeeded());
+          } else {
+            _showAuthIfNeeded();
+          }
+        } catch (e) {
+          _showAuthIfNeeded();
+        }
+      }, 300);
 
       // ── PostgreSQL Sync: init DB session ──
       if (typeof _dbTrack === 'function') _dbTrack('page_view', { page: location.pathname });
@@ -10464,6 +10634,8 @@
     }
 
     async function _dbFetch(path, opts = {}) {
+      const publicDbPath = path === '/analytics';
+      if (!publicDbPath && !isAuthenticated()) return null;
       try {
         const r = await fetch(_DB_BASE + path, {
         headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(opts.headers || {}) },
