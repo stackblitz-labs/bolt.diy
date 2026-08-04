@@ -75,6 +75,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   const stream = new SwitchableStream();
 
+  /*
+   * FIX (2026-08-04): `stream.switches` is never incremented anywhere in this file
+   * (SwitchableStream only increments `_switches` inside `switchSource()`, which is
+   * never called here). That means the `stream.switches >= MAX_RESPONSE_SEGMENTS`
+   * safety check below never trips, and the "continue on length limit" branch can
+   * recurse forever for any model/provider that keeps returning finishReason "length"
+   * (observed in production: infinite loop, one real LLM call every ~40s, forever,
+   * silently consuming API credits). Tracking our own counter here restores the
+   * intended cap of MAX_RESPONSE_SEGMENTS.
+   */
+  let continuationSegments = 0;
+
   const cumulativeUsage = {
     completionTokens: 0,
     promptTokens: 0,
@@ -249,11 +261,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               return;
             }
 
-            if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
+            if (continuationSegments >= MAX_RESPONSE_SEGMENTS) {
+              logger.error(
+                `Reached max token limit (${MAX_TOKENS}) and used all ${MAX_RESPONSE_SEGMENTS} continuation segments -- stopping instead of looping forever.`,
+              );
               throw Error('Cannot continue message: Maximum segments reached');
             }
 
-            const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
+            continuationSegments++;
+
+            const switchesLeft = MAX_RESPONSE_SEGMENTS - continuationSegments;
 
             logger.info(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
 
