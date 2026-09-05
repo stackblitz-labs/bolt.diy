@@ -5,6 +5,7 @@ import DeepseekProvider from './providers/deepseek';
 import FireworksProvider from './providers/fireworks';
 import GoogleProvider from './providers/google';
 import GroqProvider from './providers/groq';
+import HubrisProvider from './providers/hubris';
 import HuggingFaceProvider from './providers/huggingface';
 import LMStudioProvider from './providers/lmstudio';
 import MistralProvider from './providers/mistral';
@@ -29,6 +30,7 @@ export {
   FireworksProvider,
   GoogleProvider,
   GroqProvider,
+  HubrisProvider,
   HuggingFaceProvider,
   HyperbolicProvider,
   MistralProvider,
