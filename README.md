@@ -200,6 +200,10 @@ This option requires Docker and is great when you want an isolated environment o
 
    When the container starts it runs `pnpm run dockerstart`, which in turn executes `bindings.sh` to pass Cloudflare bindings through Wrangler. You can override this command in `docker-compose.yaml` if you need a different startup routine.
 
+### Option 4: Easypanel
+
+[Easypanel](https://easypanel.io/) can deploy bolt.diy with one click using its [official template](https://easypanel.io/templates/boltdiy), which builds the image directly from this repository's Dockerfile for you.
+
 ### Option 3: Desktop Application (Electron)
 
 For users who prefer a native desktop experience, bolt.diy is also available as an Electron desktop application:
