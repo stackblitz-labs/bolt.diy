@@ -9,9 +9,3 @@
 
 [build.environment]
   NODE_VERSION = "20.18.0"
-
-  [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
