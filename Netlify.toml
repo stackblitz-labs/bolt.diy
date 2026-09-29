@@ -1,1 +1,5 @@
+[build]
+  command = "pnpm run build"
 
+[build.environment]
+  NODE_OPTIONS = "--max-old-space-size=4096"
