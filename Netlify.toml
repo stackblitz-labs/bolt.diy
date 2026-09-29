@@ -1,5 +1,11 @@
 [build]
   command = "pnpm run build"
+  publish = "build/client"
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
 
 [build.environment]
-  NODE_OPTIONS = "--max-old-space-size=8192"
+  NODE_VERSION = "20.18.0"
