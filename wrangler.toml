@@ -8,7 +8,5 @@ send_metrics = false
 
 # ...
 [vars]
-CF-Access-Client-Id = "95bff2dd1e6ae9768ce8c00eae64401e.access"
-CF-Access-Client-Secret = "cfast_V4HRO8vIrE1dAvowM8HsYjuRM4RbOZunXMj1rLTf65938b06"
 NODE_OPTIONS = "--max-old-space-size=8192"
 # ...
