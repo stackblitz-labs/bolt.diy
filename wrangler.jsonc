@@ -5,3 +5,18 @@
   },
   // ...
 }
+
+
+wrangler.jsonc
+wrangler.toml
+
+
+{
+  "previews": {
+    // ...
+    "vars": {
+      "NODE_OPTIONS": "--max-old-space-size=8192"
+    },
+    // ...
+  }
+}
