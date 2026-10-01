@@ -28,5 +28,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: 'dein-projektname' # Name deiner Pages-App in Cloudflare
-          directory: 'dist'             # Output-Ordner deines Builds (z. B. dist, build, .out)
+          projectName: 'bolt' # Name deiner Pages-App in Cloudflare
+          directory: 'build/client'      # Output-Ordner deines Builds (z. B. dist, build, .out)
