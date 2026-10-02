@@ -222,8 +222,8 @@ export async function loader({ request, context }: { request: Request; context: 
       fileList = await fetchRepoContentsZip(repo, githubToken);
     }
 
-    // Filter out .git files for both methods
-    const filteredFiles = fileList.filter((file: any) => !file.path.startsWith('.git'));
+    // Filter out Git metadata for both methods
+    const filteredFiles = fileList.filter((file: any) => file.path !== '.git' && !file.path.startsWith('.git/'));
 
     return json(filteredFiles);
   } catch (error) {
