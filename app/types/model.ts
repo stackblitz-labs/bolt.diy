@@ -18,6 +18,7 @@ export interface IProviderSetting {
   enabled?: boolean;
   baseUrl?: string;
   OPENAI_LIKE_API_MODELS?: string;
+  apiVersion?: string;
 }
 
 export type IProviderConfig = ProviderInfo & {

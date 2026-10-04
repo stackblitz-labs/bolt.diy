@@ -268,6 +268,7 @@ export class ImportExportService {
       Perplexity: '',
       Cohere: '',
       AzureOpenAI: '',
+      VertexAI: '',
     };
 
     // Add a comment to explain the format

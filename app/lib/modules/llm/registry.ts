@@ -19,7 +19,12 @@ import HyperbolicProvider from './providers/hyperbolic';
 import AmazonBedrockProvider from './providers/amazon-bedrock';
 import GithubProvider from './providers/github';
 import MoonshotProvider from './providers/moonshot';
+
+import AzureOpenAIProvider from './providers/azure-openai';
+import VertexAIProvider from './providers/vertex-ai';
+
 import ZaiProvider from './providers/z-ai';
+
 
 export {
   AnthropicProvider,
@@ -33,6 +38,8 @@ export {
   HyperbolicProvider,
   MistralProvider,
   MoonshotProvider,
+  AzureOpenAIProvider,
+  VertexAIProvider,
   OllamaProvider,
   OpenAIProvider,
   OpenRouterProvider,

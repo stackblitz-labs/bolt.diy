@@ -6,6 +6,8 @@ import { useSettings } from '~/lib/hooks/useSettings';
 import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
 import { PromptLibrary } from '~/lib/common/prompt-library';
+import { isMac } from '~/utils/os';
+import type { Shortcut, Shortcuts } from '~/lib/stores/settings';
 
 interface FeatureToggle {
   id: string;
@@ -111,13 +113,68 @@ export default function FeaturesTab() {
     isLatestBranch,
     contextOptimizationEnabled,
     eventLogs,
+    autoPromptEnhancement,
+    confirmFileWrites,
+    performanceMode,
+    agentMode,
+    frameworkLock,
+    shortcuts,
     setAutoSelectTemplate,
     enableLatestBranch,
     enableContextOptimization,
     setEventLogs,
+    setAutoPromptEnhancement,
+    setConfirmFileWrites,
+    setPerformanceMode,
+    setAgentMode,
+    setFrameworkLock,
+    updateShortcutBinding,
+    resetShortcuts,
     setPromptId,
     promptId,
   } = useSettings();
+
+  const [recordingShortcut, setRecordingShortcut] = React.useState<keyof Shortcuts | null>(null);
+
+  const formatShortcutKey = (key: string) => {
+    if (key === ' ') {
+      return 'Space';
+    }
+
+    if (key === 'Escape') {
+      return 'Esc';
+    }
+
+    return key.length === 1 ? key.toUpperCase() : key;
+  };
+
+  const formatShortcut = (shortcut: Shortcut) => {
+    const parts: string[] = [];
+
+    if (shortcut.ctrlOrMetaKey) {
+      parts.push(isMac ? 'Cmd' : 'Ctrl');
+    } else {
+      if (shortcut.ctrlKey) {
+        parts.push('Ctrl');
+      }
+
+      if (shortcut.metaKey) {
+        parts.push('Cmd');
+      }
+    }
+
+    if (shortcut.altKey) {
+      parts.push(isMac ? 'Option' : 'Alt');
+    }
+
+    if (shortcut.shiftKey) {
+      parts.push('Shift');
+    }
+
+    parts.push(formatShortcutKey(shortcut.key));
+
+    return parts.join(' + ');
+  };
 
   // Enable features by default on first load
   React.useEffect(() => {
@@ -169,12 +226,47 @@ export default function FeaturesTab() {
           toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
           break;
         }
+        case 'autoPromptEnhancement': {
+          setAutoPromptEnhancement(enabled);
+          toast.success(`Auto prompt enhancement ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
+        case 'confirmFileWrites': {
+          setConfirmFileWrites(enabled);
+          toast.success(`Confirm file writes ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
+        case 'performanceMode': {
+          setPerformanceMode(enabled);
+          toast.success(`Performance mode ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
+        case 'agentMode': {
+          setAgentMode(enabled);
+          toast.success(`Agent mode ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
+        case 'frameworkLock': {
+          setFrameworkLock(enabled);
+          toast.success(`Framework lock ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        }
 
         default:
           break;
       }
     },
-    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs],
+    [
+      enableLatestBranch,
+      setAutoSelectTemplate,
+      enableContextOptimization,
+      setEventLogs,
+      setAutoPromptEnhancement,
+      setConfirmFileWrites,
+      setPerformanceMode,
+      setAgentMode,
+      setFrameworkLock,
+    ],
   );
 
   const features = {
@@ -211,9 +303,93 @@ export default function FeaturesTab() {
         enabled: eventLogs,
         tooltip: 'Enabled by default to record detailed logs of system events and user actions',
       },
+      {
+        id: 'autoPromptEnhancement',
+        title: 'Auto Prompt Enhancement',
+        description: 'Automatically enhance prompts before sending',
+        icon: 'i-bolt:stars',
+        enabled: autoPromptEnhancement,
+        beta: true,
+        tooltip: 'Adds an extra LLM step to refine prompts for clarity and completeness',
+      },
+      {
+        id: 'confirmFileWrites',
+        title: 'Confirm File Changes',
+        description: 'Require approval before applying file edits',
+        icon: 'i-ph:git-diff',
+        enabled: confirmFileWrites,
+        beta: true,
+        tooltip: 'Stages AI file changes for review, similar to git confirmations',
+      },
+      {
+        id: 'performanceMode',
+        title: 'Performance Mode',
+        description: 'Reduce visual effects for better performance',
+        icon: 'i-ph:speedometer',
+        enabled: performanceMode,
+        tooltip: 'Disables heavy visuals and blur effects to reduce CPU/GPU usage',
+      },
+      {
+        id: 'agentMode',
+        title: 'Agent Mode',
+        description: 'Run a planning step before responses',
+        icon: 'i-ph:robot',
+        enabled: agentMode,
+        experimental: true,
+        tooltip: 'Adds a backend planning step to improve multi-step task execution',
+      },
+      {
+        id: 'frameworkLock',
+        title: 'Framework Lock',
+        description: 'Keep the AI aligned with the detected project framework',
+        icon: 'i-ph:lock',
+        enabled: frameworkLock,
+        tooltip: 'Injects a framework hint so the assistant does not drift to other stacks',
+      },
     ],
     beta: [],
   };
+
+  const shortcutEntries: Array<{ id: keyof Shortcuts; title: string; description: string }> = [
+    {
+      id: 'toggleTheme',
+      title: 'Toggle Theme',
+      description: 'Switch between light and dark themes',
+    },
+    {
+      id: 'toggleTerminal',
+      title: 'Toggle Terminal',
+      description: 'Show or hide the terminal panel',
+    },
+  ];
+
+  React.useEffect(() => {
+    if (!recordingShortcut) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) {
+        return;
+      }
+
+      event.preventDefault();
+      updateShortcutBinding(recordingShortcut, {
+        key: event.key,
+        ctrlKey: event.ctrlKey || undefined,
+        metaKey: event.metaKey || undefined,
+        altKey: event.altKey || undefined,
+        shiftKey: event.shiftKey || undefined,
+        ctrlOrMetaKey: undefined,
+      });
+      setRecordingShortcut(null);
+      toast.success('Shortcut updated');
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [recordingShortcut, updateShortcutBinding]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -288,6 +464,95 @@ export default function FeaturesTab() {
               </option>
             ))}
           </select>
+        </div>
+      </motion.div>
+
+      <motion.div
+        layout
+        className={classNames(
+          'bg-bolt-elements-background-depth-2',
+          'hover:bg-bolt-elements-background-depth-3',
+          'transition-all duration-200',
+          'rounded-lg p-4',
+          'group',
+        )}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+      >
+        <div className="flex items-center gap-4">
+          <div
+            className={classNames(
+              'p-2 rounded-lg text-xl',
+              'bg-bolt-elements-background-depth-3 group-hover:bg-bolt-elements-background-depth-4',
+              'transition-colors duration-200',
+              'text-purple-500',
+            )}
+          >
+            <div className="i-ph:keyboard" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
+              Keyboard Shortcuts
+            </h4>
+            <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
+              Record custom shortcuts for common actions
+            </p>
+          </div>
+          <button
+            className={classNames(
+              'px-3 py-1.5 rounded-lg text-xs font-medium',
+              'bg-bolt-elements-button-secondary-background',
+              'hover:bg-bolt-elements-button-secondary-backgroundHover',
+              'text-bolt-elements-button-secondary-text',
+              'transition-colors duration-200',
+            )}
+            onClick={() => {
+              resetShortcuts();
+              toast.success('Shortcuts reset to defaults');
+            }}
+          >
+            Reset
+          </button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          {shortcutEntries.map((entry) => {
+            const shortcut = shortcuts[entry.id];
+            const isRecording = recordingShortcut === entry.id;
+
+            return (
+              <div
+                key={entry.id}
+                className={classNames(
+                  'rounded-lg p-3',
+                  'bg-bolt-elements-background-depth-3',
+                  'border border-bolt-elements-borderColor',
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-medium text-bolt-elements-textPrimary">{entry.title}</div>
+                    <div className="text-xs text-bolt-elements-textSecondary">{entry.description}</div>
+                  </div>
+                  <button
+                    className={classNames(
+                      'px-2.5 py-1 rounded-md text-xs font-medium',
+                      isRecording
+                        ? 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text'
+                        : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary',
+                    )}
+                    onClick={() => setRecordingShortcut(isRecording ? null : entry.id)}
+                  >
+                    {isRecording ? 'Press keys…' : 'Record'}
+                  </button>
+                </div>
+                <div className="mt-2 text-xs text-bolt-elements-textSecondary">
+                  Current: <span className="font-mono">{formatShortcut(shortcut)}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </motion.div>
     </div>

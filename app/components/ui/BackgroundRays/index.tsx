@@ -1,6 +1,13 @@
 import styles from './styles.module.scss';
+import { useSettings } from '~/lib/hooks/useSettings';
 
 const BackgroundRays = () => {
+  const { performanceMode } = useSettings();
+
+  if (performanceMode) {
+    return null;
+  }
+
   return (
     <div className={`${styles.rayContainer} `}>
       <div className={`${styles.lightRay} ${styles.ray1}`}></div>

@@ -7,6 +7,14 @@ import {
   latestBranchStore,
   autoSelectStarterTemplate,
   enableContextOptimizationStore,
+  autoPromptEnhancementStore,
+  confirmFileWritesStore,
+  performanceModeStore,
+  agentModeStore,
+  frameworkLockStore,
+  shortcutsStore,
+  type ShortcutBinding,
+  type Shortcuts,
   tabConfigurationStore,
   resetTabConfiguration as resetTabConfig,
   updateProviderSettings as updateProviderSettingsStore,
@@ -15,6 +23,13 @@ import {
   updateContextOptimization,
   updateEventLogs,
   updatePromptId,
+  updateAutoPromptEnhancement,
+  updateConfirmFileWrites,
+  updatePerformanceMode,
+  updateAgentMode,
+  updateFrameworkLock,
+  updateShortcutBinding,
+  resetShortcuts,
 } from '~/lib/stores/settings';
 import { useCallback, useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
@@ -58,6 +73,19 @@ export interface UseSettingsReturn {
   setAutoSelectTemplate: (enabled: boolean) => void;
   contextOptimizationEnabled: boolean;
   enableContextOptimization: (enabled: boolean) => void;
+  autoPromptEnhancement: boolean;
+  setAutoPromptEnhancement: (enabled: boolean) => void;
+  confirmFileWrites: boolean;
+  setConfirmFileWrites: (enabled: boolean) => void;
+  performanceMode: boolean;
+  setPerformanceMode: (enabled: boolean) => void;
+  agentMode: boolean;
+  setAgentMode: (enabled: boolean) => void;
+  frameworkLock: boolean;
+  setFrameworkLock: (enabled: boolean) => void;
+  shortcuts: Shortcuts;
+  updateShortcutBinding: (shortcutId: keyof Shortcuts, binding: Partial<ShortcutBinding>) => void;
+  resetShortcuts: () => void;
 
   // Tab configuration
   tabConfiguration: TabWindowConfig;
@@ -78,6 +106,12 @@ export function useSettings(): UseSettingsReturn {
   const autoSelectTemplate = useStore(autoSelectStarterTemplate);
   const [activeProviders, setActiveProviders] = useState<ProviderInfo[]>([]);
   const contextOptimizationEnabled = useStore(enableContextOptimizationStore);
+  const autoPromptEnhancement = useStore(autoPromptEnhancementStore);
+  const confirmFileWrites = useStore(confirmFileWritesStore);
+  const performanceMode = useStore(performanceModeStore);
+  const agentMode = useStore(agentModeStore);
+  const frameworkLock = useStore(frameworkLockStore);
+  const shortcuts = useStore(shortcutsStore);
   const tabConfiguration = useStore(tabConfigurationStore);
   const [settings, setSettings] = useState<Settings>(() => {
     const storedSettings = getLocalStorage('settings');
@@ -143,6 +177,31 @@ export function useSettings(): UseSettingsReturn {
     logStore.logSystem(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
   }, []);
 
+  const setAutoPromptEnhancement = useCallback((enabled: boolean) => {
+    updateAutoPromptEnhancement(enabled);
+    logStore.logSystem(`Auto prompt enhancement ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setConfirmFileWrites = useCallback((enabled: boolean) => {
+    updateConfirmFileWrites(enabled);
+    logStore.logSystem(`Confirm file writes ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setPerformanceMode = useCallback((enabled: boolean) => {
+    updatePerformanceMode(enabled);
+    logStore.logSystem(`Performance mode ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setAgentMode = useCallback((enabled: boolean) => {
+    updateAgentMode(enabled);
+    logStore.logSystem(`Agent mode ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setFrameworkLock = useCallback((enabled: boolean) => {
+    updateFrameworkLock(enabled);
+    logStore.logSystem(`Framework lock ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
   const setTheme = useCallback(
     (theme: Settings['theme']) => {
       saveSettings({ theme });
@@ -197,6 +256,19 @@ export function useSettings(): UseSettingsReturn {
     setAutoSelectTemplate,
     contextOptimizationEnabled,
     enableContextOptimization,
+    autoPromptEnhancement,
+    setAutoPromptEnhancement,
+    confirmFileWrites,
+    setConfirmFileWrites,
+    performanceMode,
+    setPerformanceMode,
+    agentMode,
+    setAgentMode,
+    frameworkLock,
+    setFrameworkLock,
+    shortcuts,
+    updateShortcutBinding,
+    resetShortcuts,
     setTheme,
     setLanguage,
     setNotifications,
