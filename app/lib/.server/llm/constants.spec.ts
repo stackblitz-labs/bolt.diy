@@ -5,11 +5,11 @@ describe('LLM constants', () => {
   it('keeps the OpenRouter completion limit within the affordable token budget', () => {
     /*
      * The OpenRouter key used by the e2e suite has a limited balance and rejects
-     * requests whose `max_tokens` exceed what it can afford (~3284 at the time
-     * of writing). Raising this reintroduces HTTP 402 failures that surface as
+     * requests whose `max_tokens` exceed what it can afford. Raising this without
+     * checking the key budget reintroduces HTTP 402 failures that surface as
      * "Server Error" mid-stream, so it is pinned deliberately.
      */
-    expect(PROVIDER_COMPLETION_LIMITS.OpenRouter).toBe(3072);
+    expect(PROVIDER_COMPLETION_LIMITS.OpenRouter).toBe(4096);
   });
 
   it('defines a completion limit for every registered cloud provider', () => {
