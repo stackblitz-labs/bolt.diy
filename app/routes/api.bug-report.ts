@@ -231,7 +231,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
+      return json({ error: 'Invalid input data', details: error.issues }, { status: 400 });
     }
 
     // Handle GitHub API errors
