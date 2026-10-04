@@ -1,0 +1,33 @@
+# Normalize all text files to LF in the repository and in checkouts.
+# ESLint enforces `linebreak-style: LF` and Prettier deletes CR characters,
+# so a CRLF working tree fails `pnpm lint` on Windows.
+* text=auto eol=lf
+
+# Windows scripts must stay CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+
+# Shell scripts must stay LF even on Windows checkouts.
+*.sh text eol=lf
+bash text eol=lf
+
+# Lockfiles are generated with LF.
+pnpm-lock.yaml text eol=lf
+
+# Binaries must never be line-ending translated.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.wasm binary

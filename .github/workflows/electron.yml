@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest] # Use unsigned macOS builds for now
-        node-version: [20.18.0]
+        node-version: ['22']
       fail-fast: false
 
     steps:
