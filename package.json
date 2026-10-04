@@ -165,7 +165,7 @@
   "devDependencies": {
     "@blitz/eslint-plugin": "0.1.0",
     "@cloudflare/workers-types": "^4.20260702.1",
-    "@electron/notarize": "^2.5.0",
+    "@electron/notarize": "^3.1.1",
     "@iconify-json/ph": "^1.2.1",
     "@iconify/types": "^2.0.0",
     "@playwright/test": "^1.63.0",
@@ -186,7 +186,7 @@
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "crypto-browserify": "^3.12.1",
-    "electron": "^33.2.0",
+    "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.5.6",

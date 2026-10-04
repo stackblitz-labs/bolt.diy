@@ -61,4 +61,4 @@ publish:
   releaseType: release
 
 electronDownload:
-  mirror: https://npmmirror.com/mirrors/electron/
+  mirror: https://github.com/electron/electron/releases/download/
