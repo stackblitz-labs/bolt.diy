@@ -1,8 +1,8 @@
-import type { UnistNode, UnistParent } from 'node_modules/unist-util-visit/lib';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema, type Options as RehypeSanitizeOptions } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import type { PluggableList, Plugin } from 'unified';
+import type { Node as UnistNode, Parent as UnistParent } from 'unist';
 import { SKIP, visit } from 'unist-util-visit';
 
 export const allowedHTMLElements = [
