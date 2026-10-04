@@ -1,27 +1,53 @@
-#:schema node_modules/wrangler/config-schema.json
-#name = "bolt"
-# wrangler.toml
-name = 'boltgithubcloudflare'
+name = "boltgithubcloudflare"
+compatibility_date = "2025-03-28"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "./build/client"
 
-main = "src/index.js" # bzw. build/index.js
-compatibility_date = "2024-09-01"
+# ============================================
+# Build Configuration
+# ============================================
+[build]
+command = "npm run build"
+cwd = "."
 
-# Umgebungsvariablen (nicht-sensible Daten)
+# ============================================
+# Environment Variables (Non-Sensitive)
+# ============================================
 [vars]
 ENVIRONMENT = "production"
-NODE_OPTIONS = "--max-old-space-size=8192"
-#...
+NODE_ENV = "production"
 
+# ============================================
+# Production Environment
+# ============================================
+[env.production]
+vars = { ENVIRONMENT = "production", NODE_ENV = "production" }
 
-# Hinweis: Sensible Keys wie der GEMINI_API_KEY sollten NICHT im Klartext 
-# in der wrangler.toml stehen, sondern über 'wrangler secret put GEMINI_API_KEY' 
-# oder das Cloudflare Dashboard gesetzt werden.
-
-compatibility_flags = ["nodejs_compat"]
-compatibility_date = "2025-03-28"
-pages_build_output_dir = "./build/client"
-send_metrics = false
-
-
-# ...
-
+# ============================================
+# IMPORTANT: Sensitive Variables
+# ============================================
+# Set these as Cloudflare Secrets OR Environment Variables
+# via Cloudflare Dashboard OR Wrangler CLI:
+#
+# Via Wrangler CLI:
+#   wrangler secret put OPENAI_API_KEY --env production
+#   wrangler secret put VITE_GITHUB_ACCESS_TOKEN --env production
+#   wrangler secret put VITE_GITHUB_TOKEN_TYPE --env production
+#   wrangler secret put ANTHROPIC_API_KEY --env production
+#   wrangler secret put GEMINI_API_KEY --env production
+#   etc.
+#
+# Via Cloudflare Dashboard:
+#   1. Go to Pages → Your Project → Settings
+#   2. Click "Environment variables"
+#   3. Add variables for "Production" environment
+#   4. Click "Encrypt" for sensitive values
+#
+# Required Variables:
+# - VITE_GITHUB_ACCESS_TOKEN (GitHub Personal Access Token)
+# - VITE_GITHUB_TOKEN_TYPE ("classic" or "fine-grained")
+# - OPENAI_API_KEY (if using OpenAI models)
+# - ANTHROPIC_API_KEY (if using Claude)
+# - GEMINI_API_KEY (if using Google Gemini)
+# - And other AI provider keys as needed
+# ============================================
