@@ -157,6 +157,7 @@
     "unist-util-visit": "^5.0.0",
     "use-debounce": "^10.1.1",
     "vite-plugin-node-polyfills": "^0.28.0",
+    "wrangler": "^4.147.0",
     "zod": "^4.6.5",
     "zustand": "^5.0.15"
   },
@@ -205,8 +206,7 @@
     "vite-plugin-copy": "^0.1.6",
     "vite-plugin-optimize-css-modules": "^1.4.0",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^5.0.3",
-    "wrangler": "^4.147.0"
+    "vitest": "^5.0.3"
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"

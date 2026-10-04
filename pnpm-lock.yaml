@@ -341,6 +341,9 @@ importers:
       vite-plugin-node-polyfills:
         specifier: ^0.28.0
         version: 0.28.0(rollup@4.64.0)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.17.6)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.8.0))
+      wrangler:
+        specifier: ^4.147.0
+        version: 4.147.0(@cloudflare/workers-types@5.20261004.1)(@types/node@26.6.4)
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -483,9 +486,6 @@ importers:
       vitest:
         specifier: ^5.0.3
         version: 5.0.3(@opentelemetry/api@1.9.0)(@types/node@26.6.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.2(@types/node@26.6.4)(esbuild@0.17.6)(jiti@2.7.0)(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.8.0))
-      wrangler:
-        specifier: ^4.147.0
-        version: 4.147.0(@cloudflare/workers-types@5.20261004.1)(@types/node@26.6.4)
 
 packages:
 
