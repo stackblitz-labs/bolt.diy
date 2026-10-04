@@ -28,5 +28,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: 'bolt' # Name deiner Pages-App in Cloudflare
+          projectName: 'boltgithubcloudflare' # Name deiner Pages-App in Cloudflare
           directory: 'build/client'      # Output-Ordner deines Builds (z. B. dist, build, .out)
