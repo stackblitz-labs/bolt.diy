@@ -17,7 +17,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
 export default function WebContainerPreview() {
   const { previewId } = useLoaderData<typeof loader>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const broadcastChannelRef = useRef<BroadcastChannel>();
+  const broadcastChannelRef = useRef<BroadcastChannel>(undefined);
   const [previewUrl, setPreviewUrl] = useState('');
 
   // Handle preview refresh

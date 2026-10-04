@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { classNames } from '~/utils/classNames';
+import McpServerList from '~/components/@settings/tabs/mcp/McpServerList';
 import { Dialog, DialogRoot, DialogClose, DialogTitle, DialogButton } from '~/components/ui/Dialog';
 import { IconButton } from '~/components/ui/IconButton';
 import { useMCPStore } from '~/lib/stores/mcp';
-import McpServerList from '~/components/@settings/tabs/mcp/McpServerList';
+import { classNames } from '~/utils/classNames';
 
 export function McpTools() {
   const isInitialized = useMCPStore((state) => state.isInitialized);

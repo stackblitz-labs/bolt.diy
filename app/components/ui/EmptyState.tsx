@@ -1,7 +1,7 @@
-import React from 'react';
-import { classNames } from '~/utils/classNames';
-import { Button } from './Button';
 import { motion } from 'framer-motion';
+import React from 'react';
+import { Button } from './Button';
+import { classNames } from '~/utils/classNames';
 
 // Variant-specific styles
 const VARIANT_STYLES = {

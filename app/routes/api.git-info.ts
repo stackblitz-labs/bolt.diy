@@ -1,6 +1,6 @@
+import { execSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { json } from '@remix-run/cloudflare';
-import { execSync } from 'child_process';
-import { existsSync } from 'fs';
 
 export async function loader() {
   try {

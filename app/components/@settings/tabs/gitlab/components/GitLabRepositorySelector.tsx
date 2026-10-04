@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Button } from '~/components/ui/Button';
-import { BranchSelector } from '~/components/ui/BranchSelector';
-import { RepositoryCard } from './RepositoryCard';
-import type { GitLabProjectInfo } from '~/types/GitLab';
-import { useGitLabConnection } from '~/lib/hooks';
-import { classNames } from '~/utils/classNames';
 import { Search, RefreshCw, GitBranch, Calendar, Filter } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { RepositoryCard } from './RepositoryCard';
+import { BranchSelector } from '~/components/ui/BranchSelector';
+import { Button } from '~/components/ui/Button';
+import { useGitLabConnection } from '~/lib/hooks';
+import type { GitLabProjectInfo } from '~/types/GitLab';
+import { classNames } from '~/utils/classNames';
 
 interface GitLabRepositorySelectorProps {
   onClone?: (repoUrl: string, branch?: string) => void;

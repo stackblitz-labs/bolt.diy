@@ -86,6 +86,7 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
 
           if (branchesResponse.ok) {
             const linkHeader = branchesResponse.headers.get('Link');
+
             let branchesCount = 1; // At least 1 branch (default)
 
             if (linkHeader) {

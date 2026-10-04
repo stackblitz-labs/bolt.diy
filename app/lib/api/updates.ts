@@ -84,6 +84,7 @@ export const checkForUpdates = async (): Promise<UpdateCheckResult> => {
 
     // Determine error type
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
     const isNetworkError =
       errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('fetch');
 

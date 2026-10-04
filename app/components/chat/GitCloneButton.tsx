@@ -1,20 +1,19 @@
-import ignore from 'ignore';
-import { useGit } from '~/lib/hooks/useGit';
 import type { Message } from 'ai';
-import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from '~/utils/projectCommands';
-import { generateId } from '~/utils/fileUtils';
+import ignore from 'ignore';
+import { X, GitBranch } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
-
-import { classNames } from '~/utils/classNames';
-import { Button } from '~/components/ui/Button';
-import type { IChatMetadata } from '~/lib/persistence/db';
-import { X, Github, GitBranch } from 'lucide-react';
 
 // Import the new repository selector components
 import { GitHubRepositorySelector } from '~/components/@settings/tabs/github/components/GitHubRepositorySelector';
 import { GitLabRepositorySelector } from '~/components/@settings/tabs/gitlab/components/GitLabRepositorySelector';
+import { Button } from '~/components/ui/Button';
+import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
+import { useGit } from '~/lib/hooks/useGit';
+import type { IChatMetadata } from '~/lib/persistence/db';
+import { classNames } from '~/utils/classNames';
+import { generateId } from '~/utils/fileUtils';
+import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from '~/utils/projectCommands';
 
 const IGNORE_PATTERNS = [
   'node_modules/**',
@@ -70,6 +69,7 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
         const textDecoder = new TextDecoder('utf-8');
 
         let totalSize = 0;
+
         const skippedFiles: string[] = [];
         const fileContents = [];
 
@@ -183,7 +183,7 @@ ${escapeBoltTags(file.content)}
       >
         Clone a repo
         <div className="flex items-center gap-1 ml-2">
-          <Github className="w-4 h-4" />
+          <GitBranch className="w-4 h-4" />
           <GitBranch className="w-4 h-4" />
         </div>
       </Button>
@@ -212,7 +212,7 @@ ${escapeBoltTags(file.content)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/30 transition-colors">
-                      <Github className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      <GitBranch className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
                       <div className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
@@ -256,7 +256,7 @@ ${escapeBoltTags(file.content)}
             <div className="p-6 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center">
-                  <Github className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <GitBranch className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">

@@ -1,6 +1,6 @@
-import { getSystemPrompt } from './prompts/prompts';
-import optimized from './prompts/optimized';
 import { getFineTunedPrompt } from './prompts/new-prompt';
+import optimized from './prompts/optimized';
+import { getSystemPrompt } from './prompts/prompts';
 import type { DesignScheme } from '~/types/design-scheme';
 
 export interface PromptOptions {

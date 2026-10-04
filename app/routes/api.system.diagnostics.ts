@@ -21,6 +21,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
   // Check cookies
   const cookieHeader = request.headers.get('Cookie') || '';
+
   const cookies = cookieHeader.split(';').reduce(
     (acc, cookie) => {
       const [key, value] = cookie.trim().split('=');

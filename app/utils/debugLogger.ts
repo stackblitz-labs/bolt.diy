@@ -1,10 +1,11 @@
-import { isMac, isWindows, isLinux } from './os';
-import { isMobile } from './mobile';
 import { PROVIDER_LIST, DEFAULT_MODEL } from './constants';
 import { logger } from './logger';
+import { isMobile } from './mobile';
+import { isMac, isWindows, isLinux } from './os';
 
 // Lazy import to avoid circular dependencies
 let logStore: any = null;
+
 const getLogStore = () => {
   if (!logStore && typeof window !== 'undefined') {
     try {
@@ -58,6 +59,7 @@ class CircularBuffer<T> {
 
   toArray(): T[] {
     const result: T[] = [];
+
     let current = this._head;
 
     for (let i = 0; i < this._size; i++) {
@@ -988,6 +990,7 @@ class DebugLogger {
 
   private _collectStateInfo(): StateEntry {
     const store = getLogStore();
+
     let alerts: StateEntry['alerts'] = [];
 
     // Get recent alerts from logStore

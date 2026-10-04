@@ -1,8 +1,8 @@
 import { useStore } from '@nanostores/react';
-import { vercelConnection } from '~/lib/stores/vercel';
-import { chatId } from '~/lib/persistence/useChatHistory';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { useEffect, useState } from 'react';
+import { chatId } from '~/lib/persistence/useChatHistory';
+import { vercelConnection } from '~/lib/stores/vercel';
 
 export function VercelDeploymentLink() {
   const connection = useStore(vercelConnection);

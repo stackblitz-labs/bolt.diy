@@ -1,23 +1,23 @@
+import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
+import fileSaver from 'file-saver';
+import Cookies from 'js-cookie';
+import JSZip from 'jszip';
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
-import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
-import { ActionRunner } from '~/lib/runtime/action-runner';
-import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
-import { webcontainer } from '~/lib/webcontainer';
-import type { ITerminal } from '~/types/terminal';
-import { unreachable } from '~/utils/unreachable';
 import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
-import JSZip from 'jszip';
-import fileSaver from 'file-saver';
-import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
-import { path } from '~/utils/path';
-import { extractRelativePath } from '~/utils/diff';
+import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { description } from '~/lib/persistence';
-import Cookies from 'js-cookie';
-import { createSampler } from '~/utils/sampler';
+import { ActionRunner } from '~/lib/runtime/action-runner';
+import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
+import { webcontainer } from '~/lib/webcontainer';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
+import type { ITerminal } from '~/types/terminal';
+import { extractRelativePath } from '~/utils/diff';
+import { path } from '~/utils/path';
+import { createSampler } from '~/utils/sampler';
+import { unreachable } from '~/utils/unreachable';
 
 const { saveAs } = fileSaver;
 
@@ -394,6 +394,7 @@ export class WorkbenchStore {
 
         if (isCurrentFile) {
           const files = this.files.get();
+
           let nextFile: string | undefined = undefined;
 
           for (const [path, dirent] of Object.entries(files)) {
@@ -437,6 +438,7 @@ export class WorkbenchStore {
 
         if (isInCurrentFolder) {
           const files = this.files.get();
+
           let nextFile: string | undefined = undefined;
 
           for (const [path, dirent] of Object.entries(files)) {
@@ -655,6 +657,7 @@ export class WorkbenchStore {
       if (dirent?.type === 'file' && !dirent.isBinary) {
         const relativePath = extractRelativePath(filePath);
         const pathSegments = relativePath.split('/');
+
         let currentHandle = targetHandle;
 
         for (let i = 0; i < pathSegments.length - 1; i++) {
@@ -819,6 +822,7 @@ export class WorkbenchStore {
               repo: repo.name,
               ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
             });
+
             const latestCommitSha = ref.object.sha;
 
             // Create a new tree

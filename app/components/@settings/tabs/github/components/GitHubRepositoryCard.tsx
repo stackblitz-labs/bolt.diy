@@ -19,7 +19,7 @@ export function GitHubRepositoryCard({ repo, onClone }: GitHubRepositoryCardProp
         <div className="flex-1 space-y-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <div className="i-ph:git-repository w-4 h-4 text-bolt-elements-icon-info" />
+              <div className="i-ph:git-branch w-4 h-4 text-bolt-elements-icon-info" />
               <h5 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-bolt-elements-item-contentAccent transition-colors">
                 {repo.name}
               </h5>

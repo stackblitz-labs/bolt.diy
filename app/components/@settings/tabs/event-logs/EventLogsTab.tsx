@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useStore } from '@nanostores/react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { motion } from 'framer-motion';
+import { jsPDF } from 'jspdf';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
+import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { Switch } from '~/components/ui/Switch';
 import { logStore, type LogEntry } from '~/lib/stores/logs';
-import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { jsPDF } from 'jspdf';
-import { toast } from 'react-toastify';
 
 interface SelectOption {
   value: string;
@@ -444,6 +444,7 @@ export function EventLogsTab() {
     try {
       // Convert logs to CSV format
       const headers = ['Timestamp', 'Level', 'Category', 'Message', 'Details'];
+
       const csvData = [
         headers,
         ...filteredLogs.map((log) => [
@@ -458,6 +459,7 @@ export function EventLogsTab() {
       const csvContent = csvData
         .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
         .join('\n');
+
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -479,7 +481,9 @@ export function EventLogsTab() {
       // Create new PDF document
       const doc = new jsPDF();
       const lineHeight = 7;
+
       let yPos = 20;
+
       const margin = 20;
       const pageWidth = doc.internal.pageSize.getWidth();
       const maxLineWidth = pageWidth - 2 * margin;
@@ -729,6 +733,7 @@ export function EventLogsTab() {
       const textContent = filteredLogs
         .map((log) => {
           const timestamp = new Date(log.timestamp).toLocaleString();
+
           let content = `[${timestamp}] ${log.level.toUpperCase()}: ${log.message}\n`;
 
           if (log.category) {

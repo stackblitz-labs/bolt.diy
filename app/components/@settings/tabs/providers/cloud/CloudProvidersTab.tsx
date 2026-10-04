@@ -1,19 +1,19 @@
+import { motion } from 'framer-motion';
 import React, { useEffect, useState, useCallback } from 'react';
+import type { IconType } from 'react-icons';
+import { BiCodeBlock, BiChip } from 'react-icons/bi';
+import { BsRobot, BsCloud } from 'react-icons/bs';
+import { FaCloud, FaBrain } from 'react-icons/fa';
+import { SiGoogle, SiGithub, SiHuggingface, SiPerplexity } from 'react-icons/si';
+import { TbBrain, TbCloudComputing } from 'react-icons/tb';
+import { toast } from 'react-toastify';
 import { Switch } from '~/components/ui/Switch';
 import { useSettings } from '~/lib/hooks/useSettings';
+import { logStore } from '~/lib/stores/logs';
 import { URL_CONFIGURABLE_PROVIDERS } from '~/lib/stores/settings';
 import type { IProviderConfig } from '~/types/model';
-import { logStore } from '~/lib/stores/logs';
-import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
-import { toast } from 'react-toastify';
 import { providerBaseUrlEnvKeys } from '~/utils/constants';
-import { SiAmazon, SiGoogle, SiGithub, SiHuggingface, SiPerplexity, SiOpenai } from 'react-icons/si';
-import { BsRobot, BsCloud } from 'react-icons/bs';
-import { TbBrain, TbCloudComputing } from 'react-icons/tb';
-import { BiCodeBlock, BiChip } from 'react-icons/bi';
-import { FaCloud, FaBrain } from 'react-icons/fa';
-import type { IconType } from 'react-icons';
 
 // Add type for provider names to ensure type safety
 type ProviderName =
@@ -35,7 +35,7 @@ type ProviderName =
 
 // Update the PROVIDER_ICONS type to use the ProviderName type
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
-  AmazonBedrock: SiAmazon,
+  AmazonBedrock: FaCloud,
   Anthropic: FaBrain,
   Cohere: BiChip,
   Deepseek: BiCodeBlock,
@@ -45,7 +45,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
   HuggingFace: SiHuggingface,
   Hyperbolic: TbCloudComputing,
   Mistral: TbBrain,
-  OpenAI: SiOpenai,
+  OpenAI: BsRobot,
   OpenRouter: FaCloud,
   Perplexity: SiPerplexity,
   Together: BsCloud,

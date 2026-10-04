@@ -1,10 +1,10 @@
 import type { WebContainer } from '@webcontainer/api';
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { webcontainer as webcontainerPromise } from '~/lib/webcontainer';
 import git, { type GitAuth, type PromiseFsClient } from 'isomorphic-git';
 import http from 'isomorphic-git/http/web';
 import Cookies from 'js-cookie';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { toast } from 'react-toastify';
+import { webcontainer as webcontainerPromise } from '~/lib/webcontainer';
 
 const lookupSavedPassword = (url: string) => {
   const domain = url.split('/')[2];
@@ -420,6 +420,7 @@ const pathUtils = {
 
     // Find common parts at the start of both paths
     let commonLength = 0;
+
     const minLength = Math.min(fromParts.length, toParts.length);
 
     for (let i = 0; i < minLength; i++) {

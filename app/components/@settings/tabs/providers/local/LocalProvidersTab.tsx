@@ -1,23 +1,23 @@
+import { Cpu, Server, BookOpen, Activity, PackageOpen, Monitor, Loader2, RotateCw, ExternalLink } from 'lucide-react';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Switch } from '~/components/ui/Switch';
-import { Card, CardContent, CardHeader } from '~/components/ui/Card';
-import { Button } from '~/components/ui/Button';
-import { useSettings } from '~/lib/hooks/useSettings';
-import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
-import type { IProviderConfig } from '~/types/model';
-import { logStore } from '~/lib/stores/logs';
-import { providerBaseUrlEnvKeys } from '~/utils/constants';
-import { useToast } from '~/components/ui/use-toast';
-import { useLocalModelHealth } from '~/lib/hooks/useLocalModelHealth';
 import ErrorBoundary from './ErrorBoundary';
 import { ModelCardSkeleton } from './LoadingSkeleton';
+import ModelCard from './ModelCard';
+import ProviderCard from './ProviderCard';
 import SetupGuide from './SetupGuide';
 import StatusDashboard from './StatusDashboard';
-import ProviderCard from './ProviderCard';
-import ModelCard from './ModelCard';
 import { OLLAMA_API_URL } from './types';
 import type { OllamaModel, LMStudioModel } from './types';
-import { Cpu, Server, BookOpen, Activity, PackageOpen, Monitor, Loader2, RotateCw, ExternalLink } from 'lucide-react';
+import { Button } from '~/components/ui/Button';
+import { Card, CardContent, CardHeader } from '~/components/ui/Card';
+import { Switch } from '~/components/ui/Switch';
+import { useToast } from '~/components/ui/use-toast';
+import { useLocalModelHealth } from '~/lib/hooks/useLocalModelHealth';
+import { useSettings } from '~/lib/hooks/useSettings';
+import { logStore } from '~/lib/stores/logs';
+import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
+import type { IProviderConfig } from '~/types/model';
+import { providerBaseUrlEnvKeys } from '~/utils/constants';
 
 // Type definitions
 type ViewMode = 'dashboard' | 'guide' | 'status';

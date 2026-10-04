@@ -1,5 +1,5 @@
 // Browser-compatible path utilities
-import type { ParsedPath } from 'path';
+import type { ParsedPath } from 'node:path';
 import pathBrowserify from 'path-browserify';
 
 /**

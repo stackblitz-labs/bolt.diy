@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { IconButton } from '~/components/ui/IconButton';
 import { toast } from 'react-toastify';
+import { IconButton } from '~/components/ui/IconButton';
 import { classNames } from '~/utils/classNames';
 
 interface WebSearchProps {

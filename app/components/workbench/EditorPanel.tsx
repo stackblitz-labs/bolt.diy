@@ -1,7 +1,12 @@
 import { useStore } from '@nanostores/react';
-import { memo, useMemo } from 'react';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import * as Tabs from '@radix-ui/react-tabs';
+import { memo, useMemo } from 'react';
+import { Group, Panel, Separator } from 'react-resizable-panels';
+import { FileBreadcrumb } from './FileBreadcrumb';
+import { FileTree } from './FileTree';
+import { LockManager } from './LockManager'; // <-- Import LockManager
+import { Search } from './Search'; // <-- Ensure Search is imported
+import { DEFAULT_TERMINAL_SIZE, TerminalTabs } from './terminal/TerminalTabs';
 import {
   CodeMirrorEditor,
   type EditorDocument,
@@ -13,18 +18,13 @@ import {
 import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import type { FileMap } from '~/lib/stores/files';
-import type { FileHistory } from '~/types/actions';
 import { themeStore } from '~/lib/stores/theme';
+import { workbenchStore } from '~/lib/stores/workbench';
+import type { FileHistory } from '~/types/actions';
+import { classNames } from '~/utils/classNames'; // <-- Import classNames if not already present
 import { WORK_DIR } from '~/utils/constants';
 import { renderLogger } from '~/utils/logger';
 import { isMobile } from '~/utils/mobile';
-import { FileBreadcrumb } from './FileBreadcrumb';
-import { FileTree } from './FileTree';
-import { DEFAULT_TERMINAL_SIZE, TerminalTabs } from './terminal/TerminalTabs';
-import { workbenchStore } from '~/lib/stores/workbench';
-import { Search } from './Search'; // <-- Ensure Search is imported
-import { classNames } from '~/utils/classNames'; // <-- Import classNames if not already present
-import { LockManager } from './LockManager'; // <-- Import LockManager
 
 interface EditorPanelProps {
   files?: FileMap;
@@ -81,9 +81,9 @@ export const EditorPanel = memo(
     }, [editorDocument, unsavedFiles]);
 
     return (
-      <PanelGroup direction="vertical">
+      <Group orientation="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
-          <PanelGroup direction="horizontal">
+          <Group orientation="horizontal">
             <Panel defaultSize={20} minSize={15} collapsible className="border-r border-bolt-elements-borderColor">
               <div className="h-full">
                 <Tabs.Root defaultValue="files" className="flex flex-col h-full">
@@ -142,7 +142,7 @@ export const EditorPanel = memo(
               </div>
             </Panel>
 
-            <PanelResizeHandle />
+            <Separator />
             <Panel className="flex flex-col" defaultSize={80} minSize={20}>
               <PanelHeader className="overflow-x-auto">
                 {activeFileSegments?.length && (
@@ -176,11 +176,11 @@ export const EditorPanel = memo(
                 />
               </div>
             </Panel>
-          </PanelGroup>
+          </Group>
         </Panel>
-        <PanelResizeHandle />
+        <Separator />
         <TerminalTabs />
-      </PanelGroup>
+      </Group>
     );
   },
 );

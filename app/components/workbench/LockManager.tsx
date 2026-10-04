@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { workbenchStore } from '~/lib/stores/workbench';
-import { classNames } from '~/utils/classNames';
 import { Checkbox } from '~/components/ui/Checkbox';
 import { toast } from '~/components/ui/use-toast';
+import { workbenchStore } from '~/lib/stores/workbench';
+import { classNames } from '~/utils/classNames';
 
 interface LockedItem {
   path: string;
@@ -133,6 +133,7 @@ export function LockManager() {
   // Determine the state of the "Select All" checkbox
   const isAllSelected = filteredAndSortedItems.length > 0 && selectedItems.size === filteredAndSortedItems.length;
   const isSomeSelected = selectedItems.size > 0 && selectedItems.size < filteredAndSortedItems.length;
+
   const selectAllCheckedState: boolean | 'indeterminate' = isAllSelected
     ? true
     : isSomeSelected

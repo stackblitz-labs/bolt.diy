@@ -80,6 +80,7 @@ export default defineConfig((config) => {
         '**/.{idea,git,cache,output,temp}/**',
         '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
         '**/tests/preview/**', // Exclude preview tests that require Playwright
+        '**/tests/e2e/**', // Exclude e2e tests that require Playwright
       ],
     },
   };

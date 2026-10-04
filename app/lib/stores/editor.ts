@@ -1,6 +1,6 @@
 import { atom, computed, map, type MapStore, type WritableAtom } from 'nanostores';
-import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import type { FileMap, FilesStore } from './files';
+import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { createScopedLogger } from '~/utils/logger';
 
 export type EditorDocuments = Record<string, EditorDocument>;

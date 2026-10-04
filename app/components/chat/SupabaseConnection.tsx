@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
-import { useSupabaseConnection } from '~/lib/hooks/useSupabaseConnection';
-import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
+import { useEffect } from 'react';
+import { Dialog, DialogRoot, DialogClose, DialogTitle, DialogButton } from '~/components/ui/Dialog';
+import { useSupabaseConnection } from '~/lib/hooks/useSupabaseConnection';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { fetchSupabaseStats } from '~/lib/stores/supabase';
-import { Dialog, DialogRoot, DialogClose, DialogTitle, DialogButton } from '~/components/ui/Dialog';
+import { classNames } from '~/utils/classNames';
 
 export function SupabaseConnection() {
   const {

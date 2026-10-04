@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
-import { classNames } from '~/utils/classNames';
-import { profileStore, updateProfile } from '~/lib/stores/profile';
+import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { profileStore, updateProfile } from '~/lib/stores/profile';
+import { classNames } from '~/utils/classNames';
 import { debounce } from '~/utils/debounce';
 
 export default function ProfileTab() {

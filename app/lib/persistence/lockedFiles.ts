@@ -19,6 +19,7 @@ const lockedItemsMap = new Map<string, Map<string, LockedItem>>();
 
 // Debounce timer for localStorage writes
 let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 const SAVE_DEBOUNCE_MS = 300;
 
 /**
@@ -304,6 +305,7 @@ function checkParentFolderLocks(chatId: string, path: string): { locked: boolean
 
   // Check each parent folder
   const pathParts = path.split('/');
+
   let currentPath = '';
 
   for (let i = 0; i < pathParts.length - 1; i++) {

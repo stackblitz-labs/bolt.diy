@@ -29,6 +29,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (!response.ok) {
       const errorText = await response.text();
+
       let errorData;
 
       try {

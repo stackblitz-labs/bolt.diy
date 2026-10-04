@@ -1,8 +1,8 @@
-import React from 'react';
 import { motion } from 'framer-motion';
+import React from 'react';
 import { Button } from '~/components/ui/Button';
-import { classNames } from '~/utils/classNames';
 import { useGitHubConnection } from '~/lib/hooks';
+import { classNames } from '~/utils/classNames';
 
 interface ConnectionTestResult {
   status: 'success' | 'error' | 'testing';

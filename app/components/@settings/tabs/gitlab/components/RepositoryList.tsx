@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Button } from '~/components/ui/Button';
 import { RepositoryCard } from './RepositoryCard';
+import { Button } from '~/components/ui/Button';
 import type { GitLabProjectInfo } from '~/types/GitLab';
 
 interface RepositoryListProps {

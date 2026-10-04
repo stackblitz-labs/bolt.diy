@@ -1,9 +1,9 @@
-import type { ProviderInfo } from '~/types/model';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import { classNames } from '~/utils/classNames';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
+import type { ProviderInfo } from '~/types/model';
+import { classNames } from '~/utils/classNames';
 
 // Fuzzy search utilities
 const levenshteinDistance = (str1: string, str2: string): number => {
@@ -574,7 +574,9 @@ export const ModelSelector = ({
               ) : (
                 filteredProviders.map((providerOption, index) => (
                   <div
-                    ref={(el) => (providerOptionsRef.current[index] = el)}
+                    ref={(el) => {
+                      providerOptionsRef.current[index] = el;
+                    }}
                     key={providerOption.name}
                     role="option"
                     aria-selected={provider?.name === providerOption.name}
@@ -804,7 +806,9 @@ export const ModelSelector = ({
               ) : (
                 filteredModels.map((modelOption, index) => (
                   <div
-                    ref={(el) => (modelOptionsRef.current[index] = el)}
+                    ref={(el) => {
+                      modelOptionsRef.current[index] = el;
+                    }}
                     key={modelOption.name}
                     role="option"
                     aria-selected={model === modelOption.name}

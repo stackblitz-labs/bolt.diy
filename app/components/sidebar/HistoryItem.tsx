@@ -1,10 +1,10 @@
 import { useParams } from '@remix-run/react';
-import { classNames } from '~/utils/classNames';
-import { type ChatHistoryItem } from '~/lib/persistence';
-import WithTooltip from '~/components/ui/Tooltip';
-import { useEditChatDescription } from '~/lib/hooks';
 import { forwardRef, type ForwardedRef, useCallback } from 'react';
 import { Checkbox } from '~/components/ui/Checkbox';
+import WithTooltip from '~/components/ui/Tooltip';
+import { useEditChatDescription } from '~/lib/hooks';
+import { type ChatHistoryItem } from '~/lib/persistence';
+import { classNames } from '~/utils/classNames';
 
 interface HistoryItemProps {
   item: ChatHistoryItem;

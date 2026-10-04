@@ -1,12 +1,12 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '@nanostores/react';
-import { IconButton } from '~/components/ui/IconButton';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import type { ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
-import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
+import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
-import type { ElementInfo } from './Inspector';
+import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 type ResizeSide = 'left' | 'right' | null;
 
@@ -414,6 +414,7 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
           // Create the HTML content for the frame
           const frameColor = getFrameColor();
           const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
+
           const framePadding =
             size.frameType === 'mobile'
               ? isLandscape

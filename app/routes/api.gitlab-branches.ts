@@ -68,6 +68,7 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
 
     // Also fetch project info to get default branch name
     const projectUrl = `${gitlabUrl}/api/v4/projects/${projectId}`;
+
     const projectResponse = await fetch(projectUrl, {
       headers: {
         Authorization: `Bearer ${token}`,

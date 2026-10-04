@@ -1,8 +1,8 @@
+import { createMistral } from '@ai-sdk/mistral';
+import type { LanguageModelV1 } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import { createMistral } from '@ai-sdk/mistral';
 
 export default class MistralProvider extends BaseProvider {
   name = 'Mistral';

@@ -1,15 +1,13 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
-import { logStore } from '~/lib/stores/logs';
-import type { VercelUserResponse } from '~/types/vercel';
-import { classNames } from '~/utils/classNames';
-import { Button } from '~/components/ui/Button';
-import { ServiceHeader, ConnectionTestIndicator } from '~/components/@settings/shared/service-integration';
-import { useConnectionTest } from '~/lib/hooks';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { motion } from 'framer-motion';
 import Cookies from 'js-cookie';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { toast } from 'react-toastify';
+import { ServiceHeader, ConnectionTestIndicator } from '~/components/@settings/shared/service-integration';
+import { Button } from '~/components/ui/Button';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { useConnectionTest } from '~/lib/hooks';
+import { logStore } from '~/lib/stores/logs';
 import {
   vercelConnection,
   isConnecting,
@@ -19,6 +17,8 @@ import {
   fetchVercelStatsViaAPI,
   initializeVercelConnection,
 } from '~/lib/stores/vercel';
+import type { VercelUserResponse } from '~/types/vercel';
+import { classNames } from '~/utils/classNames';
 
 interface ProjectAction {
   name: string;
@@ -433,6 +433,7 @@ export default function VercelTab() {
                     <div className="space-y-1">
                       {(() => {
                         const now = Date.now();
+
                         const recentDeployments = connection.stats.projects.filter((p) => {
                           const lastDeploy = p.latestDeployments?.[0]?.created;
                           return lastDeploy && now - new Date(lastDeploy).getTime() < 7 * 24 * 60 * 60 * 1000;

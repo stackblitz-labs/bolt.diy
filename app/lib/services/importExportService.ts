@@ -1,5 +1,5 @@
-import Cookies from 'js-cookie';
 import { type Message } from 'ai';
+import Cookies from 'js-cookie';
 import { getAllChats, deleteChat } from '~/lib/persistence/chats';
 
 interface ExtendedMessage extends Message {

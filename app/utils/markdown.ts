@@ -1,9 +1,9 @@
+import type { UnistNode, UnistParent } from 'node_modules/unist-util-visit/lib';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema, type Options as RehypeSanitizeOptions } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import type { PluggableList, Plugin } from 'unified';
-import rehypeSanitize, { defaultSchema, type Options as RehypeSanitizeOptions } from 'rehype-sanitize';
 import { SKIP, visit } from 'unist-util-visit';
-import type { UnistNode, UnistParent } from 'node_modules/unist-util-visit/lib';
 
 export const allowedHTMLElements = [
   'a',
@@ -116,13 +116,33 @@ export function remarkPlugins(limitedMarkdown: boolean) {
 }
 
 export function rehypePlugins(html: boolean) {
-  const plugins: PluggableList = [];
+  const plugins: PluggableList = [rehypeFilterAllowedElements];
 
   if (html) {
     plugins.push(rehypeRaw, [rehypeSanitize, rehypeSanitizeOptions]);
   }
 
   return plugins;
+}
+
+/*
+ * react-markdown 10 removed `allowedElements`, so filter the tree ourselves:
+ * elements outside the allowlist are unwrapped, keeping their children.
+ */
+function rehypeFilterAllowedElements() {
+  return (tree: any) => {
+    visit(tree, (node: any, index: number | undefined, parent: any) => {
+      if (node.type !== 'element' || index === undefined || !parent) {
+        return;
+      }
+
+      if (allowedHTMLElements.includes(node.tagName)) {
+        return;
+      }
+
+      parent.children.splice(index, 1, ...node.children);
+    });
+  };
 }
 
 const limitedMarkdownPlugin: Plugin = () => {

@@ -1,8 +1,8 @@
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import type { LanguageModelV1 } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import type { LanguageModelV1 } from 'ai';
 import type { IProviderSetting } from '~/types/model';
-import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 
 interface AWSBedRockConfig {
   region: string;

@@ -1,6 +1,6 @@
+import { motion } from 'framer-motion';
 import React from 'react';
 import { classNames } from '~/utils/classNames';
-import { motion } from 'framer-motion';
 
 interface BreadcrumbItem {
   label: string;

@@ -187,6 +187,7 @@ export class GitLabApiService {
 
     let allProjects: any[] = [];
     let page = 1;
+
     const maxPages = 10; // Limit to prevent excessive API calls
 
     while (page <= maxPages) {

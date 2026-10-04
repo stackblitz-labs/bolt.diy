@@ -1,5 +1,5 @@
+import { Loader2, AlertCircle, CheckCircle, Info, GitBranch } from 'lucide-react';
 import React from 'react';
-import { Loader2, AlertCircle, CheckCircle, Info, Github } from 'lucide-react';
 import { classNames } from '~/utils/classNames';
 
 interface LoadingStateProps {
@@ -134,7 +134,7 @@ interface GitHubConnectionRequiredProps {
 export function GitHubConnectionRequired({ onConnect, className = '' }: GitHubConnectionRequiredProps) {
   return (
     <div className={classNames('flex flex-col items-center justify-center py-12 text-center', className)}>
-      <Github className="w-12 h-12 text-bolt-elements-textTertiary mb-4" />
+      <GitBranch className="w-12 h-12 text-bolt-elements-textTertiary mb-4" />
       <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">GitHub Connection Required</h3>
       <p className="text-sm text-bolt-elements-textSecondary mb-6 max-w-md">
         Please connect your GitHub account to access this feature. You'll be able to browse repositories, push code, and
@@ -145,7 +145,7 @@ export function GitHubConnectionRequired({ onConnect, className = '' }: GitHubCo
           onClick={onConnect}
           className="px-6 py-3 bg-bolt-elements-item-contentAccent text-white rounded-lg hover:bg-bolt-elements-item-contentAccent/90 transition-colors flex items-center gap-2"
         >
-          <Github className="w-4 h-4" />
+          <GitBranch className="w-4 h-4" />
           Connect GitHub
         </button>
       )}

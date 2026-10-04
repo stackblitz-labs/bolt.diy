@@ -1,6 +1,6 @@
+import { useStore } from '@nanostores/react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { useStore } from '@nanostores/react';
 import { logStore } from '~/lib/stores/logs';
 import {
   supabaseConnection,
@@ -114,6 +114,7 @@ export function useSupabaseConnection() {
 
   const selectProject = async (projectId: string) => {
     const currentState = supabaseConnection.get();
+
     let projectData = undefined;
 
     if (projectId && currentState.stats?.projects) {

@@ -1,13 +1,13 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { motion, type Variants } from 'framer-motion';
 import React, { memo, type ReactNode, useState, useEffect } from 'react';
+import { List, type RowComponentProps } from 'react-window';
+import { Button } from './Button';
+import { Checkbox } from './Checkbox';
+import { IconButton } from './IconButton';
+import { Label } from './Label';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
-import { IconButton } from './IconButton';
-import { Button } from './Button';
-import { FixedSizeList } from 'react-window';
-import { Checkbox } from './Checkbox';
-import { Label } from './Label';
 
 export { Close as DialogClose, Root as DialogRoot } from '@radix-ui/react-dialog';
 
@@ -339,11 +339,12 @@ export function SelectionDialog({
   );
 
   // Render each item in the virtualized list
-  const ItemRenderer = ({ index, style }: { index: number; style: React.CSSProperties }) => {
+  const ItemRenderer = ({ index, style, ariaAttributes }: RowComponentProps) => {
     const item = items[index];
     return (
       <div
         key={item.id}
+        {...ariaAttributes}
         className={classNames(
           'flex items-start space-x-3 p-2 rounded-md transition-colors',
           selectedItems.includes(item.id)
@@ -411,15 +412,14 @@ export function SelectionDialog({
               }}
             >
               {items.length > 0 ? (
-                <FixedSizeList
-                  height={listHeight}
-                  width="100%"
-                  itemCount={items.length}
-                  itemSize={60}
+                <List
+                  style={{ height: listHeight }}
+                  rowComponent={ItemRenderer}
+                  rowCount={items.length}
+                  rowHeight={60}
+                  rowProps={{}}
                   className="scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-bolt-elements-bg-depth-3"
-                >
-                  {ItemRenderer}
-                </FixedSizeList>
+                />
               ) : (
                 <div className="text-center py-4 text-sm text-bolt-elements-textTertiary">No items to display</div>
               )}

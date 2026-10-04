@@ -108,7 +108,9 @@ export class StreamingMessageParser {
 
           // Find all <bolt-quick-action ...>label</bolt-quick-action> inside
           const quickActionRegex = /<bolt-quick-action([^>]*)>([\s\S]*?)<\/bolt-quick-action>/g;
+
           let match;
+
           const buttons = [];
 
           while ((match = quickActionRegex.exec(actionsBlockContent)) !== null) {

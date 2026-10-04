@@ -1,13 +1,13 @@
 import { useStore } from '@nanostores/react';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Panel, type ImperativePanelHandle } from 'react-resizable-panels';
+import { Panel, type PanelImperativeHandle } from 'react-resizable-panels';
+import { Terminal, type TerminalRef } from './Terminal';
+import { TerminalManager } from './TerminalManager';
 import { IconButton } from '~/components/ui/IconButton';
 import { shortcutEventEmitter } from '~/lib/hooks';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
-import { Terminal, type TerminalRef } from './Terminal';
-import { TerminalManager } from './TerminalManager';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('Terminal');
@@ -20,7 +20,7 @@ export const TerminalTabs = memo(() => {
   const theme = useStore(themeStore);
 
   const terminalRefs = useRef<Map<number, TerminalRef>>(new Map());
-  const terminalPanelRef = useRef<ImperativePanelHandle>(null);
+  const terminalPanelRef = useRef<PanelImperativeHandle>(null);
   const terminalToggledByShortcut = useRef(false);
 
   const [activeTerminal, setActiveTerminal] = useState(0);
@@ -115,19 +115,16 @@ export const TerminalTabs = memo(() => {
 
   return (
     <Panel
-      ref={terminalPanelRef}
+      panelRef={terminalPanelRef}
       defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}
       minSize={10}
       collapsible
-      onExpand={() => {
-        if (!terminalToggledByShortcut.current) {
-          workbenchStore.toggleTerminal(true);
+      onResize={() => {
+        if (terminalToggledByShortcut.current) {
+          return;
         }
-      }}
-      onCollapse={() => {
-        if (!terminalToggledByShortcut.current) {
-          workbenchStore.toggleTerminal(false);
-        }
+
+        workbenchStore.toggleTerminal(!terminalPanelRef.current?.isCollapsed());
       }}
     >
       <div className="h-full">

@@ -1,8 +1,8 @@
 import type { WebContainer, WebContainerProcess } from '@webcontainer/api';
-import type { ITerminal } from '~/types/terminal';
-import { withResolvers } from './promises';
 import { atom } from 'nanostores';
+import { withResolvers } from './promises';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
+import type { ITerminal } from '~/types/terminal';
 
 export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
   const args: string[] = [];
@@ -131,6 +131,7 @@ export class BoltShell {
 
   async newBoltShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
     const args: string[] = [];
+
     const process = await webcontainer.spawn('/bin/jsh', ['--osc', ...args], {
       terminal: {
         cols: terminal.cols ?? 80,
@@ -146,6 +147,7 @@ export class BoltShell {
     const [streamC, streamD] = streamB.tee();
 
     const jshReady = withResolvers<void>();
+
     let isInteractive = false;
     streamA.pipeTo(
       new WritableStream({
@@ -179,7 +181,9 @@ export class BoltShell {
   // Dedicated background watcher for Expo URL
   private async _watchExpoUrlInBackground(stream: ReadableStream<string>) {
     const reader = stream.getReader();
+
     let buffer = '';
+
     const expoUrlRegex = /(exp:\/\/[^\s]+)/;
 
     while (true) {

@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Button } from '~/components/ui/Button';
-import { BranchSelector } from '~/components/ui/BranchSelector';
-import { GitHubRepositoryCard } from './GitHubRepositoryCard';
-import type { GitHubRepoInfo } from '~/types/GitHub';
-import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
-import { classNames } from '~/utils/classNames';
 import { Search, RefreshCw, GitBranch, Calendar, Filter } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { GitHubRepositoryCard } from './GitHubRepositoryCard';
+import { BranchSelector } from '~/components/ui/BranchSelector';
+import { Button } from '~/components/ui/Button';
+import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
+import type { GitHubRepoInfo } from '~/types/GitHub';
+import { classNames } from '~/utils/classNames';
 
 interface GitHubRepositorySelectorProps {
   onClone?: (repoUrl: string, branch?: string) => void;
@@ -18,6 +18,7 @@ type FilterOption = 'all' | 'own' | 'forks' | 'archived';
 
 export function GitHubRepositorySelector({ onClone, className }: GitHubRepositorySelectorProps) {
   const { connection, isConnected } = useGitHubConnection();
+
   const {
     stats,
     isLoading: isStatsLoading,

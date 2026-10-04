@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion } from 'framer-motion';
-import { classNames } from '~/utils/classNames';
+import React, { useState } from 'react';
 import { useGitHubConnection } from '~/lib/hooks';
+import { classNames } from '~/utils/classNames';
 
 interface GitHubAuthDialogProps {
   isOpen: boolean;

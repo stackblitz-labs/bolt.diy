@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import React, { useState } from 'react';
 import { toast } from 'react-toastify';
-import { classNames } from '~/utils/classNames';
 import { Button } from '~/components/ui/Button';
 import { useGitLabConnection } from '~/lib/hooks';
+import { classNames } from '~/utils/classNames';
 
 interface ConnectionTestResult {
   status: 'success' | 'error' | 'testing';

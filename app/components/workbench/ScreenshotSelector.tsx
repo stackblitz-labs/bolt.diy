@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 interface ScreenshotSelectorProps {
   isSelectionMode: boolean;
   setIsSelectionMode: (mode: boolean) => void;
-  containerRef: React.RefObject<HTMLElement>;
+  containerRef: React.RefObject<HTMLElement | null>;
 }
 
 export const ScreenshotSelector = memo(
@@ -144,6 +144,7 @@ export const ScreenshotSelector = memo(
         const scaledY = Math.round(
           (containerRect.top + Math.min(selectionStart.y, selectionEnd.y) + scrollY + bottomOffset) * scaleY,
         );
+
         const scaledWidth = Math.round(Math.abs(selectionEnd.x - selectionStart.x) * scaleX);
         const scaledHeight = Math.round(Math.abs(selectionEnd.y - selectionStart.y) * scaleY);
 
