@@ -1,0 +1,56 @@
+{
+  "build": {
+    "medianMs": 27505,
+    "samples": [
+      {
+        "ms": 27983,
+        "ok": true
+      },
+      {
+        "ms": 26990,
+        "ok": true
+      },
+      {
+        "ms": 27505,
+        "ok": true
+      }
+    ]
+  },
+  "test": {
+    "medianMs": 3858,
+    "samples": [
+      {
+        "ms": 3981,
+        "ok": true
+      },
+      {
+        "ms": 3858,
+        "ok": true
+      },
+      {
+        "ms": 3836,
+        "ok": true
+      }
+    ]
+  },
+  "typecheck": {
+    "medianMs": 8727,
+    "samples": [
+      {
+        "ms": 8762,
+        "errors": 0,
+        "ok": true
+      },
+      {
+        "ms": 8725,
+        "errors": 0,
+        "ok": true
+      },
+      {
+        "ms": 8727,
+        "errors": 0,
+        "ok": true
+      }
+    ]
+  }
+}
