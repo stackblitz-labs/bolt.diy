@@ -11,7 +11,7 @@ export function extractPropertiesFromMessage(message: Omit<Message, 'id'>): {
 } {
   const textContent = Array.isArray(message.content)
     ? message.content.find((item) => item.type === 'text')?.text || ''
-    : message.content;
+    : (message.content ?? '');
 
   const modelMatch = textContent.match(MODEL_REGEX);
   const providerMatch = textContent.match(PROVIDER_REGEX);
