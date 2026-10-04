@@ -496,7 +496,6 @@ const FileInfo = memo(
       const changes = diffLines(beforeCode, afterCode, {
         newlineIsToken: false,
         ignoreWhitespace: true,
-        ignoreCase: false,
       });
 
       return changes.reduce(

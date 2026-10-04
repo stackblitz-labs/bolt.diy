@@ -31,6 +31,10 @@ test('hello website end-to-end via OpenRouter Space Bunny Alpha', async ({ page 
   await expect(page.getByText('index.html').first()).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText('package.json').first()).toBeVisible({ timeout: 60_000 });
 
+  // Diff view renders the changes for generated files
+  await page.getByRole('button', { name: 'Diff' }).first().click();
+  await expect(page.getByText(/package\.json/).first()).toBeVisible({ timeout: 60_000 });
+
   // Preview renders the site
   await page.getByRole('button', { name: 'Preview' }).first().click();
   const previewFrame = page.frameLocator('iframe').first();

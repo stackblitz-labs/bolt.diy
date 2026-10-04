@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { memo, useMemo } from 'react';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { Group, Panel, Separator } from 'react-resizable-panels';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { LockManager } from './LockManager'; // <-- Import LockManager
@@ -81,9 +81,9 @@ export const EditorPanel = memo(
     }, [editorDocument, unsavedFiles]);
 
     return (
-      <PanelGroup direction="vertical">
+      <Group orientation="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
-          <PanelGroup direction="horizontal">
+          <Group orientation="horizontal">
             <Panel defaultSize={20} minSize={15} collapsible className="border-r border-bolt-elements-borderColor">
               <div className="h-full">
                 <Tabs.Root defaultValue="files" className="flex flex-col h-full">
@@ -142,7 +142,7 @@ export const EditorPanel = memo(
               </div>
             </Panel>
 
-            <PanelResizeHandle />
+            <Separator />
             <Panel className="flex flex-col" defaultSize={80} minSize={20}>
               <PanelHeader className="overflow-x-auto">
                 {activeFileSegments?.length && (
@@ -176,11 +176,11 @@ export const EditorPanel = memo(
                 />
               </div>
             </Panel>
-          </PanelGroup>
+          </Group>
         </Panel>
-        <PanelResizeHandle />
+        <Separator />
         <TerminalTabs />
-      </PanelGroup>
+      </Group>
     );
   },
 );

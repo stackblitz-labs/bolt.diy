@@ -8,7 +8,7 @@ import styles from './Markdown.module.scss';
 import ThoughtBox from './ThoughtBox';
 import type { ProviderInfo } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
-import { rehypePlugins, remarkPlugins, allowedHTMLElements } from '~/utils/markdown';
+import { rehypePlugins, remarkPlugins } from '~/utils/markdown';
 
 const logger = createScopedLogger('MarkdownComponent');
 
@@ -111,7 +111,7 @@ export const Markdown = memo(
             const { className, ...rest } = firstChild.properties;
             const [, language = 'plaintext'] = /language-(\w+)/.exec(String(className) || '') ?? [];
 
-            return <CodeBlock code={firstChild.children[0].value} language={language as BundledLanguage} {...rest} />;
+            return <CodeBlock {...rest} code={firstChild.children[0].value} language={language as BundledLanguage} />;
           }
 
           return <pre {...rest}>{children}</pre>;
@@ -194,15 +194,15 @@ export const Markdown = memo(
     }, []);
 
     return (
-      <ReactMarkdown
-        allowedElements={allowedHTMLElements}
-        className={styles.MarkdownContent}
-        components={components}
-        remarkPlugins={remarkPlugins(limitedMarkdown)}
-        rehypePlugins={rehypePlugins(html)}
-      >
-        {stripCodeFenceFromArtifact(children)}
-      </ReactMarkdown>
+      <div className={styles.MarkdownContent}>
+        <ReactMarkdown
+          components={components}
+          remarkPlugins={remarkPlugins(limitedMarkdown)}
+          rehypePlugins={rehypePlugins(html)}
+        >
+          {stripCodeFenceFromArtifact(children)}
+        </ReactMarkdown>
+      </div>
     );
   },
 );
