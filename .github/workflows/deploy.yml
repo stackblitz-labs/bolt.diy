@@ -23,10 +23,12 @@ jobs:
       - name: Build App
         run: npm run build
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: 'boltgithubcloudflare' # Name deiner Pages-App in Cloudflare
-          directory: 'build/client'      # Output-Ordner deines Builds (z. B. dist, build, .out)
+          secrets: |
+            GEMINI_API_KEY
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
