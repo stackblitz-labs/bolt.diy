@@ -46,3 +46,5 @@ docs/instructions/Roadmap.md
 .cursorrules
 *.md
 .qodo
+
+test-results/
