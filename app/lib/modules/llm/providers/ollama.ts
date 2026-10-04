@@ -1,8 +1,8 @@
+import type { LanguageModelV1 } from 'ai';
+import { createOllama } from 'ollama-ai-provider';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import { createOllama } from 'ollama-ai-provider';
 import { logger } from '~/utils/logger';
 
 interface OllamaModelDetails {

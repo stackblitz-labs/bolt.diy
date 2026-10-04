@@ -1,10 +1,10 @@
-import React from 'react';
-import { Button } from '~/components/ui/Button';
-import { Card, CardContent } from '~/components/ui/Card';
 import { Cable, Server, ArrowLeft } from 'lucide-react';
-import { useLocalModelHealth } from '~/lib/hooks/useLocalModelHealth';
+import React from 'react';
 import HealthStatusBadge from './HealthStatusBadge';
 import { PROVIDER_ICONS } from './types';
+import { Button } from '~/components/ui/Button';
+import { Card, CardContent } from '~/components/ui/Card';
+import { useLocalModelHealth } from '~/lib/hooks/useLocalModelHealth';
 
 // Status Dashboard Component
 function StatusDashboard({ onBack }: { onBack: () => void }) {

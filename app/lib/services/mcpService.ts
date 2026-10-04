@@ -1,3 +1,4 @@
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {
   experimental_createMCPClient,
   type ToolSet,
@@ -7,7 +8,6 @@ import {
   formatDataStreamPart,
 } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';
 import type { ToolCallAnnotation } from '~/types/context';
 import {

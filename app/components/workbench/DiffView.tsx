@@ -1,15 +1,15 @@
-import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
-import { workbenchStore } from '~/lib/stores/workbench';
-import type { FileMap } from '~/lib/stores/files';
-import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { diffLines, type Change } from 'diff';
+import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { getHighlighter } from 'shiki';
-import '~/styles/diff-view.css';
-import { diffFiles, extractRelativePath } from '~/utils/diff';
-import type { FileHistory } from '~/types/actions';
-import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
+import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
+import { workbenchStore } from '~/lib/stores/workbench';
+import '~/styles/diff-view.css';
+import type { FileHistory } from '~/types/actions';
+import { diffFiles, extractRelativePath } from '~/utils/diff';
+import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 
 interface CodeComparisonProps {
   beforeCode: string;
@@ -128,6 +128,7 @@ const processChanges = (beforeCode: string, afterCode: string) => {
       } else {
         // Look ahead for potential matches
         let matchFound = false;
+
         const lookAhead = 3; // Number of lines to look ahead
 
         // Try to find matching lines ahead
@@ -315,6 +316,7 @@ const lineNumberStyles =
   'w-9 shrink-0 pl-2 py-1 text-left font-mono text-bolt-elements-textTertiary border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-1';
 const lineContentStyles =
   'px-1 py-1 font-mono whitespace-pre flex-1 group-hover:bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary';
+
 const diffPanelStyles = 'h-full overflow-auto diff-panel-content';
 
 // Updated color styles for better consistency
@@ -684,6 +686,7 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
 
       // Normalizar o conteúdo para comparação
       const normalizedCurrentContent = currentContent.replace(/\r\n/g, '\n').trim();
+
       const normalizedOriginalContent = (existingHistory?.originalContent || file.content)
         .replace(/\r\n/g, '\n')
         .trim();

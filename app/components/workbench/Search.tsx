@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { TextSearchOptions, TextSearchOnProgressCallback, WebContainer } from '@webcontainer/api';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import { WORK_DIR } from '~/utils/constants';
@@ -127,6 +127,7 @@ export function Search() {
 
     try {
       const instance = await webcontainer;
+
       const options: Omit<TextSearchOptions, 'folders'> = {
         homeDir: WORK_DIR, // Adjust this path as needed
         includes: ['**/*.*'],
@@ -226,6 +227,7 @@ export function Search() {
                     const previewStart = isStart ? 0 : match.matchCharStart - contextChars;
                     const previewText = match.previewText.slice(previewStart);
                     const matchStart = isStart ? match.matchCharStart : contextChars;
+
                     const matchEnd = isStart
                       ? match.matchCharEnd
                       : contextChars + (match.matchCharEnd - match.matchCharStart);

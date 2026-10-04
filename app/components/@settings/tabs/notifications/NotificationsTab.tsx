@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { logStore } from '~/lib/stores/logs';
 import { useStore } from '@nanostores/react';
-import { formatDistanceToNow } from 'date-fns';
-import { classNames } from '~/utils/classNames';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { formatDistanceToNow } from 'date-fns';
+import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { logStore } from '~/lib/stores/logs';
+import { classNames } from '~/utils/classNames';
 
 interface NotificationDetails {
   type?: string;

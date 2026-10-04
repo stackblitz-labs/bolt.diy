@@ -5,6 +5,7 @@ import JSZip from 'jszip';
 function isCloudflareEnvironment(context: any): boolean {
   // Check if we're in production AND have Cloudflare Pages specific env vars
   const isProduction = process.env.NODE_ENV === 'production';
+
   const hasCfPagesVars = !!(
     context?.cloudflare?.env?.CF_PAGES ||
     context?.cloudflare?.env?.CF_PAGES_URL ||
@@ -79,6 +80,7 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
 
   for (let i = 0; i < files.length; i += batchSize) {
     const batch = files.slice(i, i + batchSize);
+
     const batchPromises = batch.map(async (file: any) => {
       try {
         const contentResponse = await fetch(`${baseUrl}/repos/${repo}/contents/${file.path}`, {

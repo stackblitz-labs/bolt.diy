@@ -384,6 +384,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
       }
 
       const { scrollTop, ignoreScrollToTop } = state;
+
       let { lastScrollTop = scrollTop } = state;
 
       state.lastScrollTop = scrollTop;
@@ -584,6 +585,7 @@ const animationCache = new Map<string, Readonly<Required<SpringAnimation>>>();
 
 function mergeAnimations(...animations: (Animation | boolean | undefined)[]) {
   const result = { ...DEFAULT_SPRING_ANIMATION };
+
   let instant = false;
 
   for (const animation of animations) {

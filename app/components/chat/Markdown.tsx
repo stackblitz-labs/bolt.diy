@@ -1,14 +1,14 @@
+import type { Message } from 'ai';
 import { memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import type { BundledLanguage } from 'shiki';
-import { createScopedLogger } from '~/utils/logger';
-import { rehypePlugins, remarkPlugins, allowedHTMLElements } from '~/utils/markdown';
 import { Artifact, openArtifactInWorkbench } from './Artifact';
 import { CodeBlock } from './CodeBlock';
-import type { Message } from 'ai';
 import styles from './Markdown.module.scss';
 import ThoughtBox from './ThoughtBox';
 import type { ProviderInfo } from '~/types/model';
+import { createScopedLogger } from '~/utils/logger';
+import { rehypePlugins, remarkPlugins, allowedHTMLElements } from '~/utils/markdown';
 
 const logger = createScopedLogger('MarkdownComponent');
 

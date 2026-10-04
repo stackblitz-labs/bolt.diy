@@ -1,6 +1,6 @@
+import { animate } from 'framer-motion';
 import { memo, useCallback, useEffect, useRef } from 'react';
 import { classNames } from '~/utils/classNames';
-import { animate } from 'framer-motion';
 
 interface GlowingEffectProps {
   blur?: number;

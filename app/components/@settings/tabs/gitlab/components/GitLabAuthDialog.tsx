@@ -1,9 +1,9 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { classNames } from '~/utils/classNames';
 import { useGitLabConnection } from '~/lib/hooks';
+import { classNames } from '~/utils/classNames';
 
 interface GitLabAuthDialogProps {
   isOpen: boolean;

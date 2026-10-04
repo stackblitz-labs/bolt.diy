@@ -1,8 +1,8 @@
+import { generateId } from 'ai';
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { ImportExportService } from '~/lib/services/importExportService';
 import { useIndexedDB } from '~/lib/hooks/useIndexedDB';
-import { generateId } from 'ai';
+import { ImportExportService } from '~/lib/services/importExportService';
 
 interface UseDataOperationsProps {
   /**
@@ -739,6 +739,7 @@ export function useDataOperations({
 
         // Count how many keys were imported
         const keyCount = Object.keys(newKeys).length;
+
         const newKeyCount = Object.keys(newKeys).filter(
           (key) => !currentApiKeys[key] || currentApiKeys[key] !== newKeys[key],
         ).length;
@@ -933,6 +934,7 @@ export function useDataOperations({
       const blob = new Blob([JSON.stringify(templateData, null, 2)], {
         type: 'application/json',
       });
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

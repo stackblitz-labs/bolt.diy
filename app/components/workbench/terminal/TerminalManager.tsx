@@ -1,5 +1,5 @@
-import { memo, useEffect } from 'react';
 import type { Terminal as XTerm } from '@xterm/xterm';
+import { memo, useEffect } from 'react';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('TerminalManager');

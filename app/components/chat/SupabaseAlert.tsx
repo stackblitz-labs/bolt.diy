@@ -1,9 +1,9 @@
+import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useState } from 'react';
+import { supabaseConnection } from '~/lib/stores/supabase';
 import type { SupabaseAlert } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
-import { supabaseConnection } from '~/lib/stores/supabase';
-import { useStore } from '@nanostores/react';
-import { useState } from 'react';
 
 interface Props {
   alert: SupabaseAlert;
@@ -23,6 +23,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
   // Set title and description based on connection state
   const title = isConnected ? 'Supabase Query' : 'Supabase Connection Required';
   const description = isConnected ? 'Execute database query' : 'Supabase connection required';
+
   const message = isConnected
     ? 'Please review the proposed changes and apply them to your database.'
     : 'Please connect to Supabase to continue with this operation.';

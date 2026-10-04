@@ -1,8 +1,8 @@
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import type { LanguageModelV1 } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 export default class GoogleProvider extends BaseProvider {
   name = 'Google';

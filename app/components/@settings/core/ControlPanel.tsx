@@ -1,34 +1,34 @@
-import { useState, useEffect, useMemo } from 'react';
 import { useStore } from '@nanostores/react';
 import * as RadixDialog from '@radix-ui/react-dialog';
-import { classNames } from '~/utils/classNames';
-import { TabTile } from '~/components/@settings/shared/components/TabTile';
-import { useFeatures } from '~/lib/hooks/useFeatures';
-import { useNotifications } from '~/lib/hooks/useNotifications';
-import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
-import { tabConfigurationStore, resetTabConfiguration } from '~/lib/stores/settings';
-import { profileStore } from '~/lib/stores/profile';
-import type { TabType, Profile } from './types';
-import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants';
-import { DialogTitle } from '~/components/ui/Dialog';
+import { useState, useEffect, useMemo } from 'react';
 import { AvatarDropdown } from './AvatarDropdown';
-import BackgroundRays from '~/components/ui/BackgroundRays';
+import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants';
+import type { TabType, Profile } from './types';
+import { TabTile } from '~/components/@settings/shared/components/TabTile';
 
 // Import all tab components
-import ProfileTab from '~/components/@settings/tabs/profile/ProfileTab';
-import SettingsTab from '~/components/@settings/tabs/settings/SettingsTab';
-import NotificationsTab from '~/components/@settings/tabs/notifications/NotificationsTab';
-import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
 import { DataTab } from '~/components/@settings/tabs/data/DataTab';
 import { EventLogsTab } from '~/components/@settings/tabs/event-logs/EventLogsTab';
+import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
 import GitHubTab from '~/components/@settings/tabs/github/GitHubTab';
 import GitLabTab from '~/components/@settings/tabs/gitlab/GitLabTab';
-import SupabaseTab from '~/components/@settings/tabs/supabase/SupabaseTab';
-import VercelTab from '~/components/@settings/tabs/vercel/VercelTab';
+import McpTab from '~/components/@settings/tabs/mcp/McpTab';
 import NetlifyTab from '~/components/@settings/tabs/netlify/NetlifyTab';
+import NotificationsTab from '~/components/@settings/tabs/notifications/NotificationsTab';
+import ProfileTab from '~/components/@settings/tabs/profile/ProfileTab';
 import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/CloudProvidersTab';
 import LocalProvidersTab from '~/components/@settings/tabs/providers/local/LocalProvidersTab';
-import McpTab from '~/components/@settings/tabs/mcp/McpTab';
+import SettingsTab from '~/components/@settings/tabs/settings/SettingsTab';
+import SupabaseTab from '~/components/@settings/tabs/supabase/SupabaseTab';
+import VercelTab from '~/components/@settings/tabs/vercel/VercelTab';
+import BackgroundRays from '~/components/ui/BackgroundRays';
+import { DialogTitle } from '~/components/ui/Dialog';
+import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
+import { useFeatures } from '~/lib/hooks/useFeatures';
+import { useNotifications } from '~/lib/hooks/useNotifications';
+import { profileStore } from '~/lib/stores/profile';
+import { tabConfigurationStore, resetTabConfiguration } from '~/lib/stores/settings';
+import { classNames } from '~/utils/classNames';
 
 interface ControlPanelProps {
   open: boolean;

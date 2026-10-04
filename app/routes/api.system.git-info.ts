@@ -83,6 +83,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
   if (action === 'getUser' || action === 'getRepos' || action === 'getOrgs' || action === 'getActivity') {
     // Use server-side token instead of client-side token
     const serverGithubToken = process.env.GITHUB_ACCESS_TOKEN || context.env?.GITHUB_ACCESS_TOKEN;
+
     const cookieToken = request.headers
       .get('Cookie')
       ?.split(';')
@@ -168,6 +169,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
         // Calculate language statistics
         const languageStats: Record<string, number> = {};
+
         let totalStars = 0;
         let totalForks = 0;
 

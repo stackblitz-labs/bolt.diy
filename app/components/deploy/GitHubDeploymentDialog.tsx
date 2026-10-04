@@ -1,16 +1,16 @@
+import { useStore } from '@nanostores/react';
+import { Octokit } from '@octokit/rest';
 import * as Dialog from '@radix-ui/react-dialog';
+import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { motion } from 'framer-motion';
-import { Octokit } from '@octokit/rest';
-import { classNames } from '~/utils/classNames';
-import { getLocalStorage } from '~/lib/persistence/localStorage';
-import type { GitHubUserResponse, GitHubRepoInfo } from '~/types/GitHub';
-import { logStore } from '~/lib/stores/logs';
-import { chatId } from '~/lib/persistence/useChatHistory';
-import { useStore } from '@nanostores/react';
 import { GitHubAuthDialog } from '~/components/@settings/tabs/github/components/GitHubAuthDialog';
 import { SearchInput, EmptyState, StatusIndicator, Badge } from '~/components/ui';
+import { getLocalStorage } from '~/lib/persistence/localStorage';
+import { chatId } from '~/lib/persistence/useChatHistory';
+import { logStore } from '~/lib/stores/logs';
+import type { GitHubUserResponse, GitHubRepoInfo } from '~/types/GitHub';
+import { classNames } from '~/utils/classNames';
 
 interface GitHubDeploymentDialogProps {
   isOpen: boolean;
@@ -86,6 +86,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
     }
 
     const query = repoSearchQuery.toLowerCase().trim();
+
     const filtered = recentRepos.filter(
       (repo) =>
         repo.name.toLowerCase().includes(query) ||
@@ -114,6 +115,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
       while (hasMore) {
         const requestUrl = `https://api.github.com/user/repos?sort=updated&per_page=100&page=${page}&affiliation=owner,organization_member`;
+
         const response = await fetch(requestUrl, {
           headers: {
             Accept: 'application/vnd.github.v3+json',
@@ -224,11 +226,13 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
     try {
       // Initialize Octokit with the GitHub token
       const octokit = new Octokit({ auth: connection.token });
+
       let repoExists = false;
 
       try {
         // Check if the repository already exists - ensure repo name is properly sanitized
         const sanitizedRepoName = sanitizeRepoName(repoName);
+
         const { data: existingRepo } = await octokit.repos.get({
           owner: connection.user.login,
           repo: sanitizedRepoName,
@@ -273,6 +277,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
       // Create repository if it doesn't exist
       if (!repoExists) {
         const sanitizedRepoName = sanitizeRepoName(repoName);
+
         const { data: newRepo } = await octokit.repos.createForAuthenticatedUser({
           name: sanitizedRepoName,
           private: isPrivate,
@@ -322,6 +327,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
       try {
         // For both new and existing repos, get the repository info
         const sanitizedRepoName = sanitizeRepoName(repoName);
+
         const { data: repo } = await octokit.repos.get({
           owner: connection.user.login,
           repo: sanitizedRepoName,
@@ -375,6 +381,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
         // Create a tree with all the files, using the base tree if available
         const sanitizedRepoName = sanitizeRepoName(repoName);
+
         const { data: treeData } = await octokit.git.createTree({
           owner: connection.user.login,
           repo: sanitizedRepoName,

@@ -17,16 +17,16 @@ import {
   type Tooltip,
 } from '@codemirror/view';
 import { memo, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import type { Theme } from '~/types/theme';
-import { classNames } from '~/utils/classNames';
-import { debounce } from '~/utils/debounce';
-import { createScopedLogger, renderLogger } from '~/utils/logger';
-import { isFileLocked, getCurrentChatId } from '~/utils/fileLocks';
 import { BinaryContent } from './BinaryContent';
+import { createEnvMaskingExtension } from './EnvMasking';
 import { getTheme, reconfigureTheme } from './cm-theme';
 import { indentKeyBinding } from './indent';
 import { getLanguage } from './languages';
-import { createEnvMaskingExtension } from './EnvMasking';
+import type { Theme } from '~/types/theme';
+import { classNames } from '~/utils/classNames';
+import { debounce } from '~/utils/debounce';
+import { isFileLocked, getCurrentChatId } from '~/utils/fileLocks';
+import { createScopedLogger, renderLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('CodeMirrorEditor');
 
@@ -527,6 +527,7 @@ function getReadOnlyTooltip(state: EditorState) {
 
   // Get the current document from the module-level reference
   const currentDoc = currentDocRef;
+
   let tooltipMessage = 'Cannot edit file while AI response is being generated';
 
   // If we have a current document, check if it's locked

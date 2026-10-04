@@ -1,9 +1,9 @@
-import type { ProviderInfo } from '~/types/model';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import { classNames } from '~/utils/classNames';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
+import type { ProviderInfo } from '~/types/model';
+import { classNames } from '~/utils/classNames';
 
 // Fuzzy search utilities
 const levenshteinDistance = (str1: string, str2: string): number => {

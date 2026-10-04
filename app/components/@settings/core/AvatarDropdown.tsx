@@ -1,9 +1,9 @@
+import { useStore } from '@nanostores/react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { motion } from 'framer-motion';
-import { useStore } from '@nanostores/react';
-import { classNames } from '~/utils/classNames';
-import { profileStore } from '~/lib/stores/profile';
 import type { TabType, Profile } from './types';
+import { profileStore } from '~/lib/stores/profile';
+import { classNames } from '~/utils/classNames';
 
 interface AvatarDropdownProps {
   onSelectTab: (tab: TabType) => void;

@@ -1,6 +1,6 @@
 import type { LoaderFunction } from '@remix-run/cloudflare';
-import { LLMManager } from '~/lib/modules/llm/manager';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { LLMManager } from '~/lib/modules/llm/manager';
 
 export const loader: LoaderFunction = async ({ context, request }) => {
   // Get API keys from cookie

@@ -1,9 +1,9 @@
 import { generateText, type CoreTool, type GenerateTextResult, type Message } from 'ai';
+import { extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
+import { LLMManager } from '~/lib/modules/llm/manager';
 import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
-import { extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
 import { createScopedLogger } from '~/utils/logger';
-import { LLMManager } from '~/lib/modules/llm/manager';
 
 const logger = createScopedLogger('create-summary');
 
@@ -17,8 +17,10 @@ export async function createSummary(props: {
   onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
 }) {
   const { messages, env: serverEnv, apiKeys, providerSettings, onFinish } = props;
+
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
+
   const processedMessages = messages.map((message) => {
     if (message.role === 'user') {
       const { model, provider, content } = extractPropertiesFromMessage(message);
@@ -41,6 +43,7 @@ export async function createSummary(props: {
 
   const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) || DEFAULT_PROVIDER;
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);
+
   let modelDetails = staticModels.find((m) => m.name === currentModel);
 
   if (!modelDetails) {
@@ -69,7 +72,9 @@ export async function createSummary(props: {
   }
 
   let slicedMessages = processedMessages;
+
   const { summary } = extractCurrentContext(processedMessages);
+
   let summaryText: string | undefined = undefined;
   let chatId: string | undefined = undefined;
 

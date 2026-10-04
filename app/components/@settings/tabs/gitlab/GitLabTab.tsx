@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useGitLabConnection } from '~/lib/hooks';
+import React, { useState } from 'react';
 import GitLabConnection from './components/GitLabConnection';
-import { StatsDisplay } from './components/StatsDisplay';
 import { RepositoryList } from './components/RepositoryList';
+import { StatsDisplay } from './components/StatsDisplay';
+import { useGitLabConnection } from '~/lib/hooks';
 
 // GitLab logo SVG component
 const GitLabLogo = () => (

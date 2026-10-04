@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
-import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
-import type { GitHubUserResponse, GitHubConnection } from '~/types/GitHub';
+import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-toastify';
 import { useGitHubAPI } from './useGitHubAPI';
 import { githubConnection, isConnecting, updateGitHubConnection } from '~/lib/stores/github';
+import type { GitHubUserResponse, GitHubConnection } from '~/types/GitHub';
 
 export interface ConnectionState {
   isConnected: boolean;

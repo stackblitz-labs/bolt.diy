@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import { User, Folder, Wifi, Settings, Box, Sliders } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 export type SettingCategory = 'profile' | 'file_sharing' | 'connectivity' | 'system' | 'services' | 'preferences';
 

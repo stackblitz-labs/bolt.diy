@@ -1,5 +1,5 @@
-import React from 'react';
 import { Loader2, AlertCircle, CheckCircle, Info, Github } from 'lucide-react';
+import React from 'react';
 import { classNames } from '~/utils/classNames';
 
 interface LoadingStateProps {

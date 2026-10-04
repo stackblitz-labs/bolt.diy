@@ -1,13 +1,13 @@
-import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+import { formatBuildFailureOutput } from './deployUtils';
+import { chatId } from '~/lib/persistence/useChatHistory';
+import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import { path } from '~/utils/path';
-import { useState } from 'react';
-import type { ActionCallbackData } from '~/lib/runtime/message-parser';
-import { chatId } from '~/lib/persistence/useChatHistory';
-import { formatBuildFailureOutput } from './deployUtils';
 
 export function useNetlifyDeploy() {
   const [isDeploying, setIsDeploying] = useState(false);
@@ -50,6 +50,7 @@ export function useNetlifyDeploy() {
 
       // Set up build action
       const actionId = 'build-' + Date.now();
+
       const actionData: ActionCallbackData = {
         messageId: 'netlify build',
         artifactId: artifact.id,
@@ -169,6 +170,7 @@ export function useNetlifyDeploy() {
       }
 
       const maxAttempts = 20; // 2 minutes timeout
+
       let attempts = 0;
       let deploymentStatus;
 

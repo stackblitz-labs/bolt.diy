@@ -144,6 +144,7 @@ export const ScreenshotSelector = memo(
         const scaledY = Math.round(
           (containerRect.top + Math.min(selectionStart.y, selectionEnd.y) + scrollY + bottomOffset) * scaleY,
         );
+
         const scaledWidth = Math.round(Math.abs(selectionEnd.x - selectionStart.x) * scaleX);
         const scaledHeight = Math.round(Math.abs(selectionEnd.y - selectionStart.y) * scaleY);
 

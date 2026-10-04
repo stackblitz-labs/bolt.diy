@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { memo } from 'react';
+import type { JSX } from 'react';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { genericMemo } from '~/utils/react';
-import type { JSX } from 'react';
 
 export type SliderOptions<T> = {
   left: { value: T; text: string };

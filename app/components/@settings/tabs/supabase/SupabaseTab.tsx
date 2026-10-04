@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
-import { classNames } from '~/utils/classNames';
+import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import {
@@ -16,6 +15,7 @@ import {
   initializeSupabaseConnection,
   type SupabaseProject,
 } from '~/lib/stores/supabase';
+import { classNames } from '~/utils/classNames';
 
 interface ConnectionTestResult {
   status: 'success' | 'error' | 'testing';
@@ -831,6 +831,7 @@ export default function SupabaseTab() {
                         <div className="space-y-1">
                           {(() => {
                             const totalProjects = connection.stats?.totalProjects || 0;
+
                             const activeProjects =
                               connection.stats?.projects?.filter((p: SupabaseProject) => p.status === 'ACTIVE_HEALTHY')
                                 .length || 0;
@@ -868,6 +869,7 @@ export default function SupabaseTab() {
                         <div className="space-y-1">
                           {(() => {
                             const totalProjects = connection.stats?.totalProjects || 0;
+
                             const projectsWithAuth =
                               connection.stats?.projects?.filter((p) => p.stats?.auth?.users !== undefined).length || 0;
                             const authEnabledRate =

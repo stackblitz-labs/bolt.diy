@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { useStore } from '@nanostores/react';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { useState } from 'react';
 import { DeployButton } from '~/components/deploy/DeployButton';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 interface HeaderActionButtonsProps {
   chatStarted: boolean;

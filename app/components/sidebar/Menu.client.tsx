@@ -1,19 +1,19 @@
+import { useStore } from '@nanostores/react';
 import { motion, type Variants } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { ControlPanel } from '~/components/@settings/core/ControlPanel';
-import { SettingsButton, HelpButton } from '~/components/ui/SettingsButton';
-import { Button } from '~/components/ui/Button';
-import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
-import { cubicEasingFn } from '~/utils/easings';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
+import { ControlPanel } from '~/components/@settings/core/ControlPanel';
+import { Button } from '~/components/ui/Button';
+import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { SettingsButton, HelpButton } from '~/components/ui/SettingsButton';
+import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
-import { classNames } from '~/utils/classNames';
-import { useStore } from '@nanostores/react';
+import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
 import { profileStore } from '~/lib/stores/profile';
+import { classNames } from '~/utils/classNames';
+import { cubicEasingFn } from '~/utils/easings';
 
 const menuVariants = {
   closed: {
@@ -156,8 +156,10 @@ export const Menu = () => {
       console.log(`Starting bulk delete for ${itemsToDeleteIds.length} chats`, itemsToDeleteIds);
 
       let deletedCount = 0;
+
       const errors: string[] = [];
       const currentChatId = chatId.get();
+
       let shouldNavigate = false;
 
       // Process deletions sequentially using the shared deleteChat logic

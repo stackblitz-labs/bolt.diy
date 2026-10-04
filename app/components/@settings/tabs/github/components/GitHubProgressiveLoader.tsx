@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, ChevronDown, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';
-import { Loader2, ChevronDown, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface ProgressiveLoaderProps {
   isLoading: boolean;

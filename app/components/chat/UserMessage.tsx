@@ -2,10 +2,6 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
-import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
-import { Markdown } from './Markdown';
-import { useStore } from '@nanostores/react';
-import { profileStore } from '~/lib/stores/profile';
 import type {
   TextUIPart,
   ReasoningUIPart,
@@ -14,6 +10,10 @@ import type {
   FileUIPart,
   StepStartUIPart,
 } from '@ai-sdk/ui-utils';
+import { useStore } from '@nanostores/react';
+import { Markdown } from './Markdown';
+import { profileStore } from '~/lib/stores/profile';
+import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 
 interface UserMessageProps {
   content: string | Array<{ type: string; text?: string; image?: string }>;

@@ -1,7 +1,7 @@
+import { Database, Trash2, RefreshCw, Clock, HardDrive, CheckCircle } from 'lucide-react';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';
-import { Database, Trash2, RefreshCw, Clock, HardDrive, CheckCircle } from 'lucide-react';
 
 interface CacheEntry {
   key: string;
@@ -94,6 +94,7 @@ class CacheManagerService {
   static clearExpiredCache(maxAge: number = 24 * 60 * 60 * 1000): number {
     const entries = this.getCacheEntries();
     const now = Date.now();
+
     let removedCount = 0;
 
     for (const entry of entries) {

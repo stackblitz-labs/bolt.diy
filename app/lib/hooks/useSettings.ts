@@ -1,4 +1,9 @@
 import { useStore } from '@nanostores/react';
+import Cookies from 'js-cookie';
+import { useCallback, useEffect, useState } from 'react';
+import type { TabWindowConfig } from '~/components/@settings/core/types';
+import { getLocalStorage, setLocalStorage } from '~/lib/persistence';
+import { logStore } from '~/lib/stores/logs';
 import {
   isDebugMode,
   isEventLogsEnabled,
@@ -16,12 +21,7 @@ import {
   updateEventLogs,
   updatePromptId,
 } from '~/lib/stores/settings';
-import { useCallback, useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import type { IProviderSetting, ProviderInfo, IProviderConfig } from '~/types/model';
-import type { TabWindowConfig } from '~/components/@settings/core/types';
-import { logStore } from '~/lib/stores/logs';
-import { getLocalStorage, setLocalStorage } from '~/lib/persistence';
 
 export interface Settings {
   theme: 'light' | 'dark' | 'system';
@@ -79,6 +79,7 @@ export function useSettings(): UseSettingsReturn {
   const [activeProviders, setActiveProviders] = useState<ProviderInfo[]>([]);
   const contextOptimizationEnabled = useStore(enableContextOptimizationStore);
   const tabConfiguration = useStore(tabConfigurationStore);
+
   const [settings, setSettings] = useState<Settings>(() => {
     const storedSettings = getLocalStorage('settings');
     return {

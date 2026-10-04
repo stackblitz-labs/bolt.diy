@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GitBranch, Check, Shield, Star, RefreshCw, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { classNames } from '~/utils/classNames';
-import { GitBranch, Check, Shield, Star, RefreshCw, X } from 'lucide-react';
 
 interface BranchInfo {
   name: string;

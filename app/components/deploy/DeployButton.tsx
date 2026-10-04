@@ -1,20 +1,20 @@
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useStore } from '@nanostores/react';
-import { netlifyConnection } from '~/lib/stores/netlify';
-import { vercelConnection } from '~/lib/stores/vercel';
-import { isGitLabConnected } from '~/lib/stores/gitlabConnection';
-import { workbenchStore } from '~/lib/stores/workbench';
-import { streamingState } from '~/lib/stores/streaming';
-import { classNames } from '~/utils/classNames';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useState } from 'react';
 import { NetlifyDeploymentLink } from '~/components/chat/NetlifyDeploymentLink.client';
 import { VercelDeploymentLink } from '~/components/chat/VercelDeploymentLink.client';
-import { useVercelDeploy } from '~/components/deploy/VercelDeploy.client';
-import { useNetlifyDeploy } from '~/components/deploy/NetlifyDeploy.client';
 import { useGitHubDeploy } from '~/components/deploy/GitHubDeploy.client';
-import { useGitLabDeploy } from '~/components/deploy/GitLabDeploy.client';
 import { GitHubDeploymentDialog } from '~/components/deploy/GitHubDeploymentDialog';
+import { useGitLabDeploy } from '~/components/deploy/GitLabDeploy.client';
 import { GitLabDeploymentDialog } from '~/components/deploy/GitLabDeploymentDialog';
+import { useNetlifyDeploy } from '~/components/deploy/NetlifyDeploy.client';
+import { useVercelDeploy } from '~/components/deploy/VercelDeploy.client';
+import { isGitLabConnected } from '~/lib/stores/gitlabConnection';
+import { netlifyConnection } from '~/lib/stores/netlify';
+import { streamingState } from '~/lib/stores/streaming';
+import { vercelConnection } from '~/lib/stores/vercel';
+import { workbenchStore } from '~/lib/stores/workbench';
+import { classNames } from '~/utils/classNames';
 
 interface DeployButtonProps {
   onVercelDeploy?: () => Promise<void>;

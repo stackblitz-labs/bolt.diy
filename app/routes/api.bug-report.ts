@@ -1,5 +1,5 @@
-import { json, type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { Octokit } from '@octokit/rest';
+import { json, type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { z } from 'zod';
 
 // Rate limiting store (in production, use Redis or similar)
@@ -212,6 +212,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
     // Create GitHub issue
     const [owner, repo] = targetRepo.split('/');
+
     const issue = await octokit.rest.issues.create({
       owner,
       repo,

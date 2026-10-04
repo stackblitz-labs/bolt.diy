@@ -60,6 +60,7 @@ export class GitHubApiServiceClass {
 
     if (!response.ok) {
       const errorData: any = await response.json().catch(() => ({ message: response.statusText }));
+
       const error: GitHubApiError = {
         message: errorData.message || response.statusText,
         status: response.status,
@@ -80,6 +81,7 @@ export class GitHubApiServiceClass {
 
   async getAllUserRepositories(): Promise<GitHubRepoInfo[]> {
     const allRepos: GitHubRepoInfo[] = [];
+
     let page = 1;
     let hasMore = true;
 
@@ -226,6 +228,7 @@ export class GitHubApiServiceClass {
 
     for (let i = 0; i < repos.length; i += batchSize) {
       const batch = repos.slice(i, i + batchSize);
+
       const batchResults = await Promise.allSettled(
         batch.map((repo) => {
           const [owner, repoName] = repo.full_name.split('/');

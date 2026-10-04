@@ -1,13 +1,13 @@
-import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+import { formatBuildFailureOutput } from './deployUtils';
+import { getLocalStorage } from '~/lib/persistence/localStorage';
+import { chatId } from '~/lib/persistence/useChatHistory';
+import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import { path } from '~/utils/path';
-import { useState } from 'react';
-import type { ActionCallbackData } from '~/lib/runtime/message-parser';
-import { chatId } from '~/lib/persistence/useChatHistory';
-import { getLocalStorage } from '~/lib/persistence/localStorage';
-import { formatBuildFailureOutput } from './deployUtils';
 
 export function useGitLabDeploy() {
   const [isDeploying, setIsDeploying] = useState(false);
@@ -50,6 +50,7 @@ export function useGitLabDeploy() {
       deployArtifact.runner.handleDeployAction('building', 'running', { source: 'gitlab' });
 
       const actionId = 'build-' + Date.now();
+
       const actionData: ActionCallbackData = {
         messageId: 'gitlab build',
         artifactId: artifact.id,

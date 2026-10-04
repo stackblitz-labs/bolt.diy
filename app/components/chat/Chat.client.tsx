@@ -1,33 +1,33 @@
-import { useStore } from '@nanostores/react';
-import type { Message } from 'ai';
 import { useChat } from '@ai-sdk/react';
+import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
+import { useStore } from '@nanostores/react';
+import { useSearchParams } from '@remix-run/react';
+import type { Message } from 'ai';
 import { useAnimate } from 'framer-motion';
+import Cookies from 'js-cookie';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { BaseChat } from './BaseChat';
+import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
+import { useSettings } from '~/lib/hooks/useSettings';
 import { description, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
+import { logStore } from '~/lib/stores/logs';
+import { useMCPStore } from '~/lib/stores/mcp';
+import { streamingState } from '~/lib/stores/streaming';
+import { supabaseConnection } from '~/lib/stores/supabase';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
-import { cubicEasingFn } from '~/utils/easings';
-import { createScopedLogger, renderLogger } from '~/utils/logger';
-import { BaseChat } from './BaseChat';
-import Cookies from 'js-cookie';
-import { debounce } from '~/utils/debounce';
-import { useSettings } from '~/lib/hooks/useSettings';
+import type { LlmErrorAlertType } from '~/types/actions';
+import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { ProviderInfo } from '~/types/model';
-import { useSearchParams } from '@remix-run/react';
+import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
+import { debounce } from '~/utils/debounce';
+import { cubicEasingFn } from '~/utils/easings';
+import { filesToArtifacts } from '~/utils/fileUtils';
+import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
-import { logStore } from '~/lib/stores/logs';
-import { streamingState } from '~/lib/stores/streaming';
-import { filesToArtifacts } from '~/utils/fileUtils';
-import { supabaseConnection } from '~/lib/stores/supabase';
-import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
-import type { ElementInfo } from '~/components/workbench/Inspector';
-import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
-import { useMCPStore } from '~/lib/stores/mcp';
-import type { LlmErrorAlertType } from '~/types/actions';
 
 const logger = createScopedLogger('Chat');
 
@@ -96,12 +96,15 @@ export const ChatImpl = memo(
     const actionAlert = useStore(workbenchStore.alert);
     const deployAlert = useStore(workbenchStore.deployAlert);
     const supabaseConn = useStore(supabaseConnection);
+
     const selectedProject = supabaseConn.stats?.projects?.find(
       (project) => project.id === supabaseConn.selectedProjectId,
     );
+
     const supabaseAlert = useStore(workbenchStore.supabaseAlert);
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
+
     const [model, setModel] = useState(() => {
       const savedModel = Cookies.get('selectedModel');
       return savedModel || DEFAULT_MODEL;
@@ -110,6 +113,7 @@ export const ChatImpl = memo(
       const savedProvider = Cookies.get('selectedProvider');
       return (PROVIDER_LIST.find((p) => p.name === savedProvider) || DEFAULT_PROVIDER) as ProviderInfo;
     });
+
     const { showChat } = useStore(chatStore);
     const [animationScope, animate] = useAnimate();
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});

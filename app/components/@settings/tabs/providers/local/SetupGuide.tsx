@@ -1,6 +1,3 @@
-import React from 'react';
-import { Button } from '~/components/ui/Button';
-import { Card, CardContent, CardHeader } from '~/components/ui/Card';
 import {
   Cpu,
   Server,
@@ -21,6 +18,9 @@ import {
   Monitor,
   Wifi,
 } from 'lucide-react';
+import React from 'react';
+import { Button } from '~/components/ui/Button';
+import { Card, CardContent, CardHeader } from '~/components/ui/Card';
 
 // Setup Guide Component
 function SetupGuide({ onBack }: { onBack: () => void }) {

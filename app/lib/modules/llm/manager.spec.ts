@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { LLMManager } from './manager';
 import { BaseProvider } from './base-provider';
+import { LLMManager } from './manager';
 
 class FakeProvider extends BaseProvider {
   name = 'FakeProvider';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import * as providers from './registry';
 import { BaseProvider } from './base-provider';
+import * as providers from './registry';
 
 describe('LLM provider registry', () => {
   const exportedClasses = Object.values(providers).filter(

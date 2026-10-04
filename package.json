@@ -163,7 +163,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@blitz/eslint-plugin": "0.1.0",
+    "@blitz/eslint-plugin": "0.1.5",
     "@cloudflare/workers-types": "^4.20260702.1",
     "@electron/notarize": "^3.1.1",
     "@iconify-json/ph": "^1.2.1",
@@ -171,11 +171,10 @@
     "@playwright/test": "^1.63.0",
     "@remix-run/dev": "^2.17.5",
     "@remix-run/serve": "^2.17.5",
-    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/diff": "^5.2.3",
-    "@types/dom-speech-recognition": "^0.0.4",
-    "@types/electron": "^1.6.12",
+    "@types/dom-speech-recognition": "^0.0.12",
     "@types/file-saver": "^2.0.7",
     "@types/js-cookie": "^3.0.6",
     "@types/path-browserify": "^1.0.3",

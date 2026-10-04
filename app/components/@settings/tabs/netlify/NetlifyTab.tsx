@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
-import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
-import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
-import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
+import { formatDistanceToNow } from 'date-fns';
+import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
+import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
-import { formatDistanceToNow } from 'date-fns';
-import { Badge } from '~/components/ui/Badge';
+import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
+import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
+import { classNames } from '~/utils/classNames';
 
 interface ConnectionTestResult {
   status: 'success' | 'error' | 'testing';
@@ -521,6 +521,7 @@ export default function NetlifyTab() {
       // Fetch deploys and builds for ALL sites
       const allDeploysData: NetlifyDeploy[] = [];
       const allBuildsData: NetlifyBuild[] = [];
+
       let lastDeployTime = '';
       let totalDeploymentCount = 0;
 
@@ -691,6 +692,7 @@ export default function NetlifyTab() {
                       {(() => {
                         const successfulDeploys = deploys.filter((deploy) => deploy.state === 'ready').length;
                         const failedDeploys = deploys.filter((deploy) => deploy.state === 'error').length;
+
                         const successRate =
                           deploys.length > 0 ? Math.round((successfulDeploys / deploys.length) * 100) : 0;
 
@@ -716,6 +718,7 @@ export default function NetlifyTab() {
                     <div className="space-y-1">
                       {(() => {
                         const now = Date.now();
+
                         const last24Hours = deploys.filter(
                           (deploy) => now - new Date(deploy.created_at).getTime() < 24 * 60 * 60 * 1000,
                         ).length;
@@ -751,8 +754,10 @@ export default function NetlifyTab() {
                     const healthySites = sites.filter(
                       (site) => site.published_deploy?.state === 'ready' && site.ssl_url,
                     ).length;
+
                     const sslEnabled = sites.filter((site) => !!site.ssl_url).length;
                     const customDomain = sites.filter((site) => !!site.custom_domain).length;
+
                     const needsAttention = sites.filter(
                       (site) => site.published_deploy?.state === 'error' || !site.published_deploy,
                     ).length;

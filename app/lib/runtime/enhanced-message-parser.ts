@@ -1,5 +1,5 @@
-import { createScopedLogger } from '~/utils/logger';
 import { StreamingMessageParser, type StreamingMessageParserOptions } from './message-parser';
+import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('EnhancedMessageParser');
 
@@ -343,6 +343,7 @@ ${content.trim()}
     }
 
     const trimmedContent = content.trim();
+
     const lines = trimmedContent
       .split('\n')
       .map((line) => line.trim())

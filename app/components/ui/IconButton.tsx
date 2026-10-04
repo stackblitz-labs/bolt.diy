@@ -1,6 +1,6 @@
 import { memo, forwardRef, type ForwardedRef } from 'react';
-import { classNames } from '~/utils/classNames';
 import type { JSX } from 'react';
+import { classNames } from '~/utils/classNames';
 
 type IconSize = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 

@@ -1,6 +1,6 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { createScopedLogger } from '~/utils/logger';
 import { MCPService, type MCPConfig } from '~/lib/services/mcpService';
+import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.mcp-update-config');
 

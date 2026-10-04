@@ -1,12 +1,12 @@
+import * as ContextMenu from '@radix-ui/react-context-menu';
+import { diffLines, type Change } from 'diff';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { toast } from 'react-toastify';
 import type { FileMap } from '~/lib/stores/files';
+import { workbenchStore } from '~/lib/stores/workbench';
+import type { FileHistory } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
-import * as ContextMenu from '@radix-ui/react-context-menu';
-import type { FileHistory } from '~/types/actions';
-import { diffLines, type Change } from 'diff';
-import { workbenchStore } from '~/lib/stores/workbench';
-import { toast } from 'react-toastify';
 import { path } from '~/utils/path';
 
 const logger = createScopedLogger('FileTree');
@@ -652,6 +652,7 @@ function File({
     }
 
     const normalizedOriginal = fileModifications.originalContent.replace(/\r\n/g, '\n');
+
     const normalizedCurrent =
       fileModifications.versions[fileModifications.versions.length - 1]?.content.replace(/\r\n/g, '\n') || '';
 

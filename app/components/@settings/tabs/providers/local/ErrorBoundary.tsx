@@ -1,6 +1,6 @@
+import { AlertCircle } from 'lucide-react';
 import React, { Component } from 'react';
 import type { ReactNode } from 'react';
-import { AlertCircle } from 'lucide-react';
 import { classNames } from '~/utils/classNames';
 
 interface Props {

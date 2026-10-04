@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
-import { LoadingState, ErrorState, ConnectionTestIndicator, RepositoryCard } from './components/shared';
-import { GitHubConnection } from './components/GitHubConnection';
-import { GitHubUserProfile } from './components/GitHubUserProfile';
-import { GitHubStats } from './components/GitHubStats';
-import { Button } from '~/components/ui/Button';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
-import { classNames } from '~/utils/classNames';
 import { ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { GitHubCacheManager } from './components/GitHubCacheManager';
+import { GitHubConnection } from './components/GitHubConnection';
 import { GitHubErrorBoundary } from './components/GitHubErrorBoundary';
 import { GitHubProgressiveLoader } from './components/GitHubProgressiveLoader';
-import { GitHubCacheManager } from './components/GitHubCacheManager';
+import { GitHubStats } from './components/GitHubStats';
+import { GitHubUserProfile } from './components/GitHubUserProfile';
+import { LoadingState, ErrorState, ConnectionTestIndicator, RepositoryCard } from './components/shared';
+import { Button } from '~/components/ui/Button';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
+import { classNames } from '~/utils/classNames';
 
 interface ConnectionTestResult {
   status: 'success' | 'error' | 'testing';
@@ -31,6 +31,7 @@ const GithubLogo = () => (
 
 export default function GitHubTab() {
   const { connection, isConnected, isLoading, error, testConnection } = useGitHubConnection();
+
   const {
     stats,
     isLoading: isStatsLoading,

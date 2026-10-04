@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
-import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
-import type { GitLabConnection } from '~/types/GitLab';
+import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-toastify';
 import { useGitLabAPI } from './useGitLabAPI';
 import { gitlabConnectionStore, gitlabConnection, isGitLabConnected } from '~/lib/stores/gitlabConnection';
+import type { GitLabConnection } from '~/types/GitLab';
 
 export interface ConnectionState {
   isConnected: boolean;
@@ -89,6 +89,7 @@ export function useGitLabConnection(): UseGitLabConnectionReturn {
     try {
       // Make direct API call instead of using hook
       const baseUrl = connection.gitlabUrl || 'https://gitlab.com';
+
       const response = await fetch(`${baseUrl}/api/v4/user`, {
         headers: {
           'Content-Type': 'application/json',
@@ -210,6 +211,7 @@ export function useGitLabConnection(): UseGitLabConnectionReturn {
 
     try {
       const baseUrl = connection.gitlabUrl || 'https://gitlab.com';
+
       const response = await fetch(`${baseUrl}/api/v4/user`, {
         headers: {
           'Content-Type': 'application/json',

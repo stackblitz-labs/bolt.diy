@@ -1,5 +1,5 @@
-import React from 'react';
 import { CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import React from 'react';
 import { classNames } from '~/utils/classNames';
 
 interface HealthStatusBadgeProps {

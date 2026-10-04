@@ -1,7 +1,3 @@
-import React from 'react';
-import { classNames } from '~/utils/classNames';
-import { formatSize } from '~/utils/formatSize';
-import type { GitHubRepoInfo } from '~/types/GitHub';
 import {
   Star,
   GitFork,
@@ -17,6 +13,10 @@ import {
   Circle,
   GitPullRequest,
 } from 'lucide-react';
+import React from 'react';
+import type { GitHubRepoInfo } from '~/types/GitHub';
+import { classNames } from '~/utils/classNames';
+import { formatSize } from '~/utils/formatSize';
 
 interface RepositoryCardProps {
   repository: GitHubRepoInfo;
@@ -187,6 +187,7 @@ export function RepositoryCard({
   }
 
   const Component = onSelect ? 'button' : 'div';
+
   const interactiveProps = onSelect
     ? {
         onClick: onSelect,

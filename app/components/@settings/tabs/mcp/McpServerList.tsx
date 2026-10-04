@@ -1,6 +1,6 @@
-import type { MCPServer } from '~/lib/services/mcpService';
-import McpStatusBadge from '~/components/@settings/tabs/mcp/McpStatusBadge';
 import McpServerListItem from '~/components/@settings/tabs/mcp/McpServerListItem';
+import McpStatusBadge from '~/components/@settings/tabs/mcp/McpStatusBadge';
+import type { MCPServer } from '~/lib/services/mcpService';
 
 type McpServerListProps = {
   serverEntries: [string, MCPServer][];

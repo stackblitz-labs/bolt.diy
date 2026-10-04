@@ -1,9 +1,9 @@
-import { atom, computed } from 'nanostores';
 import Cookies from 'js-cookie';
-import { logStore } from '~/lib/stores/logs';
+import { atom, computed } from 'nanostores';
 import { gitHubApiService } from '~/lib/services/githubApiService';
-import { calculateStatsSummary } from '~/utils/githubStats';
+import { logStore } from '~/lib/stores/logs';
 import type { GitHubConnection } from '~/types/GitHub';
+import { calculateStatsSummary } from '~/utils/githubStats';
 
 // Auto-connect using environment variable
 const envToken = import.meta.env?.VITE_GITHUB_ACCESS_TOKEN;
@@ -200,6 +200,7 @@ export const githubConnectionStore = {
   // Update token type
   updateTokenType(tokenType: 'classic' | 'fine-grained'): void {
     const connection = githubConnectionAtom.get();
+
     const updatedConnection = {
       ...connection,
       tokenType,

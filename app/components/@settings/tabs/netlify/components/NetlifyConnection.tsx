@@ -1,9 +1,3 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import { classNames } from '~/utils/classNames';
-import { useStore } from '@nanostores/react';
-import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
-import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
 import {
   CloudIcon,
   BuildingLibraryIcon,
@@ -19,10 +13,16 @@ import {
   ChartBarIcon,
   CogIcon,
 } from '@heroicons/react/24/outline';
+import { useStore } from '@nanostores/react';
+import { formatDistanceToNow } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
+import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
-import { formatDistanceToNow } from 'date-fns';
-import { Badge } from '~/components/ui/Badge';
+import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
+import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
+import { classNames } from '~/utils/classNames';
 
 // Add the Netlify logo SVG component at the top of the file
 const NetlifyLogo = () => (

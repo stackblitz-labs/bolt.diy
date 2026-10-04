@@ -1,20 +1,19 @@
-import ignore from 'ignore';
-import { useGit } from '~/lib/hooks/useGit';
 import type { Message } from 'ai';
-import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from '~/utils/projectCommands';
-import { generateId } from '~/utils/fileUtils';
+import ignore from 'ignore';
+import { X, Github, GitBranch } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
-
-import { classNames } from '~/utils/classNames';
-import { Button } from '~/components/ui/Button';
-import type { IChatMetadata } from '~/lib/persistence/db';
-import { X, Github, GitBranch } from 'lucide-react';
 
 // Import the new repository selector components
 import { GitHubRepositorySelector } from '~/components/@settings/tabs/github/components/GitHubRepositorySelector';
 import { GitLabRepositorySelector } from '~/components/@settings/tabs/gitlab/components/GitLabRepositorySelector';
+import { Button } from '~/components/ui/Button';
+import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
+import { useGit } from '~/lib/hooks/useGit';
+import type { IChatMetadata } from '~/lib/persistence/db';
+import { classNames } from '~/utils/classNames';
+import { generateId } from '~/utils/fileUtils';
+import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from '~/utils/projectCommands';
 
 const IGNORE_PATTERNS = [
   'node_modules/**',
@@ -70,6 +69,7 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
         const textDecoder = new TextDecoder('utf-8');
 
         let totalSize = 0;
+
         const skippedFiles: string[] = [];
         const fileContents = [];
 

@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
+import { motion } from 'framer-motion';
+import React, { useEffect, useState, useRef } from 'react';
+import { toast } from 'react-toastify';
 import { logStore } from '~/lib/stores/logs';
-import { classNames } from '~/utils/classNames';
 import {
   vercelConnection,
   isConnecting,
@@ -12,6 +11,7 @@ import {
   fetchVercelStats,
   autoConnectVercel,
 } from '~/lib/stores/vercel';
+import { classNames } from '~/utils/classNames';
 
 export default function VercelConnection() {
   console.log('VercelConnection component mounted');

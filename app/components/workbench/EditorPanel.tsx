@@ -1,7 +1,12 @@
 import { useStore } from '@nanostores/react';
+import * as Tabs from '@radix-ui/react-tabs';
 import { memo, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import * as Tabs from '@radix-ui/react-tabs';
+import { FileBreadcrumb } from './FileBreadcrumb';
+import { FileTree } from './FileTree';
+import { LockManager } from './LockManager'; // <-- Import LockManager
+import { Search } from './Search'; // <-- Ensure Search is imported
+import { DEFAULT_TERMINAL_SIZE, TerminalTabs } from './terminal/TerminalTabs';
 import {
   CodeMirrorEditor,
   type EditorDocument,
@@ -13,18 +18,13 @@ import {
 import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import type { FileMap } from '~/lib/stores/files';
-import type { FileHistory } from '~/types/actions';
 import { themeStore } from '~/lib/stores/theme';
+import { workbenchStore } from '~/lib/stores/workbench';
+import type { FileHistory } from '~/types/actions';
+import { classNames } from '~/utils/classNames'; // <-- Import classNames if not already present
 import { WORK_DIR } from '~/utils/constants';
 import { renderLogger } from '~/utils/logger';
 import { isMobile } from '~/utils/mobile';
-import { FileBreadcrumb } from './FileBreadcrumb';
-import { FileTree } from './FileTree';
-import { DEFAULT_TERMINAL_SIZE, TerminalTabs } from './terminal/TerminalTabs';
-import { workbenchStore } from '~/lib/stores/workbench';
-import { Search } from './Search'; // <-- Ensure Search is imported
-import { classNames } from '~/utils/classNames'; // <-- Import classNames if not already present
-import { LockManager } from './LockManager'; // <-- Import LockManager
 
 interface EditorPanelProps {
   files?: FileMap;
