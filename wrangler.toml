@@ -2,6 +2,18 @@
 #name = "bolt"
 # wrangler.toml
 name = 'boltgithubcloudflare'
+
+main = "src/index.js" # bzw. build/index.js
+compatibility_date = "2024-09-01"
+
+# Umgebungsvariablen (nicht-sensible Daten)
+[vars]
+ENVIRONMENT = "production"
+
+# Hinweis: Sensible Keys wie der GEMINI_API_KEY sollten NICHT im Klartext 
+# in der wrangler.toml stehen, sondern über 'wrangler secret put GEMINI_API_KEY' 
+# oder das Cloudflare Dashboard gesetzt werden.
+
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2025-03-28"
 pages_build_output_dir = "./build/client"
@@ -11,4 +23,4 @@ send_metrics = false
 # ...
 [vars]
 NODE_OPTIONS = "--max-old-space-size=8192"
-# ...
+#...
