@@ -32,7 +32,7 @@ interface ChatBoxProps {
   onApiKeysChange: (providerName: string, apiKey: string) => void;
   uploadedFiles: File[];
   imageDataList: string[];
-  textareaRef: React.RefObject<HTMLTextAreaElement> | undefined;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null> | undefined;
   input: string;
   handlePaste: (e: React.ClipboardEvent) => void;
   TEXTAREA_MIN_HEIGHT: number;

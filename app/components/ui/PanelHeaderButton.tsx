@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { classNames } from '~/utils/classNames';
+import type { JSX } from 'react';
 
 interface PanelHeaderButtonProps {
   className?: string;

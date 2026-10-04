@@ -1121,7 +1121,7 @@ export default function NetlifyTab() {
                                   disabled={isActionLoading}
                                   className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                                 >
-                                  <div className="i-ph:lock-closed w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
+                                  <div className="i-ph:lock w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
                                   Lock
                                 </Button>
                               ) : (

@@ -18,8 +18,7 @@ import type {
 interface UserMessageProps {
   content: string | Array<{ type: string; text?: string; image?: string }>;
   parts:
-    | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
-    | undefined;
+    (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[] | undefined;
 }
 
 export function UserMessage({ content, parts }: UserMessageProps) {

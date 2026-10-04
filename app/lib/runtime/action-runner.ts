@@ -29,8 +29,7 @@ export type ActionState = BaseActionState | FailedActionState;
 type BaseActionUpdate = Partial<Pick<BaseActionState, 'status' | 'abort' | 'executed'>>;
 
 export type ActionStateUpdate =
-  | BaseActionUpdate
-  | (Omit<BaseActionUpdate, 'status'> & { status: 'failed'; error: string });
+  BaseActionUpdate | (Omit<BaseActionUpdate, 'status'> & { status: 'failed'; error: string });
 
 type ActionsMap = MapStore<Record<string, ActionState>>;
 

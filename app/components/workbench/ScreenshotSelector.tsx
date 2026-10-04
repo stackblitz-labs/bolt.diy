@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 interface ScreenshotSelectorProps {
   isSelectionMode: boolean;
   setIsSelectionMode: (mode: boolean) => void;
-  containerRef: React.RefObject<HTMLElement>;
+  containerRef: React.RefObject<HTMLElement | null>;
 }
 
 export const ScreenshotSelector = memo(

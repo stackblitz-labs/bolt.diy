@@ -46,7 +46,7 @@ function changeBySelectedLine(
       let atLine = -1;
 
       // handle the case when selection spans multiple lines
-      for (let pos = range.from; pos <= range.to; ) {
+      for (let pos = range.from; pos <= range.to;) {
         const line = state.doc.lineAt(pos);
 
         if (line.number > atLine && (range.empty || range.to > line.from)) {

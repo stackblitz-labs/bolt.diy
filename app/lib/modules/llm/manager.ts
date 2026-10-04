@@ -42,6 +42,10 @@ export class LLMManager {
         if (typeof exportedItem === 'function' && exportedItem.prototype instanceof BaseProvider) {
           const provider = new exportedItem();
 
+          if (provider.name !== 'OpenRouter') {
+            continue;
+          }
+
           try {
             this.registerProvider(provider);
           } catch (error: any) {

@@ -78,7 +78,9 @@ export function TabsWithSlider({
       {tabs.map((tab, index) => (
         <button
           key={tab.id}
-          ref={(el) => (tabsRef.current[index] = el)}
+          ref={(el) => {
+            tabsRef.current[index] = el;
+          }}
           onClick={() => onChange(tab.id)}
           className={classNames(
             'px-4 py-2 h-10 rounded-lg transition-all duration-200 flex items-center gap-2 min-w-[120px] justify-center relative overflow-hidden',

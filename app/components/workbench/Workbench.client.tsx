@@ -29,6 +29,7 @@ import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportCh
 import { useChatHistory } from '~/lib/persistence';
 import { streamingState } from '~/lib/stores/streaming';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import type { JSX } from 'react';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
