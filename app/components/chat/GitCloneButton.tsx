@@ -1,6 +1,6 @@
 import type { Message } from 'ai';
 import ignore from 'ignore';
-import { X, Github, GitBranch } from 'lucide-react';
+import { X, GitBranch } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 
@@ -183,7 +183,7 @@ ${escapeBoltTags(file.content)}
       >
         Clone a repo
         <div className="flex items-center gap-1 ml-2">
-          <Github className="w-4 h-4" />
+          <GitBranch className="w-4 h-4" />
           <GitBranch className="w-4 h-4" />
         </div>
       </Button>
@@ -212,7 +212,7 @@ ${escapeBoltTags(file.content)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/30 transition-colors">
-                      <Github className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      <GitBranch className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
                       <div className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
@@ -256,7 +256,7 @@ ${escapeBoltTags(file.content)}
             <div className="p-6 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center">
-                  <Github className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <GitBranch className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">

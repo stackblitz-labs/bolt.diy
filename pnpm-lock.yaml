@@ -213,8 +213,8 @@ importers:
         specifier: ^2.1.0
         version: 2.1.1
       date-fns:
-        specifier: ^3.6.0
-        version: 3.6.0
+        specifier: ^4.4.0
+        version: 4.4.0
       diff:
         specifier: ^5.2.2
         version: 5.2.2
@@ -261,8 +261,8 @@ importers:
         specifier: ^3.10.2
         version: 3.10.2
       lucide-react:
-        specifier: ^0.485.0
-        version: 0.485.0(react@19.3.0)
+        specifier: ^1.52.0
+        version: 1.52.0(@types/react@19.3.0)(react@19.3.0)
       mime:
         specifier: ^4.1.0
         version: 4.1.0
@@ -294,8 +294,8 @@ importers:
         specifier: ^19.3.0
         version: 19.3.0(react@19.3.0)
       react-hotkeys-hook:
-        specifier: ^4.6.2
-        version: 4.6.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: ^5.3.3
+        version: 5.3.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-icons:
         specifier: ^5.7.0
         version: 5.7.0(react@19.3.0)
@@ -303,17 +303,17 @@ importers:
         specifier: ^9.1.0
         version: 9.1.0(@types/react@19.3.0)(react@19.3.0)
       react-qrcode-logo:
-        specifier: ^3.0.0
-        version: 3.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: ^4.1.0
+        version: 4.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-resizable-panels:
         specifier: ^2.1.9
         version: 2.1.9(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-toastify:
-        specifier: ^10.0.6
-        version: 10.0.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: ^11.1.0
+        version: 11.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-window:
-        specifier: ^1.8.11
-        version: 1.8.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: ^2.3.3
+        version: 2.3.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       rehype-raw:
         specifier: ^7.0.0
         version: 7.0.0
@@ -327,8 +327,8 @@ importers:
         specifier: ^0.2.0
         version: 0.2.0(@remix-run/react@2.17.5(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.3))(@remix-run/server-runtime@2.17.5(typescript@5.8.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       remix-utils:
-        specifier: ^7.7.0
-        version: 7.7.0(@remix-run/cloudflare@2.17.5(@cloudflare/workers-types@5.20261004.1)(typescript@5.8.3))(@remix-run/node@2.17.5(typescript@5.8.3))(@remix-run/react@2.17.5(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.3))(@remix-run/router@1.23.3)(react@19.3.0)(zod@4.6.5)
+        specifier: ^10.0.0
+        version: 10.0.0(react@19.3.0)
       rollup-plugin-node-polyfills:
         specifier: ^0.2.1
         version: 0.2.1
@@ -336,8 +336,8 @@ importers:
         specifier: ^1.29.2
         version: 1.29.2
       tailwind-merge:
-        specifier: ^2.6.1
-        version: 2.6.1
+        specifier: ^3.7.0
+        version: 3.7.0
       unist-util-visit:
         specifier: ^5.0.0
         version: 5.0.0
@@ -4914,8 +4914,8 @@ packages:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
 
-  date-fns@3.6.0:
-    resolution: {integrity: sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww==}
+  date-fns@4.4.0:
+    resolution: {integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==}
 
   debounce-fn@6.0.0:
     resolution: {integrity: sha512-rBMW+F2TXryBwB54Q0d8drNEI+TfoS9JpNTAoVpukbWEhjXQq4rySFYLaqXMFXwdv61Zb2OHtj5bviSoimqxRQ==}
@@ -6574,10 +6574,14 @@ packages:
     resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
     engines: {node: '>=12'}
 
-  lucide-react@0.485.0:
-    resolution: {integrity: sha512-NvyQJ0LKyyCxL23nPKESlr/jmz8r7fJO1bkuptSNYSy0s8VVj4ojhX0YAgmE1e0ewfxUZjIlZpvH+otfTnla8Q==}
+  lucide-react@1.52.0:
+    resolution: {integrity: sha512-TUgPtl5ZI9WgxOcbu4ckaC5B3l1qxPQrCMgb6OfUB9owx/OvSJfcf93SMgUWAxRw5/1XDfh9uI5F5iNGXCcGDQ==}
     peerDependencies:
+      '@types/react': '*'
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -7680,8 +7684,8 @@ packages:
     resolution: {integrity: sha512-BbubeCEyTuQjVMakvJQ/Sxbc93F2pwmbsxONT/ZRrwU7Ua38d8unYTwXpTVLAKJ4BDuH9IGztCjQcd/N/39Dvg==}
     engines: {node: '>=16.0.0'}
 
-  qrcode-generator@1.5.2:
-    resolution: {integrity: sha512-pItrW0Z9HnDBnFmgiNrY1uxRdri32Uh9EjNYLPVC2zZ3ZRIIEqBoDgm4DkvDwNNDHTK7FNkmr8zAa77BYc9xNw==}
+  qrcode-generator@2.0.4:
+    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
 
   qs@6.13.0:
     resolution: {integrity: sha512-+38qI9SOr8tfZ4QmJNplMUxqjbe7LKvvZgWdExBOmd+egZTtjLB67Gu0HRX3u/XOq7UU2Nx6nsjvS16Z9uwfpg==}
@@ -7776,11 +7780,11 @@ packages:
     peerDependencies:
       react: ^19.3.0
 
-  react-hotkeys-hook@4.6.2:
-    resolution: {integrity: sha512-FmP+ZriY3EG59Ug/lxNfrObCnW9xQShgk7Nb83+CkpfkcCpfS95ydv+E9JuXA5cp8KtskU7LGlIARpkc92X22Q==}
+  react-hotkeys-hook@5.3.3:
+    resolution: {integrity: sha512-aswgyWUnE25hmhzHTfKDmKzsaSE5DJ4LKaU/o6rQSXkDd/1Bh9TfAFQbHkf6fLy11HvlYkp+cDDarGdhmCDhoQ==}
     peerDependencies:
-      react: '>=16.8.1'
-      react-dom: '>=16.8.1'
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   react-icons@5.7.0:
     resolution: {integrity: sha512-LBLy340Rzqy6+/yVhZKT3B/QpP1BZaesGqasf09HPOBzRarcDIFH0WwXlXQfE7q7ipxK4MSiC5DIBWURCny6fw==}
@@ -7799,8 +7803,8 @@ packages:
       '@types/react': '>=18'
       react: '>=18'
 
-  react-qrcode-logo@3.0.0:
-    resolution: {integrity: sha512-2+vZ3GNBdUpYxIKyt6SFZsDGXa0xniyUQ0wPI4O0hJTzRjttPIx1pPnH9IWQmp/4nDMoN47IBhi3Breu1KudYw==}
+  react-qrcode-logo@4.1.0:
+    resolution: {integrity: sha512-drcieitJFX3u66XpFn+4PxsCzrQo5nAMXsyOtiuTZCJPUQwGwysIlr14MjKbXDhBNz3iOqM8/yV5K1mllt/mTw==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -7870,18 +7874,17 @@ packages:
       '@types/react':
         optional: true
 
-  react-toastify@10.0.6:
-    resolution: {integrity: sha512-yYjp+omCDf9lhZcrZHKbSq7YMuK0zcYkDFTzfRFgTXkTFHZ1ToxwAonzA4JI5CxA91JpjFLmwEsZEgfYfOqI1A==}
+  react-toastify@11.1.0:
+    resolution: {integrity: sha512-e9h23x3phN0wbFeB6yovmWp7lobzV4CaCH0LO8nVP6H7Y+3GbcLpIzMm9dJhcp1RXbpyfvjgpfXqO80QAmn7sg==}
     peerDependencies:
-      react: '>=18'
-      react-dom: '>=18'
+      react: ^18 || ^19
+      react-dom: ^18 || ^19
 
-  react-window@1.8.11:
-    resolution: {integrity: sha512-+SRbUVT2scadgFSWx+R1P754xHPEqvcfSfVX10QYg6POOz+WNgkN48pS+BtZNIMGiL1HYrSEiCkwsMS15QogEQ==}
-    engines: {node: '>8.0.0'}
+  react-window@2.3.3:
+    resolution: {integrity: sha512-uu/dTwysXp+YL+i5GW/cC/3JrqyE7oE6DYXYVlTeMaDSDgCI+UGo+XCKwXfS8uoFPih8TJYTnikqjAnbDvn75Q==}
     peerDependencies:
-      react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
 
   react@19.3.0:
     resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
@@ -7995,29 +7998,32 @@ packages:
       react: '>= 16.8'
       react-dom: '>= 16.8'
 
-  remix-utils@7.7.0:
-    resolution: {integrity: sha512-J8NhP044nrNIam/xOT1L9a4RQ9FSaA2wyrUwmN8ZT+c/+CdAAf70yfaLnvMyKcV5U+8BcURQ/aVbth77sT6jGA==}
-    engines: {node: '>=18.0.0'}
+  remix-utils@10.0.0:
+    resolution: {integrity: sha512-v5voIsJQof6e/1m8te4qyH5YXATWxv+zEgbxd98CwtVxRLCXVc+P9rQ2uDRRYPLCvF9A2ZBOizK0ZTUfm4qJpw==}
+    engines: {node: '>=22.22.0'}
     peerDependencies:
-      '@remix-run/cloudflare': ^2.0.0
-      '@remix-run/node': ^2.0.0
-      '@remix-run/react': ^2.0.0
-      '@remix-run/router': ^1.7.2
-      crypto-js: ^4.1.1
+      '@edgefirst-dev/batcher': ^1.0.0
+      '@edgefirst-dev/jwt': ^1.2.0
+      '@edgefirst-dev/server-timing': ^0.0.1
+      '@oslojs/crypto': ^1.0.1
+      '@oslojs/encoding': ^1.1.0
+      '@standard-schema/spec': ^1.0.0
       intl-parse-accept-language: ^1.0.0
       is-ip: ^5.0.1
-      react: ^18.0.0
-      zod: ^3.22.4
+      react: '>=19.2.7'
+      react-router: ^8.0.0
     peerDependenciesMeta:
-      '@remix-run/cloudflare':
+      '@edgefirst-dev/batcher':
         optional: true
-      '@remix-run/node':
+      '@edgefirst-dev/jwt':
         optional: true
-      '@remix-run/react':
+      '@edgefirst-dev/server-timing':
         optional: true
-      '@remix-run/router':
+      '@oslojs/crypto':
         optional: true
-      crypto-js:
+      '@oslojs/encoding':
+        optional: true
+      '@standard-schema/spec':
         optional: true
       intl-parse-accept-language:
         optional: true
@@ -8025,7 +8031,7 @@ packages:
         optional: true
       react:
         optional: true
-      zod:
+      react-router:
         optional: true
 
   require-directory@2.1.1:
@@ -8668,8 +8674,8 @@ packages:
     resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
     engines: {node: '>=20'}
 
-  tailwind-merge@2.6.1:
-    resolution: {integrity: sha512-Oo6tHdpZsGpkKG88HJ8RR1rg/RdnEkQEfMoEk2x1XRI3F1AxeU+ijRXpiVUF4UbLfcxxRGw6TbUINKYdWVsQTQ==}
+  tailwind-merge@3.7.0:
+    resolution: {integrity: sha512-XPPUyAc+cvspz3lHTcR/QgPfW2A0lv/xQNIjX3HGhLR+Nq2lHaLq5MtTesHn8GUr3W3DguT2KT5x3NVgRtYwmA==}
 
   tar-fs@2.1.3:
     resolution: {integrity: sha512-090nwYJDmlhwFwEW3QQl+vaNnxsO2yVsd45eTKRBzSzu+hlb1w2K9inVq5b0ngXuLVqQ4ApvsUHHnu/zQNkWAg==}
@@ -8827,10 +8833,6 @@ packages:
   type-fest@0.8.1:
     resolution: {integrity: sha512-4dbzIzqvjtgiM5rw1k5rEHtBANKmdudhGyBEajN01fEyhaAIhsoKNy6y7+IN93IfpFtwY9iqi7kD+xwKhQsNJA==}
     engines: {node: '>=8'}
-
-  type-fest@4.41.0:
-    resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
-    engines: {node: '>=16'}
 
   type-fest@5.10.0:
     resolution: {integrity: sha512-NoSdpq/WEiAg5sjmBkmV/hfxv6HJH4NqPNrqjtSO5CwRmpsDfaf4begxW34KdJykH/l1yHtwBWQkCRdoXO8mPA==}
@@ -14516,7 +14518,7 @@ snapshots:
       es-errors: 1.3.0
       is-data-view: 1.0.2
 
-  date-fns@3.6.0: {}
+  date-fns@4.4.0: {}
 
   debounce-fn@6.0.0:
     dependencies:
@@ -16545,9 +16547,11 @@ snapshots:
 
   lru-cache@7.18.3: {}
 
-  lucide-react@0.485.0(react@19.3.0):
+  lucide-react@1.52.0(@types/react@19.3.0)(react@19.3.0):
     dependencies:
       react: 19.3.0
+    optionalDependencies:
+      '@types/react': 19.3.0
 
   lz-string@1.5.0: {}
 
@@ -18125,7 +18129,7 @@ snapshots:
 
   pvutils@1.2.0: {}
 
-  qrcode-generator@1.5.2: {}
+  qrcode-generator@2.0.4: {}
 
   qs@6.13.0:
     dependencies:
@@ -18228,7 +18232,7 @@ snapshots:
       react: 19.3.0
       scheduler: 0.28.0
 
-  react-hotkeys-hook@4.6.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  react-hotkeys-hook@5.3.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
@@ -18259,10 +18263,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  react-qrcode-logo@3.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  react-qrcode-logo@4.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
-      lodash.isequal: 4.5.0
-      qrcode-generator: 1.5.2
+      qrcode-generator: 2.0.4
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
@@ -18324,16 +18327,14 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  react-toastify@10.0.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  react-toastify@11.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       clsx: 2.1.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
-  react-window@1.8.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  react-window@2.3.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
-      '@babel/runtime': 7.27.6
-      memoize-one: 5.2.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
@@ -18525,16 +18526,9 @@ snapshots:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
-  remix-utils@7.7.0(@remix-run/cloudflare@2.17.5(@cloudflare/workers-types@5.20261004.1)(typescript@5.8.3))(@remix-run/node@2.17.5(typescript@5.8.3))(@remix-run/react@2.17.5(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.3))(@remix-run/router@1.23.3)(react@19.3.0)(zod@4.6.5):
-    dependencies:
-      type-fest: 4.41.0
+  remix-utils@10.0.0(react@19.3.0):
     optionalDependencies:
-      '@remix-run/cloudflare': 2.17.5(@cloudflare/workers-types@5.20261004.1)(typescript@5.8.3)
-      '@remix-run/node': 2.17.5(typescript@5.8.3)
-      '@remix-run/react': 2.17.5(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.8.3)
-      '@remix-run/router': 1.23.3
       react: 19.3.0
-      zod: 4.6.5
 
   require-directory@2.1.1: {}
 
@@ -19303,7 +19297,7 @@ snapshots:
 
   tagged-tag@1.0.0: {}
 
-  tailwind-merge@2.6.1: {}
+  tailwind-merge@3.7.0: {}
 
   tar-fs@2.1.3:
     dependencies:
@@ -19458,8 +19452,6 @@ snapshots:
   type-fest@0.6.0: {}
 
   type-fest@0.8.1: {}
-
-  type-fest@4.41.0: {}
 
   type-fest@5.10.0:
     dependencies:

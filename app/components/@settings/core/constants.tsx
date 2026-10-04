@@ -1,4 +1,4 @@
-import { User, Settings, Bell, Star, Database, Cloud, Laptop, Github, Wrench, List } from 'lucide-react';
+import { User, Settings, Bell, Star, Database, Cloud, Laptop, GitBranch, Wrench, List } from 'lucide-react';
 import type { TabType } from './types';
 
 // GitLab icon component
@@ -46,7 +46,7 @@ export const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string
   data: Database,
   'cloud-providers': Cloud,
   'local-providers': Laptop,
-  github: Github,
+  github: GitBranch,
   gitlab: () => <GitLabIcon />,
   netlify: () => <NetlifyIcon />,
   vercel: () => <VercelIcon />,
