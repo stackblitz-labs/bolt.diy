@@ -9,6 +9,9 @@ compatibility_date = "2024-09-01"
 # Umgebungsvariablen (nicht-sensible Daten)
 [vars]
 ENVIRONMENT = "production"
+NODE_OPTIONS = "--max-old-space-size=8192"
+#...
+
 
 # Hinweis: Sensible Keys wie der GEMINI_API_KEY sollten NICHT im Klartext 
 # in der wrangler.toml stehen, sondern über 'wrangler secret put GEMINI_API_KEY' 
@@ -21,5 +24,4 @@ send_metrics = false
 
 
 # ...
-NODE_OPTIONS = "--max-old-space-size=8192"
-#...
+
