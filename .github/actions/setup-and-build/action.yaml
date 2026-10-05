@@ -8,7 +8,7 @@ inputs:
   node-version:
     required: false
     type: string
-    default: '20.18.0'
+    default: '22'
 
 runs:
   using: composite
