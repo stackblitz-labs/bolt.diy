@@ -1,5 +1,5 @@
 import { useLoaderData, useNavigate, useSearchParams } from '@remix-run/react';
-import { generateId, type JSONValue, type Message } from 'ai';
+import { generateId, type Message } from 'ai';
 import { atom } from 'nanostores';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
@@ -15,6 +15,7 @@ import {
   setSnapshot,
   type IChatMetadata,
 } from './db';
+import { getMessageAnnotations, hasMessageFlag } from './messageMigration';
 import type { Snapshot } from './types';
 import type { FileMap } from '~/lib/stores/files';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
@@ -283,7 +284,7 @@ ${value.content}
       }
 
       const { firstArtifact } = workbenchStore;
-      messages = messages.filter((m) => !m.annotations?.includes('no-store'));
+      messages = messages.filter((m) => !hasMessageFlag(m, 'no-store'));
 
       let _urlId = urlId;
 
@@ -299,15 +300,12 @@ ${value.content}
       const lastMessage = messages[messages.length - 1];
 
       if (lastMessage.role === 'assistant') {
-        const annotations = lastMessage.annotations as JSONValue[];
+        const chatSummaryAnnotation = getMessageAnnotations(lastMessage).find(
+          (annotation) => annotation.type === 'chatSummary',
+        );
 
-        const filteredAnnotations = (annotations?.filter(
-          (annotation: JSONValue) =>
-            annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
-        ) || []) as { type: string; value: any } & { [key: string]: any }[];
-
-        if (filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')) {
-          chatSummary = filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')?.summary;
+        if (chatSummaryAnnotation) {
+          chatSummary = chatSummaryAnnotation.summary as string;
         }
       }
 
