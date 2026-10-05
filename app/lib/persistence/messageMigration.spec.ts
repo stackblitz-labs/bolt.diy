@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getMessageAnnotations,
   getMessageText,
+  getReasoningText,
   isLegacyV4Message,
   migrateLegacyMessage,
   migrateLegacyMessages,
@@ -294,5 +296,94 @@ describe('getMessageText', () => {
 
   it('returns an empty string when there is no text', () => {
     expect(getMessageText({ parts: [{ type: 'step-start' }] })).toBe('');
+  });
+});
+
+describe('getReasoningText', () => {
+  it('concatenates native reasoning parts', () => {
+    expect(
+      getReasoningText({
+        parts: [
+          { type: 'reasoning', text: 'first ' },
+          { type: 'text', text: 'answer' },
+          { type: 'reasoning', text: 'second' },
+        ],
+      }),
+    ).toBe('first second');
+  });
+
+  it('reads v4 reasoning parts that still use the reasoning field', () => {
+    expect(getReasoningText({ parts: [{ type: 'reasoning', reasoning: 'legacy' }] })).toBe('legacy');
+  });
+
+  it('falls back to the deprecated top-level reasoning field', () => {
+    expect(getReasoningText({ parts: [{ type: 'text', text: 'a' }], reasoning: 'top level' })).toBe('top level');
+  });
+
+  it('is empty for a message with no reasoning', () => {
+    expect(getReasoningText({ parts: [{ type: 'text', text: 'a' }] })).toBe('');
+  });
+});
+
+describe('getMessageAnnotations: usage', () => {
+  /*
+   * Guards the bug fixed in the v7 migration: api.chat writes a flat data-usage
+   * payload, but AssistantMessage read usageAnnotation.value, which is only
+   * populated for non-object payloads, so the token counter vanished.
+   */
+  it('flattens object payloads onto the annotation so flat token fields survive', () => {
+    const annotations = getMessageAnnotations({
+      parts: [
+        {
+          type: 'data-usage',
+          data: { completionTokens: 2, promptTokens: 1, totalTokens: 3 },
+        },
+      ],
+    });
+
+    const usage = annotations.find((annotation) => annotation.type === 'usage');
+
+    expect(usage).toMatchObject({ completionTokens: 2, promptTokens: 1, totalTokens: 3 });
+  });
+
+  it('wraps a non-object payload under value', () => {
+    const annotations = getMessageAnnotations({ parts: [{ type: 'data-usage', data: 42 }] });
+
+    expect(annotations.find((annotation) => annotation.type === 'usage')?.value).toBe(42);
+  });
+});
+
+describe('v7 messages are not misread as legacy', () => {
+  /*
+   * Regression guard. `reasoning` is the v7 native discriminant, so treating any
+   * reasoning part as legacy made every v7 message containing reasoning get
+   * rebuilt from a fixed key list, silently dropping metadata.flags.
+   */
+  it('does not flag a v7 message whose reasoning part uses the text field', () => {
+    const message = {
+      id: 'm1',
+      role: 'assistant' as const,
+      parts: [
+        { type: 'text', text: 'answer' },
+        { type: 'reasoning', text: 'thinking' },
+      ],
+      metadata: { flags: ['hidden'] },
+    };
+
+    expect(isLegacyV4Message(message)).toBe(false);
+    expect(migrateLegacyMessages([message])[0].metadata).toEqual({ flags: ['hidden'] });
+  });
+
+  it('still flags a v4 reasoning part that only has the reasoning field', () => {
+    expect(isLegacyV4Message(v4({ parts: [{ type: 'reasoning', reasoning: 'old' }] }))).toBe(true);
+  });
+
+  it('carries metadata through the legacy path too', () => {
+    const migrated = migrateLegacyMessage({
+      ...v4({ parts: [{ type: 'text', text: 'a' }] }),
+      metadata: { flags: ['no-store'] },
+    });
+
+    expect(migrated.metadata).toEqual({ flags: ['no-store'] });
   });
 });

@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { generateId } from './fileUtils';
 import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from './projectCommands';
 import { createMessage } from '~/lib/persistence/messageMigration';
@@ -7,7 +7,7 @@ export const createChatFromFolder = async (
   files: File[],
   binaryFiles: string[],
   folderName: string,
-): Promise<Message[]> => {
+): Promise<UIMessage[]> => {
   const fileArtifacts = await Promise.all(
     files.map(async (file) => {
       return new Promise<{ content: string; path: string }>((resolve, reject) => {
@@ -57,7 +57,7 @@ ${escapeBoltTags(file.content)}
     text: `Import the "${folderName}" folder`,
   });
 
-  const messages: Message[] = [userMessage as Message, filesMessage as Message];
+  const messages: UIMessage[] = [userMessage as UIMessage, filesMessage as UIMessage];
 
   if (commandsMessage) {
     messages.push(
@@ -65,7 +65,7 @@ ${escapeBoltTags(file.content)}
         role: 'user',
         id: generateId(),
         text: 'Setup the codebase and Start the application',
-      }) as Message,
+      }) as UIMessage,
     );
     messages.push(commandsMessage);
   }

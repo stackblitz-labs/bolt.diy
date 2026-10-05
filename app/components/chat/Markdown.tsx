@@ -3,7 +3,7 @@
  * silently resolves to the DOM Message interface (body, attempts, retry, ack)
  * instead of failing to compile.
  */
-import type { Message as AiMessage } from 'ai';
+import type { UIMessage as AiMessage } from 'ai';
 import { memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import type { BundledLanguage } from 'shiki';

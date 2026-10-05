@@ -1,5 +1,5 @@
 import { useSearchParams } from '@remix-run/react';
-import { generateId, type Message } from 'ai';
+import { generateId, type UIMessage } from 'ai';
 import ignore from 'ignore';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -87,9 +87,9 @@ ${escapeBoltTags(file.content)}
   )
   .join('\n')}
 </boltArtifact>`,
-          }) as Message;
+          }) as UIMessage;
 
-          const messages: Message[] = [filesMessage];
+          const messages: UIMessage[] = [filesMessage];
 
           if (commandsMessage) {
             messages.push(
@@ -97,7 +97,7 @@ ${escapeBoltTags(file.content)}
                 role: 'user',
                 id: generateId(),
                 text: 'Setup the codebase and Start the application',
-              }) as Message,
+              }) as UIMessage,
             );
             messages.push(commandsMessage);
           }

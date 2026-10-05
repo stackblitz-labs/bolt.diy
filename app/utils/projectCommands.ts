@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { generateId } from './fileUtils';
 import { createMessage } from '~/lib/persistence/messageMigration';
 
@@ -109,7 +109,7 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
   return { type: '', setupCommand: '', followupMessage: '' };
 }
 
-export function createCommandsMessage(commands: ProjectCommands): Message | null {
+export function createCommandsMessage(commands: ProjectCommands): UIMessage | null {
   if (!commands.setupCommand && !commands.startCommand) {
     return null;
   }
@@ -135,7 +135,7 @@ ${commands.followupMessage ? `\n\n${commands.followupMessage}` : ''}
 <boltArtifact id="project-setup" title="Project Setup">
 ${commandString}
 </boltArtifact>`,
-  }) as Message;
+  }) as UIMessage;
 }
 
 export function escapeBoltArtifactTags(input: string) {

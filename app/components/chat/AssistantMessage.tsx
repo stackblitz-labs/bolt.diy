@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { memo, Fragment } from 'react';
 import { Markdown } from './Markdown';
 import { ToolInvocations } from './ToolInvocations';
@@ -7,6 +7,7 @@ import WithTooltip from '~/components/ui/Tooltip';
 import {
   getMessageAnnotations,
   getMessageText,
+  getReasoningText,
   isToolPart,
   type AnyMessage,
   type AnyPart,
@@ -22,13 +23,13 @@ interface AssistantMessageProps {
   messageId?: string;
   onRewind?: (messageId: string) => void;
   onFork?: (messageId: string) => void;
-  append?: (message: Message) => void;
+  append?: (message: UIMessage) => void;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   model?: string;
   provider?: ProviderInfo;
   parts: AnyPart[] | undefined;
-  addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  addToolResult: (options: { tool: string; toolCallId: string; output: unknown }) => void;
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -77,6 +78,7 @@ export const AssistantMessage = memo(
      * the order would render raw <boltArtifact> tags into the bubble.
      */
     const messageText = typeof content === 'string' ? content : getMessageText({ parts });
+    const reasoningText = getReasoningText({ parts } as AnyMessage);
 
     const filteredAnnotations = getMessageAnnotations({ annotations, parts } as AnyMessage);
 
@@ -88,14 +90,24 @@ export const AssistantMessage = memo(
 
     const usageAnnotation = filteredAnnotations.find((annotation) => annotation.type === 'usage');
 
-    const usage:
-      | {
-          completionTokens: number;
-          promptTokens: number;
-          totalTokens: number;
-        }
-      | undefined = usageAnnotation?.value as
-      { completionTokens: number; promptTokens: number; totalTokens: number } | undefined;
+    /*
+     * getMessageAnnotations flattens an object payload onto the annotation, so a
+     * data-usage part arrives as { type: 'usage', totalTokens, ... }. The
+     * `value` branch is kept for hand-written or legacy payloads.
+     */
+    const usageData = (usageAnnotation?.value ?? usageAnnotation) as Record<string, unknown> | undefined;
+
+    const usage =
+      usageData &&
+      typeof usageData.totalTokens === 'number' &&
+      typeof usageData.promptTokens === 'number' &&
+      typeof usageData.completionTokens === 'number'
+        ? {
+            completionTokens: usageData.completionTokens,
+            promptTokens: usageData.promptTokens,
+            totalTokens: usageData.totalTokens,
+          }
+        : undefined;
 
     /*
      * Note the tool filter: `part.type === 'tool-invocation'` also type checks
@@ -183,6 +195,21 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
+        {reasoningText && (
+          <details className="mb-2">
+            {/*
+             * v7 delivers reasoning as native `reasoning` parts instead of the
+             * inline <div class="__boltThought__"> the v4 stream rewriter
+             * produced, so the thought box is rendered from parts here.
+             */}
+            <summary className="i-ph:brain text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors cursor-pointer">
+              Thought for {Math.max(Math.ceil(reasoningText.length / 4), 1)} tokens
+            </summary>
+            <div className="i-ph:brain pl-2 flex flex-col gap-4 mt-2">
+              <div className="text-bolt-elements-textSecondary text-sm">{reasoningText}</div>
+            </div>
+          </details>
+        )}
         <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
           {messageText}
         </Markdown>

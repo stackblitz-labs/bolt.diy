@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import ignore from 'ignore';
 import { X, GitBranch } from 'lucide-react';
 import { useState } from 'react';
@@ -44,7 +44,7 @@ const MAX_TOTAL_SIZE = 500 * 1024; // 500KB total limit
 
 interface GitCloneButtonProps {
   className?: string;
-  importChat?: (description: string, messages: Message[], metadata?: IChatMetadata) => Promise<void>;
+  importChat?: (description: string, messages: UIMessage[], metadata?: IChatMetadata) => Promise<void>;
 }
 
 export default function GitCloneButton({ importChat, className }: GitCloneButtonProps) {
@@ -142,9 +142,9 @@ ${escapeBoltTags(file.content)}
   )
   .join('\n')}
 </boltArtifact>`,
-        }) as Message;
+        }) as UIMessage;
 
-        const messages: Message[] = [filesMessage];
+        const messages: UIMessage[] = [filesMessage];
 
         if (commandsMessage) {
           messages.push(commandsMessage);

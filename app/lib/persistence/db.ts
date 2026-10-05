@@ -1,4 +1,5 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
+import { migrateLegacyMessages } from './messageMigration';
 import type { Snapshot } from './types'; // Import Snapshot type
 import type { ChatHistoryItem } from './useChatHistory';
 import { createScopedLogger } from '~/utils/logger';
@@ -57,15 +58,36 @@ export async function getAll(db: IDBDatabase): Promise<ChatHistoryItem[]> {
     const store = transaction.objectStore('chats');
     const request = store.getAll();
 
-    request.onsuccess = () => resolve(request.result as ChatHistoryItem[]);
+    /*
+     * Chats persisted by v4 have no `parts`. convertToModelMessages reads
+     * message.parts directly, so anything handed to useChat must be migrated
+     * first. migrateLegacyMessages is idempotent, so re-reading a chat that was
+     * already migrated on disk is a no-op.
+     */
+    request.onsuccess = () =>
+      resolve((request.result as ChatHistoryItem[]).map(migrateChatMessages) as ChatHistoryItem[]);
     request.onerror = () => reject(request.error);
   });
+}
+
+/*
+ * Returns a migrated copy of a stored chat. The stored record is only ever
+ * rewritten by an explicit write path, and the read-modify-write helpers plus
+ * the export path use the *Raw readers so a pre-v7 chat keeps its original
+ * shape on disk.
+ */
+export function migrateChatMessages(chat: ChatHistoryItem): ChatHistoryItem {
+  if (!chat || !Array.isArray(chat.messages)) {
+    return chat;
+  }
+
+  return { ...chat, messages: migrateLegacyMessages(chat.messages) } as ChatHistoryItem;
 }
 
 export async function setMessages(
   db: IDBDatabase,
   id: string,
-  messages: Message[],
+  messages: UIMessage[],
   urlId?: string,
   description?: string,
   timestamp?: string,
@@ -99,6 +121,16 @@ export async function getMessages(db: IDBDatabase, id: string): Promise<ChatHist
 }
 
 export async function getMessagesByUrlId(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
+  return migrateChatMessages(await getMessagesByUrlIdRaw(db, id));
+}
+
+/*
+ * Un-migrated read. Required by the single-chat export path, which must stay
+ * lossless, and by the read-modify-write helpers below, which would otherwise
+ * rewrite a pre-v7 chat's messages into the v5 shape and drop `content`,
+ * `annotations` and any unknown fields from the original record.
+ */
+export async function getMessagesByUrlIdRaw(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');
     const store = transaction.objectStore('chats');
@@ -111,6 +143,10 @@ export async function getMessagesByUrlId(db: IDBDatabase, id: string): Promise<C
 }
 
 export async function getMessagesById(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
+  return migrateChatMessages(await getMessagesByIdRaw(db, id));
+}
+
+export async function getMessagesByIdRaw(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');
     const store = transaction.objectStore('chats');
@@ -223,7 +259,7 @@ async function getUrlIds(db: IDBDatabase): Promise<string[]> {
 }
 
 export async function forkChat(db: IDBDatabase, chatId: string, messageId: string): Promise<string> {
-  const chat = await getMessages(db, chatId);
+  const chat = await getMessagesByIdRaw(db, chatId);
 
   if (!chat) {
     throw new Error('Chat not found');
@@ -243,7 +279,7 @@ export async function forkChat(db: IDBDatabase, chatId: string, messageId: strin
 }
 
 export async function duplicateChat(db: IDBDatabase, id: string): Promise<string> {
-  const chat = await getMessages(db, id);
+  const chat = await getMessagesByIdRaw(db, id);
 
   if (!chat) {
     throw new Error('Chat not found');
@@ -255,7 +291,7 @@ export async function duplicateChat(db: IDBDatabase, id: string): Promise<string
 export async function createChatFromMessages(
   db: IDBDatabase,
   description: string,
-  messages: Message[],
+  messages: UIMessage[],
   metadata?: IChatMetadata,
 ): Promise<string> {
   const newId = await getNextId(db);
@@ -275,7 +311,7 @@ export async function createChatFromMessages(
 }
 
 export async function updateChatDescription(db: IDBDatabase, id: string, description: string): Promise<void> {
-  const chat = await getMessages(db, id);
+  const chat = await getMessagesByIdRaw(db, id);
 
   if (!chat) {
     throw new Error('Chat not found');
@@ -293,7 +329,7 @@ export async function updateChatMetadata(
   id: string,
   metadata: IChatMetadata | undefined,
 ): Promise<void> {
-  const chat = await getMessages(db, id);
+  const chat = await getMessagesByIdRaw(db, id);
 
   if (!chat) {
     throw new Error('Chat not found');

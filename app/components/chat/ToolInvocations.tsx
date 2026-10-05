@@ -81,7 +81,7 @@ function JsonCodeBlock({ className, code, theme }: JsonCodeBlockProps) {
 interface ToolInvocationsProps {
   toolInvocations: AnyPart[];
   toolCallAnnotations: ToolCallAnnotation[];
-  addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  addToolResult: (options: { tool: string; toolCallId: string; output: unknown }) => void;
 }
 
 export const ToolInvocations = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolInvocationsProps) => {
@@ -206,8 +206,8 @@ const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: T
             return null;
           }
 
-          const toolName = getToolName(tool);
           const toolCallId = getToolCallId(tool) as string;
+          const toolName = getToolName(tool) ?? '';
 
           const annotation = toolCallAnnotations.find((annotation) => {
             return annotation.toolCallId === toolCallId;
@@ -270,7 +270,7 @@ const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: T
 interface ToolCallsListProps {
   toolInvocations: AnyPart[];
   toolCallAnnotations: ToolCallAnnotation[];
-  addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  addToolResult: (options: { tool: string; toolCallId: string; output: unknown }) => void;
   theme: Theme;
 }
 
@@ -314,8 +314,9 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
       if ((isMac ? e.metaKey : e.ctrlKey) && e.key === 'Backspace') {
         e.preventDefault();
         addToolResult({
+          tool: '',
           toolCallId: openId,
-          result: TOOL_EXECUTION_APPROVAL.REJECT,
+          output: TOOL_EXECUTION_APPROVAL.REJECT,
         });
       }
 
@@ -323,8 +324,9 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
       if ((isMac ? e.metaKey : e.ctrlKey) && (e.key === 'Enter' || e.key === 'Return')) {
         e.preventDefault();
         addToolResult({
+          tool: '',
           toolCallId: openId,
-          result: TOOL_EXECUTION_APPROVAL.APPROVE,
+          output: TOOL_EXECUTION_APPROVAL.APPROVE,
         });
       }
     };
@@ -341,8 +343,8 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
             return null;
           }
 
-          const toolName = getToolName(tool);
           const toolCallId = getToolCallId(tool) as string;
+          const toolName = getToolName(tool) ?? '';
           const annotation = toolCallAnnotations.find((annotation) => annotation.toolCallId === toolCallId);
 
           return (
@@ -374,8 +376,9 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                       )}
                       onClick={() =>
                         addToolResult({
+                          tool: toolName,
                           toolCallId,
-                          result: TOOL_EXECUTION_APPROVAL.REJECT,
+                          output: TOOL_EXECUTION_APPROVAL.REJECT,
                         })
                       }
                     >
@@ -390,8 +393,9 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                       )}
                       onClick={() =>
                         addToolResult({
+                          tool: toolName,
                           toolCallId,
-                          result: TOOL_EXECUTION_APPROVAL.APPROVE,
+                          output: TOOL_EXECUTION_APPROVAL.APPROVE,
                         })
                       }
                     >

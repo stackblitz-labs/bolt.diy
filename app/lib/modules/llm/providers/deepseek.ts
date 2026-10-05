@@ -1,5 +1,5 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
@@ -107,7 +107,7 @@ export default class DeepseekProvider extends BaseProvider {
     serverEnv: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }): LanguageModelV1 {
+  }): LanguageModel {
     const { model, serverEnv, apiKeys, providerSettings } = options;
 
     const { apiKey } = this.getProviderBaseUrlAndKey({
@@ -126,8 +126,12 @@ export default class DeepseekProvider extends BaseProvider {
       apiKey,
     });
 
-    return deepseek(model, {
-      // simulateStreaming: true,
-    });
+    /*
+     * v4's callable took a second settings argument and supported
+     * `simulateStreaming`. Both are gone in v3: the callable is 1-arg and
+     * `simulateStreaming` no longer exists in the package at all, so the
+     * commented-out flag was permanently dead rather than merely disabled.
+     */
+    return deepseek.chat(model);
   }
 }

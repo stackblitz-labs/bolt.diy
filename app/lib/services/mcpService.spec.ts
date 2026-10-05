@@ -1,4 +1,4 @@
-import type { DataStreamWriter } from 'ai';
+import type { UIMessageStreamWriter } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MCPService,
@@ -8,6 +8,7 @@ import {
   stdioServerConfigSchema,
   streamableHTTPServerConfigSchema,
 } from './mcpService';
+import { getToolOutput } from '~/lib/persistence/messageMigration';
 import { TOOL_EXECUTION_APPROVAL } from '~/utils/constants';
 
 /*
@@ -17,13 +18,13 @@ import { TOOL_EXECUTION_APPROVAL } from '~/utils/constants';
  * before the AI SDK upgrade changes the surrounding stream API.
  */
 
-type TestWriter = DataStreamWriter & {
+type TestWriter = UIMessageStreamWriter & {
   write: ReturnType<typeof vi.fn>;
-  writeMessageAnnotation: ReturnType<typeof vi.fn>;
+  merge: ReturnType<typeof vi.fn>;
 };
 
 function createWriter(): TestWriter {
-  return { write: vi.fn(), writeMessageAnnotation: vi.fn() } as unknown as TestWriter;
+  return { write: vi.fn(), merge: vi.fn() } as unknown as TestWriter;
 }
 
 function serviceWithTools(tools: Record<string, unknown>) {
@@ -54,9 +55,14 @@ function toolInvocationPart(toolName: string, state: string, result: unknown, ar
 }
 
 function resultOf(messages: unknown) {
-  const parts = (messages as Array<{ parts?: unknown }>)[0].parts as Array<{ toolInvocation?: { result: unknown } }>;
+  /*
+   * v5 flattens the tool part: the result now lives in `output` rather than
+   * `toolInvocation.result`. Read through the shared accessors so this stays
+   * correct if the shape shifts again.
+   */
+  const parts = (messages as Array<{ parts?: unknown }>)[0].parts as unknown[];
 
-  return parts[0]?.toolInvocation?.result;
+  return getToolOutput(parts[0]);
 }
 
 describe('MCPService.processToolInvocations', () => {
@@ -116,11 +122,16 @@ describe('MCPService.processToolInvocations', () => {
     expect(resultOf(result)).toBe('tool output');
     expect(writer.write).toHaveBeenCalledTimes(1);
 
-    const written = String(writer.write.mock.calls[0][0]);
-
-    expect(written.startsWith('a:')).toBe(true);
-    expect(written).toContain('"toolCallId":"call-search"');
-    expect(written).toContain('tool output');
+    /*
+     * v4 wrote formatDataStreamPart('tool_result', ...) which serialised to an
+     * `a:{...}` line-protocol frame. v5+ writes a typed UIMessageChunk object
+     * instead, so the assertion is on the chunk shape rather than a prefix.
+     */
+    expect(writer.write).toHaveBeenCalledWith({
+      type: 'tool-output-available',
+      toolCallId: 'call-search',
+      output: 'tool output',
+    });
   });
 
   it('reports a tool error instead of throwing when execution fails', async () => {
@@ -194,14 +205,16 @@ describe('MCPService.processToolCall', () => {
     const service = serviceWithTools({ search: { description: 'searches the web', execute: vi.fn() } });
     const writer = createWriter();
 
-    service.processToolCall({ type: 'tool-call', toolCallId: 'call-1', toolName: 'search', args: {} }, writer);
+    service.processToolCall({ toolCallId: 'call-1', toolName: 'search', input: {} }, writer);
 
-    expect(writer.writeMessageAnnotation).toHaveBeenCalledWith({
-      type: 'toolCall',
-      toolCallId: 'call-1',
-      serverName: 'test-server',
-      toolName: 'search',
-      toolDescription: 'searches the web',
+    expect(writer.write).toHaveBeenCalledWith({
+      type: 'data-toolCall',
+      data: {
+        toolCallId: 'call-1',
+        serverName: 'test-server',
+        toolName: 'search',
+        toolDescription: 'searches the web',
+      },
     });
   });
 
@@ -209,10 +222,10 @@ describe('MCPService.processToolCall', () => {
     const service = serviceWithTools({ search: { execute: vi.fn() } });
     const writer = createWriter();
 
-    service.processToolCall({ type: 'tool-call', toolCallId: 'call-1', toolName: 'search', args: {} }, writer);
+    service.processToolCall({ toolCallId: 'call-1', toolName: 'search', input: {} }, writer);
 
-    expect(writer.writeMessageAnnotation).toHaveBeenCalledWith(
-      expect.objectContaining({ toolDescription: 'No description available' }),
+    expect(writer.write).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ toolDescription: 'No description available' }) }),
     );
   });
 
@@ -220,9 +233,9 @@ describe('MCPService.processToolCall', () => {
     const service = serviceWithTools({});
     const writer = createWriter();
 
-    service.processToolCall({ type: 'tool-call', toolCallId: 'call-1', toolName: 'ghost', args: {} }, writer);
+    service.processToolCall({ toolCallId: 'call-1', toolName: 'ghost', input: {} }, writer);
 
-    expect(writer.writeMessageAnnotation).not.toHaveBeenCalled();
+    expect(writer.write).not.toHaveBeenCalled();
   });
 
   it('reports whether a tool name is known', () => {

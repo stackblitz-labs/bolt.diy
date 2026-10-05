@@ -1,5 +1,5 @@
-import type { LanguageModelV1 } from 'ai';
-import { createOllama } from 'ollama-ai-provider';
+import type { LanguageModel } from 'ai';
+import { createOllama } from 'ollama-ai-provider-v2';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
@@ -115,7 +115,7 @@ export default class OllamaProvider extends BaseProvider {
     serverEnv?: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }) => LanguageModelV1 = (options) => {
+  }) => LanguageModel = (options) => {
     const { apiKeys, providerSettings, serverEnv, model } = options;
     const envRecord = this.convertEnvToRecord(serverEnv);
 
@@ -127,8 +127,17 @@ export default class OllamaProvider extends BaseProvider {
       baseURL: `${baseUrl}/api`,
     });
 
-    return ollamaProvider(model, {
-      numCtx: this.getDefaultNumCtx(serverEnv),
+    /*
+     * ollama-ai-provider (v0.x) was abandoned on the ai@4 line: its last release
+     * was 2025-01-17 and it never moved past @ai-sdk/provider@1, so it cannot
+     * produce the LanguageModelV4 that ai@7 requires. The v2 package renames
+     * the context-window option from `numCtx` to `options.num_ctx` and moves
+     * the settings object onto `.chat()`.
+     */
+    return ollamaProvider.chat(model, {
+      options: {
+        num_ctx: this.getDefaultNumCtx(serverEnv),
+      },
     });
   };
 }

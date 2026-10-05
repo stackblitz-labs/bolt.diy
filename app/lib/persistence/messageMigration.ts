@@ -101,6 +101,9 @@ export interface LegacyV4Message {
   name?: string;
   function_call?: unknown;
   timestamp?: number;
+
+  /* v5+ metadata. Absent on genuine v4 records but present on re-imported ones. */
+  metadata?: Record<string, unknown>;
 }
 
 const TOOL_STATE_MAP: Record<LegacyToolInvocation['state'], BoltToolState> = {
@@ -131,7 +134,17 @@ export function isLegacyV4Message(message: unknown): message is LegacyV4Message 
 
     const typed = part as Record<string, unknown>;
 
-    if (typed.type === 'tool-invocation' || typed.type === 'reasoning' || typed.type === 'source') {
+    /*
+     * `reasoning` is also the v7 native discriminant, so it only signals a
+     * legacy part when it carries the v4 `reasoning` field and no v7 `text`.
+     * Without this, every v7 message containing reasoning was treated as v4 and
+     * rebuilt from a fixed key list, dropping metadata and unknown fields.
+     */
+    if (typed.type === 'reasoning') {
+      return !('text' in typed) && 'reasoning' in typed;
+    }
+
+    if (typed.type === 'tool-invocation' || typed.type === 'source') {
       return true;
     }
 
@@ -330,6 +343,9 @@ export function migrateLegacyMessage(message: LegacyV4Message): BoltUIMessage {
     id: message.id,
     role: message.role === 'data' ? 'assistant' : message.role,
     parts,
+
+    // Carried through unconditionally: metadata.flags drives hidden/no-store.
+    ...(message.metadata ? { metadata: message.metadata } : {}),
   };
 
   if (message.role === 'data' && message.data !== undefined) {
@@ -497,6 +513,38 @@ export function getMessageParts(message: AnyMessage): Record<string, any>[] | un
   }
 
   return undefined;
+}
+
+export function isReasoningPart(part: unknown): boolean {
+  return Boolean(part) && typeof part === 'object' && (part as Record<string, unknown>).type === 'reasoning';
+}
+
+/*
+ * Concatenates every reasoning part on a message. v7 delivers reasoning as a
+ * native part stream, so the text arrives across many deltas that the UI groups
+ * into parts; getMessageText deliberately excludes them from the answer body.
+ */
+export function getReasoningText(message: AnyMessage): string {
+  const candidates = [
+    ...partsOf(message),
+    ...(Array.isArray(message.content) ? (message.content as Record<string, any>[]) : []),
+  ];
+
+  const text = candidates
+    .filter(isReasoningPart)
+    .map((part) => {
+      const typed = part as Record<string, unknown>;
+
+      return typeof typed.text === 'string' ? typed.text : typeof typed.reasoning === 'string' ? typed.reasoning : '';
+    })
+    .join('')
+    .trim();
+
+  if (text) {
+    return text;
+  }
+
+  return typeof message.reasoning === 'string' ? message.reasoning : '';
 }
 
 export function isToolPart(part: unknown): boolean {

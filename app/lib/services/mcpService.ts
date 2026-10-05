@@ -1,14 +1,17 @@
+import { createMCPClient } from '@ai-sdk/mcp';
+import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import {
-  experimental_createMCPClient,
-  type ToolSet,
-  type Message,
-  type DataStreamWriter,
-  convertToCoreMessages,
-  formatDataStreamPart,
-} from 'ai';
-import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+import { convertToModelMessages, type ToolSet, type UIMessage, type UIMessageStreamWriter } from 'ai';
 import { z } from 'zod';
+import {
+  getToolCallId,
+  getToolInput,
+  getToolName,
+  getToolOutput,
+  getToolState,
+  isToolPart,
+  migrateLegacyMessages,
+} from '~/lib/persistence/messageMigration';
 import type { ToolCallAnnotation } from '~/types/context';
 import {
   TOOL_EXECUTION_APPROVAL,
@@ -174,7 +177,7 @@ export class MCPService {
   ): Promise<MCPClient> {
     logger.debug(`Creating Streamable-HTTP client for ${serverName} with URL: ${config.url}`);
 
-    const client = await experimental_createMCPClient({
+    const client = await createMCPClient({
       transport: new StreamableHTTPClientTransport(new URL(config.url), {
         requestInit: {
           headers: config.headers,
@@ -188,7 +191,7 @@ export class MCPService {
   private async _createSSEClient(serverName: string, config: SSEServerConfig): Promise<MCPClient> {
     logger.debug(`Creating SSE client for ${serverName} with URL: ${config.url}`);
 
-    const client = await experimental_createMCPClient({
+    const client = await createMCPClient({
       transport: config,
     });
 
@@ -200,7 +203,7 @@ export class MCPService {
       `Creating STDIO client for '${serverName}' with command: '${config.command}' ${config.args?.join(' ') || ''}`,
     );
 
-    const client = await experimental_createMCPClient({ transport: new Experimental_StdioMCPTransport(config) });
+    const client = await createMCPClient({ transport: new Experimental_StdioMCPTransport(config) });
 
     return Object.assign(client, { serverName });
   }
@@ -355,28 +358,35 @@ export class MCPService {
     return toolName in this._tools;
   }
 
-  processToolCall(toolCall: ToolCall, dataStream: DataStreamWriter): void {
-    const { toolCallId, toolName } = toolCall;
+  processToolCall(
+    toolCall: { toolCallId?: string; toolName?: string; input?: unknown },
+    dataStream: UIMessageStreamWriter,
+  ): void {
+    const toolCallId = toolCall.toolCallId;
+    const toolName = toolCall.toolName;
 
-    if (this.isValidToolName(toolName)) {
-      const { description = 'No description available' } = this.toolsWithoutExecute[toolName];
+    if (toolName && toolCallId && this.isValidToolName(toolName)) {
+      const tool = this.toolsWithoutExecute[toolName] as { description?: unknown };
+      const description = typeof tool?.description === 'string' ? tool.description : 'No description available';
       const serverName = this._toolNamesToServerNames.get(toolName);
 
       if (serverName) {
-        dataStream.writeMessageAnnotation({
-          type: 'toolCall',
-          toolCallId,
-          serverName,
-          toolName,
-          toolDescription: description,
-        } satisfies ToolCallAnnotation);
+        dataStream.write({
+          type: 'data-toolCall',
+          data: {
+            toolCallId,
+            serverName,
+            toolName,
+            toolDescription: description,
+          } as ToolCallAnnotation,
+        });
       }
     }
   }
 
-  async processToolInvocations(messages: Message[], dataStream: DataStreamWriter): Promise<Message[]> {
+  async processToolInvocations(messages: UIMessage[], dataStream: UIMessageStreamWriter): Promise<UIMessage[]> {
     const lastMessage = messages[messages.length - 1];
-    const parts = lastMessage.parts;
+    const parts = lastMessage?.parts;
 
     if (!parts) {
       return messages;
@@ -384,32 +394,41 @@ export class MCPService {
 
     const processedParts = await Promise.all(
       parts.map(async (part) => {
-        // Only process tool invocations parts
-        if (part.type !== 'tool-invocation') {
+        // Only process tool parts
+        if (!isToolPart(part)) {
           return part;
         }
 
-        const { toolInvocation } = part;
-        const { toolName, toolCallId } = toolInvocation;
+        const toolName = getToolName(part);
+        const toolCallId = getToolCallId(part) as string;
+        const toolState = getToolState(part);
 
         // return part as-is if tool does not exist, or if it's not a tool call result
-        if (!this.isValidToolName(toolName) || toolInvocation.state !== 'result') {
+        if (!toolName || !this.isValidToolName(toolName) || toolState !== 'output-available') {
           return part;
         }
 
         let result;
 
-        if (toolInvocation.result === TOOL_EXECUTION_APPROVAL.APPROVE) {
+        if (getToolOutput(part) === TOOL_EXECUTION_APPROVAL.APPROVE) {
           const toolInstance = this._tools[toolName];
 
           if (toolInstance && typeof toolInstance.execute === 'function') {
-            logger.debug(`calling tool "${toolName}" with args: ${JSON.stringify(toolInvocation.args)}`);
+            const toolInput = getToolInput(part);
+            logger.debug(`calling tool "${toolName}" with args: ${JSON.stringify(toolInput)}`);
 
             try {
-              result = await toolInstance.execute(toolInvocation.args, {
-                messages: convertToCoreMessages(messages),
-                toolCallId,
-              });
+              result = await toolInstance.execute(
+                toolInput as any,
+                {
+                  /*
+                   * convertToModelMessages reads message.parts directly and
+                   * throws on a v4 message, so migrate before calling it.
+                   */
+                  messages: await convertToModelMessages(migrateLegacyMessages(messages) as any),
+                  toolCallId,
+                } as any,
+              );
             } catch (error) {
               logger.error(`error while calling tool "${toolName}":`, error);
               result = TOOL_EXECUTION_ERROR;
@@ -417,7 +436,7 @@ export class MCPService {
           } else {
             result = TOOL_NO_EXECUTE_FUNCTION;
           }
-        } else if (toolInvocation.result === TOOL_EXECUTION_APPROVAL.REJECT) {
+        } else if (getToolOutput(part) === TOOL_EXECUTION_APPROVAL.REJECT) {
           result = TOOL_EXECUTION_DENIED;
         } else {
           // For any unhandled responses, return the original part.
@@ -425,26 +444,23 @@ export class MCPService {
         }
 
         // Forward updated tool result to the client.
-        dataStream.write(
-          formatDataStreamPart('tool_result', {
-            toolCallId,
-            result,
-          }),
-        );
+        dataStream.write({
+          type: 'tool-output-available',
+          toolCallId,
+          output: result,
+        });
 
-        // Return updated toolInvocation with the actual result.
+        // Return updated tool part with the actual output.
         return {
           ...part,
-          toolInvocation: {
-            ...toolInvocation,
-            result,
-          },
+          output: result,
+          state: 'output-available',
         };
       }),
     );
 
     // Finally return the processed messages
-    return [...messages.slice(0, -1), { ...lastMessage, parts: processedParts }];
+    return [...messages.slice(0, -1), { ...lastMessage, parts: processedParts }] as UIMessage[];
   }
 
   get tools() {
