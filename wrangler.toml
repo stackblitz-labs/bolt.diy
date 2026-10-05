@@ -3,8 +3,5 @@ compatibility_date = "2025-03-28"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "./build/client"
 
-# Nur NICHT-geheime Werte hier. API-Keys gehören ins Cloudflare-Dashboard
-# (Pages -> Settings -> Variables and Secrets -> "Encrypt"/Secret).
 [vars]
 ENVIRONMENT = "production"
-NODE_ENV = "production"
