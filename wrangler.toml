@@ -1,53 +1,10 @@
 name = "boltgithubcloudflare"
 compatibility_date = "2025-03-28"
-#compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "./build/client"
 
-# ============================================
-# Build Configuration
-# ============================================
-[build]
-command = "npm run build"
-cwd = "."
-
-# ============================================
-# Environment Variables (Non-Sensitive)
-# ============================================
+# Nur NICHT-geheime Werte hier. API-Keys gehören ins Cloudflare-Dashboard
+# (Pages -> Settings -> Variables and Secrets -> "Encrypt"/Secret).
 [vars]
 ENVIRONMENT = "production"
 NODE_ENV = "production"
-
-# ============================================
-# Production Environment
-# ============================================
-[env.production]
-vars = { ENVIRONMENT = "production", NODE_ENV = "production" }
-
-# ============================================
-# IMPORTANT: Sensitive Variables
-# ============================================
-# Set these as Cloudflare Secrets OR Environment Variables
-# via Cloudflare Dashboard OR Wrangler CLI:
-#
-# Via Wrangler CLI:
-#   wrangler secret put OPENAI_API_KEY --env production
-#   wrangler secret put VITE_GITHUB_ACCESS_TOKEN --env production
-#   wrangler secret put VITE_GITHUB_TOKEN_TYPE --env production
-#   wrangler secret put ANTHROPIC_API_KEY --env production
-#   wrangler secret put GEMINI_API_KEY --env production
-#   etc.
-#
-# Via Cloudflare Dashboard:
-#   1. Go to Pages → Your Project → Settings
-#   2. Click "Environment variables"
-#   3. Add variables for "Production" environment
-#   4. Click "Encrypt" for sensitive values
-#
-# Required Variables:
-# - VITE_GITHUB_ACCESS_TOKEN (GitHub Personal Access Token)
-# - VITE_GITHUB_TOKEN_TYPE ("classic" or "fine-grained")
-# - OPENAI_API_KEY (if using OpenAI models)
-# - ANTHROPIC_API_KEY (if using Claude)
-# - GEMINI_API_KEY (if using Google Gemini)
-# - And other AI provider keys as needed
-# ============================================
