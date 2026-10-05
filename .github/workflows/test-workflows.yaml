@@ -46,10 +46,15 @@ jobs:
       - name: Verify Node.js version
         run: |
           echo "Node.js version: $(node --version)"
-          if [[ "$(node --version)" == *"20.18.0"* ]]; then
+          # Vite 8 / rolldown require node ^20.19.0 || >=22.12.0
+          node_major=$(node --version | sed 's/^v\([0-9]*\).*/\1/')
+          node_minor=$(node --version | sed 's/^v[0-9]*\.\([0-9]*\).*/\1/')
+          if [[ "$node_major" -gt 22 ]] \
+            || { [[ "$node_major" -eq 22 ]] && [[ "$node_minor" -ge 12 ]]; } \
+            || { [[ "$node_major" -eq 20 ]] && [[ "$node_minor" -ge 19 ]]; }; then
             echo "✅ Correct Node.js version"
           else
-            echo "❌ Wrong Node.js version"
+            echo "❌ Wrong Node.js version: need ^20.19.0 || >=22.12.0, got $(node --version)"
             exit 1
           fi
 
@@ -130,7 +135,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.18.0'
+          node-version: '22'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4

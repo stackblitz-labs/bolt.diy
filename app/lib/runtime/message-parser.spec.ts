@@ -739,6 +739,135 @@ export { Button } from './Button';
   });
 });
 
+/*
+ * Gaps closed ahead of the AI SDK upgrade. The server rewrites model reasoning
+ * into `<div class="__boltThought__">` text deltas before they reach this
+ * parser, so the parser must tolerate that wrapper arriving split across
+ * arbitrary chunk boundaries.
+ */
+describe('StreamingMessageParser thought-div handling', () => {
+  function createParser() {
+    const callbacks = {
+      onArtifactOpen: vi.fn(),
+      onArtifactClose: vi.fn(),
+      onActionOpen: vi.fn(),
+      onActionClose: vi.fn(),
+    };
+
+    return { parser: new StreamingMessageParser({ callbacks }), callbacks };
+  }
+
+  it('passes thought-div content through when it arrives in one chunk', () => {
+    const { parser } = createParser();
+    const output = parser.parse('msg', '<div class="__boltThought__">reasoning here</div>');
+
+    expect(output).toBe('<div class="__boltThought__">reasoning here</div>');
+  });
+
+  it('mangles a thought-div opening tag split across chunks (known limitation)', () => {
+    /*
+     * KNOWN LIMITATION, pinned deliberately. The parser does not buffer an
+     * incomplete opening tag, so if the thought-div wrapper is split across
+     * network chunks the output is corrupted. In practice the server emits the
+     * wrapper as a single data-stream part, so it arrives intact - but this is
+     * exactly the kind of assumption the AI SDK migration can break, because
+     * the reasoning rewrite will be re-implemented on top of the new SSE
+     * protocol. Fixing it means buffering partial tags in StreamingMessageParser.
+     */
+    const { parser } = createParser();
+
+    let output = '';
+
+    for (const chunk of ['<div cla', 'ss="__bolt', 'Thought__">thin', 'king</div>']) {
+      output += parser.parse('msg', chunk);
+    }
+
+    expect(output).toBe('<div clalt>thin');
+  });
+
+  it('keeps artifact parsing intact when a thought div precedes an artifact', () => {
+    const { parser, callbacks } = createParser();
+
+    const input =
+      '<div class="__boltThought__">let me think</div>' +
+      '<boltArtifact id="hello" title="Hello">\n```html\n<h1>hi</h1>\n```\n</boltArtifact>';
+
+    const output = parser.parse('msg', input);
+
+    expect(output).toContain('<div class="__boltThought__">let me think</div>');
+    expect(callbacks.onArtifactOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles a closing thought div sharing a chunk with an artifact close', () => {
+    const { parser, callbacks } = createParser();
+
+    parser.parse(
+      'msg',
+      '<div class="__boltThought__">thought</div><boltArtifact id="a" title="A">\n```html\n<b>x</b>\n```\n</boltArtifact>',
+    );
+
+    expect(callbacks.onArtifactOpen).toHaveBeenCalledTimes(1);
+    expect(callbacks.onArtifactClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not emit artifacts for thought content that looks like code', () => {
+    const { parser, callbacks } = createParser();
+
+    parser.parse('msg', '<div class="__boltThought__">```html\n<h1>hi</h1>\n```</div>');
+
+    expect(callbacks.onArtifactOpen).not.toHaveBeenCalled();
+  });
+
+  it('leaves escaped entities untouched in plain text', () => {
+    /*
+     * `cleanEscapedTags` is only applied inside artifact/action bodies, so
+     * plain text passes entities through verbatim. Pinned so a refactor does
+     * not silently start double-unescaping user content.
+     */
+    const { parser } = createParser();
+    const output = parser.parse('msg', '&lt;div&gt; &amp; &quot;quoted&quot;');
+
+    expect(output).toBe('&lt;div&gt; &amp; &quot;quoted&quot;');
+  });
+
+  it('keeps state isolated per message id', () => {
+    const { parser } = createParser();
+
+    parser.parse('idA', '<boltArtifact id="one" title="One">\n');
+    parser.parse('idB', 'plain text for B');
+
+    expect(parser.parse('idA', '')).toBe('');
+  });
+
+  it('gives each artifact in a message a stable, incrementing id', () => {
+    const { parser, callbacks } = createParser();
+
+    const message = [
+      '<boltArtifact id="first" title="First">\n```html\n<a>1</a>\n```\n</boltArtifact>',
+      '<boltArtifact id="second" title="Second">\n```html\n<b>2</b>\n```\n</boltArtifact>',
+    ].join('');
+
+    parser.parse('msg', message);
+
+    const ids = callbacks.onArtifactOpen.mock.calls.map(([data]) => data.id);
+
+    expect(ids).toEqual(['msg-0', 'msg-1']);
+  });
+
+  it('clears per-message state on reset', () => {
+    const { parser, callbacks } = createParser();
+
+    parser.parse('msg', '<boltArtifact id="one" title="One">\n```html\n<a>1</a>\n```\n</boltArtifact>');
+    expect(callbacks.onArtifactOpen).toHaveBeenCalledTimes(1);
+
+    parser.reset();
+    parser.parse('msg', '<boltArtifact id="one" title="One">\n```html\n<a>1</a>\n```\n</boltArtifact>');
+
+    expect(callbacks.onArtifactOpen).toHaveBeenCalledTimes(2);
+    expect(callbacks.onArtifactOpen.mock.calls[1][0].id).toBe('msg-0');
+  });
+});
+
 function runTest(input: string | string[], outputOrExpectedResult: string | ExpectedResult) {
   let expected: ExpectedResult;
 

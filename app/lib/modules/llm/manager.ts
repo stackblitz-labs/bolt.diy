@@ -6,6 +6,13 @@ import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('LLMManager');
+
+/*
+ * Providers exposed to the app. Every other provider in ./registry stays
+ * unregistered, so its models never reach the model picker.
+ */
+const ENABLED_PROVIDERS = new Set(['OpenRouter', 'Anthropic', 'OpenAI', 'Google']);
+
 export class LLMManager {
   private static _instance: LLMManager;
   private _providers: Map<string, BaseProvider> = new Map();
@@ -45,7 +52,7 @@ export class LLMManager {
         if (typeof exportedItem === 'function' && exportedItem.prototype instanceof BaseProvider) {
           const provider = new exportedItem();
 
-          if (provider.name !== 'OpenRouter') {
+          if (!ENABLED_PROVIDERS.has(provider.name)) {
             continue;
           }
 
@@ -210,6 +217,17 @@ export class LLMManager {
   }
 
   getDefaultProvider(): BaseProvider {
+    /*
+     * Prefer OpenRouter explicitly. Registration order follows the export
+     * order of ./registry, which would otherwise make the default depend on
+     * which provider happens to be listed first.
+     */
+    const openRouter = this._providers.get('OpenRouter');
+
+    if (openRouter) {
+      return openRouter;
+    }
+
     const firstProvider = this._providers.values().next().value;
 
     if (!firstProvider) {
