@@ -2,7 +2,7 @@ import type { ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState, useEffect } from 'react';
-import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
+import { createHighlighter, type Highlighter } from 'shiki';
 import { themeStore, type Theme } from '~/lib/stores/theme';
 import type { ToolCallAnnotation } from '~/types/context';
 import { classNames } from '~/utils/classNames';
@@ -20,7 +20,7 @@ const highlighterOptions = {
   themes: ['light-plus', 'dark-plus'],
 };
 
-const jsonHighlighter: HighlighterGeneric<BundledLanguage, BundledTheme> =
+const jsonHighlighter: Highlighter =
   import.meta.hot?.data.jsonHighlighter ?? (await createHighlighter(highlighterOptions));
 
 if (import.meta.hot) {
