@@ -1,6 +1,6 @@
 name = "boltgithubcloudflare"
 compatibility_date = "2025-03-28"
-compatibility_flags = ["nodejs_compat"]
+#compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "./build/client"
 
 # ============================================
