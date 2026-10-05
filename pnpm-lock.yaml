@@ -183,8 +183,8 @@ importers:
         specifier: ^66.10.5
         version: 66.10.5
       '@webcontainer/api':
-        specifier: 1.6.1-internal.1
-        version: 1.6.1-internal.1
+        specifier: 1.6.5-internal.2
+        version: 1.6.5-internal.2
       '@xterm/addon-fit':
         specifier: ^0.11.0
         version: 0.11.0
@@ -4123,8 +4123,8 @@ packages:
   '@web3-storage/multipart-parser@1.0.0':
     resolution: {integrity: sha512-BEO6al7BYqcnfX15W2cnGR+Q566ACXAT9UQykORCWW80lmkpWsnEob6zJS1ZVBKsSJC8+7vJkHwlp+lXG1UCdw==}
 
-  '@webcontainer/api@1.6.1-internal.1':
-    resolution: {integrity: sha512-3kIlLzJonzKlPzONuKudMWHICqwkwyXSsIoUHt4vJwjAr8/qFjlMVxq8ggHS6Yck9JBh1JllDWfCiC95ipSsxw==}
+  '@webcontainer/api@1.6.5-internal.2':
+    resolution: {integrity: sha512-RtuOwlcCtGa7M0ppX5wR12NBORMHggTjcH1egbrWZVXp9TeX1mvHEbJPvQ3jIWumh3MKAF967aSLOfXgXYudkQ==}
 
   '@xmldom/xmldom@0.8.15':
     resolution: {integrity: sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA==}
@@ -13550,7 +13550,7 @@ snapshots:
 
   '@web3-storage/multipart-parser@1.0.0': {}
 
-  '@webcontainer/api@1.6.1-internal.1': {}
+  '@webcontainer/api@1.6.5-internal.2': {}
 
   '@xmldom/xmldom@0.8.15': {}
 
