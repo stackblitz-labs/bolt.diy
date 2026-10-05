@@ -3,6 +3,7 @@ import ignore from 'ignore';
 import { IGNORE_PATTERNS, type FileMap } from './constants';
 import { createFilesContext, extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { getFirstTextPart } from '~/lib/persistence/messageMigration';
 import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
@@ -111,10 +112,7 @@ export async function selectContext(props: {
 
   const summaryText = `Here is the summary of the chat till now: ${summary}`;
 
-  const extractTextContent = (message: Message) =>
-    Array.isArray(message.content)
-      ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
-      : message.content;
+  const extractTextContent = getFirstTextPart;
 
   const lastUserMessage = processedMessages.filter((x) => x.role == 'user').pop();
 

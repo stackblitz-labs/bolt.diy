@@ -372,6 +372,8 @@ export function migrateLegacyMessages(messages: unknown): BoltUIMessage[] {
  * can move off v4 one file at a time while the app is still on ai@4.
  */
 export type AnyMessage = {
+  id?: string;
+  role?: string;
   parts?: unknown;
   content?: unknown;
   annotations?: unknown;
@@ -408,6 +410,50 @@ export function getMessageText(message: AnyMessage): string {
   }
 
   return typeof message.content === 'string' ? message.content : '';
+}
+
+/*
+ * First text segment only, not the whole thing. llm/utils.ts scans this for the
+ * [Model: ...] marker while stripping that marker from every text part, so
+ * joining instead of taking the first would change which text the anchored
+ * MODEL_REGEX sees.
+ */
+export function getFirstTextPart(message: AnyMessage): string {
+  const parts = partsOf(message);
+
+  if (parts.length > 0) {
+    const first = parts.find((part) => part?.type === 'text' && typeof part.text === 'string');
+
+    return (first?.text as string) ?? '';
+  }
+
+  if (Array.isArray(message.content)) {
+    const first = (message.content as Record<string, any>[]).find(
+      (item) => item?.type === 'text' && typeof item.text === 'string',
+    );
+
+    return (first?.text as string) ?? '';
+  }
+
+  return typeof message.content === 'string' ? message.content : '';
+}
+
+/**
+ * The message's part array, whether v5 `parts` or a v4 `content`-as-array.
+ * Returns `undefined` for the v4 string-content shape, which has no parts.
+ */
+export function getMessageParts(message: AnyMessage): Record<string, any>[] | undefined {
+  const parts = partsOf(message);
+
+  if (parts.length > 0) {
+    return parts;
+  }
+
+  if (Array.isArray(message.content)) {
+    return message.content as Record<string, any>[];
+  }
+
+  return undefined;
 }
 
 export function isToolPart(part: unknown): boolean {

@@ -13,6 +13,7 @@ import {
 import { useState, useEffect } from 'react';
 import { Bar, Pie } from 'react-chartjs-2';
 import type { Chat } from '~/lib/persistence/chats';
+import { getMessageText } from '~/lib/persistence/messageMigration';
 import { classNames } from '~/utils/classNames';
 
 // Register ChartJS components
@@ -67,7 +68,7 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
         totalMessages++;
 
         if (message.role === 'assistant') {
-          const providerMatch = message.content.match(/provider:\s*([\w-]+)/i);
+          const providerMatch = getMessageText(message).match(/provider:\s*([\w-]+)/i);
           const provider = providerMatch ? providerMatch[1] : 'unknown';
           apiUsage[provider] = (apiUsage[provider] || 0) + 1;
         }
