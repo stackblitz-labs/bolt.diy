@@ -1,6 +1,7 @@
 import type { Message } from 'ai';
 import { generateId } from './fileUtils';
 import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from './projectCommands';
+import { createMessage } from '~/lib/persistence/messageMigration';
 
 export const createChatFromFolder = async (
   files: File[],
@@ -34,9 +35,10 @@ export const createChatFromFolder = async (
       ? `\n\nSkipped ${binaryFiles.length} binary files:\n${binaryFiles.map((f) => `- ${f}`).join('\n')}`
       : '';
 
-  const filesMessage: Message = {
+  const filesMessage = createMessage({
     role: 'assistant',
-    content: `I've imported the contents of the "${folderName}" folder.${binaryFilesMessage}
+    id: generateId(),
+    text: `I've imported the contents of the "${folderName}" folder.${binaryFilesMessage}
 
 <boltArtifact id="imported-files" title="Imported Files" type="bundled" >
 ${fileArtifacts
@@ -47,25 +49,24 @@ ${escapeBoltTags(file.content)}
   )
   .join('\n\n')}
 </boltArtifact>`,
-    id: generateId(),
-    createdAt: new Date(),
-  };
+  });
 
-  const userMessage: Message = {
+  const userMessage = createMessage({
     role: 'user',
     id: generateId(),
-    content: `Import the "${folderName}" folder`,
-    createdAt: new Date(),
-  };
+    text: `Import the "${folderName}" folder`,
+  });
 
-  const messages = [userMessage, filesMessage];
+  const messages: Message[] = [userMessage as Message, filesMessage as Message];
 
   if (commandsMessage) {
-    messages.push({
-      role: 'user',
-      id: generateId(),
-      content: 'Setup the codebase and Start the application',
-    });
+    messages.push(
+      createMessage({
+        role: 'user',
+        id: generateId(),
+        text: 'Setup the codebase and Start the application',
+      }) as Message,
+    );
     messages.push(commandsMessage);
   }
 

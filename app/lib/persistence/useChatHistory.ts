@@ -15,7 +15,7 @@ import {
   setSnapshot,
   type IChatMetadata,
 } from './db';
-import { getMessageAnnotations, hasMessageFlag } from './messageMigration';
+import { createMessage, getMessageAnnotations, hasMessageFlag, type AnyPart } from './messageMigration';
 import type { Snapshot } from './types';
 import type { FileMap } from '~/lib/stores/files';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
@@ -123,19 +123,7 @@ export function useChatHistory() {
               // Call the modified function to get only the command actions string
               const commandActionsString = createCommandActionsString(projectCommands);
 
-              filteredMessages = [
-                {
-                  id: generateId(),
-                  role: 'user',
-                  content: `Restore project from snapshot`, // Removed newline
-                  annotations: ['no-store', 'hidden'],
-                },
-                {
-                  id: storedMessages.messages[snapshotIndex].id,
-                  role: 'assistant',
-
-                  // Combine followup message and the artifact with files and command actions
-                  content: `Bolt Restored your chat from a snapshot. You can revert this message to load the full chat history.
+              const restoredAssistantText = `Bolt Restored your chat from a snapshot. You can revert this message to load the full chat history.
                   <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
                   ${Object.entries(snapshot?.files || {})
                     .map(([key, value]) => {
@@ -150,29 +138,63 @@ ${value.content}
                       }
                     })
                     .join('\n')}
-                  ${commandActionsString} 
+                  ${commandActionsString}
                   </boltArtifact>
-                  `, // Added commandActionsString, followupMessage, updated id and title
-                  annotations: [
-                    'no-store',
-                    ...(summary
-                      ? [
-                          {
-                            chatId: storedMessages.messages[snapshotIndex].id,
-                            type: 'chatSummary',
-                            summary,
-                          } satisfies ContextAnnotation,
-                        ]
-                      : []),
-                  ],
+                  `;
+
+              const restoredSummary = summary
+                ? [
+                    {
+                      chatId: storedMessages.messages[snapshotIndex].id,
+                      type: 'chatSummary',
+                      summary,
+                    } satisfies ContextAnnotation,
+                  ]
+                : [];
+
+              /*
+               * Both shapes written. `annotations` still carries the v4 sentinels
+               * and the summary because the v4 readers have not moved yet;
+               * metadata.flags and the data-chatSummary part are what v5 reads.
+               */
+              const restoredParts: AnyPart[] = [
+                { type: 'text', text: restoredAssistantText },
+                ...(summary
+                  ? [
+                      {
+                        type: 'data-chatSummary',
+                        data: {
+                          chatId: storedMessages.messages[snapshotIndex].id,
+                          summary,
+                        },
+                      },
+                    ]
+                  : []),
+              ];
+
+              filteredMessages = [
+                createMessage({
+                  id: generateId(),
+                  role: 'user',
+                  text: `Restore project from snapshot`,
+                  flags: ['no-store', 'hidden'],
+                }) as Message,
+                {
+                  ...(createMessage({
+                    id: storedMessages.messages[snapshotIndex].id,
+                    role: 'assistant',
+                    text: restoredAssistantText,
+                    flags: ['no-store'],
+                  }) as Message),
+
+                  /*
+                   * Cast because v4 types Message['parts'] as a closed union with
+                   * no room for a data-* part. v5 reads this; v4 ignores it.
+                   */
+                  parts: restoredParts as unknown as Message['parts'],
+                  annotations: ['no-store', ...restoredSummary],
                 },
 
-                // Remove the separate user and assistant messages for commands
-                /*
-                 *...(commands !== null // This block is no longer needed
-                 *  ? [ ... ]
-                 *  : []),
-                 */
                 ...filteredMessages,
               ];
               restoreSnapshot(mixedId);

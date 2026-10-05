@@ -11,6 +11,7 @@ import { Button } from '~/components/ui/Button';
 import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
 import { useGit } from '~/lib/hooks/useGit';
 import type { IChatMetadata } from '~/lib/persistence/db';
+import { createMessage } from '~/lib/persistence/messageMigration';
 import { classNames } from '~/utils/classNames';
 import { generateId } from '~/utils/fileUtils';
 import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from '~/utils/projectCommands';
@@ -120,9 +121,10 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
         const commands = await detectProjectCommands(fileContents);
         const commandsMessage = createCommandsMessage(commands);
 
-        const filesMessage: Message = {
+        const filesMessage = createMessage({
           role: 'assistant',
-          content: `Cloning the repo ${repoUrl} into ${workdir}
+          id: generateId(),
+          text: `Cloning the repo ${repoUrl} into ${workdir}
 ${
   skippedFiles.length > 0
     ? `\nSkipped files (${skippedFiles.length}):
@@ -140,11 +142,9 @@ ${escapeBoltTags(file.content)}
   )
   .join('\n')}
 </boltArtifact>`,
-          id: generateId(),
-          createdAt: new Date(),
-        };
+        }) as Message;
 
-        const messages = [filesMessage];
+        const messages: Message[] = [filesMessage];
 
         if (commandsMessage) {
           messages.push(commandsMessage);

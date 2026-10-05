@@ -376,6 +376,44 @@ export type AnyPart = Record<string, any>;
 
 export type AnyParts = AnyPart[] | undefined;
 
+/**
+ * Build a message carrying both shapes: `content` for v4 readers and for
+ * anything that round-trips through IndexedDB, plus `parts` for v5+.
+ *
+ * Messages built in memory and handed to `useChat` / `append` never pass
+ * through a persistence read, so a read-side migration cannot rescue them.
+ * Writing both keeps this app correct before and after the bump while leaving
+ * the stored format v4-readable, so a downgrade still works.
+ */
+export function createMessage(params: {
+  id?: string;
+  role: 'system' | 'user' | 'assistant';
+  text: string;
+  flags?: string[];
+}): AnyMessage {
+  const { id, role, text, flags } = params;
+
+  const message: AnyMessage = {
+    id: id ?? `msg-${Math.random().toString(36).slice(2, 10)}`,
+    role,
+    content: text,
+    parts: text ? [{ type: 'text', text }] : [],
+  };
+
+  if (flags?.length) {
+    message.metadata = { flags };
+
+    /*
+     * Mirrored into annotations as well, because useChatHistory and
+     * Messages.client currently read the v4 location and this app still runs
+     * on v4. Redundant by design until those readers move.
+     */
+    message.annotations = flags;
+  }
+
+  return message;
+}
+
 export type AnyMessage = {
   id?: string;
   role?: string;

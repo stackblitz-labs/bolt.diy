@@ -1,5 +1,6 @@
 import type { Message } from 'ai';
 import { generateId } from './fileUtils';
+import { createMessage } from '~/lib/persistence/messageMigration';
 
 export interface ProjectCommands {
   type: string;
@@ -126,16 +127,15 @@ export function createCommandsMessage(commands: ProjectCommands): Message | null
 `;
   }
 
-  return {
+  return createMessage({
     role: 'assistant',
-    content: `
+    id: generateId(),
+    text: `
 ${commands.followupMessage ? `\n\n${commands.followupMessage}` : ''}
 <boltArtifact id="project-setup" title="Project Setup">
 ${commandString}
 </boltArtifact>`,
-    id: generateId(),
-    createdAt: new Date(),
-  };
+  }) as Message;
 }
 
 export function escapeBoltArtifactTags(input: string) {

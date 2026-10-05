@@ -9,6 +9,7 @@ import { Chat } from '~/components/chat/Chat.client';
 import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
 import { useGit } from '~/lib/hooks/useGit';
 import { useChatHistory } from '~/lib/persistence';
+import { createMessage } from '~/lib/persistence/messageMigration';
 import { createCommandsMessage, detectProjectCommands, escapeBoltTags } from '~/utils/projectCommands';
 
 const IGNORE_PATTERNS = [
@@ -72,9 +73,10 @@ export function GitUrlImport() {
           const commands = await detectProjectCommands(fileContents);
           const commandsMessage = createCommandsMessage(commands);
 
-          const filesMessage: Message = {
+          const filesMessage = createMessage({
             role: 'assistant',
-            content: `Cloning the repo ${repoUrl} into ${workdir}
+            id: generateId(),
+            text: `Cloning the repo ${repoUrl} into ${workdir}
 <boltArtifact id="imported-files" title="Git Cloned Files"  type="bundled">
 ${fileContents
   .map(
@@ -85,18 +87,18 @@ ${escapeBoltTags(file.content)}
   )
   .join('\n')}
 </boltArtifact>`,
-            id: generateId(),
-            createdAt: new Date(),
-          };
+          }) as Message;
 
-          const messages = [filesMessage];
+          const messages: Message[] = [filesMessage];
 
           if (commandsMessage) {
-            messages.push({
-              role: 'user',
-              id: generateId(),
-              content: 'Setup the codebase and Start the application',
-            });
+            messages.push(
+              createMessage({
+                role: 'user',
+                id: generateId(),
+                text: 'Setup the codebase and Start the application',
+              }) as Message,
+            );
             messages.push(commandsMessage);
           }
 

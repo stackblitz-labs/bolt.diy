@@ -1,5 +1,5 @@
 import { useChat } from '@ai-sdk/react';
-import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
+import type { Attachment } from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
 import { useSearchParams } from '@remix-run/react';
 import type { Message } from 'ai';
@@ -12,6 +12,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { description, useChatHistory } from '~/lib/persistence';
+import { createMessage, type AnyPart } from '~/lib/persistence/messageMigration';
 import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
@@ -188,10 +189,12 @@ export const ChatImpl = memo(
       if (prompt) {
         setSearchParams({});
         runAnimation();
-        append({
-          role: 'user',
-          content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
-        });
+        append(
+          createMessage({
+            role: 'user',
+            text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
+          }) as any,
+        );
       }
     }, [model, provider, searchParams]);
 
@@ -338,9 +341,8 @@ export const ChatImpl = memo(
     };
 
     // Helper function to create message parts array from text and images
-    const createMessageParts = (text: string, images: string[] = []): Array<TextUIPart | FileUIPart> => {
-      // Create an array of properly typed message parts
-      const parts: Array<TextUIPart | FileUIPart> = [
+    const createMessageParts = (text: string, images: string[] = []): AnyPart[] => {
+      const parts: AnyPart[] = [
         {
           type: 'text',
           text,
@@ -350,13 +352,16 @@ export const ChatImpl = memo(
       // Add image parts if any
       images.forEach((imageData) => {
         // Extract correct MIME type from the data URL
-        const mimeType = imageData.split(';')[0].split(':')[1] || 'image/jpeg';
+        const mediaType = imageData.split(';')[0].split(':')[1] || 'image/jpeg';
 
-        // Create file part according to AI SDK format
+        /*
+         * v5 shape: mediaType plus a complete data URL. v4 stored bare base64
+         * in `data`, which v5 cannot parse because it calls new URL(part.url).
+         */
         parts.push({
           type: 'file',
-          mimeType,
-          data: imageData.replace(/^data:image\/[^;]+;base64,/, ''),
+          mediaType,
+          url: imageData,
         });
       });
 
@@ -449,14 +454,19 @@ export const ChatImpl = memo(
                   id: `2-${new Date().getTime()}`,
                   role: 'assistant',
                   content: assistantMessage,
+                  parts: [{ type: 'text', text: assistantMessage }],
                 },
                 {
                   id: `3-${new Date().getTime()}`,
                   role: 'user',
                   content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
+                  parts: [
+                    { type: 'text', text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}` },
+                  ],
                   annotations: ['hidden'],
+                  metadata: { flags: ['hidden'] },
                 },
-              ]);
+              ] as any);
 
               const reloadOptions =
                 uploadedFiles.length > 0
@@ -492,7 +502,7 @@ export const ChatImpl = memo(
             parts: createMessageParts(userMessageText, imageDataList),
             experimental_attachments: attachments,
           },
-        ]);
+        ] as any);
         reload(attachments ? { experimental_attachments: attachments } : undefined);
         setFakeLoading(false);
         setInput('');
@@ -528,7 +538,7 @@ export const ChatImpl = memo(
             role: 'user',
             content: messageText,
             parts: createMessageParts(messageText, imageDataList),
-          },
+          } as any,
           attachmentOptions,
         );
 
@@ -544,7 +554,7 @@ export const ChatImpl = memo(
             role: 'user',
             content: messageText,
             parts: createMessageParts(messageText, imageDataList),
-          },
+          } as any,
           attachmentOptions,
         );
       }
