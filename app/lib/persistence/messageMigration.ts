@@ -371,6 +371,11 @@ export function migrateLegacyMessages(messages: unknown): BoltUIMessage[] {
  * `experimental_attachments`. Every accessor below accepts both, so call sites
  * can move off v4 one file at a time while the app is still on ai@4.
  */
+/** A single message part in either the v4 or the v5+ shape. */
+export type AnyPart = Record<string, any>;
+
+export type AnyParts = AnyPart[] | undefined;
+
 export type AnyMessage = {
   id?: string;
   role?: string;

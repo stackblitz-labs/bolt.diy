@@ -1,35 +1,36 @@
-import type {
-  TextUIPart,
-  ReasoningUIPart,
-  ToolInvocationUIPart,
-  SourceUIPart,
-  FileUIPart,
-  StepStartUIPart,
-} from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
 import { Markdown } from './Markdown';
+import {
+  getFileMediaType,
+  getFileUrl,
+  getMessageText,
+  isFilePart,
+  type AnyMessage,
+  type AnyPart,
+} from '~/lib/persistence/messageMigration';
 import { profileStore } from '~/lib/stores/profile';
 import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 
 interface UserMessageProps {
-  content: string | Array<{ type: string; text?: string; image?: string }>;
-  parts:
-    (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[] | undefined;
+  content?: unknown;
+  parts: AnyPart[] | undefined;
 }
 
 export function UserMessage({ content, parts }: UserMessageProps) {
   const profile = useStore(profileStore);
 
-  // Extract images from parts - look for file parts with image mime types
-  const images =
-    parts?.filter(
-      (part): part is FileUIPart => part.type === 'file' && 'mimeType' in part && part.mimeType.startsWith('image/'),
-    ) || [];
+  const images = (parts ?? []).filter(
+    (part) => isFilePart(part) && (getFileMediaType(part) ?? '').startsWith('image/'),
+  );
+
+  /*
+   * One text source for both shapes. v4 messages carry `content`, v5+ carry
+   * `parts`, and previously this called stripMetadata(content) directly, which
+   * threw a TypeError on undefined once content went away.
+   */
+  const textContent = stripMetadata(getMessageText({ content, parts } as AnyMessage));
 
   if (Array.isArray(content)) {
-    const textItem = content.find((item) => item.type === 'text');
-    const textContent = stripMetadata(textItem?.text || '');
-
     return (
       <div className="overflow-hidden flex flex-col gap-3 items-center ">
         <div className="flex flex-row items-start justify-center overflow-hidden shrink-0 self-start">
@@ -55,7 +56,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
           {images.map((item, index) => (
             <img
               key={index}
-              src={`data:${item.mimeType};base64,${item.data}`}
+              src={getFileUrl(item)}
               alt={`Image ${index + 1}`}
               className="max-w-full h-auto rounded-lg"
               style={{ maxHeight: '512px', objectFit: 'contain' }}
@@ -66,17 +67,14 @@ export function UserMessage({ content, parts }: UserMessageProps) {
     );
   }
 
-  const textContent = stripMetadata(content);
-
   return (
     <div className="flex flex-col bg-accent-500/10 backdrop-blur-sm px-5 p-3.5 w-auto rounded-lg ml-auto">
       <div className="flex gap-3.5 mb-4">
         {images.map((item, index) => (
-          <div className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden">
+          <div key={index} className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden">
             <div className="h-16 w-16 bg-transparent outline-none">
               <img
-                key={index}
-                src={`data:${item.mimeType};base64,${item.data}`}
+                src={getFileUrl(item)}
                 alt={`Image ${index + 1}`}
                 className="h-full w-full rounded-lg"
                 style={{ objectFit: 'fill' }}

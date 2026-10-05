@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
 import { forkChat } from '~/lib/persistence/db';
+import { hasMessageFlag } from '~/lib/persistence/messageMigration';
 import { db, chatId } from '~/lib/persistence/useChatHistory';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
@@ -53,10 +54,10 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
       <div id={id} className={props.className} ref={ref}>
         {messages.length > 0
           ? messages.map((message, index) => {
-              const { role, content, id: messageId, annotations, parts } = message;
+              const { role, content, id: messageId, parts } = message;
               const isUserMessage = role === 'user';
               const isFirst = index === 0;
-              const isHidden = annotations?.includes('hidden');
+              const isHidden = hasMessageFlag(message, 'hidden');
 
               if (isHidden) {
                 return <Fragment key={index} />;

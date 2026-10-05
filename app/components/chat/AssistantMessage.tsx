@@ -1,26 +1,24 @@
-import type {
-  TextUIPart,
-  ReasoningUIPart,
-  ToolInvocationUIPart,
-  SourceUIPart,
-  FileUIPart,
-  StepStartUIPart,
-} from '@ai-sdk/ui-utils';
-import type { JSONValue } from 'ai';
 import type { Message } from 'ai';
 import { memo, Fragment } from 'react';
 import { Markdown } from './Markdown';
 import { ToolInvocations } from './ToolInvocations';
 import Popover from '~/components/ui/Popover';
 import WithTooltip from '~/components/ui/Tooltip';
+import {
+  getMessageAnnotations,
+  getMessageText,
+  isToolPart,
+  type AnyMessage,
+  type AnyPart,
+} from '~/lib/persistence/messageMigration';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ToolCallAnnotation } from '~/types/context';
 import type { ProviderInfo } from '~/types/model';
 import { WORK_DIR } from '~/utils/constants';
 
 interface AssistantMessageProps {
-  content: string;
-  annotations?: JSONValue[];
+  content?: unknown;
+  annotations?: unknown;
   messageId?: string;
   onRewind?: (messageId: string) => void;
   onFork?: (messageId: string) => void;
@@ -29,8 +27,7 @@ interface AssistantMessageProps {
   setChatMode?: (mode: 'discuss' | 'build') => void;
   model?: string;
   provider?: ProviderInfo;
-  parts:
-    (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[] | undefined;
+  parts: AnyPart[] | undefined;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 }
 
@@ -73,30 +70,40 @@ export const AssistantMessage = memo(
     parts,
     addToolResult,
   }: AssistantMessageProps) => {
-    const filteredAnnotations = (annotations?.filter(
-      (annotation: JSONValue) =>
-        annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
-    ) || []) as { type: string; value: any } & { [key: string]: any }[];
+    /*
+     * Chat.client.tsx:649 deliberately replaces assistant `content` with the
+     * parsed stream, where artifacts and actions have already been extracted.
+     * So `content` wins when present and parts are only the fallback; swapping
+     * the order would render raw <boltArtifact> tags into the bubble.
+     */
+    const messageText = typeof content === 'string' ? content : getMessageText({ parts });
 
-    let chatSummary: string | undefined = undefined;
+    const filteredAnnotations = getMessageAnnotations({ annotations, parts } as AnyMessage);
 
-    if (filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')) {
-      chatSummary = filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')?.summary;
-    }
+    const chatSummaryAnnotation = filteredAnnotations.find((annotation) => annotation.type === 'chatSummary');
+    const chatSummary: string | undefined = chatSummaryAnnotation?.summary;
 
-    let codeContext: string[] | undefined = undefined;
+    const codeContextAnnotation = filteredAnnotations.find((annotation) => annotation.type === 'codeContext');
+    const codeContext: string[] | undefined = codeContextAnnotation?.files;
 
-    if (filteredAnnotations.find((annotation) => annotation.type === 'codeContext')) {
-      codeContext = filteredAnnotations.find((annotation) => annotation.type === 'codeContext')?.files;
-    }
+    const usageAnnotation = filteredAnnotations.find((annotation) => annotation.type === 'usage');
 
-    const usage: {
-      completionTokens: number;
-      promptTokens: number;
-      totalTokens: number;
-    } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value;
+    const usage:
+      | {
+          completionTokens: number;
+          promptTokens: number;
+          totalTokens: number;
+        }
+      | undefined = usageAnnotation?.value as
+      { completionTokens: number; promptTokens: number; totalTokens: number } | undefined;
 
-    const toolInvocations = parts?.filter((part) => part.type === 'tool-invocation');
+    /*
+     * Note the tool filter: `part.type === 'tool-invocation'` also type checks
+     * against v5's `tool-${string}` discriminant, so it kept compiling while
+     * silently returning an empty array once the discriminant changed, taking
+     * the whole MCP panel with it. isToolPart matches both.
+     */
+    const toolInvocations = parts?.filter((part) => isToolPart(part));
 
     const toolCallAnnotations = filteredAnnotations.filter(
       (annotation) => annotation.type === 'toolCall',
@@ -177,7 +184,7 @@ export const AssistantMessage = memo(
           </div>
         </>
         <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
-          {content}
+          {messageText}
         </Markdown>
         {toolInvocations && toolInvocations.length > 0 && (
           <ToolInvocations
