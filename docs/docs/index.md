@@ -1,6 +1,6 @@
 # Welcome to bolt diy
 
-bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 19 providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 20 providers including OpenAI, Anthropic, Ollama, OpenRouter, TokenLab, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
 ## Table of Contents
 
@@ -40,7 +40,7 @@ Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos
 ## Features
 
 - **AI-powered full-stack web development** directly in your browser with live preview
-- **Support for 19 LLM providers** with an extensible architecture to integrate additional models
+- **Support for 20 LLM providers** with an extensible architecture to integrate additional models
 - **Attach images and files to prompts** for better contextual understanding
 - **Integrated terminal** with WebContainer sandbox for running commands and testing
 - **Version control with Git** - import/export projects, connect to GitHub repositories
