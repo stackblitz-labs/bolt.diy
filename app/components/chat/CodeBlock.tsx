@@ -90,4 +90,15 @@ export const CodeBlock = memo(
       </div>
     );
   },
+
+  // Optimization: Only re-render if props actually changed
+  (prevProps, nextProps) => {
+    return (
+      prevProps.code === nextProps.code &&
+      prevProps.language === nextProps.language &&
+      prevProps.theme === nextProps.theme &&
+      prevProps.className === nextProps.className &&
+      prevProps.disableCopy === nextProps.disableCopy
+    );
+  },
 );

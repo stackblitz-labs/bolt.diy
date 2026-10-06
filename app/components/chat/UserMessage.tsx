@@ -1,4 +1,5 @@
 import { useStore } from '@nanostores/react';
+import { memo } from 'react';
 import { Markdown } from './Markdown';
 import {
   getFileMediaType,
@@ -16,7 +17,7 @@ interface UserMessageProps {
   parts: AnyPart[] | undefined;
 }
 
-export function UserMessage({ content, parts }: UserMessageProps) {
+export const UserMessage = memo(({ content, parts }: UserMessageProps) => {
   const profile = useStore(profileStore);
 
   const images = (parts ?? []).filter(
@@ -86,7 +87,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
       <Markdown html>{textContent}</Markdown>
     </div>
   );
-}
+});
 
 function stripMetadata(content: string) {
   const artifactRegex = /<boltArtifact\s+[^>]*>[\s\S]*?<\/boltArtifact>/gm;
