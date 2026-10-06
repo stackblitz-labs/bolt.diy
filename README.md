@@ -151,7 +151,16 @@ You have two options for running Bolt.DIY: directly on your machine or using Doc
    ```bash
    pnpm run dev
    ```
-   
+
+
+To run the application with a custom base path (for example, `/bolt`), use:
+
+```bash
+VITE_BASE_PATH=/bolt pnpm run dev
+```
+
+Replace `/bolt` with your desired base path if needed. This sets the frontend route base path.
+
 ### Option 2: Using Docker
 
 This option requires Docker and is great when you want an isolated environment or to mirror the production image.
@@ -401,7 +410,7 @@ This method is recommended for developers who want to:
   Hint: Be aware that this can have beta-features and more likely got bugs than the stable release
 
 >**Open the WebUI to test (Default: http://localhost:5173)**
->   - Beginners: 
+>   - Beginners:
 >     - Try to use a sophisticated Provider/Model like Anthropic with Claude Sonnet 3.x Models to get best results
 >     - Explanation: The System Prompt currently implemented in bolt.diy cant cover the best performance for all providers and models out there. So it works better with some models, then other, even if the models itself are perfect for >programming
 >     - Future: Planned is a Plugin/Extentions-Library so there can be different System Prompts for different Models, which will help to get better results
@@ -419,7 +428,7 @@ To get the latest changes from the repository:
 2. **Pull Latest Updates**:
 
    ```bash
-   git pull 
+   git pull
    ```
 
 3. **Update Dependencies**:

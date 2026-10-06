@@ -170,7 +170,9 @@ export function useGitHubStats(
 
       if (isServerSide || !connection.token) {
         // Use server-side API for stats
-        const response = await fetch('/api/github-stats');
+        const envBasePath = import.meta.env.VITE_BASE_PATH;
+        const basePath = envBasePath && envBasePath !== '/' ? envBasePath.replace(/\/$/, '') : '';
+        const response = await fetch(`${basePath}/api/github-stats`);
 
         if (!response.ok) {
           if (response.status === 401) {

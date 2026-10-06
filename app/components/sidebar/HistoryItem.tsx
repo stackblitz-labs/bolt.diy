@@ -104,7 +104,7 @@ export function HistoryItem({
         </form>
       ) : (
         <a
-          href={`/chat/${item.urlId}`}
+          href={`${import.meta.env.VITE_BASE_PATH && import.meta.env.VITE_BASE_PATH !== '/' ? import.meta.env.VITE_BASE_PATH.replace(/\/$/, '') : ''}/chat/${item.urlId}`}
           className="flex w-full relative truncate block"
           onClick={selectionMode ? handleItemClick : undefined}
         >

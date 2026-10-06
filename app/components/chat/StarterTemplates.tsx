@@ -8,7 +8,11 @@ interface FrameworkLinkProps {
 
 const FrameworkLink: React.FC<FrameworkLinkProps> = ({ template }) => (
   <a
-    href={`/git?url=https://github.com/${template.githubRepo}.git`}
+    href={`${
+      import.meta.env.VITE_BASE_PATH && import.meta.env.VITE_BASE_PATH !== '/'
+        ? import.meta.env.VITE_BASE_PATH.replace(/\/$/, '')
+        : ''
+    }/git?url=https://github.com/${template.githubRepo}.git`}
     data-state="closed"
     data-discover="true"
     className="items-center justify-center"

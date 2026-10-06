@@ -215,7 +215,7 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
       const isServerSide = !connection.token;
 
       if (isServerSide) {
-        const response = await fetch('/api/github-user');
+        const response = await fetch(`${import.meta.env.VITE_BASE_PATH || ''}/api/github-user`);
         return response.ok;
       }
 
