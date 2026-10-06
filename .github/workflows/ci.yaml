@@ -25,7 +25,7 @@ jobs:
         uses: ./.github/actions/setup-and-build
 
       - name: Cache TypeScript compilation
-        uses: actions/cache@v6
+        uses: actions/cache@v4
         with:
           path: |
             .tsbuildinfo
@@ -38,7 +38,7 @@ jobs:
         run: pnpm run typecheck
 
       - name: Cache ESLint
-        uses: actions/cache@v6
+        uses: actions/cache@v4
         with:
           path: node_modules/.cache/eslint
           key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'app/**/*.ts', 'app/**/*.tsx') }}

@@ -4,7 +4,7 @@ inputs:
   pnpm-version:
     required: false
     type: string
-    default: '9.14.4'
+    default: '9.15.9'
   node-version:
     required: false
     type: string
