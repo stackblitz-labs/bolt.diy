@@ -14,6 +14,20 @@ export default class DeepseekProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'deepseek-r1',
+      label: 'DeepSeek-R1 (Reasoning)',
+      provider: 'Deepseek',
+      maxTokenAllowed: 64000,
+      maxCompletionTokens: 16000,
+    },
+    {
+      name: 'deepseek-r1-0528',
+      label: 'DeepSeek-R1-0528 (Latest Reasoning)',
+      provider: 'Deepseek',
+      maxTokenAllowed: 64000,
+      maxCompletionTokens: 16000,
+    },
+    {
       name: 'deepseek-coder',
       label: 'Deepseek-Coder',
       provider: 'Deepseek',
@@ -91,7 +105,7 @@ export default class DeepseekProvider extends BaseProvider {
             name: m.id,
             label: `${m.id} (Dynamic)`,
             provider: this.name,
-            maxTokenAllowed: 64000, // Default, adjust per model if available
+            maxTokenAllowed: 64000,
             maxCompletionTokens: 8192,
           })) || [];
 

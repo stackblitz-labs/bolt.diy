@@ -20,6 +20,13 @@ export default defineConfig((config) => {
       // Ensure process.cwd is defined as a function for path-browserify compatibility
       'process.cwd': '() => "/"',
     },
+    server: {
+      allowedHosts: [
+        'bolt-diy-nr2c.onrender.com',
+        '.onrender.com',
+        'localhost',
+      ],
+    },
     build: {
       target: 'esnext',
     },
