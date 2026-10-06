@@ -4,14 +4,12 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { diffLines, type Change } from 'diff';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect, useState, useMemo } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo, lazy, Suspense } from 'react';
 import type { JSX } from 'react';
 import { toast } from 'react-toastify';
-import { DiffView } from './DiffView';
 import { EditorPanel } from './EditorPanel';
 
 import type { ElementInfo } from './Inspector';
-import { Preview } from './Preview';
 import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
 import {
   type OnChangeCallback as OnEditorChange,
@@ -27,6 +25,11 @@ import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
 import type { FileHistory } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
+import { debounce } from '~/utils/debounce';
+
+// Lazy load heavy components for better initial load performance
+const DiffView = lazy(() => import('./DiffView').then((m) => ({ default: m.DiffView })));
+const Preview = lazy(() => import('./Preview').then((m) => ({ default: m.Preview })));
 import { cubicEasingFn } from '~/utils/easings';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import { renderLogger } from '~/utils/logger';
@@ -86,10 +89,24 @@ const FileModifiedDropdown = memo(
     const modifiedFiles = Object.entries(fileHistory);
     const hasChanges = modifiedFiles.length > 0;
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
+
+    // Debounce search to improve performance
+    const debouncedSetQuery = useMemo(() => debounce((query: string) => setDebouncedQuery(query), 300), []);
+
+    useEffect(() => {
+      debouncedSetQuery(searchQuery);
+    }, [searchQuery, debouncedSetQuery]);
 
     const filteredFiles = useMemo(() => {
-      return modifiedFiles.filter(([filePath]) => filePath.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [modifiedFiles, searchQuery]);
+      if (!debouncedQuery) {
+        return modifiedFiles;
+      }
+
+      const query = debouncedQuery.toLowerCase();
+
+      return modifiedFiles.filter(([filePath]) => filePath.toLowerCase().includes(query));
+    }, [modifiedFiles, debouncedQuery]);
 
     return (
       <div className="flex items-center gap-2">
@@ -500,10 +517,26 @@ export const Workbench = memo(
                     initial={{ x: '100%' }}
                     animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
                   >
-                    <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
+                    <Suspense
+                      fallback={
+                        <div className="flex items-center justify-center h-full">
+                          <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
+                        </div>
+                      }
+                    >
+                      <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
+                    </Suspense>
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
-                    <Preview setSelectedElement={setSelectedElement} />
+                    <Suspense
+                      fallback={
+                        <div className="flex items-center justify-center h-full">
+                          <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
+                        </div>
+                      }
+                    >
+                      <Preview setSelectedElement={setSelectedElement} />
+                    </Suspense>
                   </View>
                 </div>
               </div>
