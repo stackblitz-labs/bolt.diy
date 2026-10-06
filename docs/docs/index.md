@@ -1,6 +1,6 @@
 # Welcome to bolt diy
 
-bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 19 providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 21+ providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, Cerebras, Fireworks, Z-AI, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
 ## Table of Contents
 
@@ -40,7 +40,7 @@ Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos
 ## Features
 
 - **AI-powered full-stack web development** directly in your browser with live preview
-- **Support for 19 LLM providers** with an extensible architecture to integrate additional models
+- **Support for 21+ LLM providers** with an extensible architecture to integrate additional models
 - **Attach images and files to prompts** for better contextual understanding
 - **Integrated terminal** with WebContainer sandbox for running commands and testing
 - **Version control with Git** - import/export projects, connect to GitHub repositories
@@ -66,7 +66,8 @@ If you're new to installing software from GitHub, don't worry! If you encounter 
 
 1. **Install Git**: [Download Git](https://git-scm.com/downloads)
 2. **Install Node.js**: [Download Node.js](https://nodejs.org/en/download/)
-
+   - **Version Required**: Node.js **>= 22.12.0** (required by Vite 8 for Rolldown native bindings).
+   - **Package Manager**: pnpm **>= 9.15.9** (`npm install -g pnpm`).
    - After installation, the Node.js path is usually added to your system automatically. To verify:
      - **Windows**: Search for "Edit the system environment variables," click "Environment Variables," and check if `Node.js` is in the `Path` variable.
      - **Mac/Linux**: Open a terminal and run:
@@ -115,9 +116,9 @@ ANTHROPIC_API_KEY=XXX
 
 Once you've set your keys, you can proceed with running the app. You will set these keys up during the initial setup, and you can revisit and update them later after the app is running.
 
-**Important for Docker users**: Docker Compose needs a `.env` file for variable substitution. After creating `.env.local`:
-- Run `./scripts/setup-env.sh` to automatically sync the files, or  
-- Manually copy: `cp .env.local .env`
+**Important for Docker users**: Docker Compose needs a `.env` file for variable substitution.
+- For development: Run `./scripts/setup-env.sh` to sync `.env.local` to `.env`, or manually copy: `cp .env.local .env`
+- For production: You can also use the clean production template: `cp .env.production .env`
 
 **Note**: Never commit your `.env.local` or `.env` files to version control. They're already included in the `.gitignore`.
 
@@ -162,7 +163,7 @@ Once you've configured your keys, the application will be ready to use the selec
    ```bash
    pnpm run dev
    ```
-   This will start the Remix Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
+   This will start the React Router Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
 
 ### Option 2: With Docker
 
@@ -261,7 +262,7 @@ Create a new file in `app/lib/modules/llm/providers/your-provider.ts`:
 ```typescript
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 import type { IProviderSetting } from '~/types/model';
 import { createYourProvider } from '@ai-sdk/your-provider';
 
@@ -294,10 +295,10 @@ export default class YourProvider extends BaseProvider {
 
   getModelInstance(options: {
     model: string;
-    serverEnv: Record<string, string>;
+    serverEnv?: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }): LanguageModelV1 {
+  }): LanguageModel {
     const { apiKeys, model } = options;
     const apiKey = apiKeys?.[this.config.apiTokenKey] || '';
 
@@ -569,15 +570,17 @@ All templates are pre-configured with modern tooling, linting, and build process
 ## Available Scripts
 
 ### Development Scripts
-- `pnpm run dev`: Starts the development server with hot reloading
-- `pnpm run build`: Builds the project for production
-- `pnpm run start`: Runs the built application locally using Wrangler Pages
-- `pnpm run preview`: Builds and starts locally for production testing
-- `pnpm test`: Runs the test suite using Vitest
+- `pnpm run dev`: Starts the React Router development server with hot reloading
+- `pnpm run build`: Builds the project for production (`react-router build`)
+- `pnpm run start`: Starts the local preview server (`vite preview --port 5173`)
+- `pnpm run preview`: Builds and starts locally for production verification
+- `pnpm test`: Runs the unit and integration test suite using Vitest
 - `pnpm run test:watch`: Runs tests in watch mode
-- `pnpm run lint`: Runs ESLint with auto-fix
-- `pnpm run typecheck`: Runs TypeScript type checking
-- `pnpm run typegen`: Generates TypeScript types using Wrangler
+- `pnpm run test:e2e`: Runs Playwright end-to-end integration tests
+- `pnpm run lint`: Runs ESLint
+- `pnpm run lint:fix`: Runs ESLint with auto-fix and Prettier formatting
+- `pnpm run typecheck`: Runs TypeScript type checking (`tsc`)
+- `pnpm run typegen`: Generates worker types using Wrangler
 
 ### Docker Scripts
 - `pnpm run dockerbuild`: Builds Docker image for development
@@ -586,8 +589,10 @@ All templates are pre-configured with modern tooling, linting, and build process
 - `docker compose --profile development up`: Runs with Docker Compose (development)
 
 ### Electron Scripts
+- `pnpm run electron:dev`: Starts the Electron desktop application in development mode
+- `pnpm run electron:dev:inspect`: Starts Electron with Node inspector enabled on port 9229
+- `pnpm electron:build:win`: Builds the Windows installer
 - `pnpm electron:build:mac`: Builds for macOS
-- `pnpm electron:build:win`: Builds for Windows
 - `pnpm electron:build:linux`: Builds for Linux
 - `pnpm electron:build:dist`: Builds for all platforms (Mac, Windows, Linux)
 - `pnpm electron:build:unpack`: Creates unpacked build for testing
@@ -610,7 +615,7 @@ To start the development server:
 pnpm run dev
 ```
 
-This will start the Remix Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
+This will start the React Router Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
 
 ---
 

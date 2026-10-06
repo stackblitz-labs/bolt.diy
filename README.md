@@ -2,7 +2,7 @@
 
 [![bolt.diy: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.diy)
 
-Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together, Perplexity, Moonshot (Kimi), Hyperbolic, GitHub Models, Amazon Bedrock, and OpenAI-like providers - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+Welcome to bolt.diy, the official open source version of Bolt.new, which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together, Perplexity, Moonshot (Kimi), Hyperbolic, GitHub Models, Amazon Bedrock, Cerebras, Fireworks, Z-AI, and OpenAI-like providers - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
 -----
 Check the [bolt.diy Docs](https://stackblitz-labs.github.io/bolt.diy/) for more official installation instructions and additional information.
@@ -44,7 +44,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 ## Recent Major Additions
 
 ### ✅ Completed Features
-- **19+ AI Provider Integrations** - OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, Cohere, Together, Perplexity, HuggingFace, Ollama, LM Studio, OpenRouter, Moonshot, Hyperbolic, GitHub Models, Amazon Bedrock, OpenAI-like
+- **21+ AI Provider Integrations** - OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, Cohere, Together, Perplexity, HuggingFace, Ollama, LM Studio, OpenRouter, Moonshot, Hyperbolic, GitHub Models, Amazon Bedrock, Cerebras, Fireworks, Z-AI, OpenAI-like
 - **Electron Desktop App** - Native desktop experience with full functionality
 - **Advanced Deployment Options** - Netlify, Vercel, and GitHub Pages deployment
 - **Supabase Integration** - Database management and query capabilities
@@ -71,7 +71,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 ## Features
 
 - **AI-powered full-stack web development** for **NodeJS based applications** directly in your browser.
-- **Support for 19+ LLMs** with an extensible architecture to integrate additional models.
+- **Support for 21+ LLMs** with an extensible architecture to integrate additional models.
 - **Attach images to prompts** for better contextual understanding.
 - **Integrated terminal** to view output of LLM-run commands.
 - **Revert code to earlier versions** for easier debugging and quicker changes.
@@ -112,7 +112,7 @@ Let's get you up and running with the stable version of Bolt.DIY!
 Node.js is required to run the application.
 
 1. Visit the [Node.js Download Page](https://nodejs.org/en/download/)
-2. Download the "LTS" (Long Term Support) version for your operating system
+2. Download Node.js **>= 22.12.0** (required by Vite 8 for Rolldown native bindings)
 3. Run the installer, accepting the default settings
 4. Verify Node.js is properly installed:
    - **For Windows Users**:
@@ -134,7 +134,7 @@ You have two options for running Bolt.DIY: directly on your machine or using Doc
 
 ### Option 1: Direct Installation (Recommended for Beginners)
 
-1. **Install Package Manager (pnpm)**:
+1. **Install Package Manager (pnpm >= 9.15.9)**:
 
    ```bash
    npm install -g pnpm
@@ -164,11 +164,16 @@ This option requires Docker and is great when you want an isolated environment o
 
 1. **Prepare Environment Variables**
 
-   Copy the provided examples and add your provider keys:
+   Copy the provided template and add your provider keys:
 
    ```bash
-   cp .env.example .env
+   # For local development:
    cp .env.example .env.local
+
+   # For Docker / production deployments:
+   cp .env.example .env
+   # Or use the clean production template:
+   # cp .env.production .env
    ```
 
    The runtime scripts inside the container source `.env` and `.env.local`, so keep any API keys you need in one of those files.
@@ -462,11 +467,13 @@ Remember to always commit your local changes or stash them before pulling update
 
 ## Available Scripts
 
-- **`pnpm run dev`**: Starts the development server.
-- **`pnpm run build`**: Builds the project.
-- **`pnpm run start`**: Runs the built application locally using Wrangler Pages.
-- **`pnpm run preview`**: Builds and runs the production build locally.
-- **`pnpm test`**: Runs the test suite using Vitest.
+- **`pnpm run dev`**: Starts the React Router + Vite development server.
+- **`pnpm run build`**: Builds the application for production (`react-router build`).
+- **`pnpm run start`**: Runs the built application locally using Vite preview.
+- **`pnpm run preview`**: Builds and starts the production preview.
+- **`pnpm test`**: Runs unit and integration tests with Vitest.
+- **`pnpm run test:watch`**: Runs tests in watch mode.
+- **`pnpm run test:e2e`**: Runs Playwright end-to-end integration tests.
 - **`pnpm run typecheck`**: Runs TypeScript type checking.
 - **`pnpm run typegen`**: Generates TypeScript types using Wrangler.
 - **`pnpm run deploy`**: Deploys the project to Cloudflare Pages.
@@ -480,6 +487,8 @@ Remember to always commit your local changes or stash them before pulling update
   - **`pnpm run dockerrun`**: Runs the Docker container.
   - **`pnpm run dockerstart`**: Starts the Docker container with proper bindings.
 - **Electron Scripts**:
+  - **`pnpm run electron:dev`**: Runs Electron app in development mode.
+  - **`pnpm run electron:dev:inspect`**: Runs Electron app with Node inspector enabled on port 9229.
   - **`pnpm electron:build:deps`**: Builds Electron main and preload scripts.
   - **`pnpm electron:build:main`**: Builds the Electron main process.
   - **`pnpm electron:build:preload`**: Builds the Electron preload script.

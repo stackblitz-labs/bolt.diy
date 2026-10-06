@@ -1,3 +1,53 @@
+# Since version 1.0.0
+
+## What's Changed 🌟
+
+### ✨ Features
+
+* upgrade the AI SDK from v4 to v7 ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (853bd2a) by @dustinwloring1988
+* write both message shapes at the v4 call sites ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (85b0cc1) by @dustinwloring1988
+* add dual-shape message accessors for the v4 to v5 migration ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (f4b3143) by @dustinwloring1988
+* add AI SDK v4 to v5+ message migration module ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (b47f528) by @dustinwloring1988
+* enable Anthropic, OpenAI and Google alongside OpenRouter ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (f3c2b5e) by @dustinwloring1988
+* update core stack React 19 / Vite 8 / TS 7 ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (2f1e20d) by @dustinwloring1988
+
+### 🐛 Bug Fixes
+
+* resolve process.cwd is not a function error in file actions ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211)) (31aff28) by @dustinwloring1988
+* stop losing message fields on import/export, typecheck two chat files ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (1bf219d) by @dustinwloring1988
+* repair the electron build scripts, which could not run ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (951b2dd) by @dustinwloring1988
+* move wrangler to dependencies so the production image can start ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (6ef0f60) by @dustinwloring1988
+* restore typecheck and lint on the merged React 19 / Vite 8 stack ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (035364a) by @dustinwloring1988
+
+### ⚡ Performance Improvements
+
+* easy performance wins and TDD improvements: reduce unnecessary renders and lazy-load workbench views ([#2212](https://github.com/stackblitz-labs/bolt.diy/pull/2212)) (972059e) by @dustinwloring1988
+
+### ♻️ Code Refactoring
+
+* read presentation components through the dual-shape accessors ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (bc984d9) by @dustinwloring1988
+* make persistence reads shape-agnostic, drop dead ChatMessage ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (4228bdf) by @dustinwloring1988
+* read message data through the dual-shape accessors ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (2fe4e7e) by @dustinwloring1988
+
+### 🧪 Tests
+
+* pin the OpenAI provider wire format before the SDK upgrade ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (0cc227f) by @dustinwloring1988
+* add migration safety harness (stream protocol, llm utils, mcp tools, e2e persistence) and extract reasoning rewrite transform ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (cd755e9) by @dustinwloring1988
+
+### ⚙️ CI
+
+* remove hardcoded pnpm version from security and test workflows ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211)) (e3003b8) by @dustinwloring1988
+* replace deleted cloudflare/pages-action with wrangler-action ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (7a7264b) by @dustinwloring1988
+* bump Node to 22 so Vite 8 gets its rolldown native binding, add .gitattributes ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (923bec3) by @dustinwloring1988
+
+### 🔍 Other Changes
+
+* modernize dependencies and frameworks: migrate to React Router v7, Remix 2.17, Zod 4, Electron 44.5.1, Shiki v4, and update WebContainer API ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211), [#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210), [#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) by @dustinwloring1988
+* broad dependency updates and cleanup across UI and runtime libraries (framer-motion, date-fns, lucide-react, xterm, octokit, pnpm 12) ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211), [#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) by @dustinwloring1988
+* developer tooling and configuration enhancements: add benchmark scripts, adjust OpenRouter completion limits, and remove stale type stubs ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210), [#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) by @dustinwloring1988
+
+---
+
 # 🚀 Release v1.0.0
 
 ## What's Changed 🌟
