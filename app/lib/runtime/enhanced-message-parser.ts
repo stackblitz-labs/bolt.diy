@@ -406,14 +406,19 @@ ${content.trim()}
   }
 
   private _isCommandSequence(lines: string[]): boolean {
-    // If most lines look like individual commands, treat as command sequence
-    const commandLikeLines = lines.filter(
-      (line) =>
-        line.length > 0 && !line.startsWith('#') && (this._isSingleLineCommand(line) || this._isSimpleCommand(line)),
+    // Only consider non-comment, non-empty lines when computing the ratio.
+    const nonCommentLines = lines.filter((line) => line.length > 0 && !line.startsWith('#'));
+
+    if (nonCommentLines.length === 0) {
+      return false;
+    }
+
+    const commandLikeLines = nonCommentLines.filter(
+      (line) => this._isSingleLineCommand(line) || this._isSimpleCommand(line),
     );
 
     // If more than 70% of non-comment lines are commands, treat as command sequence
-    return commandLikeLines.length / lines.length > 0.7;
+    return commandLikeLines.length / nonCommentLines.length > 0.7;
   }
 
   private _isSimpleCommand(line: string): boolean {

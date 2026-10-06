@@ -233,6 +233,41 @@ describe('EnhancedStreamingMessageParser', () => {
     );
   });
 
+  it('should detect a shell command sequence even when interleaved with comments', () => {
+    const callbacks = {
+      onArtifactOpen: vi.fn(),
+      onArtifactClose: vi.fn(),
+      onActionOpen: vi.fn(),
+      onActionClose: vi.fn(),
+    };
+
+    const parser = new EnhancedStreamingMessageParser({
+      callbacks,
+    });
+
+    /*
+     * 2 of 2 non-comment lines are commands (100%); comment lines must not
+     * dilute the ratio, otherwise this is misclassified as a file to write.
+     */
+    const input = [
+      '```bash',
+      '# Install dependencies',
+      'npm install',
+      '# Start the dev server',
+      'npm run dev',
+      '```',
+    ].join('\n');
+    parser.parse('test_id', input);
+
+    expect(callbacks.onActionOpen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: expect.objectContaining({
+          type: 'shell',
+        }),
+      }),
+    );
+  });
+
   it('should detect file creation from code blocks with context', () => {
     const callbacks = {
       onArtifactOpen: vi.fn(),
