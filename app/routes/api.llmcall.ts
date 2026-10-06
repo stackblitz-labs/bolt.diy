@@ -1,10 +1,12 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { generateText } from 'ai';
+import { generateText, type UIMessage } from 'ai';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel } from '~/lib/.server/llm/constants';
+import { toLlmCallResponse } from '~/lib/.server/llm/llmcall-response';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
+import { createMessage } from '~/lib/persistence/messageMigration';
 import type { IProviderSetting, ProviderInfo } from '~/types/model';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
@@ -101,10 +103,12 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
           system,
         },
         messages: [
-          {
-            role: 'user',
-            content: `${message}`,
-          },
+          /*
+           * Cast: createMessage returns the SDK-independent AnyMessage so the
+           * migration module survives the version bump, but the object it
+           * builds is a valid UIMessage.
+           */
+          createMessage({ role: 'user', text: `${message}` }) as unknown as Omit<UIMessage, 'id'>,
         ],
         env: context.cloudflare?.env as any,
         apiKeys,
@@ -182,8 +186,11 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
       const isReasoning = isReasoningModel(modelDetails.name);
       logger.info(`DEBUG: Model "${modelDetails.name}" detected as reasoning model: ${isReasoning}`);
 
-      // Use maxCompletionTokens for reasoning models (o1, GPT-5), maxTokens for traditional models
-      const tokenParams = isReasoning ? { maxCompletionTokens: dynamicMaxTokens } : { maxTokens: dynamicMaxTokens };
+      /*
+       * v5 folded maxTokens and maxCompletionTokens into maxOutputTokens. The old
+       * keys are no longer read, so keeping them meant no output cap at all.
+       */
+      const tokenParams = { maxOutputTokens: dynamicMaxTokens };
 
       // Filter out unsupported parameters for reasoning models
       const baseParams = {
@@ -216,8 +223,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
           {
             isReasoning,
             hasTemperature: 'temperature' in finalParams,
-            hasMaxTokens: 'maxTokens' in finalParams,
-            hasMaxCompletionTokens: 'maxCompletionTokens' in finalParams,
+            hasMaxOutputTokens: 'maxOutputTokens' in finalParams,
             paramKeys: Object.keys(finalParams).filter((key) => !['model', 'messages', 'system'].includes(key)),
             tokenParams,
             finalParams: Object.fromEntries(
@@ -232,7 +238,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
       const result = await generateText(finalParams);
       logger.info(`Generated response`);
 
-      return new Response(JSON.stringify(result), {
+      return new Response(JSON.stringify(toLlmCallResponse(result)), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',

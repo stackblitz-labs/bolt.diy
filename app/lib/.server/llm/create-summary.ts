@@ -1,6 +1,7 @@
-import { generateText, type CoreTool, type GenerateTextResult, type Message } from 'ai';
+import { generateText, type UIMessage } from 'ai';
 import { extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { createMessage, getFirstTextPart, getMessageText } from '~/lib/persistence/messageMigration';
 import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
@@ -8,13 +9,13 @@ import { createScopedLogger } from '~/utils/logger';
 const logger = createScopedLogger('create-summary');
 
 export async function createSummary(props: {
-  messages: Message[];
+  messages: UIMessage[];
   env?: Env;
   apiKeys?: Record<string, string>;
   providerSettings?: Record<string, IProviderSetting>;
   promptId?: string;
   contextOptimization?: boolean;
-  onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
+  onFinish?: (resp: Awaited<ReturnType<typeof generateText>>) => void;
 }) {
   const { messages, env: serverEnv, apiKeys, providerSettings, onFinish } = props;
 
@@ -23,19 +24,22 @@ export async function createSummary(props: {
 
   const processedMessages = messages.map((message) => {
     if (message.role === 'user') {
-      const { model, provider, content } = extractPropertiesFromMessage(message);
+      const { model, provider } = extractPropertiesFromMessage(message);
       currentModel = model;
       currentProvider = provider;
 
-      return { ...message, content };
+      return message;
     } else if (message.role == 'assistant') {
-      let content = message.content;
+      /*
+       * Rebuilt through createMessage so the text lands in both `content` and
+       * `parts`. convertToModelMessages reads only `parts` and throws on
+       * `message.parts.some(...)` when it is undefined, so an assistant
+       * message left without parts is a hard TypeError, not a soft degradation.
+       */
+      let text = simplifyBoltActions(getMessageText(message));
+      text = text.replace(/<think>.*?<\/think>/s, '');
 
-      content = simplifyBoltActions(content);
-      content = content.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/s, '');
-      content = content.replace(/<think>.*?<\/think>/s, '');
-
-      return { ...message, content };
+      return createMessage({ id: message.id, role: 'assistant', text }) as UIMessage;
     }
 
     return message;
@@ -99,10 +103,7 @@ ${summary.summary}`;
 
   logger.debug('Sliced Messages:', slicedMessages.length);
 
-  const extractTextContent = (message: Message) =>
-    Array.isArray(message.content)
-      ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
-      : message.content;
+  const extractTextContent = getFirstTextPart;
 
   // select files from the list of code file from the project that might be useful for the current request from the user
   const resp = await generateText({

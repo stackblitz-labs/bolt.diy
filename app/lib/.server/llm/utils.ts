@@ -1,47 +1,61 @@
-import { type Message } from 'ai';
 import ignore from 'ignore';
 import { IGNORE_PATTERNS, type FileMap } from './constants';
+import {
+  type AnyMessage,
+  getFirstTextPart,
+  getMessageAnnotations,
+  getMessageParts,
+} from '~/lib/persistence/messageMigration';
 import type { ContextAnnotation } from '~/types/context';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 
-export function extractPropertiesFromMessage(message: Omit<Message, 'id'>): {
+export function extractPropertiesFromMessage(message: AnyMessage): {
   model: string;
   provider: string;
   content: string;
+  parts?: Record<string, unknown>[];
 } {
-  const textContent = Array.isArray(message.content)
-    ? message.content.find((item) => item.type === 'text')?.text || ''
-    : (message.content ?? '');
+  /*
+   * Only the first text segment drives the markers. MODEL_REGEX is ^-anchored,
+   * so scanning the joined text would look at the same place anyway, but
+   * PROVIDER_REGEX is unanchored and would start matching markers in later parts.
+   */
+  const textContent = getFirstTextPart(message);
 
   const modelMatch = textContent.match(MODEL_REGEX);
   const providerMatch = textContent.match(PROVIDER_REGEX);
 
-  /*
-   * Extract model
-   * const modelMatch = message.content.match(MODEL_REGEX);
-   */
   const model = modelMatch ? modelMatch[1] : DEFAULT_MODEL;
-
-  /*
-   * Extract provider
-   * const providerMatch = message.content.match(PROVIDER_REGEX);
-   */
   const provider = providerMatch ? providerMatch[1] : DEFAULT_PROVIDER.name;
 
-  const cleanedContent = Array.isArray(message.content)
-    ? message.content.map((item) => {
-        if (item.type === 'text') {
-          return {
-            type: 'text',
-            text: item.text?.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, ''),
-          };
-        }
+  const strip = (value: string) => value.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, '');
 
-        return item; // Preserve image_url and other types as is
-      })
-    : textContent.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, '');
+  const parts = getMessageParts(message);
 
-  return { model, provider, content: cleanedContent };
+  if (parts) {
+    const cleaned = parts.map((part) =>
+      part?.type === 'text' && typeof part.text === 'string' ? { ...part, text: strip(part.text) } : part,
+    );
+
+    /*
+     * `content` stays a string so callers can hand it to sanitizeText and the
+     * template interpolation in create-summary/select-context. It previously
+     * returned the array here while claiming to return a string, which made
+     * stream-text.ts:94 call .replace() on an array. `parts` carries the
+     * cleaned part list so non-text parts such as images survive.
+     */
+    return {
+      model,
+      provider,
+      content: cleaned
+        .filter((part) => part?.type === 'text' && typeof part.text === 'string')
+        .map((part) => part.text as string)
+        .join(''),
+      parts: cleaned,
+    };
+  }
+
+  return { model, provider, content: strip(textContent) };
 }
 
 export function simplifyBoltActions(input: string): string {
@@ -89,7 +103,9 @@ export function createFilesContext(files: FileMap, useRelativePath?: boolean) {
   return `<boltArtifact id="code-content" title="Code Content" >\n${fileContexts.join('\n')}\n</boltArtifact>`;
 }
 
-export function extractCurrentContext(messages: Message[]) {
+export function extractCurrentContext(
+  messages: { role?: string; parts?: unknown; content?: unknown; annotations?: unknown }[],
+) {
   const lastAssistantMessage = messages.filter((x) => x.role == 'assistant').slice(-1)[0];
 
   if (!lastAssistantMessage) {
@@ -99,28 +115,12 @@ export function extractCurrentContext(messages: Message[]) {
   let summary: ContextAnnotation | undefined;
   let codeContext: ContextAnnotation | undefined;
 
-  if (!lastAssistantMessage.annotations?.length) {
-    return { summary: undefined, codeContext: undefined };
-  }
-
-  for (let i = 0; i < lastAssistantMessage.annotations.length; i++) {
-    const annotation = lastAssistantMessage.annotations[i];
-
-    if (!annotation || typeof annotation !== 'object') {
-      continue;
-    }
-
-    if (!(annotation as any).type) {
-      continue;
-    }
-
-    const annotationObject = annotation as any;
-
-    if (annotationObject.type === 'codeContext') {
-      codeContext = annotationObject;
+  for (const annotation of getMessageAnnotations(lastAssistantMessage)) {
+    if (annotation.type === 'codeContext') {
+      codeContext = annotation as ContextAnnotation;
       break;
-    } else if (annotationObject.type === 'chatSummary') {
-      summary = annotationObject;
+    } else if (annotation.type === 'chatSummary') {
+      summary = annotation as ContextAnnotation;
       break;
     }
   }

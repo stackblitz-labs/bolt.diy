@@ -599,16 +599,27 @@ export function useDataOperations({
 
           // Ensure each message has required fields
           const validatedMessages = chat.messages.map((msg: any) => {
-            if (!msg.role || !msg.content) {
+            if (!msg || typeof msg !== 'object' || !msg.role) {
               throw new Error('Invalid message format: missing required fields');
             }
 
+            /*
+             * v4 messages carry `content`; v5+ carry `parts`. Accept either so
+             * imports survive the AI SDK migration.
+             */
+            const hasPayload = Boolean(msg.content) || (Array.isArray(msg.parts) && msg.parts.length > 0);
+
+            if (!hasPayload) {
+              throw new Error('Invalid message format: missing required fields');
+            }
+
+            /*
+             * Copy every field through rather than a fixed key list, so parts,
+             * annotations and attachments survive the round trip.
+             */
             return {
+              ...msg,
               id: msg.id || generateId(),
-              role: msg.role,
-              content: msg.content,
-              name: msg.name,
-              function_call: msg.function_call,
               timestamp: msg.timestamp || Date.now(),
             };
           });

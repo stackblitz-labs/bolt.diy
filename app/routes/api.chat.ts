@@ -1,14 +1,20 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { createDataStream, generateId } from 'ai';
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  generateId,
+  isStepCount,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
-import { createReasoningRewriteTransform } from '~/lib/.server/llm/data-stream-parts';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
-import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
+import { createMessage, getMessageText } from '~/lib/persistence/messageMigration';
 import { MCPService } from '~/lib/services/mcpService';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
 import type { DesignScheme } from '~/types/design-scheme';
@@ -75,7 +81,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     parseCookies(cookieHeader || '').providers || '{}',
   );
 
-  const stream = new SwitchableStream();
+  /*
+   * SwitchableStream is no longer used: its .switches counter was the only
+   * thing read and it never advanced, which left the MAX_RESPONSE_SEGMENTS guard
+   * dead. Continuation segments are now counted explicitly below.
+   */
 
   const cumulativeUsage = {
     completionTokens: 0,
@@ -87,12 +97,46 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   try {
     const mcpService = MCPService.getInstance();
-    const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
+    const totalMessageContent = messages.reduce((acc, message) => acc + getMessageText(message), '');
     logger.debug(`Total message length: ${totalMessageContent.split(' ').length}, words`);
 
-    const dataStream = createDataStream({
-      async execute(dataStream) {
+    const responseMessageId = generateId();
+
+    /*
+     * Counts continuation segments. This used to read SwitchableStream.switches,
+     * which is only incremented by switchSource() and is never called, so the
+     * MAX_RESPONSE_SEGMENTS guard was dead and a model that kept returning
+     * finishReason 'length' could recurse without bound.
+     */
+    let responseSegments = 0;
+
+    /*
+     * Single chunk observer shared by the initial and continuation segments.
+     * v7 exposes one stream per streamText call, so progress is observed through
+     * onChunk rather than by iterating the stream alongside the UI merge.
+     */
+    const observeChunk = ({ chunk }: { chunk: unknown }) => {
+      streamRecovery.updateActivity();
+
+      const part = chunk as { type?: string; error?: unknown };
+
+      if (part.type === 'error') {
+        logger.error('Streaming error:', part.error);
+      }
+    };
+
+    const uiStream = createUIMessageStream({
+      async execute({ writer }) {
         streamRecovery.startMonitoring();
+
+        /*
+         * createUIMessageStream does not emit a start chunk, and
+         * toUIMessageStream only attaches a server-chosen messageId when
+         * originalMessages is supplied. Bolt writes data-* parts before the
+         * model stream is merged, so the id has to be established first or those
+         * parts attach to a client-generated id that later gets renamed.
+         */
+        writer.write({ type: 'start', messageId: responseMessageId });
 
         const filePaths = getFilePaths(files || {});
 
@@ -100,7 +144,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let summary: string | undefined = undefined;
         let messageSliceId = 0;
 
-        const processedMessages = await mcpService.processToolInvocations(messages, dataStream);
+        const processedMessages = await mcpService.processToolInvocations(messages, writer);
 
         if (processedMessages.length > 3) {
           messageSliceId = processedMessages.length - 3;
@@ -108,13 +152,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         if (filePaths.length > 0 && contextOptimization) {
           logger.debug('Generating Chat Summary');
-          dataStream.writeData({
-            type: 'progress',
-            label: 'summary',
-            status: 'in-progress',
-            order: progressCounter++,
-            message: 'Analysing Request',
-          } satisfies ProgressAnnotation);
+          writer.write({
+            type: 'data-progress',
+            data: {
+              type: 'progress',
+              label: 'summary',
+              status: 'in-progress',
+              order: progressCounter++,
+              message: 'Analysing Request',
+            } satisfies ProgressAnnotation,
+          });
 
           // Create a summary of the chat
           console.log(`Messages count: ${processedMessages.length}`);
@@ -129,35 +176,40 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             onFinish(resp) {
               if (resp.usage) {
                 logger.debug('createSummary token usage', JSON.stringify(resp.usage));
-                cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
-                cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+                cumulativeUsage.completionTokens += (resp.usage as any)?.outputTokens || 0;
+                cumulativeUsage.promptTokens += (resp.usage as any)?.inputTokens || 0;
                 cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
               }
             },
           });
-          dataStream.writeData({
-            type: 'progress',
-            label: 'summary',
-            status: 'complete',
-            order: progressCounter++,
-            message: 'Analysis Complete',
-          } satisfies ProgressAnnotation);
+          writer.write({
+            type: 'data-progress',
+            data: {
+              type: 'progress',
+              label: 'summary',
+              status: 'complete',
+              order: progressCounter++,
+              message: 'Analysis Complete',
+            } satisfies ProgressAnnotation,
+          });
 
-          dataStream.writeMessageAnnotation({
-            type: 'chatSummary',
-            summary,
-            chatId: processedMessages.slice(-1)?.[0]?.id,
-          } as ContextAnnotation);
+          writer.write({
+            type: 'data-chatSummary',
+            data: { summary, chatId: processedMessages.slice(-1)?.[0]?.id } as ContextAnnotation,
+          });
 
           // Update context buffer
           logger.debug('Updating Context Buffer');
-          dataStream.writeData({
-            type: 'progress',
-            label: 'context',
-            status: 'in-progress',
-            order: progressCounter++,
-            message: 'Determining Files to Read',
-          } satisfies ProgressAnnotation);
+          writer.write({
+            type: 'data-progress',
+            data: {
+              type: 'progress',
+              label: 'context',
+              status: 'in-progress',
+              order: progressCounter++,
+              message: 'Determining Files to Read',
+            } satisfies ProgressAnnotation,
+          });
 
           // Select context files
           console.log(`Messages count: ${processedMessages.length}`);
@@ -173,8 +225,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             onFinish(resp) {
               if (resp.usage) {
                 logger.debug('selectContext token usage', JSON.stringify(resp.usage));
-                cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
-                cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+                cumulativeUsage.completionTokens += (resp.usage as any)?.outputTokens || 0;
+                cumulativeUsage.promptTokens += (resp.usage as any)?.inputTokens || 0;
                 cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
               }
             },
@@ -184,88 +236,114 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             logger.debug(`files in context : ${JSON.stringify(Object.keys(filteredFiles))}`);
           }
 
-          dataStream.writeMessageAnnotation({
-            type: 'codeContext',
-            files: Object.keys(filteredFiles).map((key) => {
-              let path = key;
+          writer.write({
+            type: 'data-codeContext',
+            data: {
+              files: Object.keys(filteredFiles).map((key) => {
+                let path = key;
 
-              if (path.startsWith(WORK_DIR)) {
-                path = path.replace(WORK_DIR, '');
-              }
+                if (path.startsWith(WORK_DIR)) {
+                  path = path.replace(WORK_DIR, '');
+                }
 
-              return path;
-            }),
-          } as ContextAnnotation);
+                return path;
+              }),
+            } as ContextAnnotation,
+          });
 
-          dataStream.writeData({
-            type: 'progress',
-            label: 'context',
-            status: 'complete',
-            order: progressCounter++,
-            message: 'Code Files Selected',
-          } satisfies ProgressAnnotation);
+          writer.write({
+            type: 'data-progress',
+            data: {
+              type: 'progress',
+              label: 'context',
+              status: 'complete',
+              order: progressCounter++,
+              message: 'Code Files Selected',
+            } satisfies ProgressAnnotation,
+          });
 
           // logger.debug('Code Files Selected');
         }
 
-        const options: StreamingOptions = {
+        const mcpTools = mcpService.toolsWithoutExecute;
+        const hasMcpTools = Object.keys(mcpTools).length > 0;
+
+        const options: Omit<StreamingOptions, 'messages'> = {
           supabaseConnection: supabase,
-          toolChoice: 'auto',
-          tools: mcpService.toolsWithoutExecute,
-          maxSteps: maxLLMSteps,
-          onStepFinish: ({ toolCalls }) => {
+
+          /*
+           * With no MCP servers configured these were an empty object plus
+           * toolChoice 'auto'. Sending an empty toolset is meaningless to a
+           * provider and can nudge it into inventing tool-call syntax, which
+           * bolt cannot execute. Bolt's own file edits travel as
+           * <boltAction> text tags, so they need no tool registration.
+           */
+          ...(hasMcpTools ? { toolChoice: 'auto' as const, tools: mcpTools } : {}),
+
+          /*
+           * isStepCount(undefined) can never be true, and supplying it replaces
+           * v7's own default of isStepCount(1), so the step cap would be dead.
+           */
+          stopWhen: isStepCount(maxLLMSteps ?? 1),
+          onStepEnd: ({ toolCalls }) => {
             // add tool call annotations for frontend processing
             toolCalls.forEach((toolCall) => {
-              mcpService.processToolCall(toolCall, dataStream);
+              mcpService.processToolCall(toolCall, writer);
             });
           },
-          onFinish: async ({ text: content, finishReason, usage }) => {
+          onEnd: async ({ text: content, finishReason, usage }) => {
             logger.debug('usage', JSON.stringify(usage));
 
             if (usage) {
-              cumulativeUsage.completionTokens += usage.completionTokens || 0;
-              cumulativeUsage.promptTokens += usage.promptTokens || 0;
+              cumulativeUsage.completionTokens += usage.outputTokens || 0;
+              cumulativeUsage.promptTokens += usage.inputTokens || 0;
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
             }
 
             if (finishReason !== 'length') {
-              dataStream.writeMessageAnnotation({
-                type: 'usage',
-                value: {
+              writer.write({
+                type: 'data-usage',
+                data: {
                   completionTokens: cumulativeUsage.completionTokens,
                   promptTokens: cumulativeUsage.promptTokens,
                   totalTokens: cumulativeUsage.totalTokens,
                 },
               });
-              dataStream.writeData({
-                type: 'progress',
-                label: 'response',
-                status: 'complete',
-                order: progressCounter++,
-                message: 'Response Generated',
-              } satisfies ProgressAnnotation);
+              writer.write({
+                type: 'data-progress',
+                data: {
+                  type: 'progress',
+                  label: 'response',
+                  status: 'complete',
+                  order: progressCounter++,
+                  message: 'Response Generated',
+                } satisfies ProgressAnnotation,
+              });
               await new Promise((resolve) => setTimeout(resolve, 0));
 
-              // stream.close();
               return;
             }
 
-            if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
+            if (responseSegments >= MAX_RESPONSE_SEGMENTS) {
               throw Error('Cannot continue message: Maximum segments reached');
             }
 
-            const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
+            responseSegments += 1;
+
+            const switchesLeft = MAX_RESPONSE_SEGMENTS - responseSegments;
 
             logger.info(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
 
             const lastUserMessage = processedMessages.filter((x) => x.role == 'user').slice(-1)[0];
             const { model, provider } = extractPropertiesFromMessage(lastUserMessage);
-            processedMessages.push({ id: generateId(), role: 'assistant', content });
-            processedMessages.push({
-              id: generateId(),
-              role: 'user',
-              content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${CONTINUE_PROMPT}`,
-            });
+            processedMessages.push(createMessage({ id: generateId(), role: 'assistant', text: content }) as UIMessage);
+            processedMessages.push(
+              createMessage({
+                id: generateId(),
+                role: 'user',
+                text: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${CONTINUE_PROMPT}`,
+              }) as UIMessage,
+            );
 
             const result = await streamText({
               messages: [...processedMessages],
@@ -281,32 +359,37 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               designScheme,
               summary,
               messageSliceId,
+
+              /*
+               * Without this the continuation segment produces no activity, so a
+               * slow continuation trips the staleness timeout and triggers a
+               * spurious recovery attempt.
+               */
+              onChunk: observeChunk,
             });
 
-            result.mergeIntoDataStream(dataStream);
+            writer.merge(toUIMessageStream({ stream: result.stream, sendStart: false, sendFinish: false }));
 
-            (async () => {
-              for await (const part of result.fullStream) {
-                if (part.type === 'error') {
-                  const error: any = part.error;
-                  logger.error(`${error}`);
-
-                  return;
-                }
-              }
-            })();
-
+            /*
+             * The old code iterated result.fullStream here in parallel with the
+             * merge above. In v7 fullStream is the same stream object, so the
+             * second consumer starved the first. Chunk observation now happens
+             * in onChunk, which fires as the merged consumer reads.
+             */
             return;
           },
         };
 
-        dataStream.writeData({
-          type: 'progress',
-          label: 'response',
-          status: 'in-progress',
-          order: progressCounter++,
-          message: 'Generating Response',
-        } satisfies ProgressAnnotation);
+        writer.write({
+          type: 'data-progress',
+          data: {
+            type: 'progress',
+            label: 'response',
+            status: 'in-progress',
+            order: progressCounter++,
+            message: 'Generating Response',
+          } satisfies ProgressAnnotation,
+        });
 
         const result = await streamText({
           messages: [...processedMessages],
@@ -322,32 +405,29 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           designScheme,
           summary,
           messageSliceId,
+          onChunk: observeChunk,
         });
 
-        (async () => {
-          for await (const part of result.fullStream) {
-            streamRecovery.updateActivity();
+        writer.merge(
+          toUIMessageStream({
+            stream: result.stream,
+            sendStart: false,
+            sendFinish: true,
+          }),
+        );
+      },
 
-            if (part.type === 'error') {
-              const error: any = part.error;
-              logger.error('Streaming error:', error);
-              streamRecovery.stop();
-
-              // Enhanced error handling for common streaming issues
-              if (error.message?.includes('Invalid JSON response')) {
-                logger.error('Invalid JSON response detected - likely malformed API response');
-              } else if (error.message?.includes('token')) {
-                logger.error('Token-related error detected - possible token limit exceeded');
-              }
-
-              return;
-            }
-          }
-          streamRecovery.stop();
-        })();
-        result.mergeIntoDataStream(dataStream);
+      /*
+       * Staleness detection used to be torn down by the tail of the parallel
+       * fullStream loop. With a single consumer, onEnd is the reliable signal
+       * that every merged stream has drained.
+       */
+      onEnd: () => {
+        streamRecovery.stop();
       },
       onError: (error: any) => {
+        streamRecovery.stop();
+
         // Provide more specific error messages for common issues
         const errorMessage = error.message || 'Unknown error';
 
@@ -381,16 +461,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         return `Custom error: ${errorMessage}`;
       },
-    }).pipeThrough(createReasoningRewriteTransform());
+    });
 
-    return new Response(dataStream, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/event-stream; charset=utf-8',
-        Connection: 'keep-alive',
-        'Cache-Control': 'no-cache',
-        'Text-Encoding': 'chunked',
-      },
+    /*
+     * createUIMessageStreamResponse sets the whole SSE header set, including
+     * `x-vercel-ai-ui-message-stream: v1`, and pipes the chunk stream through
+     * JsonToSseTransformStream. The v4 hand-rolled headers are gone; note that
+     * `Text-Encoding: chunked` is meaningless on the Fetch API and was dropped.
+     */
+    return createUIMessageStreamResponse({
+      stream: uiStream,
+      keepAliveMs: 15_000,
     });
   } catch (error: any) {
     logger.error(error);

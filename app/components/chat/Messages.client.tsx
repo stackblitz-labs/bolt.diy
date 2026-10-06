@@ -1,5 +1,5 @@
 import { useLocation } from '@remix-run/react';
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { Fragment } from 'react';
 import { forwardRef } from 'react';
 import type { ForwardedRef } from 'react';
@@ -7,21 +7,30 @@ import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
 import { forkChat } from '~/lib/persistence/db';
+import { getMessageText, hasMessageFlag } from '~/lib/persistence/messageMigration';
 import { db, chatId } from '~/lib/persistence/useChatHistory';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
+
+/*
+ * v5 removed UIMessage.content, but Chat.client still needs to hand the parsed
+ * artifact/action stream to the renderer. useMessageParser turns the raw model
+ * text (which contains <boltArtifact>/<boltAction> tags) into the display text,
+ * so it travels on this side channel instead of overwriting `content`.
+ */
+export type DisplayMessage = UIMessage & { parsedContent?: string };
 
 interface MessagesProps {
   id?: string;
   className?: string;
   isStreaming?: boolean;
-  messages?: Message[];
-  append?: (message: Message) => void;
+  messages?: DisplayMessage[];
+  append?: (message: UIMessage) => void;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   model?: string;
   provider?: ProviderInfo;
-  addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  addToolResult: (options: { tool: string; toolCallId: string; output: unknown }) => void;
 }
 
 export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
@@ -53,15 +62,20 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
       <div id={id} className={props.className} ref={ref}>
         {messages.length > 0
           ? messages.map((message, index) => {
-              const { role, content, id: messageId, annotations, parts } = message;
+              const { role, id: messageId, parts, parsedContent } = message;
               const isUserMessage = role === 'user';
               const isFirst = index === 0;
-              const isHidden = annotations?.includes('hidden');
+              const isHidden = hasMessageFlag(message, 'hidden');
 
               if (isHidden) {
                 return <Fragment key={index} />;
               }
 
+              /*
+               * Assistant bubbles render useMessageParser's output, which has
+               * already stripped boltArtifact/boltAction tags. Falling back to
+               * the raw parts would leak that markup into the UI.
+               */
               return (
                 <div
                   key={index}
@@ -69,13 +83,12 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                     'mt-4': !isFirst,
                   })}
                 >
-                  <div className="grid grid-col-1 w-full">
+                  <div className="grid grid-cols-1 w-full">
                     {isUserMessage ? (
-                      <UserMessage content={content} parts={parts} />
+                      <UserMessage content={getMessageText(message)} parts={parts} />
                     ) : (
                       <AssistantMessage
-                        content={content}
-                        annotations={message.annotations}
+                        content={parsedContent ?? getMessageText(message)}
                         messageId={messageId}
                         onRewind={handleRewind}
                         onFork={handleFork}

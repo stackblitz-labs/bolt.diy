@@ -1,15 +1,15 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { toast } from 'react-toastify';
 import { ImportFolderButton } from '~/components/chat/ImportFolderButton';
 import { Button } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';
 
 type ChatData = {
-  messages?: Message[]; // Standard Bolt format
+  messages?: UIMessage[]; // Standard Bolt format
   description?: string; // Optional description
 };
 
-export function ImportButtons(importChat: ((description: string, messages: Message[]) => Promise<void>) | undefined) {
+export function ImportButtons(importChat: ((description: string, messages: UIMessage[]) => Promise<void>) | undefined) {
   return (
     <div className="flex flex-col items-center justify-center w-auto">
       <input

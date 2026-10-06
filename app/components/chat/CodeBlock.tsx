@@ -1,10 +1,19 @@
 import { memo, useEffect, useState } from 'react';
-import { bundledLanguages, codeToHtml, isSpecialLang, type BundledLanguage, type SpecialLanguage } from 'shiki';
+import { bundledLanguages, codeToHtml, type BundledLanguage } from 'shiki';
 import styles from './CodeBlock.module.scss';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('CodeBlock');
+
+/**
+ * Languages shiki handles without a bundled grammar, so they are absent from `bundledLanguages`
+ * but still valid inputs to `codeToHtml`. Replaces shiki's removed `SpecialLanguage` / `isSpecialLang`.
+ */
+const SPECIAL_LANGUAGES = ['ansi', 'plaintext', 'plain', 'text', 'txt'];
+type SpecialLanguage = (typeof SPECIAL_LANGUAGES)[number];
+
+const isSpecialLanguage = (language: string): language is SpecialLanguage => SPECIAL_LANGUAGES.includes(language);
 
 interface CodeBlockProps {
   className?: string;
@@ -36,7 +45,7 @@ export const CodeBlock = memo(
     useEffect(() => {
       let effectiveLanguage = language;
 
-      if (language && !isSpecialLang(language) && !(language in bundledLanguages)) {
+      if (language && !isSpecialLanguage(language) && !(language in bundledLanguages)) {
         logger.warn(`Unsupported language '${language}', falling back to plaintext`);
         effectiveLanguage = 'plaintext';
       }

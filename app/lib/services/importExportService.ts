@@ -1,8 +1,8 @@
-import { type Message } from 'ai';
+import { type UIMessage } from 'ai';
 import Cookies from 'js-cookie';
 import { getAllChats, deleteChat } from '~/lib/persistence/chats';
 
-interface ExtendedMessage extends Message {
+interface ExtendedMessage extends UIMessage {
   name?: string;
   function_call?: any;
   timestamp?: number;
@@ -26,27 +26,24 @@ export class ImportExportService {
       // Get all chats from the database using the getAllChats helper
       const chats = await getAllChats(db);
 
-      // Validate and sanitize each chat before export
-      const sanitizedChats = chats.map((chat) => ({
+      /*
+       * Copy each chat as-is. Messages must round-trip losslessly: the caller may use
+       * this export as an undo snapshot, and it backs up messages carrying `parts`,
+       * `annotations` and `experimental_attachments`, none of which fit a fixed key list.
+       */
+      const exportedChats = chats.map((chat) => ({
         id: chat.id,
         description: chat.description || '',
-        messages: chat.messages.map((msg: ExtendedMessage) => ({
-          id: msg.id,
-          role: msg.role,
-          content: msg.content,
-          name: msg.name,
-          function_call: msg.function_call,
-          timestamp: msg.timestamp,
-        })),
+        messages: chat.messages.map((msg: ExtendedMessage) => ({ ...msg })),
         timestamp: chat.timestamp,
         urlId: chat.urlId || null,
         metadata: chat.metadata || null,
       }));
 
-      console.log(`Successfully prepared ${sanitizedChats.length} chats for export`);
+      console.log(`Successfully prepared ${exportedChats.length} chats for export`);
 
       return {
-        chats: sanitizedChats,
+        chats: exportedChats,
         exportDate: new Date().toISOString(),
       };
     } catch (error) {

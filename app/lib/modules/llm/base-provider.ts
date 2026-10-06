@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 import { getEnv } from './env';
 import type { ProviderInfo, ProviderConfig, ModelInfo } from './types';
 import type { IProviderSetting } from '~/types/model';
@@ -171,7 +171,7 @@ export abstract class BaseProvider implements ProviderInfo {
     serverEnv?: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }): LanguageModelV1;
+  }): LanguageModel;
 }
 
 type OptionalApiKey = string | undefined;
@@ -182,5 +182,5 @@ export function getOpenAILikeModel(baseURL: string, apiKey: OptionalApiKey, mode
     apiKey,
   });
 
-  return openai(model);
+  return openai.chat(model);
 }

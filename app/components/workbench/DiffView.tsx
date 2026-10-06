@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { diffLines, type Change } from 'diff';
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
-import { getHighlighter } from 'shiki';
+import { createHighlighter } from 'shiki';
 import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
 import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
@@ -555,7 +555,7 @@ const getSharedHighlighter = async () => {
     return highlighterPromise;
   }
 
-  highlighterPromise = getHighlighter({
+  highlighterPromise = createHighlighter({
     themes: ['github-dark', 'github-light'],
     langs: [
       'typescript',

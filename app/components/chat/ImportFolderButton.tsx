@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '~/components/ui/Button';
@@ -9,7 +9,7 @@ import { createChatFromFolder } from '~/utils/folderImport';
 
 interface ImportFolderButtonProps {
   className?: string;
-  importChat?: (description: string, messages: Message[]) => Promise<void>;
+  importChat?: (description: string, messages: UIMessage[]) => Promise<void>;
 }
 
 export const ImportFolderButton: React.FC<ImportFolderButtonProps> = ({ className, importChat }) => {

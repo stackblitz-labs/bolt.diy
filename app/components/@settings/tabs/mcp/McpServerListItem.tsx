@@ -1,15 +1,8 @@
-import type { Tool } from 'ai';
+import { asSchema, type Tool } from 'ai';
 
 type ParameterProperty = {
   type?: string;
   description?: string;
-};
-
-type ToolParameters = {
-  jsonSchema: {
-    properties?: Record<string, ParameterProperty>;
-    required?: string[];
-  };
 };
 
 type McpToolProps = {
@@ -22,8 +15,21 @@ export default function McpServerListItem({ toolName, toolSchema }: McpToolProps
     return null;
   }
 
-  const parameters = (toolSchema.parameters as ToolParameters)?.jsonSchema.properties || {};
-  const requiredParams = (toolSchema.parameters as ToolParameters)?.jsonSchema.required || [];
+  /*
+   * v5 renamed `parameters` to `inputSchema` and dropped the local ToolParameters
+   * shim in favour of asSchema, which normalises FlexibleSchema. The schema may
+   * be async, hence the local widening at the use site below.
+   */
+  const { jsonSchema } = asSchema((toolSchema as { inputSchema: never }).inputSchema);
+  const resolved = jsonSchema as { properties?: Record<string, ParameterProperty>; required?: string[] } | undefined;
+  const parameters = resolved?.properties || {};
+  const requiredParams = resolved?.required || [];
+
+  /*
+   * Tool is a four-way union in v5 and `description` may be a function of the
+   * call context, which cannot be rendered directly.
+   */
+  const description = typeof toolSchema.description === 'string' ? toolSchema.description : undefined;
 
   return (
     <div className="mt-2 ml-4 p-3 rounded-md bg-bolt-elements-background-depth-2 text-xs">
@@ -32,7 +38,7 @@ export default function McpServerListItem({ toolName, toolSchema }: McpToolProps
           {toolName}
         </h3>
 
-        <p className="text-bolt-elements-textSecondary">{toolSchema.description || 'No description available'}</p>
+        <p className="text-bolt-elements-textSecondary">{description || 'No description available'}</p>
 
         {Object.keys(parameters).length > 0 && (
           <div className="mt-2.5">

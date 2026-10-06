@@ -1,8 +1,7 @@
 import { useChat } from '@ai-sdk/react';
-import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
 import { useSearchParams } from '@remix-run/react';
-import type { Message } from 'ai';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
@@ -12,6 +11,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { description, useChatHistory } from '~/lib/persistence';
+import { createMessage, getMessageText, type AnyPart } from '~/lib/persistence/messageMigration';
 import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
@@ -19,6 +19,7 @@ import { streamingState } from '~/lib/stores/streaming';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { LlmErrorAlertType } from '~/types/actions';
+import type { ProgressAnnotation } from '~/types/context';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
@@ -57,11 +58,11 @@ export function Chat() {
 
 const processSampledMessages = createSampler(
   (options: {
-    messages: Message[];
-    initialMessages: Message[];
+    messages: UIMessage[];
+    initialMessages: UIMessage[];
     isLoading: boolean;
-    parseMessages: (messages: Message[], isLoading: boolean) => void;
-    storeMessageHistory: (messages: Message[]) => Promise<void>;
+    parseMessages: (messages: UIMessage[], isLoading: boolean) => void;
+    storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
   }) => {
     const { messages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
     parseMessages(messages, isLoading);
@@ -74,9 +75,9 @@ const processSampledMessages = createSampler(
 );
 
 interface ChatProps {
-  initialMessages: Message[];
-  storeMessageHistory: (messages: Message[]) => Promise<void>;
-  importChat: (description: string, messages: Message[]) => Promise<void>;
+  initialMessages: UIMessage[];
+  storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
+  importChat: (description: string, messages: UIMessage[]) => Promise<void>;
   exportChat: () => void;
   description?: string;
 }
@@ -121,65 +122,127 @@ export const ChatImpl = memo(
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
 
+    /*
+     * v5 removed the managed input state: `input`, `setInput` and
+     * `handleInputChange` are gone, so it is local state here. `initialInput` is
+     * gone too, hence the useState initializer.
+     */
+    const [input, setInput] = useState(Cookies.get(PROMPT_COOKIE_KEY) || '');
+
+    /*
+     * v5 removed the data array from useChat in favour of an onData
+     * callback, so progress annotations are local state again.
+     */
+    const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+
+    const bodyRef = useRef({
+      apiKeys,
+      files,
+      promptId,
+      contextOptimization: contextOptimizationEnabled,
+      chatMode,
+      designScheme,
+      supabase: {
+        isConnected: supabaseConn.isConnected,
+        hasSelectedProject: !!selectedProject,
+        credentials: {
+          supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
+          anonKey: supabaseConn?.credentials?.anonKey,
+        },
+      },
+      maxLLMSteps: mcpSettings.maxLLMSteps,
+    });
+
+    bodyRef.current = {
+      apiKeys,
+      files,
+      promptId,
+      contextOptimization: contextOptimizationEnabled,
+      chatMode,
+      designScheme,
+      supabase: {
+        isConnected: supabaseConn.isConnected,
+        hasSelectedProject: !!selectedProject,
+        credentials: {
+          supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
+          anonKey: supabaseConn?.credentials?.anonKey,
+        },
+      },
+      maxLLMSteps: mcpSettings.maxLLMSteps,
+    };
+
     const {
       messages,
-      isLoading,
-      input,
-      handleInputChange,
-      setInput,
+      status,
       stop,
-      append,
+      sendMessage: sendChatMessage,
       setMessages,
-      reload,
+      regenerate,
       error,
-      data: chatData,
-      setData,
-      addToolResult,
+      addToolOutput,
     } = useChat({
-      api: '/api/chat',
-      body: {
-        apiKeys,
-        files,
-        promptId,
-        contextOptimization: contextOptimizationEnabled,
-        chatMode,
-        designScheme,
-        supabase: {
-          isConnected: supabaseConn.isConnected,
-          hasSelectedProject: !!selectedProject,
-          credentials: {
-            supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
-            anonKey: supabaseConn?.credentials?.anonKey,
-          },
-        },
-        maxLLMSteps: mcpSettings.maxLLMSteps,
+      transport: new DefaultChatTransport({
+        api: '/api/chat',
+
+        /*
+         * body is resolved per request, but only if it is a function. Passing a
+         * plain object froze every value here at first render, which silently
+         * staled the API keys, chat mode and step limit. Without this the
+         * server received no chatMode at all and answered with discussPrompt()
+         * instead of the build prompt, so no artifacts were ever produced.
+         */
+        body: () => bodyRef.current,
+      }),
+
+      /*
+       * v5 removed useChat's `data` array. data-progress parts now arrive here
+       * instead, and ProgressCompilation renders whatever this holds.
+       */
+      onData: (part) => {
+        const data = part.data as Partial<ProgressAnnotation> | undefined;
+
+        if (data?.type === 'progress' && typeof data.label === 'string') {
+          setProgressAnnotations((previous) => [
+            ...previous.filter((annotation) => annotation.label !== data.label),
+            data as ProgressAnnotation,
+          ]);
+        }
       },
-      sendExtraMessageFields: true,
+
+      /*
+       * v5's addToolOutput only re-POSTs when sendAutomaticallyWhen says so.
+       * Without this, approving an MCP tool updated the UI locally and never
+       * reached the server, stalling the conversation.
+       */
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
       onError: (e) => {
         setFakeLoading(false);
         handleError(e, 'chat');
       },
-      onFinish: (message, response) => {
-        const usage = response.usage;
-        setData(undefined);
+      onFinish: ({ message }) => {
+        setProgressAnnotations([]);
 
-        if (usage) {
-          console.log('Token usage:', usage);
-          logStore.logProvider('Chat response completed', {
-            component: 'Chat',
-            action: 'response',
-            model,
-            provider: provider.name,
-            usage,
-            messageLength: message.content.length,
-          });
-        }
+        console.log('Chat response completed');
+        logStore.logProvider('Chat response completed', {
+          component: 'Chat',
+          action: 'response',
+          model,
+          provider: provider.name,
+          messageLength: getMessageText(message).length,
+        });
 
         logger.debug('Finished streaming');
       },
-      initialMessages,
-      initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
+
+      /*
+       * `messages`, not `initialMessages`. The old key is spread into the Chat
+       * constructor and discarded, so persisted history never reached the UI.
+       */
+      messages: initialMessages,
     });
+
+    const isLoading = status === 'submitted' || status === 'streaming';
+
     useEffect(() => {
       const prompt = searchParams.get('prompt');
 
@@ -188,10 +251,12 @@ export const ChatImpl = memo(
       if (prompt) {
         setSearchParams({});
         runAnimation();
-        append({
-          role: 'user',
-          content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
-        });
+        void sendChatMessage(
+          createMessage({
+            role: 'user',
+            text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
+          }) as any,
+        );
       }
     }, [model, provider, searchParams]);
 
@@ -300,7 +365,7 @@ export const ChatImpl = memo(
           provider: provider.name,
           errorType,
         });
-        setData([]);
+        setProgressAnnotations([]);
       },
       [provider.name, stop],
     );
@@ -338,9 +403,8 @@ export const ChatImpl = memo(
     };
 
     // Helper function to create message parts array from text and images
-    const createMessageParts = (text: string, images: string[] = []): Array<TextUIPart | FileUIPart> => {
-      // Create an array of properly typed message parts
-      const parts: Array<TextUIPart | FileUIPart> = [
+    const createMessageParts = (text: string, images: string[] = []): AnyPart[] => {
+      const parts: AnyPart[] = [
         {
           type: 'text',
           text,
@@ -350,35 +414,43 @@ export const ChatImpl = memo(
       // Add image parts if any
       images.forEach((imageData) => {
         // Extract correct MIME type from the data URL
-        const mimeType = imageData.split(';')[0].split(':')[1] || 'image/jpeg';
+        const mediaType = imageData.split(';')[0].split(':')[1] || 'image/jpeg';
 
-        // Create file part according to AI SDK format
+        /*
+         * v5 shape: mediaType plus a complete data URL. v4 stored bare base64
+         * in `data`, which v5 cannot parse because it calls new URL(part.url).
+         */
         parts.push({
           type: 'file',
-          mimeType,
-          data: imageData.replace(/^data:image\/[^;]+;base64,/, ''),
+          mediaType,
+          url: imageData,
         });
       });
 
       return parts;
     };
 
-    // Helper function to convert File[] to Attachment[] for AI SDK
-    const filesToAttachments = async (files: File[]): Promise<Attachment[] | undefined> => {
+    /*
+     * v5 removed the Attachment type and the experimental_attachments option.
+     * Uploaded files now travel as `file` parts on the message itself, with a
+     * complete data URL in `url` because the server calls new URL() on it.
+     */
+    const filesToFileParts = async (files: File[]): Promise<AnyPart[]> => {
       if (files.length === 0) {
-        return undefined;
+        return [];
       }
 
-      const attachments = await Promise.all(
+      return Promise.all(
         files.map(
           (file) =>
-            new Promise<Attachment>((resolve) => {
+            new Promise<AnyPart>((resolve) => {
               const reader = new FileReader();
 
               reader.onloadend = () => {
                 resolve({
-                  name: file.name,
-                  contentType: file.type,
+                  type: 'file',
+                  mediaType: file.type,
+                  filename: file.name,
                   url: reader.result as string,
                 });
               };
@@ -386,8 +458,6 @@ export const ChatImpl = memo(
             }),
         ),
       );
-
-      return attachments;
     };
 
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
@@ -449,21 +519,21 @@ export const ChatImpl = memo(
                   id: `2-${new Date().getTime()}`,
                   role: 'assistant',
                   content: assistantMessage,
+                  parts: [{ type: 'text', text: assistantMessage }],
                 },
                 {
                   id: `3-${new Date().getTime()}`,
                   role: 'user',
                   content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
+                  parts: [
+                    { type: 'text', text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}` },
+                  ],
                   annotations: ['hidden'],
+                  metadata: { flags: ['hidden'] },
                 },
-              ]);
+              ] as any);
 
-              const reloadOptions =
-                uploadedFiles.length > 0
-                  ? { experimental_attachments: await filesToAttachments(uploadedFiles) }
-                  : undefined;
-
-              reload(reloadOptions);
+              void regenerate();
               setInput('');
               Cookies.remove(PROMPT_COOKIE_KEY);
 
@@ -482,18 +552,17 @@ export const ChatImpl = memo(
 
         // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
         const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
-        const attachments = uploadedFiles.length > 0 ? await filesToAttachments(uploadedFiles) : undefined;
+        const fileParts = await filesToFileParts(uploadedFiles);
 
         setMessages([
           {
             id: `${new Date().getTime()}`,
             role: 'user',
             content: userMessageText,
-            parts: createMessageParts(userMessageText, imageDataList),
-            experimental_attachments: attachments,
+            parts: [...createMessageParts(userMessageText, imageDataList), ...fileParts],
           },
-        ]);
-        reload(attachments ? { experimental_attachments: attachments } : undefined);
+        ] as any);
+        void regenerate();
         setFakeLoading(false);
         setInput('');
         Cookies.remove(PROMPT_COOKIE_KEY);
@@ -520,33 +589,13 @@ export const ChatImpl = memo(
         const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
         const messageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${finalMessageContent}`;
 
-        const attachmentOptions =
-          uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
-
-        append(
-          {
-            role: 'user',
-            content: messageText,
-            parts: createMessageParts(messageText, imageDataList),
-          },
-          attachmentOptions,
-        );
+        void sendChatMessage((await buildUserMessage(messageText)) as any);
 
         workbenchStore.resetAllFileModifications();
       } else {
         const messageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
 
-        const attachmentOptions =
-          uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
-
-        append(
-          {
-            role: 'user',
-            content: messageText,
-            parts: createMessageParts(messageText, imageDataList),
-          },
-          attachmentOptions,
-        );
+        void sendChatMessage((await buildUserMessage(messageText)) as any);
       }
 
       setInput('');
@@ -560,12 +609,27 @@ export const ChatImpl = memo(
       textareaRef.current?.blur();
     };
 
+    /*
+     * Builds a user message carrying its images and uploads. v5 removed
+     * experimental_attachments, so file parts must be part of the message
+     * itself; omitting them silently dropped every paste and upload, because
+     * the state is cleared right after sending.
+     */
+    const buildUserMessage = async (text: string): Promise<UIMessage> => {
+      const fileParts = await filesToFileParts(uploadedFiles);
+
+      return {
+        ...createMessage({ role: 'user', text }),
+        parts: [...createMessageParts(text, imageDataList), ...fileParts],
+      } as unknown as UIMessage;
+    };
+
     /**
      * Handles the change event for the textarea and updates the input state.
      * @param event - The change event from the textarea.
      */
     const onTextareaChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      handleInputChange(event);
+      setInput(event.target.value);
     };
 
     /**
@@ -603,13 +667,9 @@ export const ChatImpl = memo(
         const currentInput = input || '';
         const newInput = currentInput.length > 0 ? `${result}\n\n${currentInput}` : result;
 
-        // Update the input via the same mechanism as handleInputChange
-        const syntheticEvent = {
-          target: { value: newInput },
-        } as React.ChangeEvent<HTMLTextAreaElement>;
-        handleInputChange(syntheticEvent);
+        setInput(newInput);
       },
-      [input, handleInputChange],
+      [input],
     );
 
     return (
@@ -646,9 +706,15 @@ export const ChatImpl = memo(
 
           return {
             ...message,
-            content: parsedMessages[i] || '',
+            parsedContent: parsedMessages[i] || '',
           };
         })}
+
+        /*
+         * Markdown's quick-action buttons (__boltQuickAction__) call append to
+         * re-send a message. Without this they rendered but did nothing.
+         */
+        append={(message) => sendChatMessage(message as UIMessage)}
         enhancePrompt={() => {
           enhancePrompt(
             input,
@@ -673,15 +739,14 @@ export const ChatImpl = memo(
         clearDeployAlert={() => workbenchStore.clearDeployAlert()}
         llmErrorAlert={llmErrorAlert}
         clearLlmErrorAlert={clearApiErrorAlert}
-        data={chatData}
+        progressAnnotations={progressAnnotations}
         chatMode={chatMode}
         setChatMode={setChatMode}
-        append={append}
         designScheme={designScheme}
         setDesignScheme={setDesignScheme}
         selectedElement={selectedElement}
         setSelectedElement={setSelectedElement}
-        addToolResult={addToolResult}
+        addToolOutput={addToolOutput}
         onWebSearchResult={handleWebSearchResult}
       />
     );

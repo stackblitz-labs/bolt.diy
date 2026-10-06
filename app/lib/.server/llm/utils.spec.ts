@@ -1,11 +1,11 @@
-import type { Message } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { createFilesContext, extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
 
 const WORK_DIR = '/home/project';
+const MODEL_REGEX = /^\[Model: (.*?)\]\n\n/;
 
-function userMessage(content: unknown): Omit<Message, 'id'> {
-  return { role: 'user', content } as Omit<Message, 'id'>;
+function userMessage(content: unknown): { role: string; content: unknown } {
+  return { role: 'user', content };
 }
 
 describe('extractPropertiesFromMessage', () => {
@@ -36,11 +36,35 @@ describe('extractPropertiesFromMessage', () => {
     expect(result.model).toBe('gpt-4o');
     expect(result.provider).toBe('OpenRouter');
 
-    const content = result.content as unknown as Array<{ type: string; text: string }>;
+    const parts = result.parts as Array<{ type: string; text: string }>;
 
-    expect(content).toHaveLength(2);
-    expect(content[0].text).toBe('first');
-    expect(content[1].text).toBe('second');
+    expect(parts).toHaveLength(2);
+    expect(parts[0].text).toBe('first');
+    expect(parts[1].text).toBe('second');
+  });
+
+  it('returns content as a string even when the message has parts', () => {
+    /*
+     * content previously came back as the part array while the signature claimed
+     * string, so stream-text.ts:94 called .replace() on an array. Callers rely
+     * on content being a string, so that is now pinned.
+     */
+    const result = extractPropertiesFromMessage(userMessage([{ type: 'text', text: '[Model: gpt-4o]\n\nhello' }]));
+
+    expect(typeof result.content).toBe('string');
+    expect(result.content).toBe('hello');
+    expect(() => result.content.replace(MODEL_REGEX, '')).not.toThrow();
+  });
+
+  it('reads markers from v5 parts as well as v4 content', () => {
+    const result = extractPropertiesFromMessage({
+      role: 'user',
+      parts: [{ type: 'text', text: '[Model: gpt-4o]\n\n[Provider: OpenRouter]\n\nfrom parts' }],
+    });
+
+    expect(result.model).toBe('gpt-4o');
+    expect(result.provider).toBe('OpenRouter');
+    expect(result.content).toBe('from parts');
   });
 
   it('preserves non-text parts such as images', () => {
@@ -51,9 +75,9 @@ describe('extractPropertiesFromMessage', () => {
       ]),
     );
 
-    const content = result.content as unknown as Array<{ type: string }>;
+    const parts = result.parts as Array<{ type: string }>;
 
-    expect(content.map((part) => part.type)).toEqual(['text', 'image_url']);
+    expect(parts.map((part) => part.type)).toEqual(['text', 'image_url']);
   });
 
   it('only anchors the model marker at the start of the message', () => {
@@ -130,11 +154,19 @@ describe('createFilesContext', () => {
 });
 
 describe('extractCurrentContext', () => {
-  const assistant = (annotations: unknown[]): Message =>
-    ({ role: 'assistant', content: 'done', annotations }) as unknown as Message;
+  const assistant = (annotations: unknown[]): { role: string; content: string; annotations: unknown[] } => ({
+    role: 'assistant',
+    content: 'done',
+    annotations,
+  });
+
+  const assistantParts = (parts: unknown[]): { role: string; parts: unknown[] } => ({
+    role: 'assistant',
+    parts,
+  });
 
   it('returns nothing when there is no assistant message', () => {
-    expect(extractCurrentContext([{ role: 'user', content: 'hi' } as Message])).toEqual({
+    expect(extractCurrentContext([{ role: 'user', content: 'hi' }])).toEqual({
       summary: undefined,
       codeContext: undefined,
     });
@@ -142,6 +174,17 @@ describe('extractCurrentContext', () => {
 
   it('returns nothing when the assistant message has no annotations', () => {
     expect(extractCurrentContext([assistant([])])).toEqual({ summary: undefined, codeContext: undefined });
+  });
+
+  it('reads v5 data parts as well as v4 annotations', () => {
+    expect(
+      extractCurrentContext([assistantParts([{ type: 'data-chatSummary', data: { summary: 'we built a site' } }])])
+        .summary,
+    ).toEqual({ type: 'chatSummary', summary: 'we built a site' });
+
+    expect(
+      extractCurrentContext([assistantParts([{ type: 'data-codeContext', data: { files: ['a.ts'] } }])]).codeContext,
+    ).toEqual({ type: 'codeContext', files: ['a.ts'] });
   });
 
   it('extracts a chat summary', () => {

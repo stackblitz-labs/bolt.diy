@@ -1,10 +1,12 @@
 import { useLoaderData, useNavigate, useSearchParams } from '@remix-run/react';
-import { generateId, type JSONValue, type Message } from 'ai';
+import { generateId, type UIMessage } from 'ai';
 import { atom } from 'nanostores';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import {
   getMessages,
+  getMessagesByIdRaw,
+  getMessagesByUrlIdRaw,
   getNextId,
   getUrlId,
   openDatabase,
@@ -15,6 +17,7 @@ import {
   setSnapshot,
   type IChatMetadata,
 } from './db';
+import { createMessage, getMessageAnnotations, hasMessageFlag, type AnyPart } from './messageMigration';
 import type { Snapshot } from './types';
 import type { FileMap } from '~/lib/stores/files';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
@@ -27,7 +30,7 @@ export interface ChatHistoryItem {
   id: string;
   urlId?: string;
   description?: string;
-  messages: Message[];
+  messages: UIMessage[];
   timestamp: string;
   metadata?: IChatMetadata;
 }
@@ -44,8 +47,8 @@ export function useChatHistory() {
   const { id: mixedId } = useLoaderData<{ id?: string }>();
   const [searchParams] = useSearchParams();
 
-  const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
-  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+  const [archivedMessages, setArchivedMessages] = useState<UIMessage[]>([]);
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
 
@@ -95,7 +98,7 @@ export function useChatHistory() {
             }
 
             let filteredMessages = storedMessages.messages.slice(startingIdx + 1, endingIdx);
-            let archivedMessages: Message[] = [];
+            let archivedMessages: UIMessage[] = [];
 
             if (startingIdx >= 0) {
               archivedMessages = storedMessages.messages.slice(0, startingIdx + 1);
@@ -122,19 +125,7 @@ export function useChatHistory() {
               // Call the modified function to get only the command actions string
               const commandActionsString = createCommandActionsString(projectCommands);
 
-              filteredMessages = [
-                {
-                  id: generateId(),
-                  role: 'user',
-                  content: `Restore project from snapshot`, // Removed newline
-                  annotations: ['no-store', 'hidden'],
-                },
-                {
-                  id: storedMessages.messages[snapshotIndex].id,
-                  role: 'assistant',
-
-                  // Combine followup message and the artifact with files and command actions
-                  content: `Bolt Restored your chat from a snapshot. You can revert this message to load the full chat history.
+              const restoredAssistantText = `Bolt Restored your chat from a snapshot. You can revert this message to load the full chat history.
                   <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
                   ${Object.entries(snapshot?.files || {})
                     .map(([key, value]) => {
@@ -149,29 +140,66 @@ ${value.content}
                       }
                     })
                     .join('\n')}
-                  ${commandActionsString} 
+                  ${commandActionsString}
                   </boltArtifact>
-                  `, // Added commandActionsString, followupMessage, updated id and title
-                  annotations: [
-                    'no-store',
-                    ...(summary
-                      ? [
-                          {
-                            chatId: storedMessages.messages[snapshotIndex].id,
-                            type: 'chatSummary',
-                            summary,
-                          } satisfies ContextAnnotation,
-                        ]
-                      : []),
-                  ],
-                },
+                  `;
 
-                // Remove the separate user and assistant messages for commands
-                /*
-                 *...(commands !== null // This block is no longer needed
-                 *  ? [ ... ]
-                 *  : []),
-                 */
+              const restoredSummary = summary
+                ? [
+                    {
+                      chatId: storedMessages.messages[snapshotIndex].id,
+                      type: 'chatSummary',
+                      summary,
+                    } satisfies ContextAnnotation,
+                  ]
+                : [];
+
+              /*
+               * Both shapes written. `annotations` still carries the v4 sentinels
+               * and the summary because the v4 readers have not moved yet;
+               * metadata.flags and the data-chatSummary part are what v5 reads.
+               */
+              const restoredParts: AnyPart[] = [
+                { type: 'text', text: restoredAssistantText },
+                ...(summary
+                  ? [
+                      {
+                        type: 'data-chatSummary',
+                        data: {
+                          chatId: storedMessages.messages[snapshotIndex].id,
+                          summary,
+                        },
+                      },
+                    ]
+                  : []),
+              ];
+
+              filteredMessages = [
+                createMessage({
+                  id: generateId(),
+                  role: 'user',
+                  text: `Restore project from snapshot`,
+                  flags: ['no-store', 'hidden'],
+                }) as UIMessage,
+                {
+                  ...(createMessage({
+                    id: storedMessages.messages[snapshotIndex].id,
+                    role: 'assistant',
+                    text: restoredAssistantText,
+                    flags: ['no-store'],
+                  }) as UIMessage),
+
+                  /*
+                   * v5 removed UIMessage.annotations, so the summary now travels
+                   * as a data-chatSummary part (above) and the 'no-store' flag
+                   * as metadata.flags (set by createMessage). The legacy
+                   * `annotations` mirror is preserved so a downgrade still
+                   * works, which is why this object literal is cast.
+                   */
+                  parts: restoredParts as unknown as UIMessage['parts'],
+                  annotations: ['no-store', ...restoredSummary],
+                } as unknown as UIMessage,
+
                 ...filteredMessages,
               ];
               restoreSnapshot(mixedId);
@@ -277,13 +305,13 @@ ${value.content}
         console.error(error);
       }
     },
-    storeMessageHistory: async (messages: Message[]) => {
+    storeMessageHistory: async (messages: UIMessage[]) => {
       if (!db || messages.length === 0) {
         return;
       }
 
       const { firstArtifact } = workbenchStore;
-      messages = messages.filter((m) => !m.annotations?.includes('no-store'));
+      messages = messages.filter((m) => !hasMessageFlag(m, 'no-store'));
 
       let _urlId = urlId;
 
@@ -299,15 +327,12 @@ ${value.content}
       const lastMessage = messages[messages.length - 1];
 
       if (lastMessage.role === 'assistant') {
-        const annotations = lastMessage.annotations as JSONValue[];
+        const chatSummaryAnnotation = getMessageAnnotations(lastMessage).find(
+          (annotation) => annotation.type === 'chatSummary',
+        );
 
-        const filteredAnnotations = (annotations?.filter(
-          (annotation: JSONValue) =>
-            annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
-        ) || []) as { type: string; value: any } & { [key: string]: any }[];
-
-        if (filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')) {
-          chatSummary = filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')?.summary;
+        if (chatSummaryAnnotation) {
+          chatSummary = chatSummaryAnnotation.summary as string;
         }
       }
 
@@ -362,7 +387,7 @@ ${value.content}
         console.log(error);
       }
     },
-    importChat: async (description: string, messages: Message[], metadata?: IChatMetadata) => {
+    importChat: async (description: string, messages: UIMessage[], metadata?: IChatMetadata) => {
       if (!db) {
         return;
       }
@@ -384,7 +409,11 @@ ${value.content}
         return;
       }
 
-      const chat = await getMessages(db, id);
+      /*
+       * Raw read on purpose: this is a backup, so it must reproduce the stored
+       * record exactly rather than a migrated view of it.
+       */
+      const chat = (await getMessagesByIdRaw(db, id)) || (await getMessagesByUrlIdRaw(db, id));
 
       const chatData = {
         messages: chat.messages,

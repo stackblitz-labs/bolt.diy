@@ -1,6 +1,8 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { UIMessage } from 'ai';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
+import { createMessage } from '~/lib/persistence/messageMigration';
 import type { ProviderInfo } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { stripIndents } from '~/utils/stripIndent';
@@ -43,9 +45,9 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
   try {
     const result = await streamText({
       messages: [
-        {
+        createMessage({
           role: 'user',
-          content:
+          text:
             `[Model: ${model}]\n\n[Provider: ${providerName}]\n\n` +
             stripIndents`
             You are a professional prompt engineer specializing in crafting precise, effective prompts.
@@ -75,7 +77,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
               ${message}
             </original_prompt>
           `,
-        },
+        }) as unknown as Omit<UIMessage, 'id'>,
       ],
       env: context.cloudflare?.env as any,
       apiKeys,

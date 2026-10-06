@@ -1,4 +1,9 @@
-import type { Message } from 'ai';
+/*
+ * Aliased deliberately. Without an `ai` import in this file, a bare `Message`
+ * silently resolves to the DOM Message interface (body, attempts, retry, ack)
+ * instead of failing to compile.
+ */
+import type { UIMessage as AiMessage } from 'ai';
 import { memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import type { BundledLanguage } from 'shiki';
@@ -6,6 +11,7 @@ import { Artifact, openArtifactInWorkbench } from './Artifact';
 import { CodeBlock } from './CodeBlock';
 import styles from './Markdown.module.scss';
 import ThoughtBox from './ThoughtBox';
+import { createMessage } from '~/lib/persistence/messageMigration';
 import type { ProviderInfo } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { rehypePlugins, remarkPlugins } from '~/utils/markdown';
@@ -16,7 +22,7 @@ interface MarkdownProps {
   children: string;
   html?: boolean;
   limitedMarkdown?: boolean;
-  append?: (message: Message) => void;
+  append?: (message: AiMessage) => void;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   model?: string;
@@ -149,29 +155,23 @@ export const Markdown = memo(
                   if (type === 'file') {
                     openArtifactInWorkbench(path);
                   } else if (type === 'message' && append) {
-                    append({
-                      id: `quick-action-message-${Date.now()}`,
-                      content: [
-                        {
-                          type: 'text',
-                          text: `[Model: ${model}]\n\n[Provider: ${provider?.name}]\n\n${message}`,
-                        },
-                      ] as any,
-                      role: 'user',
-                    });
+                    append(
+                      createMessage({
+                        id: `quick-action-message-${Date.now()}`,
+                        role: 'user',
+                        text: `[Model: ${model}]\n\n[Provider: ${provider?.name}]\n\n${message}`,
+                      }) as any,
+                    );
                     console.log('Message appended:', message);
                   } else if (type === 'implement' && append && setChatMode) {
                     setChatMode('build');
-                    append({
-                      id: `quick-action-implement-${Date.now()}`,
-                      content: [
-                        {
-                          type: 'text',
-                          text: `[Model: ${model}]\n\n[Provider: ${provider?.name}]\n\n${message}`,
-                        },
-                      ] as any,
-                      role: 'user',
-                    });
+                    append(
+                      createMessage({
+                        id: `quick-action-implement-${Date.now()}`,
+                        role: 'user',
+                        text: `[Model: ${model}]\n\n[Provider: ${provider?.name}]\n\n${message}`,
+                      }) as any,
+                    );
                   } else if (type === 'link' && typeof href === 'string') {
                     try {
                       const url = new URL(href, window.location.origin);
