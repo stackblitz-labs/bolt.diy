@@ -33,7 +33,7 @@ jobs:
 
       - name: Checkout
         if: steps.check-secrets.outputs.configured == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup and Build
         if: steps.check-secrets.outputs.configured == 'true'
@@ -45,14 +45,14 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Deploy to Cloudflare Pages
+      - name: Deploy preview to Cloudflare Workers
         if: steps.check-secrets.outputs.configured == 'true'
         id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy build/client --project-name=bolt-diy-preview --branch=${{ github.head_ref }}
+          command: deploy --env-name=preview-${{ github.head_ref }} --branch=${{ github.head_ref }}
 
       - name: Preview deployment not configured
         if: steps.check-secrets.outputs.configured == 'false'
@@ -65,7 +65,7 @@ jobs:
           echo "url=https://preview-not-configured.example.com" >> $GITHUB_OUTPUT
 
       - name: Add preview URL comment to PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         continue-on-error: true
         with:
           script: |
@@ -153,7 +153,7 @@ jobs:
 
     steps:
       - name: Delete preview environment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         continue-on-error: true
         with:
           script: |
@@ -173,7 +173,7 @@ jobs:
             }
 
       - name: Remove preview comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         continue-on-error: true
         with:
           script: |

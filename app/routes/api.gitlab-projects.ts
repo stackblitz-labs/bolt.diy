@@ -1,4 +1,3 @@
-import { json } from '@remix-run/cloudflare';
 import { withSecurity } from '~/lib/security';
 import type { GitLabProjectInfo } from '~/types/GitLab';
 
@@ -22,7 +21,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
     const { token, gitlabUrl = 'https://gitlab.com' } = body;
 
     if (!token) {
-      return json({ error: 'GitLab token is required' }, { status: 400 });
+      return Response.json({ error: 'GitLab token is required' }, { status: 400 });
     }
 
     // Fetch user's projects from GitLab API
@@ -38,13 +37,13 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid GitLab token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitLab token' }, { status: 401 });
       }
 
       const errorText = await response.text().catch(() => 'Unknown error');
       console.error('GitLab API error:', response.status, errorText);
 
-      return json(
+      return Response.json(
         {
           error: `GitLab API error: ${response.status}`,
         },
@@ -68,7 +67,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
       visibility: project.visibility,
     }));
 
-    return json({
+    return Response.json({
       projects: transformedProjects,
       total: transformedProjects.length,
     });
@@ -77,7 +76,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
 
     if (error instanceof Error) {
       if (error.message.includes('fetch')) {
-        return json(
+        return Response.json(
           {
             error: 'Failed to connect to GitLab. Please check your network connection.',
           },
@@ -85,7 +84,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
         );
       }
 
-      return json(
+      return Response.json(
         {
           error: `Failed to fetch projects: ${error.message}`,
         },
@@ -93,7 +92,7 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
       );
     }
 
-    return json(
+    return Response.json(
       {
         error: 'An unexpected error occurred while fetching projects',
       },

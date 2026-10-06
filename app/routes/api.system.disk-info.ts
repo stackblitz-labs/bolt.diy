@@ -1,5 +1,4 @@
-import type { ActionFunctionArgs, LoaderFunction } from '@remix-run/cloudflare';
-import { json } from '@remix-run/cloudflare';
+import type { ActionFunctionArgs, LoaderFunction } from 'react-router';
 
 // Only import child_process if we're not in a Cloudflare environment
 let execSync: any;
@@ -267,10 +266,10 @@ const getDiskInfo = (): DiskInfo[] => {
 
 export const loader: LoaderFunction = async ({ request: _request }) => {
   try {
-    return json(getDiskInfo());
+    return Response.json(getDiskInfo());
   } catch (error) {
     console.error('Failed to get disk info:', error);
-    return json(
+    return Response.json(
       [
         {
           filesystem: 'Unknown',
@@ -290,10 +289,10 @@ export const loader: LoaderFunction = async ({ request: _request }) => {
 
 export const action = async ({ request: _request }: ActionFunctionArgs) => {
   try {
-    return json(getDiskInfo());
+    return Response.json(getDiskInfo());
   } catch (error) {
     console.error('Failed to get disk info:', error);
-    return json(
+    return Response.json(
       [
         {
           filesystem: 'Unknown',

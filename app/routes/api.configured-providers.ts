@@ -1,5 +1,5 @@
-import type { LoaderFunction } from '@remix-run/cloudflare';
-import { json } from '@remix-run/cloudflare';
+import type { LoaderFunction } from 'react-router';
+
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 
@@ -7,10 +7,6 @@ interface ConfiguredProvider {
   name: string;
   isConfigured: boolean;
   configMethod: 'environment' | 'none';
-}
-
-interface ConfiguredProvidersResponse {
-  providers: ConfiguredProvider[];
 }
 
 /**
@@ -94,14 +90,14 @@ export const loader: LoaderFunction = async ({ context }) => {
       });
     }
 
-    return json<ConfiguredProvidersResponse>({
+    return Response.json({
       providers: configuredProviders,
     });
   } catch (error) {
     console.error('Error detecting configured providers:', error);
 
     // Return default state on error
-    return json<ConfiguredProvidersResponse>({
+    return Response.json({
       providers: LOCAL_PROVIDERS.map((name) => ({
         name,
         isConfigured: false,

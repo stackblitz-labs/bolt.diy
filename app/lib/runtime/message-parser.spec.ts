@@ -159,6 +159,54 @@ describe('StreamingMessageParser', () => {
   });
 });
 
+describe('malformed actions', () => {
+  it('should not throw when a file action omits filePath', () => {
+    /*
+     * Regression: a `<boltAction type="file">` with no `filePath` is tolerated so
+     * the model's text is not swallowed, but the streaming path used to dereference
+     * the missing path (`currentAction.filePath.endsWith('.md')`). That threw
+     * `Cannot read properties of undefined`, which propagated out of the streaming
+     * sampler and crashed the React tree via the error boundary.
+     */
+    const parser = new StreamingMessageParser({
+      callbacks: {
+        onArtifactOpen: vi.fn(),
+        onArtifactClose: vi.fn(),
+        onActionOpen: vi.fn(),
+        onActionStream: vi.fn(),
+        onActionClose: vi.fn(),
+      },
+    });
+
+    const input = [
+      '<boltArtifact id="artifact_1" title="t">',
+      '<boltAction type="file">',
+      'some content',
+      '</boltAction>',
+      '</boltArtifact>',
+    ].join('\n');
+
+    expect(() => parser.parse('message_1', input)).not.toThrow();
+  });
+
+  it('should keep a pathless file action instead of dropping its content', () => {
+    const onActionClose = vi.fn();
+    const parser = new StreamingMessageParser({ callbacks: { onActionClose } });
+
+    parser.parse(
+      'message_1',
+      '<boltArtifact id="artifact_1" title="t"><boltAction type="file">content</boltAction></boltArtifact>',
+    );
+
+    /*
+     * A complete single-pass parse closes the action rather than streaming it, so
+     * the text has to survive on `onActionClose` even without a usable filePath.
+     */
+    expect(onActionClose).toHaveBeenCalled();
+    expect(onActionClose.mock.calls[0][0].action.content).toContain('content');
+  });
+});
+
 describe('EnhancedStreamingMessageParser', () => {
   it('should detect shell commands in code blocks', () => {
     const callbacks = {

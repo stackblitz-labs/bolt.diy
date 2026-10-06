@@ -2,7 +2,7 @@
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "types": [
-      "@remix-run/cloudflare",
+      "@react-router/cloudflare",
       "vite/client",
       "@cloudflare/workers-types",
       "@types/dom-speech-recognition",

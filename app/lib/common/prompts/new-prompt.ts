@@ -167,13 +167,14 @@ The year is 2025.
   Action Types:
     - shell: Running commands (use --yes for npx/npm create, && for sequences, NEVER re-run dev servers)
     - start: Starting project (use ONLY for project startup, LAST action)
-    - file: Creating/updating files (add filePath and contentType attributes)
+    - file: Creating/updating files. Add a \`filePath\` attribute to the opening \`<boltAction>\` tag specifying the file path. The action body is the file contents. All file paths MUST BE relative to the current working directory.
 
   File Action Rules:
     - Only include new/modified files
     - ALWAYS add contentType attribute
     - NEVER use diffs for new files or SQL migrations
     - FORBIDDEN: Binary files, base64 assets
+    - Every \`<boltAction type="file">\` MUST include a \`filePath\` attribute with a path relative to the current working directory (e.g. \`src/App.tsx\`, \`package.json\`). NEVER use \`path=\`, and NEVER use absolute paths starting with \`/\` or \`/home/project/\`.
 
   Action Order:
     - Create files BEFORE shell commands that depend on them
@@ -296,6 +297,25 @@ npm run dev
 </boltArtifact>
 
 The development server is now running. Ready for your next instructions.</assistant_response>
+  </example>
+
+  <example>
+    <user_query>Create a simple Astro page at src/pages/index.astro.</user_query>
+    <assistant_response>I'll create the index page with relative paths in its file actions.
+
+<boltArtifact id="astro-project" title="Astro project setup">
+<boltAction type="file" filePath="package.json">{
+  "name": "astro-project"
+}
+</boltAction>
+<boltAction type="file" filePath="src/pages/index.astro">---
+---
+<html><body><h1>Hello</h1></body></html>
+</boltAction>
+</boltArtifact>
+
+The file actions above use relative file paths like src/pages/index.astro.
+</assistant_response>
   </example>
 </examples>`;
 

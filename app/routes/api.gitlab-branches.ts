@@ -1,4 +1,3 @@
-import { json } from '@remix-run/cloudflare';
 import { withSecurity } from '~/lib/security';
 
 interface GitLabBranch {
@@ -26,11 +25,11 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
     const { token, gitlabUrl = 'https://gitlab.com', projectId } = body;
 
     if (!token) {
-      return json({ error: 'GitLab token is required' }, { status: 400 });
+      return Response.json({ error: 'GitLab token is required' }, { status: 400 });
     }
 
     if (!projectId) {
-      return json({ error: 'Project ID is required' }, { status: 400 });
+      return Response.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
     // Fetch branches from GitLab API
@@ -46,17 +45,17 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid GitLab token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitLab token' }, { status: 401 });
       }
 
       if (response.status === 404) {
-        return json({ error: 'Project not found or no access' }, { status: 404 });
+        return Response.json({ error: 'Project not found or no access' }, { status: 404 });
       }
 
       const errorText = await response.text().catch(() => 'Unknown error');
       console.error('GitLab API error:', response.status, errorText);
 
-      return json(
+      return Response.json(
         {
           error: `GitLab API error: ${response.status}`,
         },
@@ -106,7 +105,7 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
       return a.name.localeCompare(b.name);
     });
 
-    return json({
+    return Response.json({
       branches: transformedBranches,
       defaultBranch: defaultBranchName,
       total: transformedBranches.length,
@@ -116,7 +115,7 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
 
     if (error instanceof Error) {
       if (error.message.includes('fetch')) {
-        return json(
+        return Response.json(
           {
             error: 'Failed to connect to GitLab. Please check your network connection.',
           },
@@ -124,7 +123,7 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
         );
       }
 
-      return json(
+      return Response.json(
         {
           error: `Failed to fetch branches: ${error.message}`,
         },
@@ -132,7 +131,7 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
       );
     }
 
-    return json(
+    return Response.json(
       {
         error: 'An unexpected error occurred while fetching branches',
       },

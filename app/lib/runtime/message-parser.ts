@@ -151,8 +151,11 @@ export class StreamingMessageParser {
             let content = currentAction.content.trim();
 
             if ('type' in currentAction && currentAction.type === 'file') {
-              // Remove markdown code block syntax if present and file is not markdown
-              if (!currentAction.filePath.endsWith('.md')) {
+              /*
+               * Remove markdown code block syntax if present and file is not markdown.
+               * `filePath` is optional — see the note in the streaming branch below.
+               */
+              if (!currentAction.filePath?.endsWith('.md')) {
                 content = cleanoutMarkdownSyntax(content);
                 content = cleanEscapedTags(content);
               }
@@ -184,7 +187,13 @@ export class StreamingMessageParser {
             if ('type' in currentAction && currentAction.type === 'file') {
               let content = input.slice(i);
 
-              if (!currentAction.filePath.endsWith('.md')) {
+              /*
+               * `filePath` is optional: a `<boltAction type="file">` emitted without
+               * one only logs a warning (see #parseActionTag) and is still streamed.
+               * Dereferencing it here threw `Cannot read properties of undefined` and
+               * took down the whole React tree via the error boundary.
+               */
+              if (!currentAction.filePath?.endsWith('.md')) {
                 content = cleanoutMarkdownSyntax(content);
                 content = cleanEscapedTags(content);
               }
@@ -371,7 +380,14 @@ export class StreamingMessageParser {
       const filePath = this.#extractAttribute(actionTag, 'filePath') as string;
 
       if (!filePath) {
-        logger.debug('File path not specified');
+        /*
+         * A file action with no path cannot be written to the container. The action is
+         * still streamed so the model's text is not lost, but this needs to be visible:
+         * it used to log at debug level and then surface much later as a crash.
+         * The raw tag is included because the usual cause is the model using a
+         * different attribute name or unquoted value.
+         */
+        logger.warn(`File action has no filePath; it cannot be written to the project. Received: ${actionTag}`);
       }
 
       (actionAttributes as FileAction).filePath = filePath;

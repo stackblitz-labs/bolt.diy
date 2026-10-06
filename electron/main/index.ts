@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
-import { createRequestHandler } from '@remix-run/node';
+import { createRequestHandler } from 'react-router';
+import { BoltRouterContext, type BoltCloudflare } from '../../app/lib/cloudflare-context';
 import electron, { app, BrowserWindow, ipcMain, protocol, session } from 'electron';
 import log from 'electron-log';
 import path from 'node:path';
@@ -116,17 +117,14 @@ declare global {
       }
 
       // Create request handler with the server build
-      const handler = createRequestHandler(serverBuild, 'production');
+      const handler = createRequestHandler(serverBuild);
       console.log('Handling request with server build:', req.url);
 
-      const result = await handler(req, {
-        /*
-         * Remix app access cloudflare.env
-         * Need to pass an empty object to prevent undefined
-         */
-        // @ts-ignore:next-line
-        cloudflare: {},
-      });
+      /*
+       * Electron has no Workers bindings, but routes read `context.cloudflare.env`
+       * unconditionally, so hand them an empty environment rather than undefined.
+       */
+      const result = await handler(req, new BoltRouterContext({} as BoltCloudflare));
 
       return result;
     } catch (err) {

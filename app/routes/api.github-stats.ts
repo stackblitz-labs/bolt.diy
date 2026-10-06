@@ -1,4 +1,3 @@
-import { json } from '@remix-run/cloudflare';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
 import type { GitHubUserResponse, GitHubStats } from '~/types/GitHub';
@@ -19,7 +18,7 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
       process.env.VITE_GITHUB_ACCESS_TOKEN;
 
     if (!githubToken) {
-      return json({ error: 'GitHub token not found' }, { status: 401 });
+      return Response.json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
     // Get user info first
@@ -33,7 +32,7 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
 
     if (!userResponse.ok) {
       if (userResponse.status === 401) {
-        return json({ error: 'Invalid GitHub token' }, { status: 401 });
+        return Response.json({ error: 'Invalid GitHub token' }, { status: 401 });
       }
 
       throw new Error(`GitHub API error: ${userResponse.status}`);
@@ -180,10 +179,10 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
       lastUpdated: now.toISOString(),
     };
 
-    return json(stats);
+    return Response.json(stats);
   } catch (error) {
     console.error('Error fetching GitHub stats:', error);
-    return json(
+    return Response.json(
       {
         error: 'Failed to fetch GitHub statistics',
         details: error instanceof Error ? error.message : String(error),

@@ -312,6 +312,16 @@ export class ActionRunner {
       unreachable('Expected file action');
     }
 
+    /*
+     * The parser tolerates `<boltAction type="file">` without a `filePath` so the
+     * model's text is not swallowed, but there is nothing to write in that case.
+     * Failing explicitly keeps this out of `nodePath.relative`, which would throw a
+     * bare TypeError on `undefined`.
+     */
+    if (!action.filePath) {
+      throw new Error('Cannot write file: the action has no filePath');
+    }
+
     const webcontainer = await this.#webcontainer;
     const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
 

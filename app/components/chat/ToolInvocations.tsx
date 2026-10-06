@@ -37,12 +37,25 @@ if (import.meta.hot) {
 
 interface JsonCodeBlockProps {
   className?: string;
-  code: string;
+
+  /*
+   * `undefined` is a real value here: the call sites do
+   * `JSON.stringify(getToolOutput(part))`, and `JSON.stringify(undefined)` returns
+   * `undefined` rather than a string. TypeScript's lib types claim `string`, which
+   * is why the unsoundness went unnoticed.
+   */
+  code: string | undefined;
   theme: Theme;
 }
 
 function JsonCodeBlock({ className, code, theme }: JsonCodeBlockProps) {
-  let formattedCode = code;
+  /*
+   * Normalise before doing anything else. Passing `undefined` straight through to
+   * shiki makes its `splitLines()` read `.length` off it, which threw
+   * "Cannot read properties of undefined (reading 'length')" and took down the whole
+   * React tree via the error boundary.
+   */
+  let formattedCode = typeof code === 'string' ? code : (JSON.stringify(code ?? null, null, 2) ?? '');
 
   try {
     if (typeof formattedCode === 'object') {

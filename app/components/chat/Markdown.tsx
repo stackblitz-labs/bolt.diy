@@ -108,16 +108,23 @@ export const Markdown = memo(
 
           const [firstChild] = node?.children ?? [];
 
+          /*
+           * `children?.[0]` and `?? ''` guard an empty fence (```` ``` ````): it has
+           * no children, so reading `.type` off `children[0]` threw and took down the
+           * React tree.
+           */
           if (
             firstChild &&
             firstChild.type === 'element' &&
             firstChild.tagName === 'code' &&
-            firstChild.children[0].type === 'text'
+            firstChild.children?.[0]?.type === 'text'
           ) {
             const { className, ...rest } = firstChild.properties;
             const [, language = 'plaintext'] = /language-(\w+)/.exec(String(className) || '') ?? [];
 
-            return <CodeBlock {...rest} code={firstChild.children[0].value} language={language as BundledLanguage} />;
+            return (
+              <CodeBlock {...rest} code={firstChild.children[0].value ?? ''} language={language as BundledLanguage} />
+            );
           }
 
           return <pre {...rest}>{children}</pre>;
