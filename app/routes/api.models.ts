@@ -1,14 +1,7 @@
-import { json } from '@remix-run/cloudflare';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { ProviderInfo } from '~/types/model';
-
-interface ModelsResponse {
-  modelList: ModelInfo[];
-  providers: ProviderInfo[];
-  defaultProvider: ProviderInfo;
-}
 
 let cachedProviders: ProviderInfo[] | null = null;
 let cachedDefaultProvider: ProviderInfo | null = null;
@@ -82,7 +75,7 @@ export async function loader({
     });
   }
 
-  return json<ModelsResponse>({
+  return Response.json({
     modelList,
     providers,
     defaultProvider,

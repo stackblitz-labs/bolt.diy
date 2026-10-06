@@ -25,7 +25,6 @@ dist-ssr
 /.history
 /.cache
 /build
-functions/build/
 .env.local
 .env
 .dev.vars
@@ -33,8 +32,15 @@ functions/build/
 .wrangler
 _worker.bundle
 
+# react-router generated types
+.react-router
+
 Modelfile
 modelfiles
+
+# vite temp config files (contain absolute paths from the generating machine)
+vite.config.ts.timestamp-*.mjs
+vite.*.timestamp-*.mjs
 
 # docs ignore
 site

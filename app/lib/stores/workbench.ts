@@ -12,14 +12,17 @@ import { description } from '~/lib/persistence';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { webcontainer } from '~/lib/webcontainer';
-import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
+import type { ActionAlert, BoltAction, DeployAlert, SupabaseAlert } from '~/types/actions';
 import type { ITerminal } from '~/types/terminal';
 import { extractRelativePath } from '~/utils/diff';
+import { createScopedLogger } from '~/utils/logger';
 import { path } from '~/utils/path';
 import { createSampler } from '~/utils/sampler';
 import { unreachable } from '~/utils/unreachable';
 
 const { saveAs } = fileSaver;
+
+const logger = createScopedLogger('WorkbenchStore');
 
 export interface ArtifactState {
   id: string;
@@ -42,6 +45,12 @@ export class WorkbenchStore {
   #terminalStore = new TerminalStore(webcontainer);
 
   #reloadedMessages = new Set<string>();
+
+  /**
+   * File actions the model emitted without a path. They cannot be written, and the streaming
+   * sampler re-invokes the same action on an interval, so they are only reported once.
+   */
+  #skippedFileActions = new WeakSet<BoltAction>();
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
@@ -80,7 +89,11 @@ export class WorkbenchStore {
   }
 
   addToExecutionQueue(callback: () => Promise<void>) {
-    this.#globalExecutionQueue = this.#globalExecutionQueue.then(() => callback());
+    this.#globalExecutionQueue = this.#globalExecutionQueue
+      .then(() => callback())
+      .catch((error) => {
+        logger.error('Queued action failed', error);
+      });
   }
 
   get previews() {
@@ -564,6 +577,15 @@ export class WorkbenchStore {
     }
 
     if (data.action.type === 'file') {
+      if (!data.action.filePath) {
+        if (!this.#skippedFileActions.has(action)) {
+          this.#skippedFileActions.add(action);
+          logger.warn('File action has no filePath; it cannot be written to the project');
+        }
+
+        return;
+      }
+
       const wc = await webcontainer;
       const fullPath = path.join(wc.workdir, data.action.filePath);
 

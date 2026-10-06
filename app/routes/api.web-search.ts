@@ -1,5 +1,4 @@
-import { json } from '@remix-run/cloudflare';
-import type { ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { ActionFunctionArgs } from 'react-router';
 import { isAllowedUrl } from '~/utils/url';
 
 const MAX_CONTENT_LENGTH = 8000;
@@ -49,18 +48,18 @@ function extractTextContent(html: string): string {
 
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   try {
     const { url } = (await request.json()) as { url?: string };
 
     if (!url || typeof url !== 'string') {
-      return json({ error: 'URL is required' }, { status: 400 });
+      return Response.json({ error: 'URL is required' }, { status: 400 });
     }
 
     if (!isAllowedUrl(url)) {
-      return json({ error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' }, { status: 400 });
+      return Response.json({ error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' }, { status: 400 });
     }
 
     const response = await fetch(url, {
@@ -69,13 +68,16 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (!response.ok) {
-      return json({ error: `Failed to fetch URL: ${response.status} ${response.statusText}` }, { status: 502 });
+      return Response.json(
+        { error: `Failed to fetch URL: ${response.status} ${response.statusText}` },
+        { status: 502 },
+      );
     }
 
     const contentType = response.headers.get('content-type') || '';
 
     if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
-      return json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
+      return Response.json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
     }
 
     const html = await response.text();
@@ -83,7 +85,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const description = extractMetaDescription(html);
     const content = extractTextContent(html);
 
-    return json({
+    return Response.json({
       success: true,
       data: {
         title,
@@ -94,11 +96,11 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'TimeoutError') {
-      return json({ error: 'Request timed out after 10 seconds' }, { status: 504 });
+      return Response.json({ error: 'Request timed out after 10 seconds' }, { status: 504 });
     }
 
     console.error('Web search error:', error);
 
-    return json({ error: error instanceof Error ? error.message : 'Failed to fetch URL' }, { status: 500 });
+    return Response.json({ error: error instanceof Error ? error.message : 'Failed to fetch URL' }, { status: 500 });
   }
 }

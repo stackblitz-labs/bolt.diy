@@ -1,7 +1,7 @@
-import { useSearchParams } from '@remix-run/react';
 import { generateId, type UIMessage } from 'ai';
 import ignore from 'ignore';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';

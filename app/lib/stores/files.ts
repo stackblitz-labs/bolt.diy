@@ -1,4 +1,11 @@
-import { Buffer } from 'node:buffer';
+/*
+ * This store runs in the browser, where Vite externalizes `node:buffer` and throws
+ * "Module 'node:buffer' has been externalized for browser compatibility". The bare
+ * `buffer` specifier is aliased to an ESM shim for the client environment in
+ * vite.config.ts, so it must not use the `node:` protocol here.
+ */
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import { Buffer } from 'buffer';
 import type { PathWatcherEvent, WebContainer } from '@webcontainer/api';
 import { getEncoding } from 'istextorbinary';
 import { map, type MapStore } from 'nanostores';

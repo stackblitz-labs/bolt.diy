@@ -1,8 +1,8 @@
-import { useLocation } from '@remix-run/react';
 import type { UIMessage } from 'ai';
 import { Fragment } from 'react';
 import { forwardRef } from 'react';
 import type { ForwardedRef } from 'react';
+import { useLocation } from 'react-router';
 import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';

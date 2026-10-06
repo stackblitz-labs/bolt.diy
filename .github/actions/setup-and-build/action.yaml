@@ -4,7 +4,7 @@ inputs:
   pnpm-version:
     required: false
     type: string
-    default: '9.14.4'
+    default: '9.15.9'
   node-version:
     required: false
     type: string
@@ -20,7 +20,7 @@ runs:
         run_install: false
 
     - name: Set Node.js version to ${{ inputs.node-version }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: ${{ inputs.node-version }}
         cache: pnpm

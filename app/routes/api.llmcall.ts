@@ -1,5 +1,5 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { generateText, type UIMessage } from 'ai';
+import type { ActionFunctionArgs } from 'react-router';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel } from '~/lib/.server/llm/constants';
 import { toLlmCallResponse } from '~/lib/.server/llm/llmcall-response';
 import { streamText } from '~/lib/.server/llm/stream-text';

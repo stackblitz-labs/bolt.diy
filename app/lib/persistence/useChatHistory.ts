@@ -1,7 +1,7 @@
-import { useLoaderData, useNavigate, useSearchParams } from '@remix-run/react';
 import { generateId, type UIMessage } from 'ai';
 import { atom } from 'nanostores';
 import { useState, useEffect, useCallback } from 'react';
+import { useLoaderData, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import {
   getMessages,

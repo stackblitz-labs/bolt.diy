@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -46,7 +46,7 @@ jobs:
           output: "codeql-results"
 
       - name: Upload CodeQL results as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: codeql-results-${{ matrix.language }}
@@ -58,17 +58,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: '9.14.4'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -85,7 +83,7 @@ jobs:
           artifact-name: sbom.spdx.json
 
       - name: Upload SBOM as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sbom-results
@@ -99,7 +97,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -113,7 +111,7 @@ jobs:
           scanners: 'secret'
 
       - name: Upload Trivy secrets results as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: trivy-secrets-results

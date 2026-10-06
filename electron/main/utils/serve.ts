@@ -1,5 +1,5 @@
-import { createReadableStreamFromReadable } from '@remix-run/node';
-import type { ServerBuild } from '@remix-run/node';
+import { createReadableStreamFromReadable } from '@react-router/node';
+import type { ServerBuild } from 'react-router';
 import mime from 'mime';
 import { createReadStream, promises as fs } from 'node:fs';
 import path from 'node:path';

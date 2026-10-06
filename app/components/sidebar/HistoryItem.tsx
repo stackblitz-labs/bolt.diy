@@ -1,5 +1,5 @@
-import { useParams } from '@remix-run/react';
 import { forwardRef, type ForwardedRef, useCallback } from 'react';
+import { useParams } from 'react-router';
 import { Checkbox } from '~/components/ui/Checkbox';
 import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
