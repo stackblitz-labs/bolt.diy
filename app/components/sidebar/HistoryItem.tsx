@@ -1,9 +1,9 @@
 import { forwardRef, type ForwardedRef, useCallback } from 'react';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { Checkbox } from '~/components/ui/Checkbox';
 import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
-import { type ChatHistoryItem } from '~/lib/persistence';
+import { db, prefetchChat, type ChatHistoryItem } from '~/lib/persistence';
 import { classNames } from '~/utils/classNames';
 
 interface HistoryItemProps {
@@ -73,6 +73,7 @@ export function HistoryItem({
         { 'cursor-pointer': selectionMode },
       )}
       onClick={selectionMode ? handleItemClick : undefined}
+      onMouseEnter={() => prefetchChat(db, item.urlId || item.id)}
     >
       {selectionMode && (
         <div className="flex items-center mr-2" onClick={(e) => e.stopPropagation()}>
@@ -103,8 +104,8 @@ export function HistoryItem({
           />
         </form>
       ) : (
-        <a
-          href={`/chat/${item.urlId}`}
+        <Link
+          to={`/chat/${item.urlId}`}
           className="flex w-full relative truncate block"
           onClick={selectionMode ? handleItemClick : undefined}
         >
@@ -151,7 +152,7 @@ export function HistoryItem({
               />
             </div>
           </div>
-        </a>
+        </Link>
       )}
     </div>
   );

@@ -1,10 +1,10 @@
 import { generateId, type UIMessage } from 'ai';
 import { atom } from 'nanostores';
 import { useState, useEffect, useCallback } from 'react';
-import { useLoaderData, useNavigate, useSearchParams } from 'react-router';
+import { useLoaderData, useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
+import { getCachedMessages, getCachedSnapshot, invalidateChatCache } from './chatCache';
 import {
-  getMessages,
   getMessagesByIdRaw,
   getMessagesByUrlIdRaw,
   getNextId,
@@ -13,7 +13,6 @@ import {
   setMessages,
   duplicateChat,
   createChatFromMessages,
-  getSnapshot,
   setSnapshot,
   type IChatMetadata,
 } from './db';
@@ -44,7 +43,9 @@ export const description = atom<string | undefined>(undefined);
 export const chatMetadata = atom<IChatMetadata | undefined>(undefined);
 export function useChatHistory() {
   const navigate = useNavigate();
-  const { id: mixedId } = useLoaderData<{ id?: string }>();
+  const { id: paramId } = useParams<{ id?: string }>();
+  const loaderData = useLoaderData<{ id?: string }>() as { id?: string } | undefined;
+  const mixedId = paramId ?? loaderData?.id;
   const [searchParams] = useSearchParams();
 
   const [archivedMessages, setArchivedMessages] = useState<UIMessage[]>([]);
@@ -66,17 +67,14 @@ export function useChatHistory() {
     }
 
     if (mixedId) {
-      Promise.all([
-        getMessages(db, mixedId),
-        getSnapshot(db, mixedId), // Fetch snapshot from DB
-      ])
+      Promise.all([getCachedMessages(db, mixedId), getCachedSnapshot(db, mixedId)])
         .then(async ([storedMessages, snapshot]) => {
           if (storedMessages && storedMessages.messages.length > 0) {
             /*
              * const snapshotStr = localStorage.getItem(`snapshot:${mixedId}`); // Remove localStorage usage
              * const snapshot: Snapshot = snapshotStr ? JSON.parse(snapshotStr) : { chatIndex: 0, files: {} }; // Use snapshot from DB
              */
-            const validSnapshot = snapshot || { chatIndex: '', files: {} }; // Ensure snapshot is not undefined
+            const validSnapshot: Snapshot = snapshot || { chatIndex: '', files: {} }; // Ensure snapshot is not undefined
             const summary = validSnapshot.summary;
 
             const rewindId = searchParams.get('rewindTo');
@@ -202,7 +200,7 @@ ${value.content}
 
                 ...filteredMessages,
               ];
-              restoreSnapshot(mixedId);
+              restoreSnapshot(mixedId, validSnapshot);
             }
 
             setInitialMessages(filteredMessages);
@@ -224,7 +222,14 @@ ${value.content}
           toast.error('Failed to load chat: ' + error.message); // More specific error
         });
     } else {
-      // Handle case where there is no mixedId (e.g., new chat)
+      // Clean reset when switching to a fresh chat (e.g., /)
+      setArchivedMessages([]);
+      setInitialMessages([]);
+      setUrlId(undefined);
+      description.set(undefined);
+      chatId.set(undefined);
+      chatMetadata.set(undefined);
+      workbenchStore.resetWorkbench();
       setReady(true);
     }
   }, [mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
@@ -372,6 +377,12 @@ ${value.content}
         undefined,
         chatMetadata.get(),
       );
+
+      invalidateChatCache(finalChatId);
+
+      if (urlId) {
+        invalidateChatCache(urlId);
+      }
     },
     duplicateCurrentChat: async (listItemId: string) => {
       if (!db || (!mixedId && !listItemId)) {
@@ -394,7 +405,7 @@ ${value.content}
 
       try {
         const newId = await createChatFromMessages(db, description, messages, metadata);
-        window.location.href = `/chat/${newId}`;
+        navigate(`/chat/${newId}`);
         toast.success('Chat imported successfully');
       } catch (error) {
         if (error instanceof Error) {
