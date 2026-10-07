@@ -30,6 +30,9 @@ interface AssistantMessageProps {
   provider?: ProviderInfo;
   parts: AnyPart[] | undefined;
   addToolResult: (options: { tool: string; toolCallId: string; output: unknown }) => void;
+
+  /** When true, the parent message is still receiving tokens from the LLM. */
+  isStreaming?: boolean;
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -70,6 +73,7 @@ export const AssistantMessage = memo(
     provider,
     parts,
     addToolResult,
+    isStreaming = false,
   }: AssistantMessageProps) => {
     /*
      * Chat.client.tsx:649 deliberately replaces assistant `content` with the
@@ -210,7 +214,15 @@ export const AssistantMessage = memo(
             </div>
           </details>
         )}
-        <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
+        <Markdown
+          append={append}
+          chatMode={chatMode}
+          setChatMode={setChatMode}
+          model={model}
+          provider={provider}
+          isStreaming={isStreaming}
+          html
+        >
           {messageText}
         </Markdown>
         {toolInvocations && toolInvocations.length > 0 && (
