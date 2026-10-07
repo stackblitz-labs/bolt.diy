@@ -90,6 +90,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                       <AssistantMessage
                         content={parsedContent ?? getMessageText(message)}
                         messageId={messageId}
+                        isStreaming={isStreaming && index === messages.length - 1}
                         onRewind={handleRewind}
                         onFork={handleFork}
                         append={props.append}
