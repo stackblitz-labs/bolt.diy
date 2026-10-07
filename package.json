@@ -206,6 +206,12 @@
       "tar": "^7.5.21",
       "tar-fs": "^2.1.4",
       "yaml@^2": "^2.8.3"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@cloudflare/workers-types": ">=4.0.0",
+        "electron-builder-squirrel-windows": ">=26.0.0"
+      }
     }
   },
   "packageManager": "pnpm@9.15.9"
