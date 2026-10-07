@@ -157,6 +157,7 @@
     "@react-router/fs-routes": "^8.4.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/dom-speech-recognition": "^0.0.12",
     "@types/file-saver": "^2.0.7",
     "@types/js-cookie": "^3.0.6",

@@ -170,6 +170,9 @@ export default defineConfig((config) => {
         '**/tests/preview/**', // Exclude preview tests that require Playwright
         '**/tests/e2e/**', // Exclude e2e tests that require Playwright
       ],
+      benchmark: {
+        include: ['**/*.bench.{ts,tsx,js,jsx}'],
+      },
     },
   };
 });
