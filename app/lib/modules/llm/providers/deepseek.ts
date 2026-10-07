@@ -14,6 +14,20 @@ export default class DeepseekProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'deepseek-v4-pro',
+      label: 'DeepSeek V4 Pro',
+      provider: 'Deepseek',
+      maxTokenAllowed: 1000000,
+      maxCompletionTokens: 384000,
+    },
+    {
+      name: 'deepseek-v4-flash',
+      label: 'DeepSeek V4 Flash',
+      provider: 'Deepseek',
+      maxTokenAllowed: 1000000,
+      maxCompletionTokens: 384000,
+    },
+    {
       name: 'deepseek-coder',
       label: 'Deepseek-Coder',
       provider: 'Deepseek',
@@ -91,8 +105,8 @@ export default class DeepseekProvider extends BaseProvider {
             name: m.id,
             label: `${m.id} (Dynamic)`,
             provider: this.name,
-            maxTokenAllowed: 64000, // Default, adjust per model if available
-            maxCompletionTokens: 8192,
+            maxTokenAllowed: m.id?.startsWith('deepseek-v4') ? 1000000 : 64000,
+            maxCompletionTokens: m.id?.startsWith('deepseek-v4') ? 384000 : 8192,
           })) || [];
 
       return dynamicModels;
