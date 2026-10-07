@@ -56,6 +56,8 @@ export class WorkbenchStore {
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
+  userSelectedView: WritableAtom<WorkbenchViewType | undefined> =
+    import.meta.hot?.data.userSelectedView ?? atom<WorkbenchViewType | undefined>(undefined);
   unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
   actionAlert: WritableAtom<ActionAlert | undefined> =
     import.meta.hot?.data.actionAlert ?? atom<ActionAlert | undefined>(undefined);
@@ -72,6 +74,7 @@ export class WorkbenchStore {
       import.meta.hot.data.unsavedFiles = this.unsavedFiles;
       import.meta.hot.data.showWorkbench = this.showWorkbench;
       import.meta.hot.data.currentView = this.currentView;
+      import.meta.hot.data.userSelectedView = this.userSelectedView;
       import.meta.hot.data.actionAlert = this.actionAlert;
       import.meta.hot.data.supabaseAlert = this.supabaseAlert;
       import.meta.hot.data.deployAlert = this.deployAlert;
@@ -153,6 +156,7 @@ export class WorkbenchStore {
     this.artifacts.set({});
     this.showWorkbench.set(false);
     this.currentView.set('code');
+    this.userSelectedView.set(undefined);
     this.unsavedFiles.set(new Set<string>());
     this.setSelectedFile(undefined);
     this.clearAlert();
@@ -196,6 +200,19 @@ export class WorkbenchStore {
 
   setShowWorkbench(show: boolean) {
     this.showWorkbench.set(show);
+  }
+
+  /**
+   * Select a workbench view tab. When `userInitiated` is true, the choice is
+   * remembered so that automatic view switches (e.g. preview becoming available)
+   * don't override the user's explicit preference.
+   */
+  selectWorkbenchView(view: WorkbenchViewType, options?: { userInitiated?: boolean }) {
+    if (options?.userInitiated) {
+      this.userSelectedView.set(view);
+    }
+
+    this.currentView.set(view);
   }
 
   setCurrentDocumentContent(newContent: string) {

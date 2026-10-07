@@ -4,7 +4,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { diffLines, type Change } from 'diff';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect, useState, useMemo, lazy, Suspense } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo, useRef, lazy, Suspense } from 'react';
 import type { JSX } from 'react';
 import { toast } from 'react-toastify';
 import { EditorPanel } from './EditorPanel';
@@ -319,6 +319,7 @@ export const Workbench = memo(
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
+    const userSelectedView = useStore(workbenchStore.userSelectedView);
     const { showChat } = useStore(chatStore);
     const canHideChat = showWorkbench || !showChat;
 
@@ -326,16 +327,48 @@ export const Workbench = memo(
     const streaming = useStore(streamingState);
     const { exportChat } = useChatHistory();
     const [isSyncing, setIsSyncing] = useState(false);
+    const [loadedViews, setLoadedViews] = useState<Set<WorkbenchViewType>>(() => new Set(['code']));
+    const previousHasPreviewRef = useRef(hasPreview);
 
     const setSelectedView = (view: WorkbenchViewType) => {
-      workbenchStore.currentView.set(view);
+      workbenchStore.selectWorkbenchView(view, { userInitiated: true });
     };
 
+    // Only auto-switch to preview when it first becomes available AND user hasn't explicitly chosen a view
     useEffect(() => {
-      if (hasPreview) {
-        setSelectedView('preview');
+      const previewJustBecameAvailable = hasPreview && !previousHasPreviewRef.current;
+      previousHasPreviewRef.current = hasPreview;
+
+      if (previewJustBecameAvailable && !userSelectedView) {
+        workbenchStore.currentView.set('preview');
       }
-    }, [hasPreview]);
+    }, [hasPreview, userSelectedView]);
+
+    /*
+     * If the user explicitly chose a non-preview view but the system switched to preview,
+     * restore the user's preference
+     */
+    useEffect(() => {
+      if (!userSelectedView || userSelectedView === 'preview' || selectedView !== 'preview') {
+        return;
+      }
+
+      workbenchStore.currentView.set(userSelectedView);
+    }, [selectedView, userSelectedView]);
+
+    // Track which views have been loaded for lazy rendering
+    useEffect(() => {
+      setLoadedViews((current) => {
+        if (current.has(selectedView)) {
+          return current;
+        }
+
+        const next = new Set(current);
+        next.add(selectedView);
+
+        return next;
+      });
+    }, [selectedView]);
 
     useEffect(() => {
       workbenchStore.setDocuments(files);
@@ -513,31 +546,35 @@ export const Workbench = memo(
                       onFileReset={onFileReset}
                     />
                   </View>
-                  <View
-                    initial={{ x: '100%' }}
-                    animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
-                  >
-                    <Suspense
-                      fallback={
-                        <div className="flex items-center justify-center h-full">
-                          <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
-                        </div>
-                      }
+                  {loadedViews.has('diff') ? (
+                    <View
+                      initial={{ x: '100%' }}
+                      animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
                     >
-                      <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
-                    </Suspense>
-                  </View>
-                  <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
-                    <Suspense
-                      fallback={
-                        <div className="flex items-center justify-center h-full">
-                          <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
-                        </div>
-                      }
-                    >
-                      <Preview setSelectedElement={setSelectedElement} />
-                    </Suspense>
-                  </View>
+                      <Suspense
+                        fallback={
+                          <div className="flex items-center justify-center h-full">
+                            <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
+                          </div>
+                        }
+                      >
+                        <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
+                      </Suspense>
+                    </View>
+                  ) : null}
+                  {loadedViews.has('preview') ? (
+                    <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
+                      <Suspense
+                        fallback={
+                          <div className="flex items-center justify-center h-full">
+                            <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
+                          </div>
+                        }
+                      >
+                        <Preview setSelectedElement={setSelectedElement} />
+                      </Suspense>
+                    </View>
+                  ) : null}
                 </div>
               </div>
             </div>
