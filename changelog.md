@@ -4,6 +4,7 @@
 
 ### ✨ Features
 
+* add persistent sidebar trigger toggle button when sidebar is collapsed ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
 * upgrade the AI SDK from v4 to v7 ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (853bd2a) by @dustinwloring1988
 * write both message shapes at the v4 call sites ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (85b0cc1) by @dustinwloring1988
 * add dual-shape message accessors for the v4 to v5 migration ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (f4b3143) by @dustinwloring1988
@@ -13,6 +14,10 @@
 
 ### 🐛 Bug Fixes
 
+* quiet missing API key errors on startup for unconfigured LLM providers ([#2215](https://github.com/stackblitz-labs/bolt.diy/pull/2215)) by @dustinwloring1988
+* resolve tsconfig paths natively, silence dotenv dev noise, and disable remote Cloudflare Request.cf fetch during local dev ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
+* add peerDependencyRules to silence safe version mismatches on pnpm install ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
+* restore native anchor reload for logo and new chat navigation ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
 * resolve process.cwd is not a function error in file actions ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211)) (31aff28) by @dustinwloring1988
 * stop losing message fields on import/export, typecheck two chat files ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (1bf219d) by @dustinwloring1988
 * repair the electron build scripts, which could not run ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (951b2dd) by @dustinwloring1988
@@ -21,6 +26,8 @@
 
 ### ⚡ Performance Improvements
 
+* eliminate mid-load dependency re-bundling screen flashes via comprehensive optimizeDeps pre-bundling, and lazy-load Workbench on landing page ([#2215](https://github.com/stackblitz-labs/bolt.diy/pull/2215)) by @dustinwloring1988
+* chat mount preservation across navigation, hover prefetching into in-memory cache, deferred Shiki syntax highlighting during streaming, and memoized frozen markdown blocks ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
 * easy performance wins and TDD improvements: reduce unnecessary renders and lazy-load workbench views ([#2212](https://github.com/stackblitz-labs/bolt.diy/pull/2212)) (972059e) by @dustinwloring1988
 
 ### ♻️ Code Refactoring
@@ -31,6 +38,7 @@
 
 ### 🧪 Tests
 
+* add unit tests for in-memory chat cache and prefetching layer ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
 * pin the OpenAI provider wire format before the SDK upgrade ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (0cc227f) by @dustinwloring1988
 * add migration safety harness (stream protocol, llm utils, mcp tools, e2e persistence) and extract reasoning rewrite transform ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (cd755e9) by @dustinwloring1988
 
