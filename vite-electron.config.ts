@@ -3,8 +3,6 @@ import { reactRouter } from '@react-router/dev/vite';
 import UnoCSS from 'unocss/vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
-import tsconfigPaths from 'vite-tsconfig-paths';
-
 import { execSync } from 'child_process';
 
 // Get git hash with fallback
@@ -22,6 +20,9 @@ export default defineConfig((config) => {
       __COMMIT_HASH: JSON.stringify(getGitHash()),
       __APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },
+    resolve: {
+      tsconfigPaths: true,
+    },
     build: {
       target: 'esnext',
     },
@@ -31,7 +32,6 @@ export default defineConfig((config) => {
       }),
       reactRouter(),
       UnoCSS(),
-      tsconfigPaths(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
       {
         name: 'replaceReactDomServerImport',
