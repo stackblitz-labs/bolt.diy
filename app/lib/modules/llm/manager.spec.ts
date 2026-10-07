@@ -22,15 +22,46 @@ describe('LLMManager', () => {
   it('registers exactly the enabled providers', () => {
     const manager = LLMManager.getInstance({});
     const names = manager.getAllProviders().map((p) => p.name);
-    expect(names.sort()).toEqual(['Anthropic', 'Google', 'OpenAI', 'OpenRouter']);
+
+    // All 22 providers should now be registered
+    expect(names.sort()).toEqual([
+      'AmazonBedrock',
+      'Anthropic',
+      'Cerebras',
+      'Cohere',
+      'Deepseek',
+      'Fireworks',
+      'Github',
+      'Google',
+      'Groq',
+      'HuggingFace',
+      'Hyperbolic',
+      'LMStudio',
+      'Mistral',
+      'Moonshot',
+      'Ollama',
+      'OpenAI',
+      'OpenAILike',
+      'OpenRouter',
+      'Perplexity',
+      'Together',
+      'Z.ai',
+      'xAI',
+    ]);
   });
 
-  it('does not register providers outside the enabled set', () => {
+  it('registers all 22 providers including newly restored ones', () => {
     const manager = LLMManager.getInstance({});
     const names = manager.getAllProviders().map((p) => p.name);
-    expect(names).not.toContain('Groq');
-    expect(names).not.toContain('Together');
-    expect(names).not.toContain('Ollama');
+
+    // Verify newly restored providers are registered
+    expect(names).toContain('Groq');
+    expect(names).toContain('Together');
+    expect(names).toContain('Ollama');
+    expect(names).toContain('HuggingFace');
+    expect(names).toContain('Cohere');
+    expect(names).toContain('Mistral');
+    expect(names.length).toBe(22);
   });
 
   it('exposes each enabled provider via getProvider', () => {

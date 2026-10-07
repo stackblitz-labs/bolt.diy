@@ -30,7 +30,7 @@ const ENABLED_PROVIDERS = new Set([
   'Github',
   'Moonshot',
   'Hyperbolic',
-  'Z-AI',
+  'Z.ai',
   'Ollama',
   'LMStudio',
   'OpenAILike',
