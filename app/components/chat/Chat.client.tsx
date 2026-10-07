@@ -266,8 +266,24 @@ export const ChatImpl = memo(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
     useEffect(() => {
-      chatStore.setKey('started', initialMessages.length > 0);
-    }, []);
+      if (isLoading) {
+        stop();
+      }
+
+      setMessages(initialMessages);
+
+      const hasMessages = initialMessages.length > 0;
+      setChatStarted(hasMessages);
+      chatStore.setKey('started', hasMessages);
+      setProgressAnnotations([]);
+      resetEnhancer();
+
+      if (!hasMessages) {
+        setInput('');
+      }
+
+      parseMessages(initialMessages, false);
+    }, [initialMessages]);
 
     useEffect(() => {
       processSampledMessages({
