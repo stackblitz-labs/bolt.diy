@@ -75,7 +75,8 @@ describe('Performance Monitoring Integration', () => {
 
       const stats = PerformanceMonitor.getJourneyStats('syntax-highlight');
       expect(stats).not.toBeNull();
-      expect(stats!.duration).toBeGreaterThan(0);
+      expect(stats!.avg).toBeGreaterThan(0);
+      expect(stats!.count).toBe(1);
 
       client.dispose();
     });

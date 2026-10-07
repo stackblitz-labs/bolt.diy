@@ -50,10 +50,21 @@ export function useStaticComposerHandoff(initialValue: string = '') {
 }
 
 /**
+ * Escape HTML to prevent XSS in attributes
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
  * Generate static HTML for server-side rendering or initial load
  * This should be injected into the HTML document before React loads
  */
 export function generateStaticComposerHTML(placeholder: string = 'How can Bolt help you today?'): string {
+  const escapedPlaceholder = escapeHtml(placeholder);
+  
   return `
 <div id="bolt-static-composer" style="
   position: fixed;
@@ -67,7 +78,7 @@ export function generateStaticComposerHTML(placeholder: string = 'How can Bolt h
 ">
   <textarea
     id="bolt-static-input"
-    placeholder="${placeholder}"
+    placeholder="${escapedPlaceholder}"
     autofocus
     style="
       width: 100%;

@@ -11,6 +11,7 @@ import '@testing-library/jest-dom/vitest';
 // Cleanup after each test
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.clearAllMocks();
 });
 
@@ -29,7 +30,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock Worker API
+// Mock Worker API with proper Shiki highlighting simulation
 class WorkerMock {
   url: string;
   onmessage: ((event: MessageEvent) => void) | null = null;
@@ -39,18 +40,29 @@ class WorkerMock {
   }
 
   postMessage(data: any) {
-    // Mock worker behavior - immediate fallback response
+    // Mock worker behavior - simulate Shiki highlighting with language-specific output
     setTimeout(() => {
       if (this.onmessage) {
+        // Simulate actual syntax highlighting output with proper HTML
+        // Include language in the output to make each language unique
+        const languageClass = `language-${data.language || 'plaintext'}`;
+        const highlighted = `<pre class="shiki ${languageClass}" style="background-color:#1e1e1e"><code><span style="color:#9CDCFE">${this.escapeHtml(data.code)}</span></code></pre>`;
+        
         const event = new MessageEvent('message', {
           data: {
             id: data.id,
-            html: `<pre><code>${data.code}</code></pre>`,
+            html: highlighted,
           },
         });
         this.onmessage(event);
       }
     }, 0);
+  }
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   addEventListener(type: string, listener: EventListenerOrEventListenerObject) {
@@ -131,6 +143,34 @@ global.PerformanceObserver = class PerformanceObserver {
     return [];
   }
 } as any;
+
+// Mock web-vitals library
+vi.mock('web-vitals', () => ({
+  onCLS: vi.fn((callback) => {
+    // Simulate CLS metric
+    setTimeout(() => callback({ value: 0.05, id: 'cls-1', name: 'CLS' }), 0);
+  }),
+  onFID: vi.fn((callback) => {
+    // Simulate FID metric
+    setTimeout(() => callback({ value: 50, id: 'fid-1', name: 'FID' }), 0);
+  }),
+  onLCP: vi.fn((callback) => {
+    // Simulate LCP metric
+    setTimeout(() => callback({ value: 1200, id: 'lcp-1', name: 'LCP' }), 0);
+  }),
+  onFCP: vi.fn((callback) => {
+    // Simulate FCP metric
+    setTimeout(() => callback({ value: 800, id: 'fcp-1', name: 'FCP' }), 0);
+  }),
+  onTTFB: vi.fn((callback) => {
+    // Simulate TTFB metric
+    setTimeout(() => callback({ value: 200, id: 'ttfb-1', name: 'TTFB' }), 0);
+  }),
+  onINP: vi.fn((callback) => {
+    // Simulate INP metric
+    setTimeout(() => callback({ value: 150, id: 'inp-1', name: 'INP' }), 0);
+  }),
+}));
 
 // Add custom matchers if needed
 expect.extend({
