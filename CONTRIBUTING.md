@@ -78,6 +78,7 @@ Interested in maintaining and growing the project? Fill out our [Contributor App
 
 ### 1️⃣ Initial Setup
 
+- Prerequisites: **Node.js >= 22.12.0** and **pnpm >= 9.15.9**.
 - Clone the repository:
   ```bash
   git clone https://github.com/stackblitz-labs/bolt.diy.git
@@ -95,11 +96,20 @@ Interested in maintaining and growing the project? Fill out our [Contributor App
      OPENAI_API_KEY=XXX
      ...
      ```
-  3. Optionally set:
+  3. **For Docker users**: Run the setup script or manually copy `.env.local` to `.env`:
+     ```bash
+     # Option 1: Use the setup script
+     ./scripts/setup-env.sh
+     
+     # Option 2: Manual copy
+     cp .env.local .env
+     ```
+     Docker Compose requires `.env` for variable substitution.
+  4. Optionally set:
      - Debug level: `VITE_LOG_LEVEL=debug`
      - Context size: `DEFAULT_NUM_CTX=32768`
 
-**Note**: Never commit your `.env.local` file to version control. It’s already in `.gitignore`.
+**Note**: Never commit your `.env.local` or `.env` files to version control. They're already in `.gitignore`.
 
 ### 2️⃣ Run Development Server
 
@@ -116,7 +126,14 @@ pnpm run dev
 Run the test suite with:
 
 ```bash
+# Unit and integration tests
 pnpm test
+
+# End-to-end tests
+pnpm run test:e2e
+
+# TypeScript type checking
+pnpm run typecheck
 ```
 
 ---
