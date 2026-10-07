@@ -534,6 +534,24 @@ export const Menu = () => {
         </div>
       </motion.div>
 
+      {/* Persistent sidebar trigger — always visible when sidebar is closed */}
+      {!open && !isSettingsOpen && (
+        <button
+          onClick={() => setOpen(true)}
+          className={classNames(
+            'fixed left-0 top-[72px] z-sidebar',
+            'bg-white dark:bg-gray-950',
+            'border border-l-0 border-gray-200 dark:border-gray-800',
+            'rounded-r-lg p-1.5 shadow-sm',
+            'hover:bg-gray-50 dark:hover:bg-gray-900',
+            'transition-colors',
+          )}
+          aria-label="Open sidebar"
+        >
+          <div className="i-ph:caret-right text-gray-500 dark:text-gray-400" />
+        </button>
+      )}
+
       <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
     </>
   );
