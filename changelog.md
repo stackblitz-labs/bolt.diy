@@ -2,6 +2,10 @@
 
 ## What's Changed 🌟
 
+### ⚙️ Configuration
+
+* update Cloudflare Workers compatibility date to 2026-10-01
+
 ### ✨ Features
 
 * preserve user-selected workbench tab, lazy-mount diff and preview panels, and inject prompt workstyle commentary instructions ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
