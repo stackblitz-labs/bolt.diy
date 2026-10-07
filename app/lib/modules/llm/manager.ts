@@ -128,7 +128,14 @@ export class LLMManager {
               return models;
             })
             .catch((err) => {
-              logger.error(`Error getting dynamic models ${provider.name} :`, err);
+              const message = err instanceof Error ? err.message : String(err);
+
+              if (message.toLowerCase().includes('missing api key')) {
+                logger.debug(`Dynamic models skipped for ${provider.name}: ${message}`);
+              } else {
+                logger.error(`Error getting dynamic models ${provider.name} :`, err);
+              }
+
               return [];
             });
 
@@ -195,7 +202,14 @@ export class LLMManager {
         return models;
       })
       .catch((err) => {
-        logger.error(`Error getting dynamic models ${provider.name} :`, err);
+        const message = err instanceof Error ? err.message : String(err);
+
+        if (message.toLowerCase().includes('missing api key')) {
+          logger.debug(`Dynamic models skipped for ${provider.name}: ${message}`);
+        } else {
+          logger.error(`Error getting dynamic models ${provider.name} :`, err);
+        }
+
         return [];
       });
 
