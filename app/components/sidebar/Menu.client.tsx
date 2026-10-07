@@ -1,10 +1,18 @@
 import { useStore } from '@nanostores/react';
 import { motion, type Variants } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
-import { ControlPanel } from '~/components/@settings/core/ControlPanel';
+
+/*
+ * Lazy-load the heavy ControlPanel (settings UI).  Most users don't open it on
+ * every visit, so keeping it out of the critical-path bundle improves initial
+ * load time.
+ */
+const LazyControlPanel = lazy(() =>
+  import('~/components/@settings/core/ControlPanel').then((m) => ({ default: m.ControlPanel })),
+);
 import { Button } from '~/components/ui/Button';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { SettingsButton, HelpButton } from '~/components/ui/SettingsButton';
@@ -534,7 +542,27 @@ export const Menu = () => {
         </div>
       </motion.div>
 
-      <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
+      {/* Persistent sidebar trigger — always visible when sidebar is closed */}
+      {!open && !isSettingsOpen && (
+        <button
+          onClick={() => setOpen(true)}
+          className={classNames(
+            'fixed left-0 top-[72px] z-sidebar',
+            'bg-white dark:bg-gray-950',
+            'border border-l-0 border-gray-200 dark:border-gray-800',
+            'rounded-r-lg p-1.5 shadow-sm',
+            'hover:bg-gray-50 dark:hover:bg-gray-900',
+            'transition-colors',
+          )}
+          aria-label="Open sidebar"
+        >
+          <div className="i-ph:caret-right text-gray-500 dark:text-gray-400" />
+        </button>
+      )}
+
+      <Suspense fallback={null}>
+        <LazyControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
+      </Suspense>
     </>
   );
 };

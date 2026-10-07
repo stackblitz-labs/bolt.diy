@@ -2,7 +2,7 @@ import type { UIMessage } from 'ai';
 import { Fragment } from 'react';
 import { forwardRef } from 'react';
 import type { ForwardedRef } from 'react';
-import { useLocation } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
@@ -37,6 +37,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
   (props: MessagesProps, ref: ForwardedRef<HTMLDivElement> | undefined) => {
     const { id, isStreaming = false, messages = [] } = props;
     const location = useLocation();
+    const navigate = useNavigate();
 
     const handleRewind = (messageId: string) => {
       const searchParams = new URLSearchParams(location.search);
@@ -52,7 +53,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
         }
 
         const urlId = await forkChat(db, chatId.get()!, messageId);
-        window.location.href = `/chat/${urlId}`;
+        navigate(`/chat/${urlId}`);
       } catch (error) {
         toast.error('Failed to fork chat: ' + (error as Error).message);
       }
@@ -90,6 +91,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                       <AssistantMessage
                         content={parsedContent ?? getMessageText(message)}
                         messageId={messageId}
+                        isStreaming={isStreaming && index === messages.length - 1}
                         onRewind={handleRewind}
                         onFork={handleFork}
                         append={props.append}

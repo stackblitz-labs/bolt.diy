@@ -149,6 +149,18 @@ export class WorkbenchStore {
     this.deployAlert.set(undefined);
   }
 
+  resetWorkbench() {
+    this.artifacts.set({});
+    this.showWorkbench.set(false);
+    this.currentView.set('code');
+    this.unsavedFiles.set(new Set<string>());
+    this.setSelectedFile(undefined);
+    this.clearAlert();
+    this.clearSupabaseAlert();
+    this.clearDeployAlert();
+    this.#reloadedMessages.clear();
+  }
+
   toggleTerminal(value?: boolean) {
     this.#terminalStore.toggleTerminal(value);
   }

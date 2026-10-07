@@ -1,17 +1,18 @@
-﻿import { cloudflare } from '@cloudflare/vite-plugin';
+import { cloudflare } from '@cloudflare/vite-plugin';
 import { reactRouter } from '@react-router/dev/vite';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import UnoCSS from 'unocss/vite';
 import { defineConfig, type ViteDevServer } from 'vite';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
-import tsconfigPaths from 'vite-tsconfig-paths';
 import * as dotenv from 'dotenv';
 
-// Load environment variables from multiple files
-dotenv.config({ path: '.env.local' });
-dotenv.config({ path: '.env' });
-dotenv.config();
+// Prevent miniflare from making an external network request to workers.cloudflare.com
+// for Request.cf during local dev, which causes 3-second TimeoutError warnings.
+process.env.CLOUDFLARE_CF_FETCH_ENABLED ??= 'false';
+
+// Load environment variables without duplicate loading or console noise
+dotenv.config({ path: ['.env.local', '.env'], quiet: true });
 
 export default defineConfig((config) => {
   return {
@@ -19,6 +20,9 @@ export default defineConfig((config) => {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
       // Ensure process.cwd is defined as a function for path-browserify compatibility
       'process.cwd': '() => "/"',
+    },
+    resolve: {
+      tsconfigPaths: true,
     },
     build: {
       target: 'esnext',
@@ -57,7 +61,6 @@ export default defineConfig((config) => {
       config.mode !== 'test' && cloudflare({ viteEnvironment: { name: 'ssr' } }),
       config.mode !== 'test' && reactRouter(),
       UnoCSS(),
-      tsconfigPaths(),
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
     ],
