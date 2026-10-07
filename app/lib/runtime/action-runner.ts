@@ -112,8 +112,21 @@ export class ActionRunner {
     });
 
     this.#currentExecutionPromise.then(() => {
-      this.#updateAction(actionId, { status: 'running' });
+      if (!abortController.signal.aborted) {
+        this.#updateAction(actionId, { status: 'running' });
+      }
     });
+  }
+
+  abortAllActions() {
+    const actions = this.actions.get();
+
+    for (const [actionId, action] of Object.entries(actions)) {
+      if (action.status === 'pending' || action.status === 'running') {
+        logger.debug(`[${action.type}]: Aborting action ${actionId}`);
+        action.abort();
+      }
+    }
   }
 
   async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
@@ -124,7 +137,7 @@ export class ActionRunner {
       unreachable(`Action ${actionId} not found`);
     }
 
-    if (action.executed) {
+    if (action.executed || action.abortSignal.aborted || action.status === 'aborted') {
       return; // No return value here
     }
 

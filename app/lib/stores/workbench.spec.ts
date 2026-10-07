@@ -117,3 +117,24 @@ describe('WorkbenchStore.selectWorkbenchView', () => {
     expect(store.currentView.get()).toBe('code');
   });
 });
+
+describe('WorkbenchStore.abortAllActions', () => {
+  it('should call abortAllActions on all artifact runners and reset action alert', () => {
+    const mockAbortAll = vi.fn();
+    store.artifacts.setKey('artifact-1', {
+      runner: { abortAllActions: mockAbortAll },
+    } as unknown as ArtifactState);
+
+    store.actionAlert.set({
+      type: 'preview',
+      title: 'Alert',
+      description: 'Test alert',
+      content: 'Test content',
+    });
+
+    store.abortAllActions();
+
+    expect(mockAbortAll).toHaveBeenCalledTimes(1);
+    expect(store.actionAlert.get()).toBeUndefined();
+  });
+});
