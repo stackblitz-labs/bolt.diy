@@ -74,7 +74,6 @@
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.13",
     "@iconify-json/svg-spinners": "^1.2.4",
-
     "@modelcontextprotocol/sdk": "^1.32.1",
     "@nanostores/react": "^2.0.1",
     "@octokit/rest": "^22.0.1",
@@ -187,7 +186,8 @@
     "vite": "^8.3.3",
     "vite-plugin-copy": "^0.1.6",
     "vite-plugin-optimize-css-modules": "^1.4.0",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "web-vitals": "^6.2.3"
   },
   "pnpm": {
     "overrides": {
