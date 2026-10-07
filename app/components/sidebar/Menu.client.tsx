@@ -1,7 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { motion, type Variants } from 'framer-motion';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
 import { toast } from 'react-toastify';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
@@ -372,13 +371,13 @@ export const Menu = () => {
         <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
           <div className="p-4 space-y-3">
             <div className="flex gap-2">
-              <Link
-                to="/"
+              <a
+                href="/"
                 className="flex-1 flex gap-2 items-center bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-lg px-4 py-2 transition-colors"
               >
                 <span className="inline-block i-ph:plus-circle h-4 w-4" />
                 <span className="text-sm font-medium">Start new chat</span>
-              </Link>
+              </a>
               <button
                 onClick={toggleSelectionMode}
                 className={classNames(
