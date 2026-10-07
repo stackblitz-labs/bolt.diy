@@ -92,3 +92,28 @@ describe('WorkbenchStore.addToExecutionQueue', () => {
     expect(executed).toEqual(['first', 'second']);
   });
 });
+
+describe('WorkbenchStore.selectWorkbenchView', () => {
+  it('should update currentView and record userSelectedView when userInitiated is true', () => {
+    expect(store.currentView.get()).toBe('code');
+    expect(store.userSelectedView.get()).toBeUndefined();
+
+    store.selectWorkbenchView('diff', { userInitiated: true });
+    expect(store.currentView.get()).toBe('diff');
+    expect(store.userSelectedView.get()).toBe('diff');
+
+    // Programmatic switch without userInitiated should change currentView but preserve userSelectedView
+    store.selectWorkbenchView('preview');
+    expect(store.currentView.get()).toBe('preview');
+    expect(store.userSelectedView.get()).toBe('diff');
+  });
+
+  it('should reset userSelectedView when resetWorkbench() is called', () => {
+    store.selectWorkbenchView('diff', { userInitiated: true });
+    expect(store.userSelectedView.get()).toBe('diff');
+
+    store.resetWorkbench();
+    expect(store.userSelectedView.get()).toBeUndefined();
+    expect(store.currentView.get()).toBe('code');
+  });
+});
