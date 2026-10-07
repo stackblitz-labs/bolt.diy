@@ -4,6 +4,8 @@
 
 ### ✨ Features
 
+* preserve user-selected workbench tab, lazy-mount diff and preview panels, and inject prompt workstyle commentary instructions ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
+* update model catalogs, context windows, and token limits across all supported LLM providers ([#2216](https://github.com/stackblitz-labs/bolt.diy/pull/2216)) by @dustinwloring1988
 * add persistent sidebar trigger toggle button when sidebar is collapsed ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
 * upgrade the AI SDK from v4 to v7 ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (853bd2a) by @dustinwloring1988
 * write both message shapes at the v4 call sites ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (85b0cc1) by @dustinwloring1988
@@ -26,6 +28,7 @@
 
 ### ⚡ Performance Improvements
 
+* on-demand lazy mounting of DiffView and Preview panels in Workbench to reduce initial render overhead ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
 * eliminate mid-load dependency re-bundling screen flashes via comprehensive optimizeDeps pre-bundling, and lazy-load Workbench on landing page ([#2215](https://github.com/stackblitz-labs/bolt.diy/pull/2215)) by @dustinwloring1988
 * chat mount preservation across navigation, hover prefetching into in-memory cache, deferred Shiki syntax highlighting during streaming, and memoized frozen markdown blocks ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
 * easy performance wins and TDD improvements: reduce unnecessary renders and lazy-load workbench views ([#2212](https://github.com/stackblitz-labs/bolt.diy/pull/2212)) (972059e) by @dustinwloring1988
@@ -38,6 +41,7 @@
 
 ### 🧪 Tests
 
+* add unit tests for prompt workstyle guidance and workbench view selection retention ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
 * add unit tests for in-memory chat cache and prefetching layer ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
 * pin the OpenAI provider wire format before the SDK upgrade ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (0cc227f) by @dustinwloring1988
 * add migration safety harness (stream protocol, llm utils, mcp tools, e2e persistence) and extract reasoning rewrite transform ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (cd755e9) by @dustinwloring1988
@@ -50,6 +54,7 @@
 
 ### 🔍 Other Changes
 
+* streamline README structure, eliminate redundant setup instructions, and link directly to FAQ & troubleshooting documentation by @dustinwloring1988
 * modernize dependencies and frameworks: migrate to React Router v7, Remix 2.17, Zod 4, Electron 44.5.1, Shiki v4, and update WebContainer API ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211), [#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210), [#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) by @dustinwloring1988
 * broad dependency updates and cleanup across UI and runtime libraries (framer-motion, date-fns, lucide-react, xterm, octokit, pnpm 12) ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211), [#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) by @dustinwloring1988
 * developer tooling and configuration enhancements: add benchmark scripts, adjust OpenRouter completion limits, and remove stale type stubs ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210), [#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) by @dustinwloring1988

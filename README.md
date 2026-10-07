@@ -4,7 +4,15 @@
 
 Welcome to **bolt.diy**, the open-source AI developer workspace that lets you select your preferred LLM for every prompt. Build full-stack web applications in the browser with support for 21+ model providers (OpenAI, Anthropic, Gemini, Groq, xAI, DeepSeek, Ollama, LM Studio, and more), or extend it with any provider supported by the Vercel AI SDK.
 
-📖 [Documentation](https://stackblitz-labs.github.io/bolt.diy/) | 💬 [Community Forum](https://thinktank.ottomator.ai) | 🗺️ [Roadmap](https://roadmap.sh/r/ottodev-roadmap-2ovzo) | ❓ [FAQ & Troubleshooting](FAQ.md)
+[Documentation](https://stackblitz-labs.github.io/bolt.diy/) | [Community Forum](https://thinktank.ottomator.ai) | [FAQ & Troubleshooting](FAQ.md)
+
+---
+
+Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos-tutorial-helpful-content/3243) has a bunch of incredible resources for running and deploying bolt.diy yourself!
+
+We have also launched an experimental agent called the "bolt.diy Expert" that can answer common questions about bolt.diy. Find it here on the [oTTomator Live Agent Studio](https://studio.ottomator.ai/).
+
+bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMedin) but has quickly grown into a massive community effort to build the BEST open source AI coding assistant!
 
 ---
 
@@ -120,7 +128,7 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 - **Cross-Platform & Deployments**: Native Electron desktop app, Expo (React Native) support, and direct deployment to Netlify, Vercel, and GitHub Pages.
 - **Data & Backend Integrations**: Built-in Supabase management, interactive charts, and bulk chat operations.
 
-> 🔄 **Looking Ahead**: Ongoing work includes multi-agent architectures, model prompt workstyle optimizations, and deeper editor workflows. Track upcoming milestones on our [Roadmap](https://roadmap.sh/r/ottodev-roadmap-2ovzo).
+> **Looking Ahead**: Ongoing work includes multi-agent architectures, model prompt workstyle optimizations, and deeper editor workflows. Track upcoming milestones on our [Roadmap](https://roadmap.sh/r/ottodev-roadmap-2ovzo).
 
 ---
 
