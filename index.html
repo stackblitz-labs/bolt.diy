@@ -1,0 +1,1948 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+      
+        <link rel="next" href="CONTRIBUTING/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>bolt.diy Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#welcome-to-bolt-diy" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="bolt.diy Docs" class="md-header__button md-logo" aria-label="bolt.diy Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            bolt.diy Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Welcome to bolt diy
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/stackblitz-labs/bolt.diy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    bolt.diy
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome to bolt diy
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="CONTRIBUTING/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contribution Guidelines
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="FAQ/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Frequently Asked Questions (FAQ)
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="bolt.diy Docs" class="md-nav__button md-logo" aria-label="bolt.diy Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    bolt.diy Docs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/stackblitz-labs/bolt.diy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    bolt.diy
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome to bolt diy
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome to bolt diy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#join-the-community" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Join the community!
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Features
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clone-the-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clone the Repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#entering-api-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entering API Keys
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Entering API Keys">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-set-api-keys-in-the-envlocal-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Set API Keys in the .env.local File
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-configure-api-keys-directly-in-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Configure API Keys Directly in the Application
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run the Application
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Run the Application">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-1-without-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 1: Without Docker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-2-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 2: With Docker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Option 2: With Docker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-your-local-version-to-the-latest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update Your Local Version to the Latest
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Update Your Local Version to the Latest">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-navigate-to-your-project-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Navigate to your project folder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-fetch-the-latest-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Fetch the Latest Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-update-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Update Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-rebuild-and-start-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Rebuild and Start the Application
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-new-llms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding New LLMs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Adding New LLMs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#understanding-the-provider-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understanding the Provider Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-provider" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a New Provider
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Adding a New Provider">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-create-the-provider-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Create the Provider Class
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-register-the-provider" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Register the Provider
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-update-the-manager-if-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Update the Manager (if needed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-models-to-existing-providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding Models to Existing Providers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#provider-specific-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provider-Specific Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testing-your-new-provider" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Your New Provider
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mcp-model-context-protocol-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP (Model Context Protocol) Integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MCP (Model Context Protocol) Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setting-up-mcp-servers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting up MCP Servers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#git-integration-and-version-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git Integration and Version Control
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Git Integration and Version Control">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#github-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version-control-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version Control Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#export-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Export Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deployment Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supported-platforms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Platforms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Supported Platforms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vercel-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vercel Deployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#netlify-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Netlify Deployment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#github-pages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Pages
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deployment-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supabase-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supabase Integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Supabase Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setting-up-supabase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting up Supabase
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#database-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-with-ai-development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration with AI Development
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webcontainer-and-live-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebContainer and Live Preview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WebContainer and Live Preview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#webcontainer-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebContainer Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#development-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supported-technologies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Technologies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Templates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Project Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#frontend-frameworks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend Frameworks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-stack-frameworks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full-Stack Frameworks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobile-cross-platform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mobile &amp; Cross-Platform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#presentation-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Presentation &amp; Content
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vanilla-javascript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vanilla JavaScript
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-started-with-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Started with Templates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Scripts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Available Scripts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#development-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development Scripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Scripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#electron-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Electron Scripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deployment-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment Scripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#utility-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Utility Scripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-help-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Help &amp; Resources
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Getting Help &amp; Resources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#help-icon-in-sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Help Icon in Sidebar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#community-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Community Support
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tips-and-tricks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tips and Tricks
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contribution Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="FAQ/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frequently Asked Questions (FAQ)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="welcome-to-bolt-diy">Welcome to bolt diy<a class="headerlink" href="#welcome-to-bolt-diy" title="Permanent link">&para;</a></h1>
+<p>bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 21+ providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, Cerebras, Fireworks, Z-AI, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.</p>
+<h2 id="table-of-contents">Table of Contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="#join-the-community">Join the community!</a></li>
+<li><a href="#features">Features</a></li>
+<li><a href="#setup">Setup</a></li>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#clone-the-repository">Clone the Repository</a></li>
+<li><a href="#entering-api-keys">Entering API Keys</a><ul>
+<li><a href="#1-set-api-keys-in-the-envlocal-file">1. Set API Keys in the <code>.env.local</code> File</a></li>
+<li><a href="#2-configure-api-keys-directly-in-the-application">2. Configure API Keys Directly in the Application</a></li>
+</ul>
+</li>
+<li><a href="#run-the-application">Run the Application</a></li>
+<li><a href="#option-1-without-docker">Option 1: Without Docker</a></li>
+<li><a href="#option-2-with-docker">Option 2: With Docker</a></li>
+<li><a href="#update-your-local-version-to-the-latest">Update Your Local Version to the Latest</a></li>
+<li><a href="#adding-new-llms">Adding New LLMs</a></li>
+<li><a href="#mcp-model-context-protocol-integration">MCP (Model Context Protocol) Integration</a></li>
+<li><a href="#git-integration-and-version-control">Git Integration and Version Control</a></li>
+<li><a href="#deployment-options">Deployment Options</a></li>
+<li><a href="#supabase-integration">Supabase Integration</a></li>
+<li><a href="#webcontainer-and-live-preview">WebContainer and Live Preview</a></li>
+<li><a href="#project-templates">Project Templates</a></li>
+<li><a href="#available-scripts">Available Scripts</a></li>
+<li><a href="#development">Development</a></li>
+<li><a href="#tips-and-tricks">Tips and Tricks</a></li>
+</ul>
+<hr />
+<h2 id="join-the-community">Join the community!<a class="headerlink" href="#join-the-community" title="Permanent link">&para;</a></h2>
+<p><a href="https://thinktank.ottomator.ai">Join the community!</a></p>
+<p>Also <a href="https://thinktank.ottomator.ai/t/videos-tutorial-helpful-content/3243">this pinned post in our community</a> has a bunch of incredible resources for running and deploying bolt.diy yourself!</p>
+<hr />
+<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>AI-powered full-stack web development</strong> directly in your browser with live preview</li>
+<li><strong>Support for 21+ LLM providers</strong> with an extensible architecture to integrate additional models</li>
+<li><strong>Attach images and files to prompts</strong> for better contextual understanding</li>
+<li><strong>Integrated terminal</strong> with WebContainer sandbox for running commands and testing</li>
+<li><strong>Version control with Git</strong> - import/export projects, connect to GitHub repositories</li>
+<li><strong>MCP (Model Context Protocol)</strong> integration for enhanced AI capabilities and tool calling</li>
+<li><strong>Database integration</strong> with Supabase for backend development</li>
+<li><strong>One-click deployments</strong> to Vercel, Netlify, and GitHub Pages</li>
+<li><strong>Project templates</strong> for popular frameworks (React, Vue, Angular, Next.js, Astro, etc.)</li>
+<li><strong>Real-time collaboration</strong> and project sharing</li>
+<li><strong>Code diff visualization</strong> and version history</li>
+<li><strong>Download projects as ZIP</strong> or push directly to GitHub</li>
+<li><strong>Docker support</strong> for containerized development environments</li>
+<li><strong>Electron app</strong> for native desktop experience</li>
+<li><strong>Theme customization</strong> and accessibility features</li>
+<li><strong>Help icon</strong> in sidebar linking to comprehensive documentation</li>
+</ul>
+<hr />
+<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
+<p>If you're new to installing software from GitHub, don't worry! If you encounter any issues, feel free to submit an "issue" using the provided links or improve this documentation by forking the repository, editing the instructions, and submitting a pull request. The following instruction will help you get the stable branch up and running on your local machine in no time.</p>
+<h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Install Git</strong>: <a href="https://git-scm.com/downloads">Download Git</a></li>
+<li><strong>Install Node.js</strong>: <a href="https://nodejs.org/en/download/">Download Node.js</a></li>
+<li><strong>Version Required</strong>: Node.js <strong>&gt;= 22.12.0</strong> (required by Vite 8 for Rolldown native bindings).</li>
+<li><strong>Package Manager</strong>: pnpm <strong>&gt;= 9.15.9</strong> (<code>npm install -g pnpm</code>).</li>
+<li>After installation, the Node.js path is usually added to your system automatically. To verify:<ul>
+<li><strong>Windows</strong>: Search for "Edit the system environment variables," click "Environment Variables," and check if <code>Node.js</code> is in the <code>Path</code> variable.</li>
+<li><strong>Mac/Linux</strong>: Open a terminal and run:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">echo</span><span class="w"> </span><span class="nv">$PATH</span>
+</code></pre></div>
+   Look for <code>/usr/local/bin</code> in the output.</li>
+</ul>
+</li>
+</ol>
+<h3 id="clone-the-repository">Clone the Repository<a class="headerlink" href="#clone-the-repository" title="Permanent link">&para;</a></h3>
+<p>Alternatively, you can download the latest version of the project directly from the <a href="https://github.com/stackblitz-labs/bolt.diy/releases/latest">Releases Page</a>. Simply download the .zip file, extract it, and proceed with the setup instructions below. If you are comfertiable using git then run the command below.</p>
+<p>Clone the repository using Git:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/stackblitz-labs/bolt.diy
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>bolt.diy
+</code></pre></div>
+<hr />
+<h3 id="entering-api-keys">Entering API Keys<a class="headerlink" href="#entering-api-keys" title="Permanent link">&para;</a></h3>
+<p>There are two ways to configure your API keys in bolt.diy:</p>
+<h4 id="1-set-api-keys-in-the-envlocal-file">1. Set API Keys in the <code>.env.local</code> File<a class="headerlink" href="#1-set-api-keys-in-the-envlocal-file" title="Permanent link">&para;</a></h4>
+<p>When setting up the application, you will need to add your API keys for the LLMs you wish to use. You can do this by renaming the <code>.env.example</code> file to <code>.env.local</code> and adding your API keys there.</p>
+<ul>
+<li>On <strong>Mac</strong>, you can find the file at <code>[your name]/bolt.diy/.env.example</code>.</li>
+<li>On <strong>Windows/Linux</strong>, the path will be similar.</li>
+</ul>
+<p>If you can't see the file, it's likely because hidden files are not being shown. On <strong>Mac</strong>, open a Terminal window and enter the following command to show hidden files:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>defaults<span class="w"> </span>write<span class="w"> </span>com.apple.finder<span class="w"> </span>AppleShowAllFiles<span class="w"> </span>YES
+</code></pre></div>
+<p>Make sure to add your API keys for each provider you want to use, for example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>GROQ_API_KEY=XXX
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>OPENAI_API_KEY=XXX
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>ANTHROPIC_API_KEY=XXX
+</code></pre></div>
+<p>Once you've set your keys, you can proceed with running the app. You will set these keys up during the initial setup, and you can revisit and update them later after the app is running.</p>
+<p><strong>Important for Docker users</strong>: Docker Compose needs a <code>.env</code> file for variable substitution.
+- For development: Run <code>./scripts/setup-env.sh</code> to sync <code>.env.local</code> to <code>.env</code>, or manually copy: <code>cp .env.local .env</code>
+- For production: You can also use the clean production template: <code>cp .env.production .env</code></p>
+<p><strong>Note</strong>: Never commit your <code>.env.local</code> or <code>.env</code> files to version control. They're already included in the <code>.gitignore</code>.</p>
+<h4 id="2-configure-api-keys-directly-in-the-application">2. Configure API Keys Directly in the Application<a class="headerlink" href="#2-configure-api-keys-directly-in-the-application" title="Permanent link">&para;</a></h4>
+<p>Alternatively, you can configure your API keys directly in the application using the modern settings interface:</p>
+<ol>
+<li><strong>Open Settings</strong>: Click the settings icon (⚙️) in the sidebar to access the settings panel</li>
+<li><strong>Navigate to Providers</strong>: Select the "Providers" tab from the settings menu</li>
+<li><strong>Choose Provider Type</strong>: Switch between "Cloud Providers" and "Local Providers" tabs</li>
+<li><strong>Select Provider</strong>: Browse the grid of available providers and click on the provider card you want to configure</li>
+<li><strong>Configure API Key</strong>: Click on the "API Key" field to enter edit mode, then paste your API key and press Enter</li>
+<li><strong>Verify Configuration</strong>: Look for the green checkmark indicator showing the provider is properly configured</li>
+</ol>
+<p>The interface provides:
+- <strong>Real-time validation</strong> with visual status indicators
+- <strong>Bulk operations</strong> to enable/disable multiple providers at once
+- <strong>Secure storage</strong> of API keys in browser cookies
+- <strong>Environment variable auto-detection</strong> for server-side configurations</p>
+<p>Once you've configured your keys, the application will be ready to use the selected LLMs.</p>
+<hr />
+<h2 id="run-the-application">Run the Application<a class="headerlink" href="#run-the-application" title="Permanent link">&para;</a></h2>
+<h3 id="option-1-without-docker">Option 1: Without Docker<a class="headerlink" href="#option-1-without-docker" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Install Dependencies</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pnpm<span class="w"> </span>install
+</code></pre></div>
+<p>If <code>pnpm</code> is not installed, install it using:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sudo<span class="w"> </span>npm<span class="w"> </span>install<span class="w"> </span>-g<span class="w"> </span>pnpm
+</code></pre></div>
+<ol>
+<li><strong>Start the Application</strong>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pnpm<span class="w"> </span>run<span class="w"> </span>dev
+</code></pre></div>
+   This will start the React Router Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.</li>
+</ol>
+<h3 id="option-2-with-docker">Option 2: With Docker<a class="headerlink" href="#option-2-with-docker" title="Permanent link">&para;</a></h3>
+<h4 id="prerequisites_1">Prerequisites<a class="headerlink" href="#prerequisites_1" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Ensure Git, Node.js, and Docker are installed: <a href="https://www.docker.com/">Download Docker</a></li>
+</ul>
+<h4 id="steps">Steps<a class="headerlink" href="#steps" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Build the Docker Image</strong>:</li>
+</ol>
+<p>Use the provided NPM scripts:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>npm<span class="w"> </span>run<span class="w"> </span>dockerbuild
+</code></pre></div>
+<p>Alternatively, use Docker commands directly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span>build<span class="w"> </span>.<span class="w"> </span>--target<span class="w"> </span>bolt-ai-development
+</code></pre></div>
+<ol>
+<li><strong>Run the Container</strong>:<br />
+   Use Docker Compose profiles to manage environments:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>--profile<span class="w"> </span>development<span class="w"> </span>up
+</code></pre></div>
+<ul>
+<li>With the development profile, changes to your code will automatically reflect in the running container (hot reloading).</li>
+</ul>
+<hr />
+<h3 id="update-your-local-version-to-the-latest">Update Your Local Version to the Latest<a class="headerlink" href="#update-your-local-version-to-the-latest" title="Permanent link">&para;</a></h3>
+<p>To keep your local version of bolt.diy up to date with the latest changes, follow these steps for your operating system:</p>
+<h4 id="1-navigate-to-your-project-folder">1. <strong>Navigate to your project folder</strong><a class="headerlink" href="#1-navigate-to-your-project-folder" title="Permanent link">&para;</a></h4>
+<p>Navigate to the directory where you cloned the repository and open a terminal:</p>
+<h4 id="2-fetch-the-latest-changes">2. <strong>Fetch the Latest Changes</strong><a class="headerlink" href="#2-fetch-the-latest-changes" title="Permanent link">&para;</a></h4>
+<p>Use Git to pull the latest changes from the main repository:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>git<span class="w"> </span>pull<span class="w"> </span>origin<span class="w"> </span>main
+</code></pre></div>
+<h4 id="3-update-dependencies">3. <strong>Update Dependencies</strong><a class="headerlink" href="#3-update-dependencies" title="Permanent link">&para;</a></h4>
+<p>After pulling the latest changes, update the project dependencies by running the following command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>pnpm<span class="w"> </span>install
+</code></pre></div>
+<h4 id="4-rebuild-and-start-the-application">4. <strong>Rebuild and Start the Application</strong><a class="headerlink" href="#4-rebuild-and-start-the-application" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>If using Docker</strong>, ensure you rebuild the Docker image to avoid using a cached version:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>--profile<span class="w"> </span>development<span class="w"> </span>up<span class="w"> </span>--build
+</code></pre></div>
+<ul>
+<li><strong>If not using Docker</strong>, you can start the application as usual with:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>pnpm<span class="w"> </span>run<span class="w"> </span>dev
+</code></pre></div></li>
+</ul>
+<p>This ensures that you're running the latest version of bolt.diy and can take advantage of all the newest features and bug fixes.</p>
+<hr />
+<h2 id="adding-new-llms">Adding New LLMs<a class="headerlink" href="#adding-new-llms" title="Permanent link">&para;</a></h2>
+<p>bolt.diy supports a modular architecture for adding new LLM providers and models. The system is designed to be easily extensible while maintaining consistency across all providers.</p>
+<h3 id="understanding-the-provider-architecture">Understanding the Provider Architecture<a class="headerlink" href="#understanding-the-provider-architecture" title="Permanent link">&para;</a></h3>
+<p>Each LLM provider is implemented as a separate class that extends the <code>BaseProvider</code> class. The provider system includes:</p>
+<ul>
+<li><strong>Static Models</strong>: Pre-defined models that are always available</li>
+<li><strong>Dynamic Models</strong>: Models that can be loaded from the provider's API at runtime</li>
+<li><strong>Configuration</strong>: API key management and provider-specific settings</li>
+</ul>
+<h3 id="adding-a-new-provider">Adding a New Provider<a class="headerlink" href="#adding-a-new-provider" title="Permanent link">&para;</a></h3>
+<p>To add a new LLM provider, you need to create multiple files:</p>
+<h4 id="1-create-the-provider-class">1. Create the Provider Class<a class="headerlink" href="#1-create-the-provider-class" title="Permanent link">&para;</a></h4>
+<p>Create a new file in <code>app/lib/modules/llm/providers/your-provider.ts</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">BaseProvider</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">'~/lib/modules/llm/base-provider'</span><span class="p">;</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">import</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">ModelInfo</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">'~/lib/modules/llm/types'</span><span class="p">;</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="k">import</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">LanguageModel</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">'ai'</span><span class="p">;</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="k">import</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">IProviderSetting</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">'~/types/model'</span><span class="p">;</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">createYourProvider</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">'@ai-sdk/your-provider'</span><span class="p">;</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="k">export</span><span class="w"> </span><span class="k">default</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nx">YourProvider</span><span class="w"> </span><span class="k">extends</span><span class="w"> </span><span class="nx">BaseProvider</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">  </span><span class="nx">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'YourProvider'</span><span class="p">;</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">  </span><span class="nx">getApiKeyLink</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'https://your-provider.com/api-keys'</span><span class="p">;</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">  </span><span class="nx">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">    </span><span class="nx">apiTokenKey</span><span class="o">:</span><span class="w"> </span><span class="s1">'YOUR_PROVIDER_API_KEY'</span><span class="p">,</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">  </span><span class="p">};</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="w">  </span><span class="nx">staticModels</span><span class="o">:</span><span class="w"> </span><span class="kt">ModelInfo</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="w">      </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s1">'your-model-name'</span><span class="p">,</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="w">      </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">'Your Model Label'</span><span class="p">,</span>
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a><span class="w">      </span><span class="nx">provider</span><span class="o">:</span><span class="w"> </span><span class="s1">'YourProvider'</span><span class="p">,</span>
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="w">      </span><span class="nx">maxTokenAllowed</span><span class="o">:</span><span class="w"> </span><span class="kt">100000</span><span class="p">,</span>
+<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="w">      </span><span class="nx">maxCompletionTokens</span><span class="o">:</span><span class="w"> </span><span class="kt">4000</span><span class="p">,</span>
+<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a><span class="w">  </span><span class="p">];</span>
+<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a>
+<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a><span class="w">  </span><span class="k">async</span><span class="w"> </span><span class="nx">getDynamicModels</span><span class="p">(</span>
+<a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a><span class="w">    </span><span class="nx">apiKeys?</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a><span class="w">    </span><span class="nx">settings?</span><span class="o">:</span><span class="w"> </span><span class="kt">IProviderSetting</span><span class="p">,</span>
+<a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a><span class="w">    </span><span class="nx">serverEnv?</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a><span class="w">  </span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="nx">ModelInfo</span><span class="p">[]</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-30" name="__codelineno-14-30" href="#__codelineno-14-30"></a><span class="w">    </span><span class="c1">// Implement dynamic model loading if supported</span>
+<a id="__codelineno-14-31" name="__codelineno-14-31" href="#__codelineno-14-31"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">[];</span>
+<a id="__codelineno-14-32" name="__codelineno-14-32" href="#__codelineno-14-32"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-14-33" name="__codelineno-14-33" href="#__codelineno-14-33"></a>
+<a id="__codelineno-14-34" name="__codelineno-14-34" href="#__codelineno-14-34"></a><span class="w">  </span><span class="nx">getModelInstance</span><span class="p">(</span><span class="nx">options</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-35" name="__codelineno-14-35" href="#__codelineno-14-35"></a><span class="w">    </span><span class="nx">model</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<a id="__codelineno-14-36" name="__codelineno-14-36" href="#__codelineno-14-36"></a><span class="w">    </span><span class="nx">serverEnv?</span><span class="o">:</span><span class="w"> </span><span class="kt">Env</span><span class="p">;</span>
+<a id="__codelineno-14-37" name="__codelineno-14-37" href="#__codelineno-14-37"></a><span class="w">    </span><span class="nx">apiKeys?</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-14-38" name="__codelineno-14-38" href="#__codelineno-14-38"></a><span class="w">    </span><span class="nx">providerSettings?</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">IProviderSetting</span><span class="o">&gt;</span><span class="p">;</span>
+<a id="__codelineno-14-39" name="__codelineno-14-39" href="#__codelineno-14-39"></a><span class="w">  </span><span class="p">})</span><span class="o">:</span><span class="w"> </span><span class="nx">LanguageModel</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-40" name="__codelineno-14-40" href="#__codelineno-14-40"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">apiKeys</span><span class="p">,</span><span class="w"> </span><span class="nx">model</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">options</span><span class="p">;</span>
+<a id="__codelineno-14-41" name="__codelineno-14-41" href="#__codelineno-14-41"></a><span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">apiKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">apiKeys</span><span class="o">?</span><span class="p">.[</span><span class="k">this</span><span class="p">.</span><span class="nx">config</span><span class="p">.</span><span class="nx">apiTokenKey</span><span class="p">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s1">''</span><span class="p">;</span>
+<a id="__codelineno-14-42" name="__codelineno-14-42" href="#__codelineno-14-42"></a>
+<a id="__codelineno-14-43" name="__codelineno-14-43" href="#__codelineno-14-43"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">createYourProvider</span><span class="p">({</span>
+<a id="__codelineno-14-44" name="__codelineno-14-44" href="#__codelineno-14-44"></a><span class="w">      </span><span class="nx">apiKey</span><span class="p">,</span>
+<a id="__codelineno-14-45" name="__codelineno-14-45" href="#__codelineno-14-45"></a><span class="w">      </span><span class="c1">// other configuration options</span>
+<a id="__codelineno-14-46" name="__codelineno-14-46" href="#__codelineno-14-46"></a><span class="w">    </span><span class="p">})(</span><span class="nx">model</span><span class="p">);</span>
+<a id="__codelineno-14-47" name="__codelineno-14-47" href="#__codelineno-14-47"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-14-48" name="__codelineno-14-48" href="#__codelineno-14-48"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="2-register-the-provider">2. Register the Provider<a class="headerlink" href="#2-register-the-provider" title="Permanent link">&para;</a></h4>
+<p>Add your provider to <code>app/lib/modules/llm/registry.ts</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">import</span><span class="w"> </span><span class="nx">YourProvider</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">'./providers/your-provider'</span><span class="p">;</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1">// ... existing imports ...</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="k">export</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span><span class="c1">// ... existing exports ...</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">  </span><span class="nx">YourProvider</span><span class="p">,</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="p">};</span>
+</code></pre></div>
+<h4 id="3-update-the-manager-if-needed">3. Update the Manager (if needed)<a class="headerlink" href="#3-update-the-manager-if-needed" title="Permanent link">&para;</a></h4>
+<p>The provider will be automatically registered by the <code>LLMManager</code> through the registry. The manager scans for all classes that extend <code>BaseProvider</code> and registers them automatically.</p>
+<h3 id="adding-models-to-existing-providers">Adding Models to Existing Providers<a class="headerlink" href="#adding-models-to-existing-providers" title="Permanent link">&para;</a></h3>
+<p>To add new models to an existing provider:</p>
+<ol>
+<li><strong>Edit the provider file</strong> (e.g., <code>app/lib/modules/llm/providers/openai.ts</code>)</li>
+<li><strong>Add to the <code>staticModels</code> array</strong>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nx">staticModels</span><span class="o">:</span><span class="w"> </span><span class="kt">ModelInfo</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span><span class="c1">// ... existing models ...</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span><span class="p">{</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">    </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s1">'gpt-4o-mini-new'</span><span class="p">,</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">    </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">'GPT-4o Mini (New)'</span><span class="p">,</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">    </span><span class="nx">provider</span><span class="o">:</span><span class="w"> </span><span class="s1">'OpenAI'</span><span class="p">,</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">    </span><span class="nx">maxTokenAllowed</span><span class="o">:</span><span class="w"> </span><span class="kt">128000</span><span class="p">,</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">    </span><span class="nx">maxCompletionTokens</span><span class="o">:</span><span class="w"> </span><span class="kt">16000</span><span class="p">,</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="p">];</span>
+</code></pre></div>
+<h3 id="provider-specific-configuration">Provider-Specific Configuration<a class="headerlink" href="#provider-specific-configuration" title="Permanent link">&para;</a></h3>
+<p>Each provider can have its own configuration options:</p>
+<ul>
+<li><strong>API Key Environment Variables</strong>: Define in the <code>config</code> object</li>
+<li><strong>Base URL Support</strong>: Add <code>baseUrlKey</code> for custom endpoints</li>
+<li><strong>Provider Settings</strong>: Custom settings in the UI</li>
+<li><strong>Dynamic Model Loading</strong>: Implement <code>getDynamicModels()</code> for API-based model discovery</li>
+</ul>
+<h3 id="testing-your-new-provider">Testing Your New Provider<a class="headerlink" href="#testing-your-new-provider" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Restart the development server</strong> after making changes</li>
+<li><strong>Check the provider appears</strong> in the Settings → Providers section</li>
+<li><strong>Configure API keys</strong> in the provider settings</li>
+<li><strong>Test the models</strong> in a chat session</li>
+</ol>
+<h3 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Follow the naming conventions</strong> used by existing providers</li>
+<li><strong>Include proper error handling</strong> for API failures</li>
+<li><strong>Add comprehensive documentation</strong> for your provider</li>
+<li><strong>Test with both static and dynamic models</strong></li>
+<li><strong>Ensure proper API key validation</strong></li>
+</ul>
+<p>The modular architecture makes it easy to add new providers while maintaining consistency and reliability across the entire system.</p>
+<hr />
+<h2 id="mcp-model-context-protocol-integration">MCP (Model Context Protocol) Integration<a class="headerlink" href="#mcp-model-context-protocol-integration" title="Permanent link">&para;</a></h2>
+<p>bolt.diy supports MCP (Model Context Protocol) servers to extend AI capabilities with external tools and services. MCP allows you to connect various tools and services that the AI can use during conversations.</p>
+<h3 id="setting-up-mcp-servers">Setting up MCP Servers<a class="headerlink" href="#setting-up-mcp-servers" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Navigate to Settings → MCP tab</li>
+<li>Add MCP server configurations</li>
+<li>Configure server endpoints and authentication</li>
+<li>Enable/disable servers as needed</li>
+</ol>
+<p>MCP servers can provide:
+- Database connections and queries
+- File system operations
+- API integrations
+- Custom business logic tools
+- And much more...</p>
+<p>The MCP integration enhances the AI's ability to perform complex tasks by giving it access to external tools and data sources.</p>
+<hr />
+<h2 id="git-integration-and-version-control">Git Integration and Version Control<a class="headerlink" href="#git-integration-and-version-control" title="Permanent link">&para;</a></h2>
+<p>bolt.diy provides comprehensive Git integration for version control, collaboration, and project management.</p>
+<h3 id="github-integration">GitHub Integration<a class="headerlink" href="#github-integration" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Connect your GitHub account</strong> in Settings → Connections → GitHub</li>
+<li><strong>Import existing repositories</strong> by URL or from your connected account</li>
+<li><strong>Push projects directly to GitHub</strong> with automatic repository creation</li>
+<li><strong>Sync changes</strong> between local development and remote repositories</li>
+</ol>
+<h3 id="version-control-features">Version Control Features<a class="headerlink" href="#version-control-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Automatic commits</strong> for major changes</li>
+<li><strong>Diff visualization</strong> to see code changes</li>
+<li><strong>Branch management</strong> and merge conflict resolution</li>
+<li><strong>Revert to previous versions</strong> for debugging</li>
+<li><strong>Collaborative development</strong> with team members</li>
+</ul>
+<h3 id="export-options">Export Options<a class="headerlink" href="#export-options" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Download as ZIP</strong> for easy sharing</li>
+<li><strong>Push to GitHub</strong> for version control and collaboration</li>
+<li><strong>Import from GitHub</strong> to continue working on existing projects</li>
+</ul>
+<hr />
+<h2 id="deployment-options">Deployment Options<a class="headerlink" href="#deployment-options" title="Permanent link">&para;</a></h2>
+<p>bolt.diy provides one-click deployment to popular hosting platforms, making it easy to share your projects with the world.</p>
+<h3 id="supported-platforms">Supported Platforms<a class="headerlink" href="#supported-platforms" title="Permanent link">&para;</a></h3>
+<h4 id="vercel-deployment">Vercel Deployment<a class="headerlink" href="#vercel-deployment" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Connect your Vercel account in Settings → Connections → Vercel</li>
+<li>Click the deploy button in your project</li>
+<li>bolt.diy automatically builds and deploys your project</li>
+<li>Get a live URL instantly with Vercel's global CDN</li>
+</ol>
+<h4 id="netlify-deployment">Netlify Deployment<a class="headerlink" href="#netlify-deployment" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Connect your Netlify account in Settings → Connections → Netlify</li>
+<li>Deploy with a single click</li>
+<li>Automatic build configuration and optimization</li>
+<li>Preview deployments for every change</li>
+</ol>
+<h4 id="github-pages">GitHub Pages<a class="headerlink" href="#github-pages" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Connect your GitHub account</li>
+<li>Push your project to a GitHub repository</li>
+<li>Enable GitHub Pages in repository settings</li>
+<li>Automatic deployment from your repository</li>
+</ol>
+<h3 id="deployment-features">Deployment Features<a class="headerlink" href="#deployment-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Automatic build configuration</strong> for popular frameworks</li>
+<li><strong>Environment variable management</strong> for production</li>
+<li><strong>Custom domain support</strong> through platform settings</li>
+<li><strong>Deployment previews</strong> for testing changes</li>
+<li><strong>Rollback capabilities</strong> for quick issue resolution</li>
+</ul>
+<hr />
+<h2 id="supabase-integration">Supabase Integration<a class="headerlink" href="#supabase-integration" title="Permanent link">&para;</a></h2>
+<p>bolt.diy integrates with Supabase to provide backend database functionality, authentication, and real-time features for your applications.</p>
+<h3 id="setting-up-supabase">Setting up Supabase<a class="headerlink" href="#setting-up-supabase" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Create a Supabase project at <a href="https://supabase.com">supabase.com</a></li>
+<li>Get your project URL and API keys from the Supabase dashboard</li>
+<li>Configure the connection in your bolt.diy project</li>
+<li>Use the Supabase tools to interact with your database</li>
+</ol>
+<h3 id="database-features">Database Features<a class="headerlink" href="#database-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Real-time subscriptions</strong> for live data updates</li>
+<li><strong>Authentication</strong> with built-in user management</li>
+<li><strong>Row Level Security (RLS)</strong> policies for data protection</li>
+<li><strong>Built-in API</strong> for CRUD operations</li>
+<li><strong>Database migrations</strong> and schema management</li>
+</ul>
+<h3 id="integration-with-ai-development">Integration with AI Development<a class="headerlink" href="#integration-with-ai-development" title="Permanent link">&para;</a></h3>
+<p>The AI can help you:
+- <strong>Design database schemas</strong> for your applications
+- <strong>Write SQL queries</strong> and database functions
+- <strong>Implement authentication flows</strong>
+- <strong>Create API endpoints</strong> for your frontend
+- <strong>Set up real-time features</strong> for collaborative apps</p>
+<p>Supabase integration makes it easy to build full-stack applications with a robust backend infrastructure.</p>
+<hr />
+<h2 id="webcontainer-and-live-preview">WebContainer and Live Preview<a class="headerlink" href="#webcontainer-and-live-preview" title="Permanent link">&para;</a></h2>
+<p>bolt.diy uses WebContainer technology to provide a secure, isolated development environment with live preview capabilities.</p>
+<h3 id="webcontainer-features">WebContainer Features<a class="headerlink" href="#webcontainer-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Secure sandbox environment</strong> - Run code in isolated containers</li>
+<li><strong>Live preview</strong> - See your changes instantly without leaving the editor</li>
+<li><strong>Full Node.js environment</strong> - Run npm scripts, build tools, and development servers</li>
+<li><strong>File system access</strong> - Direct manipulation of project files</li>
+<li><strong>Terminal integration</strong> - Execute commands and see real-time output</li>
+</ul>
+<h3 id="development-workflow">Development Workflow<a class="headerlink" href="#development-workflow" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Write code</strong> in the integrated editor</li>
+<li><strong>Run development servers</strong> directly in WebContainer</li>
+<li><strong>Preview your application</strong> in real-time</li>
+<li><strong>Test functionality</strong> with the integrated terminal</li>
+<li><strong>Debug issues</strong> with live error reporting</li>
+</ol>
+<h3 id="supported-technologies">Supported Technologies<a class="headerlink" href="#supported-technologies" title="Permanent link">&para;</a></h3>
+<p>WebContainer supports all major JavaScript frameworks and tools:
+- React, Vue, Angular, Svelte
+- Next.js, Nuxt, Astro, Remix
+- Vite, Webpack, Parcel
+- Node.js, npm, pnpm, yarn
+- And many more...</p>
+<p>The WebContainer integration provides a seamless development experience without the need for local setup.</p>
+<hr />
+<h2 id="project-templates">Project Templates<a class="headerlink" href="#project-templates" title="Permanent link">&para;</a></h2>
+<p>bolt.diy comes with a comprehensive collection of starter templates to help you quickly bootstrap your projects. Choose from popular frameworks and technologies:</p>
+<h3 id="frontend-frameworks">Frontend Frameworks<a class="headerlink" href="#frontend-frameworks" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>React + Vite</strong> - Modern React setup with TypeScript</li>
+<li><strong>Vue.js</strong> - Progressive JavaScript framework</li>
+<li><strong>Angular</strong> - Enterprise-ready framework</li>
+<li><strong>Svelte</strong> - Compiler-based framework for fast apps</li>
+<li><strong>SolidJS</strong> - Reactive framework with fine-grained updates</li>
+</ul>
+<h3 id="full-stack-frameworks">Full-Stack Frameworks<a class="headerlink" href="#full-stack-frameworks" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Next.js with shadcn/ui</strong> - React framework with UI components</li>
+<li><strong>Astro</strong> - Static site generator for content-focused sites</li>
+<li><strong>Qwik</strong> - Resumable framework for instant loading</li>
+<li><strong>Remix</strong> - Full-stack React framework</li>
+<li><strong>Nuxt</strong> - Vue.js meta-framework</li>
+</ul>
+<h3 id="mobile-cross-platform">Mobile &amp; Cross-Platform<a class="headerlink" href="#mobile-cross-platform" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Expo App</strong> - React Native with Expo</li>
+<li><strong>React Native</strong> - Cross-platform mobile development</li>
+</ul>
+<h3 id="presentation-content">Presentation &amp; Content<a class="headerlink" href="#presentation-content" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Slidev</strong> - Developer-friendly presentations</li>
+<li><strong>Astro Basic</strong> - Lightweight static sites</li>
+</ul>
+<h3 id="vanilla-javascript">Vanilla JavaScript<a class="headerlink" href="#vanilla-javascript" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Vanilla Vite</strong> - Minimal JavaScript setup</li>
+<li><strong>Vite TypeScript</strong> - TypeScript without framework</li>
+</ul>
+<h3 id="getting-started-with-templates">Getting Started with Templates<a class="headerlink" href="#getting-started-with-templates" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Start a new project in bolt.diy</li>
+<li>Browse available templates in the starter selection</li>
+<li>Select your preferred technology stack</li>
+<li>The AI will scaffold your project with best practices</li>
+<li>Begin development immediately with live preview</li>
+</ol>
+<p>All templates are pre-configured with modern tooling, linting, and build processes for immediate productivity.</p>
+<hr />
+<h2 id="available-scripts">Available Scripts<a class="headerlink" href="#available-scripts" title="Permanent link">&para;</a></h2>
+<h3 id="development-scripts">Development Scripts<a class="headerlink" href="#development-scripts" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>pnpm run dev</code>: Starts the React Router development server with hot reloading</li>
+<li><code>pnpm run build</code>: Builds the project for production (<code>react-router build</code>)</li>
+<li><code>pnpm run start</code>: Starts the local preview server (<code>vite preview --port 5173</code>)</li>
+<li><code>pnpm run preview</code>: Builds and starts locally for production verification</li>
+<li><code>pnpm test</code>: Runs the unit and integration test suite using Vitest</li>
+<li><code>pnpm run test:watch</code>: Runs tests in watch mode</li>
+<li><code>pnpm run test:e2e</code>: Runs Playwright end-to-end integration tests</li>
+<li><code>pnpm run lint</code>: Runs ESLint</li>
+<li><code>pnpm run lint:fix</code>: Runs ESLint with auto-fix and Prettier formatting</li>
+<li><code>pnpm run typecheck</code>: Runs TypeScript type checking (<code>tsc</code>)</li>
+<li><code>pnpm run typegen</code>: Generates worker types using Wrangler</li>
+</ul>
+<h3 id="docker-scripts">Docker Scripts<a class="headerlink" href="#docker-scripts" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>pnpm run dockerbuild</code>: Builds Docker image for development</li>
+<li><code>pnpm run dockerbuild:prod</code>: Builds Docker image for production</li>
+<li><code>pnpm run dockerrun</code>: Runs the Docker container</li>
+<li><code>docker compose --profile development up</code>: Runs with Docker Compose (development)</li>
+</ul>
+<h3 id="electron-scripts">Electron Scripts<a class="headerlink" href="#electron-scripts" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>pnpm run electron:dev</code>: Starts the Electron desktop application in development mode</li>
+<li><code>pnpm run electron:dev:inspect</code>: Starts Electron with Node inspector enabled on port 9229</li>
+<li><code>pnpm electron:build:win</code>: Builds the Windows installer</li>
+<li><code>pnpm electron:build:mac</code>: Builds for macOS</li>
+<li><code>pnpm electron:build:linux</code>: Builds for Linux</li>
+<li><code>pnpm electron:build:dist</code>: Builds for all platforms (Mac, Windows, Linux)</li>
+<li><code>pnpm electron:build:unpack</code>: Creates unpacked build for testing</li>
+</ul>
+<h3 id="deployment-scripts">Deployment Scripts<a class="headerlink" href="#deployment-scripts" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>pnpm run deploy</code>: Builds and deploys to Cloudflare Pages</li>
+<li><code>npm run dockerbuild</code>: Alternative Docker build command</li>
+</ul>
+<h3 id="utility-scripts">Utility Scripts<a class="headerlink" href="#utility-scripts" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>pnpm run clean</code>: Cleans build artifacts</li>
+<li><code>pnpm run prepare</code>: Sets up Husky for git hooks</li>
+</ul>
+<hr />
+<h2 id="development">Development<a class="headerlink" href="#development" title="Permanent link">&para;</a></h2>
+<p>To start the development server:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>pnpm<span class="w"> </span>run<span class="w"> </span>dev
+</code></pre></div>
+<p>This will start the React Router Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.</p>
+<hr />
+<h2 id="getting-help-resources">Getting Help &amp; Resources<a class="headerlink" href="#getting-help-resources" title="Permanent link">&para;</a></h2>
+<h3 id="help-icon-in-sidebar">Help Icon in Sidebar<a class="headerlink" href="#help-icon-in-sidebar" title="Permanent link">&para;</a></h3>
+<p>bolt.diy includes a convenient help icon (?) in the sidebar that provides quick access to comprehensive documentation. Simply click the help icon to open the full documentation in a new tab.</p>
+<p>The documentation includes:
+- <strong>Complete setup guides</strong> for all supported providers
+- <strong>Feature explanations</strong> for advanced capabilities
+- <strong>Troubleshooting guides</strong> for common issues
+- <strong>Best practices</strong> for optimal usage
+- <strong>FAQ section</strong> with detailed answers</p>
+<h3 id="community-support">Community Support<a class="headerlink" href="#community-support" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>GitHub Issues</strong>: Report bugs and request features</li>
+<li><strong>Community Forum</strong>: Join discussions at <a href="https://thinktank.ottomator.ai">thinktank.ottomator.ai</a></li>
+<li><strong>Contributing Guide</strong>: Learn how to contribute to the project</li>
+</ul>
+<h2 id="tips-and-tricks">Tips and Tricks<a class="headerlink" href="#tips-and-tricks" title="Permanent link">&para;</a></h2>
+<p>Here are some tips to get the most out of bolt.diy:</p>
+<ul>
+<li>
+<p><strong>Be specific about your stack</strong>: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure Bolt scaffolds the project accordingly.</p>
+</li>
+<li>
+<p><strong>Use the enhance prompt icon</strong>: Before sending your prompt, try clicking the 'enhance' icon to have the AI model help you refine your prompt, then edit the results before submitting.</p>
+</li>
+<li>
+<p><strong>Scaffold the basics first, then add features</strong>: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps Bolt understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.</p>
+</li>
+<li>
+<p><strong>Batch simple instructions</strong>: Save time by combining simple instructions into one message. For example, you can ask Bolt to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.</p>
+</li>
+<li>
+<p><strong>Access documentation quickly</strong>: Use the help icon (?) in the sidebar for instant access to guides, troubleshooting, and best practices.</p>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/stackblitz-labs/bolt.diy" target="_blank" rel="noopener" title="bolt.diy" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://thinktank.ottomator.ai/" target="_blank" rel="noopener" title="bolt.diy Discourse" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M225.9 32C103.3 32 0 130.5 0 252.1 0 256 .1 480 .1 480l225.8-.2c122.7 0 222.1-102.3 222.1-223.9S348.6 32 225.9 32M224 384c-19.4 0-37.9-4.3-54.4-12.1L88.5 392l22.9-75c-9.8-18.1-15.4-38.9-15.4-61 0-70.7 57.3-128 128-128s128 57.3 128 128-57.3 128-128 128"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://x.com/bolt_diy" target="_blank" rel="noopener" title="bolt.diy on X" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M357.2 48h70.6L273.6 224.2 455 464H313L201.7 318.6 74.5 464H3.8l164.9-188.5L-5.2 48h145.6l100.5 132.9zm-24.8 373.8h39.1L119.1 88h-42z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://bsky.app/profile/bolt.diy" target="_blank" rel="noopener" title="bolt.diy on Bluesky" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M407.8 294.7c-3.3-.4-6.7-.8-10-1.3 3.4.4 6.7.9 10 1.3M288 227.1c-26.1-50.7-97.1-145.2-163.1-191.8C61.6-9.4 37.5-1.7 21.6 5.5 3.3 13.8 0 41.9 0 58.4S9.1 194 15 213.9c19.5 65.7 89.1 87.9 153.2 80.7 3.3-.5 6.6-.9 10-1.4-3.3.5-6.6 1-10 1.4-93.9 14-177.3 48.2-67.9 169.9C220.6 589.1 265.1 437.8 288 361.1c22.9 76.7 49.2 222.5 185.6 103.4 102.4-103.4 28.1-156-65.8-169.9-3.3-.4-6.7-.8-10-1.3 3.4.4 6.7.9 10 1.3 64.1 7.1 133.6-15.1 153.2-80.7C566.9 194 576 75 576 58.4s-3.3-44.7-21.6-52.9c-15.8-7.1-40-14.9-103.2 29.8C385.1 81.9 314.1 176.4 288 227.1"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "toc.follow", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
