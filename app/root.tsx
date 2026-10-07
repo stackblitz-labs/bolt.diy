@@ -40,6 +40,14 @@ export const links: LinksFunction = () => [
     rel: 'stylesheet',
     href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   },
+  {
+    rel: 'preconnect',
+    href: 'https://unpkg.com',
+  },
+  {
+    rel: 'dns-prefetch',
+    href: 'https://unpkg.com',
+  },
 ];
 
 const inlineThemeCode = stripIndents`
@@ -118,17 +126,29 @@ import { logStore } from './lib/stores/logs';
 import { themeStore } from './lib/stores/theme';
 import globalStyles from './styles/index.scss?url';
 import { stripIndents } from './utils/stripIndent';
+import { journeys, observeWebVitals } from './lib/performance/metrics';
+import { prebootWebContainer } from './lib/performance/webcontainer-optimizer';
 
 export default function App() {
   const theme = useStore(themeStore);
 
   useEffect(() => {
+    // Mark app launch start
+    journeys.appLaunch.start();
+    journeys.appLaunch.reactHydrated();
+
     logStore.logSystem('Application initialized', {
       theme,
       platform: navigator.platform,
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
     });
+
+    // Start Web Vitals observation
+    observeWebVitals();
+
+    // Pre-boot WebContainer in background
+    prebootWebContainer();
 
     // Initialize debug logging with improved error handling
     import('./utils/debugLogger')
@@ -147,6 +167,14 @@ export default function App() {
       .catch((error) => {
         logStore.logError('Failed to initialize debug logging', error);
       });
+
+    // Mark app as interactive
+    journeys.appLaunch.interactive({
+      theme,
+      performance: {
+        navigation: performance.getEntriesByType('navigation')[0],
+      },
+    });
   }, []);
 
   /*

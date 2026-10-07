@@ -1,0 +1,176 @@
+/**
+ * Prefetching utilities for faster navigation
+ * Based on Claude.dev's hover prefetching strategy
+ */
+
+interface PrefetchOptions {
+  priority?: 'high' | 'low';
+  timeout?: number;
+}
+
+class PrefetchManager {
+  private cache: Map<string, Promise<any>> = new Map();
+  private pendingTimeouts: Map<string, NodeJS.Timeout> = new Map();
+
+  /**
+   * Prefetch a resource (data, component, etc.)
+   */
+  prefetch<T>(key: string, loader: () => Promise<T>, options: PrefetchOptions = {}): void {
+    // Don't prefetch if already cached or loading
+    if (this.cache.has(key)) {
+      return;
+    }
+
+    const { timeout = 0 } = options;
+
+    if (timeout > 0) {
+      // Delay prefetch (useful for hover interactions)
+      const timeoutId = setTimeout(() => {
+        this.executePrefetch(key, loader);
+        this.pendingTimeouts.delete(key);
+      }, timeout);
+
+      this.pendingTimeouts.set(key, timeoutId);
+    } else {
+      this.executePrefetch(key, loader);
+    }
+  }
+
+  /**
+   * Get prefetched data or load it now
+   */
+  async get<T>(key: string, loader: () => Promise<T>): Promise<T> {
+    // Cancel any pending prefetch timeout since we need the data now
+    const timeout = this.pendingTimeouts.get(key);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.pendingTimeouts.delete(key);
+    }
+
+    if (!this.cache.has(key)) {
+      this.cache.set(key, loader());
+    }
+
+    return this.cache.get(key) as Promise<T>;
+  }
+
+  /**
+   * Cancel a pending prefetch
+   */
+  cancel(key: string): void {
+    const timeout = this.pendingTimeouts.get(key);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.pendingTimeouts.delete(key);
+    }
+  }
+
+  /**
+   * Clear the cache
+   */
+  clear(): void {
+    this.pendingTimeouts.forEach((timeout) => clearTimeout(timeout));
+    this.pendingTimeouts.clear();
+    this.cache.clear();
+  }
+
+  /**
+   * Clear a specific cache entry
+   */
+  invalidate(key: string): void {
+    this.cancel(key);
+    this.cache.delete(key);
+  }
+
+  private executePrefetch<T>(key: string, loader: () => Promise<T>): void {
+    const promise = loader().catch((error) => {
+      // Remove failed prefetch from cache so it can be retried
+      this.cache.delete(key);
+      console.warn(`[PREFETCH] Failed to prefetch ${key}:`, error);
+      throw error;
+    });
+
+    this.cache.set(key, promise);
+  }
+}
+
+// Singleton instance
+export const prefetchManager = new PrefetchManager();
+
+/**
+ * React hook for prefetching on hover
+ */
+export function usePrefetchOnHover<T>(
+  key: string | null,
+  loader: () => Promise<T>,
+  delay: number = 50,
+): {
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  fetch: () => Promise<T>;
+} {
+  return {
+    onMouseEnter: () => {
+      if (key) {
+        prefetchManager.prefetch(key, loader, { timeout: delay });
+      }
+    },
+    onMouseLeave: () => {
+      if (key) {
+        prefetchManager.cancel(key);
+      }
+    },
+    fetch: async () => {
+      if (!key) {
+        return loader();
+      }
+      return prefetchManager.get(key, loader);
+    },
+  };
+}
+
+/**
+ * Prefetch component chunks
+ */
+export function prefetchComponent(importFn: () => Promise<any>): void {
+  if (typeof window !== 'undefined') {
+    // Use requestIdleCallback for low-priority prefetching
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => importFn());
+    } else {
+      setTimeout(() => importFn(), 1);
+    }
+  }
+}
+
+/**
+ * Prefetch on viewport intersection
+ */
+export function prefetchOnVisible(
+  element: HTMLElement | null,
+  loader: () => Promise<any>,
+  options: IntersectionObserverInit = {},
+): () => void {
+  if (!element || typeof IntersectionObserver === 'undefined') {
+    return () => {};
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          loader();
+          observer.disconnect();
+        }
+      });
+    },
+    {
+      rootMargin: '50px',
+      ...options,
+    },
+  );
+
+  observer.observe(element);
+
+  return () => observer.disconnect();
+}

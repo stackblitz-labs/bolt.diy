@@ -182,7 +182,8 @@ export default defineConfig((config) => {
         '**/tests/performance/**/*.perf.test.{ts,tsx,js,jsx}',
       ],
       benchmark: {
-        include: ['**/*.bench.{ts,tsx,js,jsx}', '**/tests/performance/**/*.perf.test.{ts,tsx,js,jsx}'],
+        include: ['**/*.bench.{ts,tsx,js,jsx}', '**/tests/performance/**/*.bench.{ts,tsx,js,jsx}'],
+        exclude: ['**/node_modules/**', '**/dist/**'],
       },
       coverage: {
         provider: 'v8',

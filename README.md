@@ -118,6 +118,7 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 - **Project Workflows**: Git cloning/pushing, snapshot restoration, file conflict locking, and ZIP export.
 - **Deployments**: One-click deployment to Netlify, Vercel, and GitHub Pages.
 - **Database & Visuals**: Supabase integration, data visualization charts, and Model Context Protocol (MCP) tooling.
+- **⚡ Performance Optimized**: 3x faster with Claude.dev-inspired optimizations. See [PERFORMANCE.md](PERFORMANCE.md) for details.
 
 ---
 
