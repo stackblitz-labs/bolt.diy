@@ -24,26 +24,26 @@ interface JourneyMarks {
 }
 
 class PerformanceMonitor {
-  private metrics: PerformanceMetric[] = [];
-  private journeyMarks: Map<string, JourneyMarks> = new Map();
-  private enabled = typeof window !== 'undefined';
+  private _metrics: PerformanceMetric[] = [];
+  private _journeyMarks: Map<string, JourneyMarks> = new Map();
+  private _enabled = typeof window !== 'undefined';
 
   /**
    * Mark the start of a user journey
    */
   markStart(journey: string, label: string = 'start') {
-    if (!this.enabled) {
+    if (!this._enabled) {
       return;
     }
 
     const markName = `${journey}:${label}`;
     performance.mark(markName);
 
-    if (!this.journeyMarks.has(journey)) {
-      this.journeyMarks.set(journey, {});
+    if (!this._journeyMarks.has(journey)) {
+      this._journeyMarks.set(journey, {});
     }
 
-    const marks = this.journeyMarks.get(journey)!;
+    const marks = this._journeyMarks.get(journey)!;
     marks[label] = performance.now();
   }
 
@@ -51,14 +51,14 @@ class PerformanceMonitor {
    * Mark the end of a user journey and record the measurement
    */
   markEnd(journey: string, label: string = 'end', metadata?: Record<string, any>): number | null {
-    if (!this.enabled) {
+    if (!this._enabled) {
       return null;
     }
 
     const endMarkName = `${journey}:${label}`;
     performance.mark(endMarkName);
 
-    const marks = this.journeyMarks.get(journey);
+    const marks = this._journeyMarks.get(journey);
 
     if (!marks || !marks.start) {
       console.warn(`[PERF] No start mark found for journey: ${journey}`);
@@ -78,11 +78,11 @@ class PerformanceMonitor {
       this.recordMetric(measureName, duration, metadata);
 
       // Clean up marks for this journey
-      this.journeyMarks.delete(journey);
+      this._journeyMarks.delete(journey);
 
       return duration;
-    } catch (error) {
-      console.error(`[PERF] Error measuring ${journey}:`, error);
+    } catch (_error) {
+      console.error(`[PERF] Error measuring ${journey}:`, _error);
       return null;
     }
   }
@@ -91,7 +91,7 @@ class PerformanceMonitor {
    * Record a metric directly without marks
    */
   recordMetric(name: string, duration: number, metadata?: Record<string, any>) {
-    if (!this.enabled) {
+    if (!this._enabled) {
       return;
     }
 
@@ -102,7 +102,7 @@ class PerformanceMonitor {
       metadata,
     };
 
-    this.metrics.push(metric);
+    this._metrics.push(metric);
 
     // Log to console in development
     if (import.meta.env.DEV) {
@@ -111,7 +111,7 @@ class PerformanceMonitor {
 
     // Send to analytics in production
     if (import.meta.env.PROD) {
-      this.sendToAnalytics(metric);
+      this._sendToAnalytics(metric);
     }
   }
 
@@ -119,14 +119,14 @@ class PerformanceMonitor {
    * Get all recorded metrics
    */
   getMetrics(): PerformanceMetric[] {
-    return [...this.metrics];
+    return [...this._metrics];
   }
 
   /**
    * Get metrics for a specific journey
    */
   getJourneyMetrics(journey: string): PerformanceMetric[] {
-    return this.metrics.filter((m) => m.name.startsWith(journey));
+    return this._metrics.filter((m) => m.name.startsWith(journey));
   }
 
   /**
@@ -140,14 +140,14 @@ class PerformanceMonitor {
     const sorted = [...durations].sort((a, b) => a - b);
 
     return {
-      p50: this.percentile(sorted, 50),
-      p75: this.percentile(sorted, 75),
-      p95: this.percentile(sorted, 95),
-      p99: this.percentile(sorted, 99),
+      p50: this._percentile(sorted, 50),
+      p75: this._percentile(sorted, 75),
+      p95: this._percentile(sorted, 95),
+      p99: this._percentile(sorted, 99),
     };
   }
 
-  private percentile(sorted: number[], p: number): number {
+  private _percentile(sorted: number[], p: number): number {
     const index = Math.ceil((sorted.length * p) / 100) - 1;
     return sorted[Math.max(0, index)];
   }
@@ -155,7 +155,7 @@ class PerformanceMonitor {
   /**
    * Send metrics to analytics service
    */
-  private sendToAnalytics(metric: PerformanceMetric) {
+  private _sendToAnalytics(metric: PerformanceMetric) {
     /*
      * Integration point for analytics services
      * Could be sent to: Datadog, New Relic, custom backend, etc.
@@ -169,8 +169,8 @@ class PerformanceMonitor {
    * Clear all metrics
    */
   clear() {
-    this.metrics = [];
-    this.journeyMarks.clear();
+    this._metrics = [];
+    this._journeyMarks.clear();
     performance.clearMarks();
     performance.clearMeasures();
   }
@@ -181,7 +181,7 @@ class PerformanceMonitor {
   generateReport(): string {
     const journeys = new Map<string, number[]>();
 
-    this.metrics.forEach((metric) => {
+    this._metrics.forEach((metric) => {
       const journey = metric.name.split(':')[0];
 
       if (!journeys.has(journey)) {
@@ -294,7 +294,7 @@ export function observeWebVitals() {
 
   try {
     clsObserver.observe({ type: 'layout-shift', buffered: true });
-  } catch (e) {
+  } catch {
     // Layout shift not supported
   }
 
@@ -307,7 +307,7 @@ export function observeWebVitals() {
 
   try {
     lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
-  } catch (e) {
+  } catch {
     // LCP not supported
   }
 
@@ -320,7 +320,7 @@ export function observeWebVitals() {
 
   try {
     fidObserver.observe({ type: 'first-input', buffered: true });
-  } catch (e) {
+  } catch {
     // FID not supported
   }
 }

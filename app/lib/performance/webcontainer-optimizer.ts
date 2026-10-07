@@ -21,9 +21,9 @@ export function prebootWebContainer(): void {
 
   // Start the boot process in the background
   webContainerBootPromise = import('@webcontainer/api')
-    .then(({ WebContainer }) => {
+    .then(({ WebContainer: webContainerAPI }) => {
       console.log('[WEBCONTAINER] API loaded, starting boot...');
-      return WebContainer.boot();
+      return webContainerAPI.boot();
     })
     .then((instance) => {
       console.log('[WEBCONTAINER] Booted successfully');

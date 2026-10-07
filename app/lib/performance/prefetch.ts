@@ -9,15 +9,15 @@ interface PrefetchOptions {
 }
 
 class PrefetchManager {
-  private cache: Map<string, Promise<any>> = new Map();
-  private pendingTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private _cache: Map<string, Promise<any>> = new Map();
+  private _pendingTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
   /**
    * Prefetch a resource (data, component, etc.)
    */
   prefetch<T>(key: string, loader: () => Promise<T>, options: PrefetchOptions = {}): void {
     // Don't prefetch if already cached or loading
-    if (this.cache.has(key)) {
+    if (this._cache.has(key)) {
       return;
     }
 
@@ -26,13 +26,13 @@ class PrefetchManager {
     if (timeout > 0) {
       // Delay prefetch (useful for hover interactions)
       const timeoutId = setTimeout(() => {
-        this.executePrefetch(key, loader);
-        this.pendingTimeouts.delete(key);
+        this._executePrefetch(key, loader);
+        this._pendingTimeouts.delete(key);
       }, timeout);
 
-      this.pendingTimeouts.set(key, timeoutId);
+      this._pendingTimeouts.set(key, timeoutId);
     } else {
-      this.executePrefetch(key, loader);
+      this._executePrefetch(key, loader);
     }
   }
 
@@ -41,29 +41,29 @@ class PrefetchManager {
    */
   async get<T>(key: string, loader: () => Promise<T>): Promise<T> {
     // Cancel any pending prefetch timeout since we need the data now
-    const timeout = this.pendingTimeouts.get(key);
+    const timeout = this._pendingTimeouts.get(key);
 
     if (timeout) {
       clearTimeout(timeout);
-      this.pendingTimeouts.delete(key);
+      this._pendingTimeouts.delete(key);
     }
 
-    if (!this.cache.has(key)) {
-      this.cache.set(key, loader());
+    if (!this._cache.has(key)) {
+      this._cache.set(key, loader());
     }
 
-    return this.cache.get(key) as Promise<T>;
+    return this._cache.get(key) as Promise<T>;
   }
 
   /**
    * Cancel a pending prefetch
    */
   cancel(key: string): void {
-    const timeout = this.pendingTimeouts.get(key);
+    const timeout = this._pendingTimeouts.get(key);
 
     if (timeout) {
       clearTimeout(timeout);
-      this.pendingTimeouts.delete(key);
+      this._pendingTimeouts.delete(key);
     }
   }
 
@@ -71,9 +71,9 @@ class PrefetchManager {
    * Clear the cache
    */
   clear(): void {
-    this.pendingTimeouts.forEach((timeout) => clearTimeout(timeout));
-    this.pendingTimeouts.clear();
-    this.cache.clear();
+    this._pendingTimeouts.forEach((timeout) => clearTimeout(timeout));
+    this._pendingTimeouts.clear();
+    this._cache.clear();
   }
 
   /**
@@ -81,18 +81,18 @@ class PrefetchManager {
    */
   invalidate(key: string): void {
     this.cancel(key);
-    this.cache.delete(key);
+    this._cache.delete(key);
   }
 
-  private executePrefetch<T>(key: string, loader: () => Promise<T>): void {
+  private _executePrefetch<T>(key: string, loader: () => Promise<T>): void {
     const promise = loader().catch((error) => {
       // Remove failed prefetch from cache so it can be retried
-      this.cache.delete(key);
+      this._cache.delete(key);
       console.warn(`[PREFETCH] Failed to prefetch ${key}:`, error);
       throw error;
     });
 
-    this.cache.set(key, promise);
+    this._cache.set(key, promise);
   }
 }
 
@@ -155,7 +155,9 @@ export function prefetchOnVisible(
   options: IntersectionObserverInit = {},
 ): () => void {
   if (!element || typeof IntersectionObserver === 'undefined') {
-    return () => {};
+    return () => {
+      /* noop */
+    };
   }
 
   const observer = new IntersectionObserver(

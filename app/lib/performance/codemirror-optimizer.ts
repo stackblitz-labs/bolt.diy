@@ -110,18 +110,18 @@ export async function loadLanguageSupport(language: string): Promise<Extension |
  * Cache loaded language extensions
  */
 class LanguageCache {
-  private cache: Map<string, Promise<Extension | null>> = new Map();
+  private _cache: Map<string, Promise<Extension | null>> = new Map();
 
   async get(language: string): Promise<Extension | null> {
-    if (!this.cache.has(language)) {
-      this.cache.set(language, loadLanguageSupport(language));
+    if (!this._cache.has(language)) {
+      this._cache.set(language, loadLanguageSupport(language));
     }
 
-    return this.cache.get(language)!;
+    return this._cache.get(language)!;
   }
 
   clear(): void {
-    this.cache.clear();
+    this._cache.clear();
   }
 }
 
@@ -130,7 +130,7 @@ export const languageCache = new LanguageCache();
 /**
  * Detect language from filename or content
  */
-export function detectLanguage(filename: string, content?: string): string {
+export function detectLanguage(filename: string, _?: string): string {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
 
   const extensionMap: Record<string, string> = {
@@ -180,14 +180,14 @@ export const optimizedEditorConfig = {
  * Monitor CodeMirror performance
  */
 export class CodeMirrorPerformanceMonitor {
-  private highlightTimes: number[] = [];
+  private _highlightTimes: number[] = [];
 
   recordHighlight(duration: number): void {
-    this.highlightTimes.push(duration);
+    this._highlightTimes.push(duration);
 
     // Keep last 100 measurements
-    if (this.highlightTimes.length > 100) {
-      this.highlightTimes.shift();
+    if (this._highlightTimes.length > 100) {
+      this._highlightTimes.shift();
     }
 
     if (duration > 100 && import.meta.env.DEV) {
@@ -196,19 +196,19 @@ export class CodeMirrorPerformanceMonitor {
   }
 
   getStats() {
-    if (this.highlightTimes.length === 0) {
+    if (this._highlightTimes.length === 0) {
       return { avg: 0, max: 0, min: 0 };
     }
 
     return {
-      avg: this.highlightTimes.reduce((a, b) => a + b, 0) / this.highlightTimes.length,
-      max: Math.max(...this.highlightTimes),
-      min: Math.min(...this.highlightTimes),
+      avg: this._highlightTimes.reduce((a, b) => a + b, 0) / this._highlightTimes.length,
+      max: Math.max(...this._highlightTimes),
+      min: Math.min(...this._highlightTimes),
     };
   }
 
   reset(): void {
-    this.highlightTimes = [];
+    this._highlightTimes = [];
   }
 }
 

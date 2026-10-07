@@ -68,7 +68,7 @@ export function StaticComposer({
 }: StaticComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [hasHandedOff, setHasHandedOff] = useState(false);
+  const [, setHasHandedOff] = useState(false);
 
   useEffect(() => {
     // Check if static composer exists

@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { throttleToFrame } from '../performance/streaming-optimizer';
+import { throttleToFrame } from '~/lib/performance/streaming-optimizer';
 
 /**
  * Memoize component that only re-renders when specific deps change

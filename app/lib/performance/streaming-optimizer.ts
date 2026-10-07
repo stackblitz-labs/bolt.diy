@@ -17,18 +17,18 @@ interface FrameMetrics {
 }
 
 class StreamingOptimizer {
-  private frameMetrics: FrameMetrics[] = [];
-  private frameCount = 0;
-  private lastFrameTime = 0;
-  private targetFPS = 60;
-  private frameBudget = 16.67; // 60fps = 16.67ms per frame
+  private _frameMetrics: FrameMetrics[] = [];
+  private _frameCount = 0;
+  private _lastFrameTime = 0;
+  private _targetFPS = 60;
+  private _frameBudget = 16.67; // 60fps = 16.67ms per frame
 
   constructor() {
     if (typeof window !== 'undefined') {
       // Detect if device supports 120Hz
       if (window.screen && (window.screen as any).refreshRate >= 120) {
-        this.targetFPS = 120;
-        this.frameBudget = 8.33; // 120fps = 8.33ms per frame
+        this._targetFPS = 120;
+        this._frameBudget = 8.33; // 120fps = 8.33ms per frame
       }
     }
   }
@@ -38,26 +38,27 @@ class StreamingOptimizer {
    */
   trackFrame(workDuration: number): void {
     const now = performance.now();
-    const frameTime = this.lastFrameTime > 0 ? now - this.lastFrameTime : 0;
-    const didDrop = workDuration > this.frameBudget;
 
-    this.frameMetrics.push({
-      frameNumber: this.frameCount++,
+    // const _frameTime = this._lastFrameTime > 0 ? now - this._lastFrameTime : 0;
+    const didDrop = workDuration > this._frameBudget;
+
+    this._frameMetrics.push({
+      frameNumber: this._frameCount++,
       duration: workDuration,
       didDrop,
       timestamp: now,
     });
 
-    this.lastFrameTime = now;
+    this._lastFrameTime = now;
 
     // Keep only last 240 frames (2 seconds at 120fps)
-    if (this.frameMetrics.length > 240) {
-      this.frameMetrics.shift();
+    if (this._frameMetrics.length > 240) {
+      this._frameMetrics.shift();
     }
 
     if (didDrop && import.meta.env.DEV) {
       console.warn(
-        `[STREAMING] Frame ${this.frameCount} dropped: ${workDuration.toFixed(2)}ms (budget: ${this.frameBudget}ms)`,
+        `[STREAMING] Frame ${this._frameCount} dropped: ${workDuration.toFixed(2)}ms (budget: ${this._frameBudget}ms)`,
       );
     }
   }
@@ -72,16 +73,17 @@ class StreamingOptimizer {
     averageFrameTime: number;
     percentDropped: number;
   } {
-    const droppedFrames = this.frameMetrics.filter((m) => m.didDrop).length;
+    const droppedFrames = this._frameMetrics.filter((m) => m.didDrop).length;
 
-    const averageFrameTime = this.frameMetrics.reduce((sum, m) => sum + m.duration, 0) / this.frameMetrics.length || 0;
+    const averageFrameTime =
+      this._frameMetrics.reduce((sum, m) => sum + m.duration, 0) / this._frameMetrics.length || 0;
 
     return {
-      targetFPS: this.targetFPS,
-      frameBudget: this.frameBudget,
+      targetFPS: this._targetFPS,
+      frameBudget: this._frameBudget,
       droppedFrames,
       averageFrameTime,
-      percentDropped: (droppedFrames / this.frameMetrics.length) * 100 || 0,
+      percentDropped: (droppedFrames / this._frameMetrics.length) * 100 || 0,
     };
   }
 
@@ -89,23 +91,23 @@ class StreamingOptimizer {
    * Reset metrics
    */
   reset(): void {
-    this.frameMetrics = [];
-    this.frameCount = 0;
-    this.lastFrameTime = 0;
+    this._frameMetrics = [];
+    this._frameCount = 0;
+    this._lastFrameTime = 0;
   }
 
   /**
    * Check if we're within frame budget
    */
   isWithinBudget(duration: number): boolean {
-    return duration <= this.frameBudget;
+    return duration <= this._frameBudget;
   }
 
   /**
    * Get remaining frame budget
    */
   getRemainingBudget(elapsed: number): number {
-    return Math.max(0, this.frameBudget - elapsed);
+    return Math.max(0, this._frameBudget - elapsed);
   }
 }
 
@@ -115,43 +117,44 @@ export const streamingOptimizer = new StreamingOptimizer();
  * Batch DOM updates to stay within frame budget
  */
 export class BatchedDOMUpdater {
-  private pendingUpdates: Array<() => void> = [];
-  private rafId: number | null = null;
+  private _pendingUpdates: Array<() => void> = [];
+  private _rafId: number | null = null;
 
   /**
    * Schedule a DOM update
    */
   schedule(update: () => void): void {
-    this.pendingUpdates.push(update);
+    this._pendingUpdates.push(update);
 
-    if (this.rafId === null) {
-      this.rafId = requestAnimationFrame(() => this.flush());
+    if (this._rafId === null) {
+      this._rafId = requestAnimationFrame(() => this._flush());
     }
   }
 
   /**
    * Execute all pending updates within frame budget
    */
-  private flush(): void {
-    this.rafId = null;
+  private _flush(): void {
+    this._rafId = null;
 
     const frameStart = performance.now();
     const budget = streamingOptimizer.getRemainingBudget(0);
 
-    let updateCount = 0;
+    // let _updateCount = 0;
 
-    while (this.pendingUpdates.length > 0 && performance.now() - frameStart < budget * 0.8) {
-      const update = this.pendingUpdates.shift()!;
+    while (this._pendingUpdates.length > 0 && performance.now() - frameStart < budget * 0.8) {
+      const update = this._pendingUpdates.shift()!;
       update();
-      updateCount++;
+
+      // _updateCount++;
     }
 
     const duration = performance.now() - frameStart;
     streamingOptimizer.trackFrame(duration);
 
     // If there are still pending updates, schedule another frame
-    if (this.pendingUpdates.length > 0) {
-      this.rafId = requestAnimationFrame(() => this.flush());
+    if (this._pendingUpdates.length > 0) {
+      this._rafId = requestAnimationFrame(() => this._flush());
     }
   }
 
@@ -159,11 +162,11 @@ export class BatchedDOMUpdater {
    * Clear all pending updates
    */
   clear(): void {
-    this.pendingUpdates = [];
+    this._pendingUpdates = [];
 
-    if (this.rafId !== null) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
+    if (this._rafId !== null) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = null;
     }
   }
 }
@@ -172,18 +175,18 @@ export class BatchedDOMUpdater {
  * Memoize finished content blocks to avoid re-rendering
  */
 export class ContentBlockMemoizer<T> {
-  private cache: Map<string, T> = new Map();
+  private _cache: Map<string, T> = new Map();
 
   /**
    * Get or compute a block
    */
   get(key: string, compute: () => T): T {
-    if (this.cache.has(key)) {
-      return this.cache.get(key)!;
+    if (this._cache.has(key)) {
+      return this._cache.get(key)!;
     }
 
     const value = compute();
-    this.cache.set(key, value);
+    this._cache.set(key, value);
 
     return value;
   }
@@ -192,28 +195,28 @@ export class ContentBlockMemoizer<T> {
    * Check if a block is cached
    */
   has(key: string): boolean {
-    return this.cache.has(key);
+    return this._cache.has(key);
   }
 
   /**
    * Invalidate a block
    */
   invalidate(key: string): void {
-    this.cache.delete(key);
+    this._cache.delete(key);
   }
 
   /**
    * Clear all cached blocks
    */
   clear(): void {
-    this.cache.clear();
+    this._cache.clear();
   }
 
   /**
    * Get cache size
    */
   size(): number {
-    return this.cache.size;
+    return this._cache.size;
   }
 }
 
