@@ -181,11 +181,8 @@ ${escapeBoltTags(file.content)}
         )}
         disabled={!ready || loading}
       >
+        <GitBranch className="w-4 h-4" />
         Clone a repo
-        <div className="flex items-center gap-1 ml-2">
-          <GitBranch className="w-4 h-4" />
-          <GitBranch className="w-4 h-4" />
-        </div>
       </Button>
 
       {/* Provider Selection Dialog */}
