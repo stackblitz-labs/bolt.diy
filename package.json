@@ -16,6 +16,10 @@
     "dev": "node pre-start.cjs  && react-router dev",
     "test": "vitest --run",
     "test:watch": "vitest",
+    "test:unit": "vitest --run tests/unit",
+    "test:integration": "vitest --run tests/integration",
+    "test:perf": "vitest --run tests/performance",
+    "test:coverage": "vitest --run --coverage",
     "test:e2e": "playwright test --config=playwright.config.e2e.ts",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint app",
     "lint:fix": "npm run lint -- --fix && prettier app --write",
@@ -74,7 +78,6 @@
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.13",
     "@iconify-json/svg-spinners": "^1.2.4",
-
     "@modelcontextprotocol/sdk": "^1.32.1",
     "@nanostores/react": "^2.0.1",
     "@octokit/rest": "^22.0.1",
@@ -158,6 +161,7 @@
     "@react-router/fs-routes": "^8.4.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/dom-speech-recognition": "^0.0.12",
     "@types/file-saver": "^2.0.7",
     "@types/js-cookie": "^3.0.6",
@@ -187,7 +191,8 @@
     "vite": "^8.3.3",
     "vite-plugin-copy": "^0.1.6",
     "vite-plugin-optimize-css-modules": "^1.4.0",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "web-vitals": "^6.2.3"
   },
   "pnpm": {
     "overrides": {

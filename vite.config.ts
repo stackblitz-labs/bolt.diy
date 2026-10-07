@@ -161,6 +161,9 @@ export default defineConfig((config) => {
       'TOGETHER_API_BASE_URL',
     ],
     test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: ['./tests/setup.ts'],
       exclude: [
         '**/node_modules/**',
         '**/dist/**',
@@ -169,7 +172,33 @@ export default defineConfig((config) => {
         '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
         '**/tests/preview/**', // Exclude preview tests that require Playwright
         '**/tests/e2e/**', // Exclude e2e tests that require Playwright
+        'app/components/chat/Markdown.spec.ts', // Exclude - imports cause issues with import.meta.hot
+        'app/lib/stores/workbench.spec.ts', // Exclude - imports cause issues with import.meta.hot
       ],
+      include: [
+        '**/*.{test,spec}.{ts,tsx,js,jsx}',
+        '**/tests/unit/**/*.{test,spec}.{ts,tsx,js,jsx}',
+        '**/tests/integration/**/*.{test,spec}.{ts,tsx,js,jsx}',
+        '**/tests/performance/**/*.perf.test.{ts,tsx,js,jsx}',
+      ],
+      benchmark: {
+        include: ['**/*.bench.{ts,tsx,js,jsx}', '**/tests/performance/**/*.perf.test.{ts,tsx,js,jsx}'],
+      },
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'json', 'html'],
+        exclude: [
+          'node_modules/',
+          'tests/',
+          '**/*.test.{ts,tsx}',
+          '**/*.spec.{ts,tsx}',
+          '**/types.ts',
+          '**/*.d.ts',
+        ],
+      },
+      define: {
+        'import.meta.hot': 'undefined',
+      },
     },
   };
 });
