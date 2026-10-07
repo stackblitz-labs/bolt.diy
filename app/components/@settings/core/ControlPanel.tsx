@@ -7,6 +7,7 @@ import type { TabType, Profile } from './types';
 import { TabTile } from '~/components/@settings/shared/components/TabTile';
 
 // Import all tab components
+import ConnectorsTab from '~/components/@settings/tabs/connectors/ConnectorsTab';
 import { DataTab } from '~/components/@settings/tabs/data/DataTab';
 import { EventLogsTab } from '~/components/@settings/tabs/event-logs/EventLogsTab';
 import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
@@ -137,6 +138,8 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         return <CloudProvidersTab />;
       case 'local-providers':
         return <LocalProvidersTab />;
+      case 'connectors':
+        return <ConnectorsTab />;
       case 'github':
         return <GitHubTab />;
       case 'gitlab':
@@ -163,6 +166,7 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         return hasNewFeatures;
       case 'notifications':
         return hasUnreadNotifications;
+      case 'connectors':
       case 'github':
       case 'gitlab':
       case 'supabase':
@@ -180,6 +184,7 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         return `${unviewedFeatures.length} new feature${unviewedFeatures.length === 1 ? '' : 's'} to explore`;
       case 'notifications':
         return `${unreadNotifications.length} unread notification${unreadNotifications.length === 1 ? '' : 's'}`;
+      case 'connectors':
       case 'github':
       case 'gitlab':
       case 'supabase':
@@ -208,6 +213,7 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
       case 'notifications':
         markAllAsRead();
         break;
+      case 'connectors':
       case 'github':
       case 'gitlab':
       case 'supabase':

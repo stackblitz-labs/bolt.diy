@@ -11,6 +11,7 @@ export type TabType =
   | 'data'
   | 'cloud-providers'
   | 'local-providers'
+  | 'connectors'
   | 'github'
   | 'gitlab'
   | 'netlify'
@@ -74,6 +75,7 @@ export const TAB_LABELS: Record<TabType, string> = {
   data: 'Data Management',
   'cloud-providers': 'Cloud Providers',
   'local-providers': 'Local Providers',
+  connectors: 'Connectors',
   github: 'GitHub',
   gitlab: 'GitLab',
   netlify: 'Netlify',
