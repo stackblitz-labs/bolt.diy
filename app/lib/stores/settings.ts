@@ -86,13 +86,16 @@ const fetchConfiguredProviders = async (): Promise<ConfiguredProvider[]> => {
 const getInitialProviderSettings = (): ProviderSetting => {
   const initialSettings: ProviderSetting = {};
 
+  // Default enabled providers (only these 4 are enabled by default)
+  const DEFAULT_ENABLED_PROVIDERS = ['OpenRouter', 'Anthropic', 'OpenAI', 'Google'];
+
   // Start with default settings
   PROVIDER_LIST.forEach((provider) => {
     initialSettings[provider.name] = {
       ...provider,
       settings: {
-        // Local providers should be disabled by default
-        enabled: !LOCAL_PROVIDERS.includes(provider.name),
+        // Only default providers are enabled, all others are disabled by default
+        enabled: DEFAULT_ENABLED_PROVIDERS.includes(provider.name),
       },
     };
   });
