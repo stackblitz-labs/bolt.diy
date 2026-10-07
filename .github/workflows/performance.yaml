@@ -59,8 +59,9 @@ jobs:
         id: bundle-analysis
 
       - name: Comment PR with results
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
@@ -130,6 +131,7 @@ jobs:
       - name: Run Lighthouse CI
         run: |
           pnpm dlx @lhci/cli@0.13.x autorun
+        continue-on-error: true
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
