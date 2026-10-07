@@ -4,20 +4,10 @@
  */
 
 // Core metrics and monitoring
-export {
-  performanceMonitor,
-  journeys,
-  observeWebVitals,
-  type PerformanceMetric,
-} from './metrics';
+export { performanceMonitor, journeys, observeWebVitals, type PerformanceMetric } from './metrics';
 
 // Prefetching
-export {
-  prefetchManager,
-  usePrefetchOnHover,
-  prefetchComponent,
-  prefetchOnVisible,
-} from './prefetch';
+export { prefetchManager, usePrefetchOnHover, prefetchComponent, prefetchOnVisible } from './prefetch';
 
 // Streaming optimizations
 export {

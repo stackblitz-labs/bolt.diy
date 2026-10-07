@@ -1,10 +1,10 @@
 /**
  * Static Composer Component
  * Based on Claude.dev's static composer optimization
- * 
+ *
  * Renders a static HTML composer immediately, then React paints over it
  * This makes the composer typeable during React initialization
- * 
+ *
  * Before: User waits for React to hydrate before typing (200-300ms)
  * After: User can type immediately (<100ms)
  */
@@ -60,7 +60,12 @@ export function generateStaticComposerHTML(placeholder: string = 'How can I help
  * React Composer Component
  * This replaces the static HTML once React is ready
  */
-export function StaticComposer({ placeholder = 'How can I help you?', onReady, className, style }: StaticComposerProps) {
+export function StaticComposer({
+  placeholder = 'How can I help you?',
+  onReady,
+  className,
+  style,
+}: StaticComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasHandedOff, setHasHandedOff] = useState(false);
@@ -73,6 +78,7 @@ export function StaticComposer({ placeholder = 'How can I help you?', onReady, c
     if (staticComposer && staticTextarea && textareaRef.current) {
       // Transfer any typed content from static to React
       const staticValue = staticTextarea.value;
+
       if (staticValue) {
         textareaRef.current.value = staticValue;
       }
@@ -80,6 +86,7 @@ export function StaticComposer({ placeholder = 'How can I help you?', onReady, c
       // Transfer focus if static textarea was focused
       if (document.activeElement === staticTextarea) {
         textareaRef.current.focus();
+
         // Restore cursor position
         const cursorPos = staticTextarea.selectionStart;
         textareaRef.current.setSelectionRange(cursorPos, cursorPos);
@@ -166,7 +173,9 @@ export function StaticComposer({ placeholder = 'How can I help you?', onReady, c
  * Call this during SSR or in index.html
  */
 export function injectStaticComposer(placeholder?: string): void {
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined') {
+    return;
+  }
 
   // Check if already injected
   if (document.querySelector('[data-static-composer="true"]')) {

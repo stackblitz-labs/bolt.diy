@@ -42,6 +42,7 @@ class PrefetchManager {
   async get<T>(key: string, loader: () => Promise<T>): Promise<T> {
     // Cancel any pending prefetch timeout since we need the data now
     const timeout = this.pendingTimeouts.get(key);
+
     if (timeout) {
       clearTimeout(timeout);
       this.pendingTimeouts.delete(key);
@@ -59,6 +60,7 @@ class PrefetchManager {
    */
   cancel(key: string): void {
     const timeout = this.pendingTimeouts.get(key);
+
     if (timeout) {
       clearTimeout(timeout);
       this.pendingTimeouts.delete(key);
@@ -124,6 +126,7 @@ export function usePrefetchOnHover<T>(
       if (!key) {
         return loader();
       }
+
       return prefetchManager.get(key, loader);
     },
   };

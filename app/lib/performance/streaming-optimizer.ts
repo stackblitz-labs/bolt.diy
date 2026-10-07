@@ -1,7 +1,7 @@
 /**
  * Streaming Performance Optimizer
  * Based on Claude.dev's 120fps streaming approach
- * 
+ *
  * Key optimizations:
  * - Only touch DOM elements that are still changing
  * - Memoize finished blocks
@@ -56,7 +56,9 @@ class StreamingOptimizer {
     }
 
     if (didDrop && import.meta.env.DEV) {
-      console.warn(`[STREAMING] Frame ${this.frameCount} dropped: ${workDuration.toFixed(2)}ms (budget: ${this.frameBudget}ms)`);
+      console.warn(
+        `[STREAMING] Frame ${this.frameCount} dropped: ${workDuration.toFixed(2)}ms (budget: ${this.frameBudget}ms)`,
+      );
     }
   }
 
@@ -71,8 +73,8 @@ class StreamingOptimizer {
     percentDropped: number;
   } {
     const droppedFrames = this.frameMetrics.filter((m) => m.didDrop).length;
-    const averageFrameTime =
-      this.frameMetrics.reduce((sum, m) => sum + m.duration, 0) / this.frameMetrics.length || 0;
+
+    const averageFrameTime = this.frameMetrics.reduce((sum, m) => sum + m.duration, 0) / this.frameMetrics.length || 0;
 
     return {
       targetFPS: this.targetFPS,
@@ -132,10 +134,12 @@ export class BatchedDOMUpdater {
    */
   private flush(): void {
     this.rafId = null;
+
     const frameStart = performance.now();
     const budget = streamingOptimizer.getRemainingBudget(0);
 
     let updateCount = 0;
+
     while (this.pendingUpdates.length > 0 && performance.now() - frameStart < budget * 0.8) {
       const update = this.pendingUpdates.shift()!;
       update();
@@ -156,6 +160,7 @@ export class BatchedDOMUpdater {
    */
   clear(): void {
     this.pendingUpdates = [];
+
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
@@ -179,6 +184,7 @@ export class ContentBlockMemoizer<T> {
 
     const value = compute();
     this.cache.set(key, value);
+
     return value;
   }
 

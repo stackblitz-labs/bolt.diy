@@ -48,17 +48,17 @@ export function useDeepMemo<T>(factory: () => T, deps: any[]): T {
 }
 
 function depsEqual(a: any[], b: any[]): boolean {
-  if (a.length !== b.length) return false;
+  if (a.length !== b.length) {
+    return false;
+  }
+
   return a.every((val, i) => Object.is(val, b[i]));
 }
 
 /**
  * Debounce a callback with cleanup
  */
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
-  callback: T,
-  delay: number,
-): [T, () => void] {
+export function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, delay: number): [T, () => void] {
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const debouncedCallback = useCallback(
@@ -128,6 +128,7 @@ export function useRenderPerformance(componentName: string) {
  */
 export function useKeepMounted() {
   const [shouldRender, setShouldRender] = useState(true);
+
   const hideInsteadOfUnmount = useCallback((hide: boolean) => {
     // Don't unmount, just hide with CSS
     setShouldRender(!hide);
@@ -143,21 +144,22 @@ export function useKeepMounted() {
 /**
  * Lazy load component with prefetch support
  */
-export function useLazyWithPrefetch<T>(
-  importer: () => Promise<{ default: T }>,
-  shouldPrefetch: boolean = false,
-) {
+export function useLazyWithPrefetch<T>(importer: () => Promise<{ default: T }>, shouldPrefetch: boolean = false) {
   const [component, setComponent] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const load = useCallback(async () => {
-    if (component) return component;
+    if (component) {
+      return component;
+    }
 
     setIsLoading(true);
+
     try {
       const module = await importer();
       setComponent(module.default);
+
       return module.default;
     } catch (err) {
       setError(err as Error);
@@ -185,12 +187,7 @@ export function useLazyWithPrefetch<T>(
  * Virtualized list hook for long lists
  * Only renders visible items
  */
-export function useVirtualizedList<T>(
-  items: T[],
-  containerHeight: number,
-  itemHeight: number,
-  overscan: number = 3,
-) {
+export function useVirtualizedList<T>(items: T[], containerHeight: number, itemHeight: number, overscan: number = 3) {
   const [scrollTop, setScrollTop] = useState(0);
 
   const visibleRange = useMemo(() => {

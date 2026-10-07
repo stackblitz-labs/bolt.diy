@@ -28,10 +28,12 @@ export function prebootWebContainer(): void {
     .then((instance) => {
       console.log('[WEBCONTAINER] Booted successfully');
       webContainerInstance = instance;
+
       return instance;
     })
     .catch((error) => {
       console.error('[WEBCONTAINER] Boot failed:', error);
+
       // Reset so it can be retried
       webContainerBootPromise = null;
       throw error;

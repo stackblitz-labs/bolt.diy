@@ -1,7 +1,7 @@
 /**
  * Performance Monitoring System
  * Based on Claude.dev's approach: measure everything, then optimize
- * 
+ *
  * Core User Journeys:
  * - App Launch: Time to interactive on fresh load
  * - Starting Chat: Time to typeable composer
@@ -32,7 +32,9 @@ class PerformanceMonitor {
    * Mark the start of a user journey
    */
   markStart(journey: string, label: string = 'start') {
-    if (!this.enabled) return;
+    if (!this.enabled) {
+      return;
+    }
 
     const markName = `${journey}:${label}`;
     performance.mark(markName);
@@ -49,12 +51,15 @@ class PerformanceMonitor {
    * Mark the end of a user journey and record the measurement
    */
   markEnd(journey: string, label: string = 'end', metadata?: Record<string, any>): number | null {
-    if (!this.enabled) return null;
+    if (!this.enabled) {
+      return null;
+    }
 
     const endMarkName = `${journey}:${label}`;
     performance.mark(endMarkName);
 
     const marks = this.journeyMarks.get(journey);
+
     if (!marks || !marks.start) {
       console.warn(`[PERF] No start mark found for journey: ${journey}`);
       return null;
@@ -65,6 +70,7 @@ class PerformanceMonitor {
 
     try {
       performance.measure(measureName, startMarkName, endMarkName);
+
       const measure = performance.getEntriesByName(measureName)[0] as PerformanceMeasure;
       const duration = measure.duration;
 
@@ -85,7 +91,9 @@ class PerformanceMonitor {
    * Record a metric directly without marks
    */
   recordMetric(name: string, duration: number, metadata?: Record<string, any>) {
-    if (!this.enabled) return;
+    if (!this.enabled) {
+      return;
+    }
 
     const metric: PerformanceMetric = {
       name,
@@ -130,6 +138,7 @@ class PerformanceMonitor {
     }
 
     const sorted = [...durations].sort((a, b) => a - b);
+
     return {
       p50: this.percentile(sorted, 50),
       p75: this.percentile(sorted, 75),
@@ -147,8 +156,10 @@ class PerformanceMonitor {
    * Send metrics to analytics service
    */
   private sendToAnalytics(metric: PerformanceMetric) {
-    // Integration point for analytics services
-    // Could be sent to: Datadog, New Relic, custom backend, etc.
+    /*
+     * Integration point for analytics services
+     * Could be sent to: Datadog, New Relic, custom backend, etc.
+     */
     if (typeof window !== 'undefined' && (window as any).__PERFORMANCE_ANALYTICS__) {
       (window as any).__PERFORMANCE_ANALYTICS__(metric);
     }
@@ -172,9 +183,11 @@ class PerformanceMonitor {
 
     this.metrics.forEach((metric) => {
       const journey = metric.name.split(':')[0];
+
       if (!journeys.has(journey)) {
         journeys.set(journey, []);
       }
+
       journeys.get(journey)!.push(metric.duration);
     });
 
@@ -209,8 +222,7 @@ export const journeys = {
     start: () => performanceMonitor.markStart('app-launch'),
     htmlParsed: () => performanceMonitor.markStart('app-launch', 'html-parsed'),
     reactHydrated: () => performanceMonitor.markStart('app-launch', 'react-hydrated'),
-    interactive: (metadata?: Record<string, any>) =>
-      performanceMonitor.markEnd('app-launch', 'interactive', metadata),
+    interactive: (metadata?: Record<string, any>) => performanceMonitor.markEnd('app-launch', 'interactive', metadata),
   },
 
   /**
@@ -248,8 +260,7 @@ export const journeys = {
   webContainer: {
     start: () => performanceMonitor.markStart('webcontainer-boot'),
     apiLoaded: () => performanceMonitor.markStart('webcontainer-boot', 'api-loaded'),
-    booted: (metadata?: Record<string, any>) =>
-      performanceMonitor.markEnd('webcontainer-boot', 'booted', metadata),
+    booted: (metadata?: Record<string, any>) => performanceMonitor.markEnd('webcontainer-boot', 'booted', metadata),
   },
 
   /**
@@ -265,10 +276,13 @@ export const journeys = {
 
 // Web Vitals integration
 export function observeWebVitals() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    return;
+  }
 
   // Cumulative Layout Shift
   let clsValue = 0;
+
   const clsObserver = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
       if (!(entry as any).hadRecentInput) {

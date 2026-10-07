@@ -122,12 +122,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { journeys, observeWebVitals } from './lib/performance/metrics';
+import { prebootWebContainer } from './lib/performance/webcontainer-optimizer';
 import { logStore } from './lib/stores/logs';
 import { themeStore } from './lib/stores/theme';
 import globalStyles from './styles/index.scss?url';
 import { stripIndents } from './utils/stripIndent';
-import { journeys, observeWebVitals } from './lib/performance/metrics';
-import { prebootWebContainer } from './lib/performance/webcontainer-optimizer';
 
 export default function App() {
   const theme = useStore(themeStore);

@@ -3,8 +3,8 @@
  * Based on Claude.dev's findings about syntax highlighting
  */
 
-import { EditorView } from '@codemirror/view';
 import type { Extension } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import { optimizeForHighlighting } from './streaming-optimizer';
 
 /**
@@ -77,18 +77,23 @@ export async function loadLanguageSupport(language: string): Promise<Extension |
     if (module.javascript && (normalizedLang === 'javascript' || normalizedLang === 'jsx')) {
       return module.javascript();
     }
+
     if (module.typescript && (normalizedLang === 'typescript' || normalizedLang === 'tsx')) {
       return module.typescript();
     }
+
     if (module.python) {
       return module.python();
     }
+
     if (module.css) {
       return module.css();
     }
+
     if (module.html) {
       return module.html();
     }
+
     if (module.json) {
       return module.json();
     }
@@ -111,6 +116,7 @@ class LanguageCache {
     if (!this.cache.has(language)) {
       this.cache.set(language, loadLanguageSupport(language));
     }
+
     return this.cache.get(language)!;
   }
 
