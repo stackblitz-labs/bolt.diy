@@ -5,13 +5,29 @@
 
 For the best experience with bolt.diy, we recommend using the following models:
 
-- **Claude 3.5 Sonnet (old)**: Best overall coder, providing excellent results across all use cases
-- **Gemini 2.0 Flash**: Exceptional speed while maintaining good performance
-- **GPT-4o**: Strong alternative to Claude 3.5 Sonnet with comparable capabilities
-- **DeepSeekCoder V2 236b**: Best open source model (available through OpenRouter, DeepSeek API, or self-hosted)
-- **Qwen 2.5 Coder 32b**: Best model for self-hosting with reasonable hardware requirements
+**Recommended for Production:**
+- **Claude 4 Opus**: Flagship model with enhanced reasoning (200K context)
+- **Claude 3.5 Sonnet**: Proven excellent performance across all tasks
+- **GPT-4o**: Strong general-purpose coding with great reliability
+- **xAI Grok 4**: 256K context window for large projects
 
-**Note**: Models with less than 7b parameters typically lack the capability to properly interact with bolt!
+**Fast & Efficient:**
+- **Gemini 2.0 Flash**: Exceptional speed for rapid development
+- **Claude 3 Haiku**: Cost-effective for simpler tasks
+- **xAI Grok 3 Mini Fast**: Optimized for speed and efficiency
+
+**Advanced Reasoning:**
+- **Moonshot AI Kimi K2**: Advanced reasoning with 128K context
+- **Moonshot AI Kimi Thinking**: Specialized for complex reasoning tasks
+
+**Open Source & Self-Hosting:**
+- **DeepSeekCoder V3**: Outstanding open-source model
+- **DeepSeekCoder V2 236b**: Powerful self-hosted option
+- **Qwen 2.5 Coder 32b**: Good balance of performance and resource requirements
+
+**Local Models (Ollama):**
+- Best for privacy and offline development
+- Use 7B+ parameter models for reasonable performance
 
 </details>
 
@@ -28,8 +44,8 @@ For the best experience with bolt.diy, we recommend using the following models:
   Ensure the foundational structure of your application is in place before introducing advanced functionality. This helps bolt.diy establish a solid base to build on.
 
 - **Batch simple instructions**:  
- Combine simple tasks into a single prompt to save time and reduce API credit consumption. For example:  
- _"Change the color scheme, add mobile responsiveness, and restart the dev server."_
+  Combine simple tasks into a single prompt to save time and reduce API credit consumption. For example:  
+  _"Change the color scheme, add mobile responsiveness, and restart the dev server."_
 </details>
 
 <details>
@@ -67,36 +83,75 @@ While local LLMs are improving rapidly, larger models like GPT-4o, Claude 3.5 So
 <summary><strong>Common Errors and Troubleshooting</strong></summary>
 
 ### **"There was an error processing this request"**
-
-This generic error message means something went wrong. Check both:
-
-- The terminal (if you started the app with Docker or `pnpm`).
-- The developer console in your browser (press `F12` or right-click > _Inspect_, then go to the _Console_ tab).
+This generic error message means something went wrong. Check these locations:
+- Terminal output (if using Docker or `pnpm`)
+- Browser developer console (press `F12` -> Console tab)
+- Server logs for backend errors
+- Network tab to verify API calls are succeeding
 
 ### **"x-api-key header missing"**
-
-This error is sometimes resolved by restarting the Docker container.  
-If that doesn't work, try switching from Docker to `pnpm` or vice versa. We're actively investigating this issue.
+This authentication error can be resolved by:
+- Restarting the container: `docker compose restart`
+- Switching run methods: Try `pnpm` if using Docker, or vice versa
+- Checking API keys in `.env.local` or Settings -> Providers
+- Clearing browser cache
 
 ### **Blank preview when running the app**
+Blank previews usually indicate code generation issues:
+- Check developer console for JavaScript runtime errors
+- Verify WebContainer is running properly
+- Try refreshing the preview pane
+- Check for hallucinated or incomplete code in generated files
+- Restart the development server if issues persist
 
-A blank preview often occurs due to hallucinated bad code or incorrect commands.  
-To troubleshoot:
+### **MCP server connection failed**
+If you're having trouble with MCP integrations:
+- Verify server configuration in Settings -> MCP
+- Check server endpoints and authentication credentials
+- Test server connectivity outside of bolt.diy
+- Review MCP server logs for specific errors
+- Ensure server supports the MCP protocol version
 
-- Check the developer console for errors.
-- Remember, previews are core functionality, so the app isn't broken! We're working on making these errors more transparent.
+### **Git integration not working**
+Common Git-related issues and solutions:
+- GitHub connection failed: Verify your GitHub token has correct permissions
+- Repository not found: Check repository URL and access permissions
+- Push/pull failed: Ensure you have write access to the repository
+- Merge conflicts: Resolve conflicts manually or use the diff viewer
+- Large files blocked: Check GitHub's file size limits
+
+### **Deployment failed**
+Deployment issues can be resolved by:
+- Checking build logs for specific error messages
+- Verifying environment variables are set correctly
+- Testing locally before deploying (`pnpm run build && pnpm run preview`)
+- Checking platform-specific requirements (Node version, build commands)
+- Reviewing deployment configuration in platform settings
+
+### **Provider not showing up after adding it**
+If your custom LLM provider isn't appearing:
+- Restart the development server to reload providers
+- Check the provider registry in `app/lib/modules/llm/registry.ts`
+- Verify the provider class extends `BaseProvider` correctly and returns `LanguageModel` from `'ai'`
+- Check browser console for provider loading errors
+- Ensure proper TypeScript compilation (`pnpm run typecheck`)
+
+### **WebContainer preview not loading**
+If the live preview isn't working:
+- Check WebContainer status in the terminal
+- Verify Node.js compatibility with your project
+- Restart the development environment
+- Clear browser cache and reload
+- Check for conflicting ports (default is 5173)
 
 ### **"Everything works, but the results are bad"**
-
-Local LLMs like Qwen-2.5-Coder are powerful for small applications but still experimental for larger projects. For better results, consider using larger models like GPT-4o, Claude 3.5 Sonnet, or DeepSeek Coder V2 236b.
+Local LLMs like Qwen-2.5-Coder are powerful for small applications but still experimental for larger projects. For better results, consider using larger models like GPT-4o, Claude 3.5 Sonnet, or Claude 4 Opus.
 
 ### **"Received structured exception #0xc0000005: access violation"**
-
-If you are getting this, you are probably on Windows. The fix is generally to update the [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170)
+**Windows-specific issue**: Update the [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170).
 
 ### **"Miniflare or Wrangler errors in Windows"**
-
-You will need to make sure you have the latest version of Visual Studio C++ installed (14.40.33816), more information here https://github.com/stackblitz-labs/bolt.diy/issues/19.
+**Windows development environment**: Install Visual Studio C++ (version 14.40.33816 or later). More details in [GitHub Issues](https://github.com/stackblitz-labs/bolt.diy/issues/19).
 
 </details>
 
