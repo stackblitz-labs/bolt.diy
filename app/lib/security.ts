@@ -4,18 +4,19 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 // Rate limit configuration
-const RATE_LIMITS = {
-  // General API endpoints
-  '/api/*': { windowMs: 15 * 60 * 1000, maxRequests: 100 }, // 100 requests per 15 minutes
-
-  // LLM API (more restrictive)
-  '/api/llmcall': { windowMs: 60 * 1000, maxRequests: 10 }, // 10 requests per minute
+const RATE_LIMITS: Record<string, { windowMs: number; maxRequests: number }> = {
+  // LLM streaming and call APIs (most restrictive)
+  '/api/chat': { windowMs: 60 * 1000, maxRequests: 60 }, // 60 requests per minute
+  '/api/llmcall': { windowMs: 60 * 1000, maxRequests: 30 }, // 30 requests per minute
 
   // GitHub API endpoints
   '/api/github-*': { windowMs: 60 * 1000, maxRequests: 30 }, // 30 requests per minute
 
   // Netlify API endpoints
   '/api/netlify-*': { windowMs: 60 * 1000, maxRequests: 20 }, // 20 requests per minute
+
+  // General API endpoints fallback
+  '/api/*': { windowMs: 15 * 60 * 1000, maxRequests: 100 }, // 100 requests per 15 minutes
 };
 
 /**
@@ -25,15 +26,27 @@ export function checkRateLimit(request: Request, endpoint: string): { allowed: b
   const clientIP = getClientIP(request);
   const key = `${clientIP}:${endpoint}`;
 
-  // Find matching rate limit rule
-  const rule = Object.entries(RATE_LIMITS).find(([pattern]) => {
-    if (pattern.endsWith('/*')) {
-      const basePattern = pattern.slice(0, -2);
-      return endpoint.startsWith(basePattern);
-    }
+  // Find matching rate limit rule: exact match first, then specific prefix, then generic wildcard
+  const entries = Object.entries(RATE_LIMITS);
 
-    return endpoint === pattern;
-  });
+  const rule =
+    entries.find(([pattern]) => pattern === endpoint) ||
+    entries.find(([pattern]) => {
+      if (pattern.endsWith('*') && !pattern.endsWith('/*')) {
+        const basePattern = pattern.slice(0, -1);
+        return endpoint.startsWith(basePattern);
+      }
+
+      return false;
+    }) ||
+    entries.find(([pattern]) => {
+      if (pattern.endsWith('/*')) {
+        const basePattern = pattern.slice(0, -2);
+        return endpoint.startsWith(basePattern);
+      }
+
+      return false;
+    });
 
   if (!rule) {
     return { allowed: true }; // No rate limit for this endpoint
@@ -41,17 +54,21 @@ export function checkRateLimit(request: Request, endpoint: string): { allowed: b
 
   const [, config] = rule;
   const now = Date.now();
-  const windowStart = now - config.windowMs;
 
-  // Clean up old entries
-  for (const [storedKey, data] of rateLimitStore.entries()) {
-    if (data.resetTime < windowStart) {
-      rateLimitStore.delete(storedKey);
+  // Clean up old entries periodically to avoid O(N) cost on every single request
+  if (rateLimitStore.size > 200) {
+    for (const [storedKey, data] of rateLimitStore.entries()) {
+      if (data.resetTime < now) {
+        rateLimitStore.delete(storedKey);
+      }
     }
   }
 
   // Get or create rate limit data
-  const rateLimitData = rateLimitStore.get(key) || { count: 0, resetTime: now + config.windowMs };
+  const existing = rateLimitStore.get(key);
+
+  const rateLimitData =
+    existing && existing.resetTime > now ? existing : { count: 0, resetTime: now + config.windowMs };
 
   if (rateLimitData.count >= config.maxRequests) {
     return { allowed: false, resetTime: rateLimitData.resetTime };

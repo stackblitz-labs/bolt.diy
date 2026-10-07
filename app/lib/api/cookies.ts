@@ -1,3 +1,15 @@
+export function safeJsonParse<T>(value: string | null | undefined, fallback: T): T {
+  if (!value) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export function parseCookies(cookieHeader: string | null) {
   const cookies: Record<string, string> = {};
 
@@ -12,10 +24,14 @@ export function parseCookies(cookieHeader: string | null) {
     const [name, ...rest] = item.split('=');
 
     if (name && rest.length > 0) {
-      // Decode the name and value, and join value parts in case it contains '='
-      const decodedName = decodeURIComponent(name.trim());
-      const decodedValue = decodeURIComponent(rest.join('=').trim());
-      cookies[decodedName] = decodedValue;
+      try {
+        // Decode the name and value, and join value parts in case it contains '='
+        const decodedName = decodeURIComponent(name.trim());
+        const decodedValue = decodeURIComponent(rest.join('=').trim());
+        cookies[decodedName] = decodedValue;
+      } catch {
+        cookies[name.trim()] = rest.join('=').trim();
+      }
     }
   });
 
@@ -24,10 +40,10 @@ export function parseCookies(cookieHeader: string | null) {
 
 export function getApiKeysFromCookie(cookieHeader: string | null): Record<string, string> {
   const cookies = parseCookies(cookieHeader);
-  return cookies.apiKeys ? JSON.parse(cookies.apiKeys) : {};
+  return safeJsonParse<Record<string, string>>(cookies.apiKeys, {});
 }
 
 export function getProviderSettingsFromCookie(cookieHeader: string | null): Record<string, any> {
   const cookies = parseCookies(cookieHeader);
-  return cookies.providers ? JSON.parse(cookies.providers) : {};
+  return safeJsonParse<Record<string, any>>(cookies.providers, {});
 }

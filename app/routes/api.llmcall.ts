@@ -7,13 +7,14 @@ import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/c
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { createMessage } from '~/lib/persistence/messageMigration';
+import { withSecurity } from '~/lib/security';
 import type { IProviderSetting, ProviderInfo } from '~/types/model';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 
-export async function action(args: ActionFunctionArgs) {
-  return llmCallAction(args);
-}
+export const action = withSecurity(llmCallAction, {
+  allowedMethods: ['POST'],
+});
 
 async function getModelList(options: {
   apiKeys?: Record<string, string>;

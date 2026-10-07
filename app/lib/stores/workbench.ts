@@ -502,7 +502,23 @@ export class WorkbenchStore {
   }
 
   abortAllActions() {
-    // TODO: what do we wanna do and how do we wanna recover from this?
+    const artifacts = this.artifacts.get();
+
+    for (const artifact of Object.values(artifacts)) {
+      if (artifact.runner) {
+        artifact.runner.abortAllActions();
+      }
+    }
+
+    if (this.boltTerminal) {
+      try {
+        this.boltTerminal.terminal?.input('\x03');
+      } catch (error) {
+        console.error('Failed to interrupt terminal during abort:', error);
+      }
+    }
+
+    this.actionAlert.set(undefined);
   }
 
   setReloadedMessages(messages: string[]) {

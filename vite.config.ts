@@ -64,8 +64,8 @@ export default defineConfig((config) => {
         '@radix-ui/react-switch',
         '@radix-ui/react-tabs',
         '@radix-ui/react-tooltip',
-        '@headlessui/react',
         'react-toastify',
+
         'class-variance-authority',
         'react-markdown',
         'remark-gfm',
