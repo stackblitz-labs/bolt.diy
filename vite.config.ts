@@ -27,6 +27,26 @@ export default defineConfig((config) => {
     build: {
       target: 'esnext',
     },
+    optimizeDeps: {
+      include: [
+        'react',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+        'react-dom',
+        'react-dom/client',
+        'react-router',
+        '@nanostores/react',
+        'nanostores',
+        'framer-motion',
+        'ai',
+        '@ai-sdk/react',
+        'react-toastify',
+        'js-cookie',
+        'diff',
+        'date-fns',
+        'lucide-react',
+      ],
+    },
     environments: {
       client: {
         /*
