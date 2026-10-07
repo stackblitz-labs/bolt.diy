@@ -194,30 +194,13 @@ The desktop app provides the same full functionality as the web version with add
 
 ## Recent Major Additions
 
-### ✅ Completed Features
-- **21+ AI Provider Integrations** - OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, Cohere, Together, Perplexity, HuggingFace, Ollama, LM Studio, OpenRouter, Moonshot, Hyperbolic, GitHub Models, Amazon Bedrock, Cerebras, Fireworks, Z-AI, OpenAI-like
-- **Electron Desktop App** - Native desktop experience with full functionality
-- **Advanced Deployment Options** - Netlify, Vercel, and GitHub Pages deployment
-- **Supabase Integration** - Database management and query capabilities
-- **Data Visualization & Analysis** - Charts, graphs, and data analysis tools
-- **MCP (Model Context Protocol)** - Enhanced AI tool integration
-- **Search Functionality** - Codebase search and navigation
-- **File Locking System** - Prevents conflicts during AI code generation
-- **Diff View** - Visual representation of AI-made changes
-- **Git Integration** - Clone, import, and deployment capabilities
-- **Expo App Creation** - React Native development support
-- **Voice Prompting** - Audio input for prompts
-- **Bulk Chat Operations** - Delete multiple chats at once
-- **Project Snapshot Restoration** - Restore projects from snapshots on reload
+- **Expanded AI & Tooling Ecosystem**: 21+ cloud and local LLM providers, Model Context Protocol (MCP) integration, and voice prompting.
+- **Enhanced Code & Project Workflows**: Visual diff inspection, file conflict locking, codebase search, Git integration, and snapshot restoration.
+- **Cross-Platform & Deployments**: Native Electron desktop app, Expo (React Native) support, and direct deployment to Netlify, Vercel, and GitHub Pages.
+- **Data & Backend Integrations**: Built-in Supabase management, interactive charts, and bulk chat operations.
 
-### 🔄 In Progress / Planned
-- **File Locking & Diff Improvements** - Enhanced conflict prevention
-- **Backend Agent Architecture** - Move from single model calls to agent-based system
-- **LLM Prompt Optimization** - Better performance for smaller models
-- **Project Planning Documentation** - LLM-generated project plans in markdown
-- **VSCode Integration** - Git-like confirmations and workflows
-- **Document Upload for Knowledge** - Reference materials and coding style guides
-- **Additional Provider Integrations** - Azure OpenAI, Vertex AI, Granite
+> 🔄 **Looking Ahead**: Ongoing work includes multi-agent architectures, model prompt workstyle optimizations, and deeper editor workflows. Track upcoming milestones on our [Roadmap](https://roadmap.sh/r/ottodev-roadmap-2ovzo).
+
 
 ## Project management
 
