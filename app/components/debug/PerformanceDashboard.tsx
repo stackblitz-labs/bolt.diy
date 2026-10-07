@@ -5,8 +5,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { PerformanceMonitor } from '~/utils/performance-monitor';
 import { FrameRateMonitor } from '~/utils/frame-rate-monitor';
+import { PerformanceMonitor } from '~/utils/performance-monitor';
 
 interface JourneyStats {
   name: string;
@@ -48,6 +48,7 @@ export function PerformanceDashboard({ onClose }: { onClose?: () => void }) {
 
   const loadJourneyStats = () => {
     const journeyNames = PerformanceMonitor.getJourneyNames();
+
     const stats = journeyNames
       .map((name) => {
         const stat = PerformanceMonitor.getJourneyStats(name);
@@ -78,8 +79,14 @@ export function PerformanceDashboard({ onClose }: { onClose?: () => void }) {
   };
 
   const formatDuration = (ms: number) => {
-    if (ms < 1) return `${ms.toFixed(2)}ms`;
-    if (ms < 1000) return `${ms.toFixed(0)}ms`;
+    if (ms < 1) {
+      return `${ms.toFixed(2)}ms`;
+    }
+
+    if (ms < 1000) {
+      return `${ms.toFixed(0)}ms`;
+    }
+
     return `${(ms / 1000).toFixed(2)}s`;
   };
 
@@ -98,9 +105,15 @@ export function PerformanceDashboard({ onClose }: { onClose?: () => void }) {
     };
 
     const budget = budgets[journey] || 1000;
-    
-    if (duration <= budget * 0.75) return 'good';
-    if (duration <= budget) return 'needs-improvement';
+
+    if (duration <= budget * 0.75) {
+      return 'good';
+    }
+
+    if (duration <= budget) {
+      return 'needs-improvement';
+    }
+
     return 'poor';
   };
 
@@ -109,9 +122,7 @@ export function PerformanceDashboard({ onClose }: { onClose?: () => void }) {
       <div className="bg-bolt-elements-bg-depth-1 border border-bolt-elements-borderColor rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-bolt-elements-borderColor">
-          <h2 className="text-xl font-semibold text-bolt-elements-textPrimary">
-            ⚡ Performance Dashboard
-          </h2>
+          <h2 className="text-xl font-semibold text-bolt-elements-textPrimary">⚡ Performance Dashboard</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsMonitoringFps(!isMonitoringFps)}
@@ -163,11 +174,7 @@ export function PerformanceDashboard({ onClose }: { onClose?: () => void }) {
                 <div className="h-2 bg-bolt-elements-bg-depth-3 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all ${
-                      fps >= 55
-                        ? 'bg-green-500'
-                        : fps >= 45
-                          ? 'bg-yellow-500'
-                          : 'bg-red-500'
+                      fps >= 55 ? 'bg-green-500' : fps >= 45 ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
                     style={{ width: `${(fps / 60) * 100}%` }}
                   />
@@ -187,6 +194,7 @@ export function PerformanceDashboard({ onClose }: { onClose?: () => void }) {
             <div className="space-y-4">
               {journeys.map((journey) => {
                 const rating = getPerformanceRating(journey.p75, journey.name);
+
                 const ratingColor =
                   rating === 'good'
                     ? 'text-green-500'
@@ -201,9 +209,7 @@ export function PerformanceDashboard({ onClose }: { onClose?: () => void }) {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-semibold text-bolt-elements-textPrimary">{journey.name}</h3>
-                      <span className="text-sm text-bolt-elements-textSecondary">
-                        {journey.count} samples
-                      </span>
+                      <span className="text-sm text-bolt-elements-textSecondary">{journey.count} samples</span>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">

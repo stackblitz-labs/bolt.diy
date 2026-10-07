@@ -1,9 +1,9 @@
 /**
  * Static Composer Component
- * 
+ *
  * Provides an instant-loading input field that's replaced by React after hydration
  * This allows users to start typing immediately while the app loads
- * 
+ *
  * Expected impact: 200-500ms faster time-to-typeable
  */
 
@@ -24,22 +24,26 @@ export function useStaticComposerHandoff(initialValue: string = '') {
 
   useEffect(() => {
     // Only run once on mount
-    if (hasHandedOff.current) return;
+    if (hasHandedOff.current) {
+      return;
+    }
+
     hasHandedOff.current = true;
 
     // Check if there was early input captured in global scope
     if (typeof window !== 'undefined' && '__boltStaticInput' in window) {
       const earlyInput = (window as any).__boltStaticInput as string;
-      
+
       if (earlyInput) {
         setValue(earlyInput);
-        
+
         // Clean up global
         delete (window as any).__boltStaticInput;
       }
-      
+
       // Remove static composer from DOM if it exists
       const staticComposer = document.getElementById('bolt-static-composer');
+
       if (staticComposer) {
         staticComposer.remove();
       }
@@ -55,6 +59,7 @@ export function useStaticComposerHandoff(initialValue: string = '') {
 function escapeHtml(text: string): string {
   const div = document.createElement('div');
   div.textContent = text;
+
   return div.innerHTML;
 }
 
@@ -64,7 +69,7 @@ function escapeHtml(text: string): string {
  */
 export function generateStaticComposerHTML(placeholder: string = 'How can Bolt help you today?'): string {
   const escapedPlaceholder = escapeHtml(placeholder);
-  
+
   return `
 <div id="bolt-static-composer" style="
   position: fixed;

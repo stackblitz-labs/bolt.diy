@@ -191,11 +191,13 @@ expect.extend({
 });
 
 // Extend expect types
-declare module 'vitest' {
-  interface Assertion<T = any> {
-    toBeWithinRange(floor: number, ceiling: number): T;
-  }
-  interface AsymmetricMatchersContaining {
-    toBeWithinRange(floor: number, ceiling: number): any;
+declare global {
+  namespace Vi {
+    interface Assertion<T = any> {
+      toBeWithinRange(floor: number, ceiling: number): T;
+    }
+    interface AsymmetricMatchersContaining {
+      toBeWithinRange(floor: number, ceiling: number): any;
+    }
   }
 }

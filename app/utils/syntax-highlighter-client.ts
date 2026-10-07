@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 /**
  * Syntax Highlighter Client
  * Interface for using the web worker-based syntax highlighter
@@ -23,10 +24,7 @@ export class SyntaxHighlighterClient {
 
   private initWorker(): void {
     try {
-      this.worker = new Worker(
-        new URL('../workers/syntax-highlighter.worker.ts', import.meta.url),
-        { type: 'module' }
-      );
+      this.worker = new Worker(new URL('../workers/syntax-highlighter.worker.ts', import.meta.url), { type: 'module' });
 
       this.worker.addEventListener('message', (event) => {
         const { id, html, error } = event.data;
@@ -45,6 +43,7 @@ export class SyntaxHighlighterClient {
 
       this.worker.addEventListener('error', (error) => {
         console.error('Worker error:', error);
+
         // Reject all pending requests
         this.pendingRequests.forEach(({ reject }) => {
           reject(new Error('Worker error'));
@@ -59,15 +58,11 @@ export class SyntaxHighlighterClient {
   /**
    * Highlight code with caching
    */
-  async highlight(
-    code: string,
-    language: BundledLanguage,
-    theme: BundledTheme = 'dark-plus'
-  ): Promise<string> {
+  async highlight(code: string, language: BundledLanguage, theme: BundledTheme = 'dark-plus'): Promise<string> {
     // Check cache first
     const cacheKey = `${language}:${theme}:${code}`;
     const cached = this.cache.get(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
@@ -79,7 +74,7 @@ export class SyntaxHighlighterClient {
 
     // Create a promise for this request
     const id = `highlight-${++this.requestCounter}`;
-    
+
     const promise = new Promise<string>((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject });
 
@@ -102,18 +97,19 @@ export class SyntaxHighlighterClient {
 
     try {
       const html = await promise;
-      
+
       // Cache the result
       this.cache.set(cacheKey, html);
-      
+
       // Limit cache size (LRU-like)
       if (this.cache.size > this.MAX_CACHE_SIZE) {
         const firstKey = this.cache.keys().next().value;
+
         if (firstKey) {
           this.cache.delete(firstKey);
         }
       }
-      
+
       return html;
     } catch (error) {
       console.error('Highlight error:', error);
@@ -131,7 +127,7 @@ export class SyntaxHighlighterClient {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
-    
+
     return `<pre><code>${escaped}</code></pre>`;
   }
 
@@ -167,6 +163,7 @@ export class SyntaxHighlighterClient {
       this.worker.terminate();
       this.worker = null;
     }
+
     this.pendingRequests.clear();
     this.cache.clear();
   }
@@ -182,6 +179,7 @@ export function getSyntaxHighlighter(): SyntaxHighlighterClient {
   if (!instance) {
     instance = new SyntaxHighlighterClient();
   }
+
   return instance;
 }
 
@@ -191,7 +189,7 @@ export function getSyntaxHighlighter(): SyntaxHighlighterClient {
 export async function highlightCode(
   code: string,
   language: BundledLanguage,
-  theme: BundledTheme = 'dark-plus'
+  theme: BundledTheme = 'dark-plus',
 ): Promise<string> {
   const highlighter = getSyntaxHighlighter();
   return highlighter.highlight(code, language, theme);

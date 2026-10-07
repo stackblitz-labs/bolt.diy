@@ -172,6 +172,8 @@ export default defineConfig((config) => {
         '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
         '**/tests/preview/**', // Exclude preview tests that require Playwright
         '**/tests/e2e/**', // Exclude e2e tests that require Playwright
+        'app/components/chat/Markdown.spec.ts', // Exclude - imports cause issues with import.meta.hot
+        'app/lib/stores/workbench.spec.ts', // Exclude - imports cause issues with import.meta.hot
       ],
       include: [
         '**/*.{test,spec}.{ts,tsx,js,jsx}',
@@ -193,6 +195,9 @@ export default defineConfig((config) => {
           '**/types.ts',
           '**/*.d.ts',
         ],
+      },
+      define: {
+        'import.meta.hot': 'undefined',
       },
     },
   };

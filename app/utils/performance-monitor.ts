@@ -1,7 +1,7 @@
 /**
  * Performance Monitoring Utility
  * Inspired by Claude.dev's performance optimization sprint
- * 
+ *
  * Tracks key user journeys and metrics for continuous performance improvement
  */
 
@@ -11,28 +11,21 @@ interface PerformanceEvent {
   timestamp: number;
   userAgent: string;
   metadata?: Record<string, any>;
-}
-
-interface JourneyMark {
-  startMark: string;
-  endMark: string;
-  measureName: string;
+  [key: string]: any; // Allow additional properties for flexible tracking
 }
 
 export class PerformanceMonitor {
-  private static readonly STORAGE_KEY = 'bolt_performance_events';
-  private static readonly MAX_EVENTS = 1000; // Keep last 1000 events
-  private static isEnabled = true;
+  private static readonly _storageKey = 'bolt_performance_events';
+  private static readonly _maxEvents = 1000; // Keep last 1000 events
+  private static _isEnabled = true;
 
   /**
    * Track a user journey with duration and metadata
    */
-  static trackJourney(
-    name: string,
-    duration: number,
-    metadata?: Record<string, any>
-  ): void {
-    if (!this.isEnabled) return;
+  static trackJourney(name: string, duration: number, metadata?: Record<string, any>): void {
+    if (!this._isEnabled) {
+      return;
+    }
 
     const event: PerformanceEvent = {
       journey: name,
@@ -42,30 +35,25 @@ export class PerformanceMonitor {
       ...metadata,
     };
 
-    this.logPerformanceEvent(event);
-    
+    this._logPerformanceEvent(event);
+
     // Also log to console in dev mode
     if (import.meta.env.DEV) {
-      console.log(
-        `⚡ Performance: ${name} took ${duration.toFixed(2)}ms`,
-        metadata
-      );
+      console.log(`⚡ Performance: ${name} took ${duration.toFixed(2)}ms`, metadata);
     }
   }
 
   /**
    * Measure an async operation
    */
-  static async measureAsync<T>(
-    name: string,
-    fn: () => Promise<T>,
-    metadata?: Record<string, any>
-  ): Promise<T> {
+  static async measureAsync<T>(name: string, fn: () => Promise<T>, metadata?: Record<string, any>): Promise<T> {
     const start = performance.now();
+
     try {
       const result = await fn();
       const duration = performance.now() - start;
       this.trackJourney(name, duration, metadata);
+
       return result;
     } catch (error) {
       const duration = performance.now() - start;
@@ -80,16 +68,14 @@ export class PerformanceMonitor {
   /**
    * Measure a synchronous operation
    */
-  static measureSync<T>(
-    name: string,
-    fn: () => T,
-    metadata?: Record<string, any>
-  ): T {
+  static measureSync<T>(name: string, fn: () => T, metadata?: Record<string, any>): T {
     const start = performance.now();
+
     try {
       const result = fn();
       const duration = performance.now() - start;
       this.trackJourney(name, duration, metadata);
+
       return result;
     } catch (error) {
       const duration = performance.now() - start;
@@ -117,15 +103,16 @@ export class PerformanceMonitor {
     const measureName = name;
 
     performance.mark(endMark);
-    
+
     try {
       performance.measure(measureName, startMark, endMark);
+
       const measure = performance.getEntriesByName(measureName)[0];
-      
+
       if (measure) {
         this.trackJourney(name, measure.duration, metadata);
       }
-      
+
       // Clean up marks
       performance.clearMarks(startMark);
       performance.clearMarks(endMark);
@@ -140,37 +127,42 @@ export class PerformanceMonitor {
    */
   static async trackWebVitals(): Promise<void> {
     try {
-      const { onCLS, onFCP, onFID, onLCP, onTTFB, onINP } = await import('web-vitals');
-      
-      onCLS((metric) => this.trackJourney('web-vital-cls', metric.value, {
-        rating: metric.rating,
-        id: metric.id,
-      }));
-      
-      onFCP((metric) => this.trackJourney('web-vital-fcp', metric.value, {
-        rating: metric.rating,
-        id: metric.id,
-      }));
-      
-      onFID((metric) => this.trackJourney('web-vital-fid', metric.value, {
-        rating: metric.rating,
-        id: metric.id,
-      }));
-      
-      onLCP((metric) => this.trackJourney('web-vital-lcp', metric.value, {
-        rating: metric.rating,
-        id: metric.id,
-      }));
-      
-      onTTFB((metric) => this.trackJourney('web-vital-ttfb', metric.value, {
-        rating: metric.rating,
-        id: metric.id,
-      }));
+      const { onCLS, onFCP, onLCP, onTTFB, onINP } = await import('web-vitals');
 
-      onINP((metric) => this.trackJourney('web-vital-inp', metric.value, {
-        rating: metric.rating,
-        id: metric.id,
-      }));
+      onCLS((metric: any) =>
+        this.trackJourney('web-vital-cls', metric.value, {
+          rating: metric.rating,
+          id: metric.id,
+        }),
+      );
+
+      onFCP((metric: any) =>
+        this.trackJourney('web-vital-fcp', metric.value, {
+          rating: metric.rating,
+          id: metric.id,
+        }),
+      );
+
+      onLCP((metric: any) =>
+        this.trackJourney('web-vital-lcp', metric.value, {
+          rating: metric.rating,
+          id: metric.id,
+        }),
+      );
+
+      onTTFB((metric: any) =>
+        this.trackJourney('web-vital-ttfb', metric.value, {
+          rating: metric.rating,
+          id: metric.id,
+        }),
+      );
+
+      onINP((metric: any) =>
+        this.trackJourney('web-vital-inp', metric.value, {
+          rating: metric.rating,
+          id: metric.id,
+        }),
+      );
     } catch (error) {
       console.warn('Failed to load web-vitals:', error);
     }
@@ -180,13 +172,17 @@ export class PerformanceMonitor {
    * Monitor layout shifts
    */
   static monitorLayoutShifts(): void {
-    if (typeof PerformanceObserver === 'undefined') return;
+    if (typeof PerformanceObserver === 'undefined') {
+      return;
+    }
 
     try {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries() as any[]) {
-          if (entry.hadRecentInput) continue;
-          
+          if (entry.hadRecentInput) {
+            continue;
+          }
+
           this.trackJourney('layout-shift', entry.value * 1000, {
             sources: entry.sources?.map((s: any) => ({
               node: s.node?.tagName,
@@ -207,7 +203,9 @@ export class PerformanceMonitor {
    * Monitor long tasks (> 50ms)
    */
   static monitorLongTasks(): void {
-    if (typeof PerformanceObserver === 'undefined') return;
+    if (typeof PerformanceObserver === 'undefined') {
+      return;
+    }
 
     try {
       const observer = new PerformanceObserver((list) => {
@@ -220,7 +218,7 @@ export class PerformanceMonitor {
       });
 
       observer.observe({ entryTypes: ['longtask'] });
-    } catch (error) {
+    } catch {
       // longtask is not supported in all browsers
       console.debug('Long task monitoring not supported');
     }
@@ -231,7 +229,7 @@ export class PerformanceMonitor {
    */
   static getEvents(): PerformanceEvent[] {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
+      const stored = localStorage.getItem(this._storageKey);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -252,11 +250,13 @@ export class PerformanceMonitor {
     avg: number;
   } | null {
     const events = this.getEvents().filter((e) => e.journey === journeyName);
-    
-    if (events.length === 0) return null;
+
+    if (events.length === 0) {
+      return null;
+    }
 
     const durations = events.map((e) => e.duration).sort((a, b) => a - b);
-    
+
     const percentile = (p: number) => {
       const index = Math.ceil((p / 100) * durations.length) - 1;
       return durations[index];
@@ -287,7 +287,7 @@ export class PerformanceMonitor {
    */
   static clearEvents(): void {
     try {
-      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem(this._storageKey);
     } catch (error) {
       console.warn('Failed to clear events:', error);
     }
@@ -304,7 +304,9 @@ export class PerformanceMonitor {
    * Initialize all monitoring
    */
   static init(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
 
     // Track Web Vitals
     this.trackWebVitals();
@@ -317,9 +319,9 @@ export class PerformanceMonitor {
 
     // Track initial page load
     if (document.readyState === 'complete') {
-      this.trackPageLoad();
+      this._trackPageLoad();
     } else {
-      window.addEventListener('load', () => this.trackPageLoad());
+      window.addEventListener('load', () => this._trackPageLoad());
     }
   }
 
@@ -327,38 +329,38 @@ export class PerformanceMonitor {
    * Disable performance monitoring
    */
   static disable(): void {
-    this.isEnabled = false;
+    this._isEnabled = false;
   }
 
   /**
    * Enable performance monitoring
    */
   static enable(): void {
-    this.isEnabled = true;
+    this._isEnabled = true;
   }
 
   // Private methods
 
-  private static logPerformanceEvent(event: PerformanceEvent): void {
+  private static _logPerformanceEvent(event: PerformanceEvent): void {
     try {
       const events = this.getEvents();
       events.push(event);
 
       // Keep only the most recent events
-      if (events.length > this.MAX_EVENTS) {
-        events.splice(0, events.length - this.MAX_EVENTS);
+      if (events.length > this._maxEvents) {
+        events.splice(0, events.length - this._maxEvents);
       }
 
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(events));
+      localStorage.setItem(this._storageKey, JSON.stringify(events));
     } catch (error) {
       // Storage might be full or unavailable
       console.debug('Failed to log performance event:', error);
     }
   }
 
-  private static trackPageLoad(): void {
+  private static _trackPageLoad(): void {
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    
+
     if (navigation) {
       this.trackJourney('page-load', navigation.loadEventEnd - navigation.fetchStart, {
         domContentLoaded: navigation.domContentLoadedEventEnd - navigation.fetchStart,

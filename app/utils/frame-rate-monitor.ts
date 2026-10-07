@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention, consistent-return */
 /**
  * Frame Rate Monitor
  * Tracks frame rate during animations and streaming to ensure smooth 60fps performance
@@ -23,8 +24,10 @@ export class FrameRateMonitor {
    * Start monitoring frame rate
    */
   start(): void {
-    if (this.isRunning) return;
-    
+    if (this.isRunning) {
+      return;
+    }
+
     this.isRunning = true;
     this.frames = 0;
     this.lastTime = performance.now();
@@ -37,6 +40,7 @@ export class FrameRateMonitor {
    */
   stop(): void {
     this.isRunning = false;
+
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
@@ -47,8 +51,12 @@ export class FrameRateMonitor {
    * Get current FPS
    */
   getCurrentFps(): number {
-    if (this.frameHistory.length === 0) return 0;
+    if (this.frameHistory.length === 0) {
+      return 0;
+    }
+
     const avgFrameTime = this.frameHistory.reduce((a, b) => a + b, 0) / this.frameHistory.length;
+
     return Math.round(1000 / avgFrameTime);
   }
 
@@ -56,10 +64,13 @@ export class FrameRateMonitor {
    * Get percentage of frames that met the target budget
    */
   getFrameBudgetCompliance(): number {
-    if (this.frameHistory.length === 0) return 100;
-    
+    if (this.frameHistory.length === 0) {
+      return 100;
+    }
+
     const targetFrameTime = 1000 / this.targetFps;
-    const framesInBudget = this.frameHistory.filter(t => t <= targetFrameTime).length;
+    const framesInBudget = this.frameHistory.filter((t) => t <= targetFrameTime).length;
+
     return (framesInBudget / this.frameHistory.length) * 100;
   }
 
@@ -87,7 +98,7 @@ export class FrameRateMonitor {
 
     const targetFrameTime = 1000 / this.targetFps;
     const avgFrameTime = this.frameHistory.reduce((a, b) => a + b, 0) / this.frameHistory.length;
-    const droppedFrames = this.frameHistory.filter(t => t > targetFrameTime).length;
+    const droppedFrames = this.frameHistory.filter((t) => t > targetFrameTime).length;
 
     return {
       currentFps: Math.round(1000 / avgFrameTime),
@@ -109,24 +120,29 @@ export class FrameRateMonitor {
   }
 
   private measure = (): void => {
-    if (!this.isRunning) return;
+    if (!this.isRunning) {
+      return;
+    }
 
     this.frames++;
+
     const now = performance.now();
     const frameTime = now - this.lastTime;
 
     // Track individual frame times
     this.frameHistory.push(frameTime);
+
     if (this.frameHistory.length > this.HISTORY_SIZE) {
       this.frameHistory.shift();
     }
 
     // Calculate FPS every second
     const delta = now - this.lastTime;
+
     if (delta >= 1000) {
       const fps = Math.round((this.frames * 1000) / delta);
       const targetFrameTime = 1000 / this.targetFps;
-      const droppedFrames = this.frameHistory.filter(t => t > targetFrameTime).length;
+      const droppedFrames = this.frameHistory.filter((t) => t > targetFrameTime).length;
 
       if (this.onUpdate) {
         this.onUpdate(fps, droppedFrames);
@@ -145,7 +161,7 @@ export class FrameRateMonitor {
  */
 export function useFrameRateMonitor(
   targetFps: number = 60,
-  enabled: boolean = true
+  enabled: boolean = true,
 ): {
   fps: number;
   droppedFrames: number;
@@ -153,6 +169,7 @@ export function useFrameRateMonitor(
 } {
   const [fps, setFps] = React.useState(0);
   const [droppedFrames, setDroppedFrames] = React.useState(0);
+
   const [stats, setStats] = React.useState<ReturnType<FrameRateMonitor['getStats']>>({
     currentFps: 0,
     avgFrameTime: 0,
@@ -163,7 +180,9 @@ export function useFrameRateMonitor(
   });
 
   React.useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
 
     const monitor = new FrameRateMonitor(targetFps, (newFps, newDroppedFrames) => {
       setFps(newFps);
@@ -185,9 +204,10 @@ export function useFrameRateMonitor(
  * Measure main thread blocking time during a function execution
  */
 export async function measureMainThreadBlocking<T>(
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<{ result: T; blockingTime: number; totalTime: number }> {
   const start = performance.now();
+
   let blockingTime = 0;
   let lastCheck = start;
 
@@ -195,10 +215,12 @@ export async function measureMainThreadBlocking<T>(
   const checkInterval = setInterval(() => {
     const now = performance.now();
     const gap = now - lastCheck;
+
     // If gap > 16ms, we likely blocked the main thread
     if (gap > 16) {
       blockingTime += gap - 16;
     }
+
     lastCheck = now;
   }, 1);
 
@@ -206,6 +228,7 @@ export async function measureMainThreadBlocking<T>(
     const result = await fn();
     const totalTime = performance.now() - start;
     clearInterval(checkInterval);
+
     return { result, blockingTime, totalTime };
   } catch (error) {
     clearInterval(checkInterval);
