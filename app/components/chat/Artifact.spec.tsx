@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { map } from 'nanostores';
 import { describe, expect, it, vi } from 'vitest';
 import { Artifact } from './Artifact';
@@ -65,13 +65,17 @@ describe('Artifact', () => {
   it('should survive its entry being emptied out from under it', () => {
     const { rerender, container } = render(<Artifact messageId="message-1" artifactId="artifact-1" />);
 
-    artifacts.set({ 'artifact-1': artifactState('artifact-1', 'Project A') });
+    act(() => {
+      artifacts.set({ 'artifact-1': artifactState('artifact-1', 'Project A') });
+    });
     rerender(<Artifact messageId="message-1" artifactId="artifact-1" />);
 
     expect(container).toHaveTextContent('Project A');
 
     // What a chat switch looks like to this component.
-    artifacts.set({});
+    act(() => {
+      artifacts.set({});
+    });
     rerender(<Artifact messageId="message-1" artifactId="artifact-1" />);
 
     expect(container).toBeEmptyDOMElement();
