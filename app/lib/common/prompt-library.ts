@@ -1,3 +1,4 @@
+import { get2026Prompt } from './prompts/2026-prompt';
 import { getFineTunedPrompt } from './prompts/new-prompt';
 import optimized from './prompts/optimized';
 import { getSystemPrompt } from './prompts/prompts';
@@ -31,6 +32,11 @@ export class PromptLibrary {
       label: 'Default Prompt',
       description: 'An fine tuned prompt for better results and less token usage',
       get: (options) => getFineTunedPrompt(options.cwd, options.supabase, options.designScheme),
+    },
+    '2026': {
+      label: '2026 Prompt',
+      description: 'Streamlined and focused prompt for 2026 with modern best practices',
+      get: (options) => get2026Prompt(options.cwd, options.supabase, options.designScheme),
     },
     original: {
       label: 'Old Default Prompt',
