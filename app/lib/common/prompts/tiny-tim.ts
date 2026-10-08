@@ -3,7 +3,7 @@ import { WORK_DIR } from '~/utils/constants';
 import { allowedHTMLElements } from '~/utils/markdown';
 import { stripIndents } from '~/utils/stripIndent';
 
-export const get2026Prompt = (
+export const getTinyTimPrompt = (
   cwd: string = WORK_DIR,
   supabase?: {
     isConnected: boolean;

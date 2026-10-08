@@ -1,7 +1,8 @@
-import { get2026Prompt } from './prompts/2026-prompt';
 import { getFineTunedPrompt } from './prompts/new-prompt';
 import optimized from './prompts/optimized';
 import { getSystemPrompt } from './prompts/prompts';
+import { getSimpleSalPrompt } from './prompts/simple-sal';
+import { getTinyTimPrompt } from './prompts/tiny-tim';
 import type { DesignScheme } from '~/types/design-scheme';
 
 export interface PromptOptions {
@@ -33,10 +34,15 @@ export class PromptLibrary {
       description: 'An fine tuned prompt for better results and less token usage',
       get: (options) => getFineTunedPrompt(options.cwd, options.supabase, options.designScheme),
     },
-    '2026': {
-      label: '2026 Prompt',
-      description: 'Streamlined and focused prompt for 2026 with modern best practices',
-      get: (options) => get2026Prompt(options.cwd, options.supabase, options.designScheme),
+    'simple-sal': {
+      label: 'Simple Sal',
+      description: 'Balanced prompt with core Bolt features and no-fluff communication',
+      get: (options) => getSimpleSalPrompt(options.cwd, options.supabase, options.designScheme),
+    },
+    'tiny-tim': {
+      label: 'Tiny Tim',
+      description: 'Optimized for small models with terse format and modern 2026 standards',
+      get: (options) => getTinyTimPrompt(options.cwd, options.supabase, options.designScheme),
     },
     original: {
       label: 'Old Default Prompt',
