@@ -115,7 +115,7 @@ export function GitHubAuthDialog({ isOpen, onClose, onSuccess }: GitHubAuthDialo
                   />
                   <div className="mt-2 text-sm text-bolt-elements-textSecondary">
                     <a
-                      href={`https://github.com/settings/tokens${tokenType === 'fine-grained' ? '/beta' : '/new'}`}
+                      href={`https://github.com/settings/${tokenType === 'fine-grained' ? 'personal-access-tokens' : 'tokens'}/new`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-bolt-elements-borderColorActive hover:underline inline-flex items-center gap-1"
