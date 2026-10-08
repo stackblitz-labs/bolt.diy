@@ -26,6 +26,14 @@ export default defineConfig((config) => {
     },
     build: {
       target: 'esnext',
+      // Vite 8 uses Rolldown. Preserve module execution order across split chunks;
+      // otherwise CJS/ESM interop helpers can execute before their definitions in
+      // production and cause the browser's "e is not a function" startup crash.
+      rolldownOptions: {
+        output: {
+          strictExecutionOrder: true,
+        },
+      },
     },
     optimizeDeps: {
       include: [
