@@ -8,6 +8,8 @@
 
 ### ✨ Features
 
+* consolidate connector tabs into unified Connectors tab (78d6b7e) by @dustinwloring1988
+* restore all 22 cloud and local AI providers (9ca2a34) by @dustinwloring1988
 * preserve user-selected workbench tab, lazy-mount diff and preview panels, and inject prompt workstyle commentary instructions ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
 * update model catalogs, context windows, and token limits across all supported LLM providers ([#2216](https://github.com/stackblitz-labs/bolt.diy/pull/2216)) by @dustinwloring1988
 * add persistent sidebar trigger toggle button when sidebar is collapsed ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
@@ -20,6 +22,10 @@
 
 ### 🐛 Bug Fixes
 
+* resolve race condition when switching between chats (90d1912) by @dustinwloring1988
+* update GitHub fine-grained token URL from /beta to /personal-access-tokens/new (e6d0c9a) by @chen-jiying
+* update LLM manager tests to reflect all 22 enabled providers (963f6d4) by @dustinwloring1988
+* update Clone a repo button to have single icon in front of text (223e3b1) by @dustinwloring1988
 * quiet missing API key errors on startup for unconfigured LLM providers ([#2215](https://github.com/stackblitz-labs/bolt.diy/pull/2215)) by @dustinwloring1988
 * resolve tsconfig paths natively, silence dotenv dev noise, and disable remote Cloudflare Request.cf fetch during local dev ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
 * add peerDependencyRules to silence safe version mismatches on pnpm install ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
@@ -45,6 +51,8 @@
 
 ### 🧪 Tests
 
+* wrap state updates in act() to fix React warnings (4e6479b) by @dustinwloring1988
+* add comprehensive tests for chat switching race condition fix (b3ee2a1) by @dustinwloring1988
 * add unit tests for prompt workstyle guidance and workbench view selection retention ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
 * add unit tests for in-memory chat cache and prefetching layer ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
 * pin the OpenAI provider wire format before the SDK upgrade ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (0cc227f) by @dustinwloring1988
@@ -52,6 +60,7 @@
 
 ### ⚙️ CI
 
+* fix Quality Gates check timing issue (ad6dfd1) by @dustinwloring1988
 * remove hardcoded pnpm version from security and test workflows ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211)) (e3003b8) by @dustinwloring1988
 * replace deleted cloudflare/pages-action with wrangler-action ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (7a7264b) by @dustinwloring1988
 * bump Node to 22 so Vite 8 gets its rolldown native binding, add .gitattributes ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (923bec3) by @dustinwloring1988

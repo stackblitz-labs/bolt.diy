@@ -262,11 +262,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </ClientOnly>
         <div className="flex justify-between items-center text-sm p-4 pt-2">
           <div className="flex gap-1 items-center">
-            <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
-            <McpTools />
             <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
+            <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
+            <McpTools />
             <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
             <IconButton
               title="Enhance prompt"
