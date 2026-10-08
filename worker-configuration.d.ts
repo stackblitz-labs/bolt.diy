@@ -19,4 +19,5 @@ interface Env {
   XAI_API_KEY: string;
   PERPLEXITY_API_KEY: string;
   AWS_BEDROCK_CONFIG: string;
+  MODELSCOPE_API_KEY: string;
 }
