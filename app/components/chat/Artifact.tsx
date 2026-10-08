@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { computed } from 'nanostores';
+import { computed, map } from 'nanostores';
 import { memo, useEffect, useRef, useState } from 'react';
 import { createHighlighter, type Highlighter } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
@@ -14,10 +14,14 @@ const highlighterOptions = {
   themes: ['light-plus', 'dark-plus'],
 };
 
+/*
+ * `import.meta.hot` can be present without `data` outside a Vite dev server, so
+ * the optional chain has to cover `data` too.
+ */
 const shellHighlighter: Highlighter =
-  import.meta.hot?.data.shellHighlighter ?? (await createHighlighter(highlighterOptions));
+  import.meta.hot?.data?.shellHighlighter ?? (await createHighlighter(highlighterOptions));
 
-if (import.meta.hot) {
+if (import.meta.hot?.data) {
   import.meta.hot.data.shellHighlighter = shellHighlighter;
 }
 
@@ -25,6 +29,8 @@ interface ArtifactProps {
   messageId: string;
   artifactId: string;
 }
+
+const EMPTY_ACTIONS_STORE = map<Record<string, ActionState>>({});
 
 export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const userToggledActions = useRef(false);
@@ -34,8 +40,16 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const artifacts = useStore(workbenchStore.artifacts);
   const artifact = artifacts[artifactId];
 
+  /*
+   * `artifactId` comes from the rendered message text, while the artifacts map
+   * is filled by a parse pass that runs after render. The two are therefore out
+   * of step for a render or two whenever the workbench is emptied, e.g. when
+   * another chat is opened. Nothing to draw until the entry comes back.
+   */
+  const actionStates = artifact ? artifact.runner.actions : EMPTY_ACTIONS_STORE;
+
   const actions = useStore(
-    computed(artifact.runner.actions, (actions) => {
+    computed(actionStates, (actions) => {
       // Filter out Supabase actions except for migrations
       return Object.values(actions).filter((action) => {
         // Exclude actions with type 'supabase' or actions that contain 'supabase' in their content
@@ -54,7 +68,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
       setShowActions(true);
     }
 
-    if (actions.length !== 0 && artifact.type === 'bundled') {
+    if (actions.length !== 0 && artifact?.type === 'bundled') {
       const finished = !actions.find(
         (action) => action.status !== 'complete' && !(action.type === 'start' && action.status === 'running'),
       );
@@ -63,11 +77,15 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
         setAllActionFinished(finished);
       }
     }
-  }, [actions, artifact.type, allActionFinished]);
+  }, [actions, artifact?.type, allActionFinished]);
+
+  if (!artifact) {
+    return null;
+  }
 
   // Determine the dynamic title based on state for bundled artifacts
   const dynamicTitle =
-    artifact?.type === 'bundled'
+    artifact.type === 'bundled'
       ? allActionFinished
         ? artifact.id === 'restored-project-setup'
           ? 'Project Restored' // Title when restore is complete
@@ -75,7 +93,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
         : artifact.id === 'restored-project-setup'
           ? 'Restoring Project...' // Title during restore
           : 'Creating Project...' // Title during initial creation
-      : artifact?.title; // Fallback to original title for non-bundled or if artifact is missing
+      : artifact.title; // Fallback to original title for non-bundled
 
   return (
     <>

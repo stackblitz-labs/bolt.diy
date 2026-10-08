@@ -53,6 +53,18 @@ const messageParser = new EnhancedStreamingMessageParser({
 export function useMessageParser() {
   const [parsedMessages, setParsedMessages] = useState<{ [key: number]: string }>({});
 
+  /**
+   * Drops the parser state and everything it has rendered so far.
+   *
+   * Required when another chat's history is loaded: the parser only emits the
+   * artifact and action callbacks once per message id, so without a reset the
+   * incoming chat would render on top of the outgoing one's output.
+   */
+  const resetParsedMessages = useCallback(() => {
+    messageParser.reset();
+    setParsedMessages({});
+  }, []);
+
   const parseMessages = useCallback((messages: { id: string; role?: string }[], isLoading: boolean) => {
     let reset = false;
 
@@ -72,5 +84,5 @@ export function useMessageParser() {
     }
   }, []);
 
-  return { parsedMessages, parseMessages };
+  return { parsedMessages, parseMessages, resetParsedMessages };
 }
