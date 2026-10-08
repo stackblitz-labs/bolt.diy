@@ -50,6 +50,7 @@ export default defineConfig((config) => {
         '@ai-sdk/fireworks',
         '@ai-sdk/google',
         '@ai-sdk/mistral',
+        '@ai-sdk/mcp',        // AI SDK 7 MCP integration
         '@ai-sdk/openai',
         '@openrouter/ai-sdk-provider',
         'ollama-ai-provider-v2',

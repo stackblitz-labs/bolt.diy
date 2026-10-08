@@ -172,6 +172,7 @@ export async function selectContext(props: {
       apiKeys,
       providerSettings,
     }),
+    reasoning: 'none',
   });
 
   const response = resp.text;
