@@ -44,14 +44,14 @@ export class PromptLibrary {
       description: 'Optimized for small models with terse format and modern 2026 standards',
       get: (options) => getTinyTimPrompt(options.cwd, options.supabase, options.designScheme),
     },
-    original: {
-      label: 'Old Default Prompt',
-      description: 'The OG battle tested default system Prompt',
+    'og-prompt': {
+      label: 'OG Prompt',
+      description: 'The original battle tested default system prompt',
       get: (options) => getSystemPrompt(options.cwd, options.supabase, options.designScheme),
     },
-    optimized: {
-      label: 'Optimized Prompt (experimental)',
-      description: 'An Experimental version of the prompt for lower token usage',
+    'experimental-prompt': {
+      label: 'Experimental Prompt',
+      description: 'Experimental version of the prompt for lower token usage',
       get: (options) => optimized(options),
     },
   };
