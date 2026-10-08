@@ -7,6 +7,7 @@ import FireworksProvider from './providers/fireworks';
 import GithubProvider from './providers/github';
 import GoogleProvider from './providers/google';
 import GroqProvider from './providers/groq';
+import HubrisProvider from './providers/hubris';
 import HuggingFaceProvider from './providers/huggingface';
 import HyperbolicProvider from './providers/hyperbolic';
 import LMStudioProvider from './providers/lmstudio';
@@ -29,6 +30,7 @@ export {
   FireworksProvider,
   GoogleProvider,
   GroqProvider,
+  HubrisProvider,
   HuggingFaceProvider,
   HyperbolicProvider,
   MistralProvider,
