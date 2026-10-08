@@ -152,8 +152,16 @@ export class WorkbenchStore {
     this.deployAlert.set(undefined);
   }
 
-  resetWorkbench() {
+  /**
+   * Drops the workbench and the container contents of the chat being left behind.
+   *
+   * The messages, the artifacts and the files on disk all describe one chat, so
+   * a switch has to clear them together. Awaited by the caller so the incoming
+   * chat only starts writing once the outgoing project is gone.
+   */
+  async resetWorkbench() {
     this.artifacts.set({});
+    this.artifactIdList = [];
     this.showWorkbench.set(false);
     this.currentView.set('code');
     this.userSelectedView.set(undefined);
@@ -163,6 +171,8 @@ export class WorkbenchStore {
     this.clearSupabaseAlert();
     this.clearDeployAlert();
     this.#reloadedMessages.clear();
+
+    await this.#filesStore.reset();
   }
 
   toggleTerminal(value?: boolean) {

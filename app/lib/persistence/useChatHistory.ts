@@ -1,6 +1,6 @@
 import { generateId, type UIMessage } from 'ai';
 import { atom } from 'nanostores';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLoaderData, useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { getCachedMessages, getCachedSnapshot, invalidateChatCache } from './chatCache';
@@ -53,6 +53,21 @@ export function useChatHistory() {
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
 
+  /*
+   * Whether `initialMessages` belong to a different chat than the one that was
+   * on screen. Consumers that keep their own per-chat state, such as the message
+   * parser, need it to tell a switch apart from a re-read of the same chat.
+   */
+  const [chatChanged, setChatChanged] = useState(false);
+
+  /*
+   * The chat the messages, artifacts and files on screen belong to. Keyed on the
+   * persisted record rather than on the route, because storeMessageHistory moves
+   * a chat that is already on screen to /chat/<id> with history.replaceState,
+   * which the router does pick up. That re-run is not a switch.
+   */
+  const loadedChatIdRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     if (!db) {
       setReady(true);
@@ -70,6 +85,23 @@ export function useChatHistory() {
       Promise.all([getCachedMessages(db, mixedId), getCachedSnapshot(db, mixedId)])
         .then(async ([storedMessages, snapshot]) => {
           if (storedMessages && storedMessages.messages.length > 0) {
+            /*
+             * Keyed on the persisted record, not on the route. The effect also
+             * re-runs for a rewind or a `?prompt=` navigation within the same
+             * chat, and those must not empty the project.
+             */
+            const switchedChat = loadedChatIdRef.current !== storedMessages.id;
+            loadedChatIdRef.current = storedMessages.id;
+
+            /*
+             * Emptied before anything of the incoming chat is written, so the
+             * messages, the artifacts and the container never describe different
+             * chats.
+             */
+            if (switchedChat) {
+              await workbenchStore.resetWorkbench();
+            }
+
             /*
              * const snapshotStr = localStorage.getItem(`snapshot:${mixedId}`); // Remove localStorage usage
              * const snapshot: Snapshot = snapshotStr ? JSON.parse(snapshotStr) : { chatIndex: 0, files: {} }; // Use snapshot from DB
@@ -203,6 +235,7 @@ ${value.content}
               restoreSnapshot(mixedId, validSnapshot);
             }
 
+            setChatChanged(switchedChat);
             setInitialMessages(filteredMessages);
 
             setUrlId(storedMessages.urlId);
@@ -223,13 +256,23 @@ ${value.content}
         });
     } else {
       // Clean reset when switching to a fresh chat (e.g., /)
+      const leftChat = loadedChatIdRef.current !== undefined;
+
+      if (leftChat) {
+        loadedChatIdRef.current = undefined;
+
+        void workbenchStore.resetWorkbench().catch((error) => {
+          logStore.logError('Failed to empty the workbench', error);
+        });
+      }
+
+      setChatChanged(leftChat);
       setArchivedMessages([]);
       setInitialMessages([]);
       setUrlId(undefined);
       description.set(undefined);
       chatId.set(undefined);
       chatMetadata.set(undefined);
-      workbenchStore.resetWorkbench();
       setReady(true);
     }
   }, [mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
@@ -295,6 +338,7 @@ ${value.content}
   return {
     ready: !mixedId || ready,
     initialMessages,
+    chatChanged,
     updateChatMestaData: async (metadata: IChatMetadata) => {
       const id = chatId.get();
 
@@ -352,6 +396,13 @@ ${value.content}
         const nextId = await getNextId(db);
 
         chatId.set(nextId);
+
+        /*
+         * Claimed before navigating: the messages on screen already belong to
+         * this chat, so the re-run that the new route triggers must not be read
+         * as a switch away from it.
+         */
+        loadedChatIdRef.current = nextId;
 
         if (!urlId) {
           navigateChat(nextId);

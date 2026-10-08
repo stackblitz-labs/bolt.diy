@@ -27,6 +27,8 @@ jobs:
           check-name: 'Test'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
+          running-workflow-name: 'Quality Gates'
+          allowed-conclusions: success,skipped,neutral
 
       - name: Check required status checks
         uses: actions/github-script@v9

@@ -35,7 +35,7 @@ const logger = createScopedLogger('Chat');
 export function Chat() {
   renderLogger.trace('Chat');
 
-  const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
+  const { ready, initialMessages, chatChanged, storeMessageHistory, importChat, exportChat } = useChatHistory();
   const title = useStore(description);
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
@@ -47,6 +47,7 @@ export function Chat() {
         <ChatImpl
           description={title}
           initialMessages={initialMessages}
+          chatChanged={chatChanged}
           exportChat={exportChat}
           storeMessageHistory={storeMessageHistory}
           importChat={importChat}
@@ -76,6 +77,10 @@ const processSampledMessages = createSampler(
 
 interface ChatProps {
   initialMessages: UIMessage[];
+
+  /** True when `initialMessages` belong to a different chat than the ones they replace. */
+  chatChanged: boolean;
+
   storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
   importChat: (description: string, messages: UIMessage[]) => Promise<void>;
   exportChat: () => void;
@@ -83,7 +88,7 @@ interface ChatProps {
 }
 
 export const ChatImpl = memo(
-  ({ description, initialMessages, storeMessageHistory, importChat, exportChat }: ChatProps) => {
+  ({ description, initialMessages, chatChanged, storeMessageHistory, importChat, exportChat }: ChatProps) => {
     useShortcuts();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -261,7 +266,7 @@ export const ChatImpl = memo(
     }, [model, provider, searchParams]);
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
-    const { parsedMessages, parseMessages } = useMessageParser();
+    const { parsedMessages, parseMessages, resetParsedMessages } = useMessageParser();
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
@@ -282,8 +287,18 @@ export const ChatImpl = memo(
         setInput('');
       }
 
+      /*
+       * The parser only emits each artifact and action once per message id, so
+       * only a genuine switch needs it rewound. A re-read of the same chat, e.g.
+       * the route catching up with the chat just persisted, must leave it alone
+       * or every action would run a second time.
+       */
+      if (chatChanged) {
+        resetParsedMessages();
+      }
+
       parseMessages(initialMessages, false);
-    }, [initialMessages]);
+    }, [initialMessages, chatChanged]);
 
     useEffect(() => {
       processSampledMessages({

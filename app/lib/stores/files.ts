@@ -554,6 +554,32 @@ export class FilesStore {
     this.#modifiedFiles.clear();
   }
 
+  /**
+   * Empties the store and the container's working directory.
+   *
+   * The file map is only a mirror of the container, so the two have to be
+   * cleared together. A map that stopped listing the outgoing project's files
+   * while those files were still on disk would keep serving them from the
+   * preview and fold them into the incoming chat's snapshot.
+   */
+  async reset() {
+    this.files.set({});
+    this.#size = 0;
+    this.#modifiedFiles.clear();
+    this.#deletedPaths.clear();
+    this.#persistDeletedPaths();
+
+    const container = await this.#webcontainer;
+
+    try {
+      for (const entry of await container.fs.readdir(WORK_DIR)) {
+        await container.fs.rm(path.join(WORK_DIR, entry), { recursive: true });
+      }
+    } catch (error) {
+      logger.error('Failed to empty the working directory', error);
+    }
+  }
+
   async saveFile(filePath: string, content: string) {
     const webcontainer = await this.#webcontainer;
 
@@ -749,7 +775,8 @@ export class FilesStore {
           break;
         }
         case 'remove_file': {
-          this.#size--;
+          // Clamped: emptying the working directory removes files the map no longer tracks.
+          this.#size = Math.max(0, this.#size - 1);
           this.files.setKey(sanitizedPath, undefined);
           break;
         }
