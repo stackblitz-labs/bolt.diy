@@ -22,46 +22,55 @@ export async function selectFreeModel(page: Page) {
     
     if (providerExists && modelExists) {
       try {
-        // Click provider combobox
+        // Click provider combobox and wait for provider list to load
         await providerCombo.click({ timeout: 2000 });
-        await page.waitForTimeout(500);
+        
+        // Wait for provider list to populate
+        await page.waitForSelector('[role="option"]', { timeout: 10000 });
+        console.log('Provider list loaded');
         
         // Look for OpenRouter option
         const openRouterOption = page.locator('[role="option"]').filter({ hasText: /OpenRouter/i }).first();
         
-        if (await openRouterOption.isVisible({ timeout: 2000 })) {
-          console.log('Selecting OpenRouter provider');
-          await openRouterOption.click();
-          await page.waitForTimeout(1500);
-          
-          // Click model combobox
-          await modelCombo.click({ timeout: 2000 });
-          await page.waitForTimeout(500);
-          
-          // Look for a free model option
-          const freeModelOption = page
-            .locator('[role="option"]')
-            .filter({ hasText: /free|Free/i })
-            .first();
-          
-          if (await freeModelOption.isVisible({ timeout: 2000 })) {
-            console.log('Selecting free model');
-            await freeModelOption.click();
-            await page.waitForTimeout(1000);
-            
-            // Verify selection worked
-            const providerText = await providerCombo.textContent();
-            const modelText = await modelCombo.textContent();
-            console.log(`Selected provider: ${providerText}, model: ${modelText}`);
-            
-            if (!providerText?.includes('OpenRouter')) {
-              throw new Error('Provider selection failed');
-            }
-            
-            console.log('Model selection succeeded');
-            return;
-          }
+        await openRouterOption.waitFor({ state: 'visible', timeout: 5000 });
+        console.log('Selecting OpenRouter provider');
+        await openRouterOption.click();
+        
+        // Wait for provider change to complete and model list to be ready
+        await page.waitForTimeout(2000);
+        
+        // Click model combobox and wait for model list to load
+        await modelCombo.click({ timeout: 2000 });
+        
+        // Wait for model list to populate - look for ANY option to appear (not just free ones)
+        // This handles the case where model loading is slow
+        await page.waitForSelector('[role="option"]', { timeout: 10000 });
+        console.log('Model list loaded');
+        
+        // Now look for a free model option with a reasonable timeout
+        const freeModelOption = page
+          .locator('[role="option"]')
+          .filter({ hasText: /free|Free/i })
+          .first();
+        
+        // Wait for free model to be visible (it should be now that list is loaded)
+        await freeModelOption.waitFor({ state: 'visible', timeout: 5000 });
+        console.log('Free model option found');
+        
+        await freeModelOption.click();
+        await page.waitForTimeout(1000);
+        
+        // Verify selection worked
+        const providerText = await providerCombo.textContent();
+        const modelText = await modelCombo.textContent();
+        console.log(`Selected provider: ${providerText}, model: ${modelText}`);
+        
+        if (!providerText?.includes('OpenRouter')) {
+          throw new Error('Provider selection failed');
         }
+        
+        console.log('Model selection succeeded');
+        return;
       } catch (e) {
         console.log('Combobox selection failed:', e);
       }
