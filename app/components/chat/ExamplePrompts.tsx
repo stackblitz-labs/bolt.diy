@@ -9,6 +9,12 @@ const EXAMPLE_PROMPTS = [
   { text: 'Build a markdown blog with dark mode support' },
 ];
 
+/**
+ * Renders a collection of example prompt buttons that users can click to quickly start a conversation.
+ *
+ * @param sendMessage - Optional callback function to send a message when a prompt is clicked
+ * @returns React component displaying example prompt buttons
+ */
 export function ExamplePrompts(sendMessage?: { (event: React.UIEvent, messageInput?: string): void | undefined }) {
   return (
     <div id="examples" className="relative flex flex-col gap-9 w-full max-w-3xl mx-auto flex justify-center mt-6">

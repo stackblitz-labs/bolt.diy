@@ -1,6 +1,15 @@
 import type { DesignScheme } from '~/types/design-scheme';
 import { WORK_DIR } from '~/utils/constants';
 
+/**
+ * Generates the DiligentDan system prompt with disciplined, methodical engineering practices
+ * and Simplified Technical English principles.
+ *
+ * @param cwd - Current working directory for the project
+ * @param supabase - Optional Supabase configuration including connection status and credentials
+ * @param designScheme - Optional design scheme configuration for theming
+ * @returns The complete DiligentDan system prompt string
+ */
 export const getDiligentDanPrompt = (
   cwd: string = WORK_DIR,
   supabase?: {

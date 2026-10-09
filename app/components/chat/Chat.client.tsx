@@ -107,7 +107,7 @@ export const ChatImpl = memo(
       (project) => project.id === supabaseConn.selectedProjectId,
     );
 
-    const supabaseAlert = undefined;
+    // const _supabaseAlert = undefined;
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
 
@@ -765,7 +765,7 @@ export const ChatImpl = memo(
         actionAlert={actionAlert}
         clearAlert={() => workbenchStore.clearAlert()}
         deployAlert={deployAlert}
-        clearDeployAlert={() => workbenchStore.clearDeployAlert()}
+        _clearDeployAlert={() => workbenchStore.clearDeployAlert()}
         llmErrorAlert={llmErrorAlert}
         clearLlmErrorAlert={clearApiErrorAlert}
         progressAnnotations={progressAnnotations}

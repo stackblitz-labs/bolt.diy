@@ -62,8 +62,10 @@ interface BaseChatProps {
   setUploadedFiles?: (files: File[]) => void;
   imageDataList?: string[];
   setImageDataList?: (dataList: string[]) => void;
-actionAlert?: ActionAlert;
+  actionAlert?: ActionAlert;
   clearAlert?: () => void;
+  deployAlert?: DeployAlert;
+  _clearDeployAlert?: () => void;
   llmErrorAlert?: LlmErrorAlertType;
   clearLlmErrorAlert?: () => void;
   progressAnnotations?: ProgressAnnotation[];
@@ -107,8 +109,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setImageDataList,
       messages,
       actionAlert,
-clearAlert,
+      clearAlert,
       deployAlert,
+      _clearDeployAlert,
       llmErrorAlert,
       clearLlmErrorAlert,
       progressAnnotations: incomingProgressAnnotations,
@@ -378,8 +381,10 @@ clearAlert,
                 <div className="flex flex-col gap-2">
                   {deployAlert && (
                     <DeployChatAlert
-alert={deployAlert}
-                      clearAlert={() => {}}
+                      alert={deployAlert}
+                      clearAlert={() => {
+                        /* No-op: Deploy alerts are cleared through other mechanisms */
+                      }}
                       postMessage={(message: string | undefined) => {
                         sendMessage?.({} as any, message);
                       }}
@@ -501,4 +506,3 @@ function ScrollToBottom() {
     )
   );
 }
-
