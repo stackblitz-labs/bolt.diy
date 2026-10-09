@@ -17,27 +17,27 @@ test.describe('Tool Calls & Workbench', () => {
   test('should create a file via tool call', async ({ page }) => {
     const textarea = page.locator('textarea[placeholder*="help"]').first();
     await textarea.click();
-    await textarea.fill('Create a new file called example-output.txt with the content "Test successful"');
+    await textarea.fill('Create a new file called demo-test.js with the content: console.log("success")');
     await page.keyboard.press('Control+Enter');
     
-    // Wait for response and potential tool execution
-    await page.waitForTimeout(15000);
-    
-    // Verify actual tool execution by looking for workbench indicators
-    // Check for file tree, tabs, or tool execution UI elements
-    const hasWorkbenchElements = await page.locator('[class*="workbench"], [class*="file"], [class*="tab"], [class*="tool"]').count() > 0;
-    const bodyText = await page.locator('body').textContent();
-    
-    // Should see both the filename and actual file system operation indicators
-    // Not just the echo of our prompt
-    const hasFileCreationResponse = bodyText && (
-      bodyText.includes('example-output.txt') || 
-      bodyText.includes('created') ||
-      bodyText.includes('file')
-    );
-    
-    expect(hasWorkbenchElements || hasFileCreationResponse).toBeTruthy();
-    expect(bodyText?.length).toBeGreaterThan(100); // Substantial response beyond just prompt echo
+    // Wait for workbench to show file creation
+    // Look for workbench file tree, tabs, or file name in workbench area
+    await expect
+      .poll(
+        async () => {
+          // Check for workbench-specific elements
+          const hasWorkbenchFile = await page.locator('[class*="workbench"] >> text=demo-test.js').count() > 0;
+          const hasFileTab = await page.locator('[role="tab"] >> text=demo-test.js').count() > 0;
+          const hasFileTree = await page.locator('[class*="file-tree"], [class*="files"] >> text=demo-test.js').count() > 0;
+          
+          return hasWorkbenchFile || hasFileTab || hasFileTree;
+        },
+        {
+          timeout: 20000,
+          message: 'Expected file to appear in workbench',
+        },
+      )
+      .toBe(true);
   });
 
   test('should show tool call UI', async ({ page }) => {

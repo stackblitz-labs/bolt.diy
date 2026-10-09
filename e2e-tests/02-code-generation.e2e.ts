@@ -20,43 +20,67 @@ test.describe('Code Generation', () => {
     await textarea.fill('Write a JavaScript function that adds two numbers');
     await page.keyboard.press('Control+Enter');
     
-    // Wait for response
-    await page.waitForTimeout(10000);
-    
-    // Check that response exists and contains actual code elements, not just prompt echo
-    // Look for code blocks or programming keywords that wouldn't be in the prompt
-    const bodyText = await page.locator('body').textContent();
-    const hasCodeResponse = bodyText && (
-      bodyText.includes('function') || 
-      bodyText.includes('return') ||
-      bodyText.includes('=>') ||
-      bodyText.includes('{') && bodyText.includes('}')
-    );
-    expect(hasCodeResponse).toBeTruthy();
-    expect(bodyText?.length).toBeGreaterThan(100); // Substantial response
+    // Wait for assistant response message to appear (not just the user message)
+    // Look for a message that contains actual code, not just the prompt
+    await expect
+      .poll(
+        async () => {
+          const messages = await page.locator('[class*="Message"], [role="article"]').all();
+          
+          for (const msg of messages) {
+            const text = await msg.textContent();
+            
+            if (
+              text &&
+              !text.includes('adds two numbers') && // Exclude user message
+              (text.includes('return') || text.includes('=>') || text.includes('function('))
+            ) {
+              return true;
+            }
+          }
+          
+          return false;
+        },
+        {
+          timeout: 15000,
+          message: 'Expected assistant to generate code with function keywords',
+        },
+      )
+      .toBe(true);
   });
 
   test('should show copy button on code blocks', async ({ page }) => {
     const textarea = page.locator('textarea[placeholder*="help"]').first();
     await textarea.click();
-    await textarea.fill('Show me a Python hello world example');
+    await textarea.fill('Show me a simple addition function');
     await page.keyboard.press('Control+Enter');
     
-    await page.waitForTimeout(10000);
-    
-    // Look for code block indicators: copy buttons, pre/code tags, or syntax highlighting classes
-    // Check for actual code content that wasn't in the prompt
-    const hasCopyButton = await page.locator('button[title*="Copy"], button[aria-label*="Copy"]').count() > 0;
-    const hasCodeBlock = await page.locator('pre, code, .hljs, .shiki, [class*="code"]').count() > 0;
-    const bodyText = await page.locator('body').textContent();
-    const hasCodeContent = bodyText && (
-      bodyText.toLowerCase().includes('python') || 
-      bodyText.includes('def ') ||
-      bodyText.includes('print(')
-    );
-    
-    // At least one of these should be true for a proper code response
-    expect(hasCopyButton || hasCodeBlock || hasCodeContent).toBeTruthy();
+    // Wait for code block with copy button or actual code element to appear
+    await expect
+      .poll(
+        async () => {
+          // Check for copy buttons
+          const copyButtons = await page.locator('button[title*="Copy"], button[aria-label*="Copy"]').count();
+          
+          if (copyButtons > 0) {
+            return 'copy-button';
+          }
+          
+          // Check for code blocks (pre/code elements)
+          const codeBlocks = await page.locator('pre code, .hljs, .shiki').count();
+          
+          if (codeBlocks > 0) {
+            return 'code-block';
+          }
+          
+          return 'none';
+        },
+        {
+          timeout: 15000,
+          message: 'Expected code block or copy button to appear',
+        },
+      )
+      .not.toBe('none');
   });
 
   test('should handle multiple code blocks', async ({ page }) => {

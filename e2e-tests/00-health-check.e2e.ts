@@ -24,21 +24,12 @@ test.describe('Health Check', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('textarea', { timeout: 10000 });
     
-    // Filter out known acceptable non-critical errors
-    // Note: JWT and indexedDB errors should still be logged, only truly benign errors filtered
+    // Filter out known benign errors
+    // Keep auth/storage errors visible - they may indicate real issues
     const criticalErrors = errors.filter(err => 
       !err.includes('favicon') &&
       !err.includes('No baseUrl found in request context')
     );
-    
-    // Warn about any JWT or indexedDB errors but don't fail the test for now
-    // These may indicate real issues that should be investigated separately
-    const authStorageErrors = errors.filter(err => 
-      err.includes('JWT') || err.includes('indexedDB')
-    );
-    if (authStorageErrors.length > 0) {
-      console.warn('Auth/storage errors detected (not failing test):', authStorageErrors);
-    }
     
     expect(criticalErrors.length).toBe(0);
   });
