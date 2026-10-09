@@ -20,12 +20,15 @@ if (!(Test-Path .env.local) -and !$env:OPEN_ROUTER_API_KEY) {
 
 # Install Playwright browsers if needed
 Write-Host "📦 Checking Playwright browsers..." -ForegroundColor Cyan
-pnpm exec playwright install chromium --with-deps
+# Note: --with-deps is not supported on Windows, so we only install the browser
+pnpm exec playwright install chromium
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
     Write-Host "❌ Playwright browser installation failed!" -ForegroundColor Red
     Write-Host "Please check the error messages above." -ForegroundColor Red
+    Write-Host "On Windows, you may need to install browser dependencies manually." -ForegroundColor Yellow
+    Write-Host "See: https://playwright.dev/docs/browsers#install-system-dependencies" -ForegroundColor Yellow
     exit 1
 }
 

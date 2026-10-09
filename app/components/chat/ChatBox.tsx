@@ -265,7 +265,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             <ClientOnly>
               {() => (
                 <AttachmentMenu
-                  onAttachFile={() => props.handleFileUpload()}
+                  onAttachFile={() => props.handleFileUpload()} // Opens image file picker (image/* only)
                   onOpenDesignDialog={() => {
                     /*
                      * Trigger the design dialog by programmatically clicking the hidden button
