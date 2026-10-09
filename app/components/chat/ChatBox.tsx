@@ -288,9 +288,10 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 />
               )}
             </ClientOnly>
-            {/* Hidden button for design palette - programmatically clicked from menu */}
+            {/* Hidden components for programmatic access from menu */}
             <div className="hidden">
               <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
+              <SupabaseConnection />
             </div>
             <McpTools />
             <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
@@ -339,7 +340,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd> a new line
             </div>
           ) : null}
-          <SupabaseConnection />
           <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
         </div>
       </div>
