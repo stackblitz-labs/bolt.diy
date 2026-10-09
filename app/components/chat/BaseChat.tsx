@@ -382,9 +382,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   {deployAlert && (
                     <DeployChatAlert
                       alert={deployAlert}
-                      clearAlert={() => {
-                        /* No-op: Deploy alerts are cleared through other mechanisms */
-                      }}
+                      clearAlert={() => _clearDeployAlert?.()}
                       postMessage={(message: string | undefined) => {
                         sendMessage?.({} as any, message);
                       }}
