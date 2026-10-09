@@ -76,6 +76,7 @@ export const Menu = () => {
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<string | undefined>(undefined);
   const profile = useStore(profileStore);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -311,6 +312,20 @@ export const Menu = () => {
     };
   }, [isSettingsOpen]);
 
+  useEffect(() => {
+    const handleOpenGitHubSettings = () => {
+      setSettingsInitialTab('github');
+      setIsSettingsOpen(true);
+      setOpen(false);
+    };
+
+    document.addEventListener('open-github-settings', handleOpenGitHubSettings);
+
+    return () => {
+      document.removeEventListener('open-github-settings', handleOpenGitHubSettings);
+    };
+  }, []);
+
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);
     loadEntries(); // Reload the list after duplication
@@ -323,6 +338,7 @@ export const Menu = () => {
 
   const handleSettingsClose = () => {
     setIsSettingsOpen(false);
+    setSettingsInitialTab(undefined);
   };
 
   const setDialogContentWithLogging = useCallback((content: DialogContent) => {
@@ -561,7 +577,7 @@ export const Menu = () => {
       )}
 
       <Suspense fallback={null}>
-        <LazyControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
+        <LazyControlPanel open={isSettingsOpen} onClose={handleSettingsClose} initialTab={settingsInitialTab as any} />
       </Suspense>
     </>
   );
