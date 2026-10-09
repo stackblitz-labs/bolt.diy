@@ -1,3 +1,4 @@
+import { getDiligentDanPrompt } from './prompts/diligent-dan';
 import { getFineTunedPrompt } from './prompts/new-prompt';
 import optimized from './prompts/optimized';
 import { getSystemPrompt } from './prompts/prompts';
@@ -53,6 +54,11 @@ export class PromptLibrary {
       label: 'Experimental Prompt',
       description: 'Experimental version of the prompt for lower token usage',
       get: (options) => optimized(options),
+    },
+    'diligent-dan': {
+      label: 'DiligentDan',
+      description: 'Disciplined prompt with Simplified Technical English and checklist-driven workflow',
+      get: (options) => getDiligentDanPrompt(options.cwd, options.supabase, options.designScheme),
     },
   };
   static getList() {

@@ -14,7 +14,6 @@ import { Messages, type DisplayMessage } from './Messages.client';
 import ProgressCompilation from './ProgressCompilation';
 import StarterTemplates from './StarterTemplates';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
-import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
 import { Menu } from '~/components/sidebar/Menu.client';
@@ -26,7 +25,7 @@ const LazyWorkbench = lazy(() =>
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
-import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
+import type { ActionAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
 import type { ProgressAnnotation } from '~/types/context';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ProviderInfo } from '~/types/model';
@@ -65,10 +64,8 @@ interface BaseChatProps {
   setImageDataList?: (dataList: string[]) => void;
   actionAlert?: ActionAlert;
   clearAlert?: () => void;
-  supabaseAlert?: SupabaseAlert;
-  clearSupabaseAlert?: () => void;
   deployAlert?: DeployAlert;
-  clearDeployAlert?: () => void;
+  _clearDeployAlert?: () => void;
   llmErrorAlert?: LlmErrorAlertType;
   clearLlmErrorAlert?: () => void;
   progressAnnotations?: ProgressAnnotation[];
@@ -114,9 +111,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       actionAlert,
       clearAlert,
       deployAlert,
-      clearDeployAlert,
-      supabaseAlert,
-      clearSupabaseAlert,
+      _clearDeployAlert,
       llmErrorAlert,
       clearLlmErrorAlert,
       progressAnnotations: incomingProgressAnnotations,
@@ -387,20 +382,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   {deployAlert && (
                     <DeployChatAlert
                       alert={deployAlert}
-                      clearAlert={() => clearDeployAlert?.()}
+                      clearAlert={() => _clearDeployAlert?.()}
                       postMessage={(message: string | undefined) => {
                         sendMessage?.({} as any, message);
-                        clearSupabaseAlert?.();
-                      }}
-                    />
-                  )}
-                  {supabaseAlert && (
-                    <SupabaseChatAlert
-                      alert={supabaseAlert}
-                      clearAlert={() => clearSupabaseAlert?.()}
-                      postMessage={(message) => {
-                        sendMessage?.({} as any, message);
-                        clearSupabaseAlert?.();
                       }}
                     />
                   )}
