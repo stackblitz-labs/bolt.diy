@@ -34,6 +34,7 @@ import { classNames } from '~/utils/classNames';
 interface ControlPanelProps {
   open: boolean;
   onClose: () => void;
+  initialTab?: TabType;
 }
 
 // Beta status for experimental features
@@ -45,7 +46,7 @@ const BetaLabel = () => (
   </div>
 );
 
-export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
+export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) => {
   // State
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
@@ -100,10 +101,15 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
       setLoadingTab(null);
       setShowTabManagement(false);
     } else {
-      // When opening, set to null to show the main view
-      setActiveTab(null);
+      // When opening, set initial tab if provided
+      if (initialTab) {
+        setActiveTab(initialTab);
+        setLoadingTab(null);
+      } else {
+        setActiveTab(null);
+      }
     }
-  }, [open]);
+  }, [open, initialTab]);
 
   // Handle closing
   const handleClose = () => {

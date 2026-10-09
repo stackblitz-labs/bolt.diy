@@ -54,3 +54,9 @@ docs/instructions/Roadmap.md
 .qodo
 
 test-results/
+
+# Playwright E2E test artifacts
+playwright-report
+test-results
+test-results.json
+test-results-summary.txt

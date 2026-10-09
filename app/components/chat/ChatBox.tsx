@@ -1,7 +1,7 @@
 import React from 'react';
-import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
 import { APIKeyManager } from './APIKeyManager';
+import { AttachmentMenu } from './AttachmentMenu';
 import styles from './BaseChat.module.scss';
 import FilePreview from './FilePreview';
 import { McpTools } from './MCPTools';
@@ -262,27 +262,38 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </ClientOnly>
         <div className="flex justify-between items-center text-sm p-4 pt-2">
           <div className="flex gap-1 items-center">
-            <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
-              <div className="i-ph:paperclip text-xl"></div>
-            </IconButton>
-            <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
+            <ClientOnly>
+              {() => (
+                <AttachmentMenu
+                  onAttachFile={() => props.handleFileUpload()} // Opens image file picker (image/* only)
+                  onOpenDesignDialog={() => {
+                    /*
+                     * Trigger the design dialog by programmatically clicking the hidden button
+                     * This is a workaround since ColorSchemeDialog manages its own state
+                     */
+                    const designButton = document.querySelector('[title="Design Palette"]') as HTMLButtonElement;
+                    designButton?.click();
+                  }}
+                  onEnhancePrompt={() => {
+                    props.enhancePrompt?.();
+                  }}
+                  onSupabaseConnect={() => {
+                    document.dispatchEvent(new CustomEvent('open-supabase-connection'));
+                  }}
+                  onGithubConnect={() => {
+                    document.dispatchEvent(new CustomEvent('open-github-settings'));
+                  }}
+                  enhancingPrompt={props.enhancingPrompt}
+                  isEnhanceDisabled={props.input.length === 0 || props.enhancingPrompt}
+                />
+              )}
+            </ClientOnly>
+            {/* Hidden button for design palette - programmatically clicked from menu */}
+            <div className="hidden">
+              <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
+            </div>
             <McpTools />
             <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
-            <IconButton
-              title="Enhance prompt"
-              disabled={props.input.length === 0 || props.enhancingPrompt}
-              className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
-              onClick={() => {
-                props.enhancePrompt?.();
-                toast.success('Prompt enhanced!');
-              }}
-            >
-              {props.enhancingPrompt ? (
-                <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-              ) : (
-                <div className="i-bolt:stars text-xl"></div>
-              )}
-            </IconButton>
 
             <SpeechRecognitionButton
               isListening={props.isListening}
