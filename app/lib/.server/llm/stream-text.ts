@@ -1,4 +1,10 @@
-import { convertToModelMessages, streamText as _streamText, type ModelMessage, type UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  pruneMessages,
+  streamText as _streamText,
+  type ModelMessage,
+  type UIMessage,
+} from 'ai';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel, type FileMap } from './constants';
 import { withDevelopmentCommentaryWorkstyle } from './prompt-workstyle';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
@@ -241,15 +247,7 @@ export async function streamText(props: {
       ---
       `;
 
-      if (props.messageSliceId) {
-        processedMessages = processedMessages.slice(props.messageSliceId);
-      } else {
-        const lastMessage = processedMessages.pop();
-
-        if (lastMessage) {
-          processedMessages = [lastMessage];
-        }
-      }
+      processedMessages = pruneMessages({ messages: processedMessages } as any);
     }
   }
 

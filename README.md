@@ -10,8 +10,6 @@ Welcome to **bolt.diy**, the open-source AI developer workspace that lets you se
 
 Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos-tutorial-helpful-content/3243) has a bunch of incredible resources for running and deploying bolt.diy yourself!
 
-We have also launched an experimental agent called the "bolt.diy Expert" that can answer common questions about bolt.diy. Find it here on the [oTTomator Live Agent Studio](https://studio.ottomator.ai/).
-
 bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMedin) but has quickly grown into a massive community effort to build the BEST open source AI coding assistant!
 
 ---
@@ -118,7 +116,6 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 - **Project Workflows**: Git cloning/pushing, snapshot restoration, file conflict locking, and ZIP export.
 - **Deployments**: One-click deployment to Netlify, Vercel, and GitHub Pages.
 - **Database & Visuals**: Supabase integration, data visualization charts, and Model Context Protocol (MCP) tooling.
-- **⚡ Performance Optimized**: 3x faster with Claude.dev-inspired optimizations. See [PERFORMANCE.md](PERFORMANCE.md) for details.
 
 ---
 
@@ -129,7 +126,7 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 - **Cross-Platform & Deployments**: Native Electron desktop app, Expo (React Native) support, and direct deployment to Netlify, Vercel, and GitHub Pages.
 - **Data & Backend Integrations**: Built-in Supabase management, interactive charts, and bulk chat operations.
 
-> **Looking Ahead**: Ongoing work includes multi-agent architectures, model prompt workstyle optimizations, and deeper editor workflows. Track upcoming milestones on our [Roadmap](https://roadmap.sh/r/ottodev-roadmap-2ovzo).
+> **Looking Ahead**: Ongoing work includes bug Fixes, dependance updates and fixes for reliability issues no new features are planed.
 
 ---
 
@@ -153,7 +150,6 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 
 - **Contributing**: Contributions are welcome! Read our [Contributing Guide](CONTRIBUTING.md) and [Project Management Guide](./PROJECT.md) to get started.
 - **Troubleshooting & FAQ**: Common errors and setup fixes are documented in our [FAQ](FAQ.md) and [Official Docs](https://stackblitz-labs.github.io/bolt.diy/).
-- **Community**: Join conversations and tutorials in the [oTTomator Think Tank](https://thinktank.ottomator.ai).
 
 
 ---

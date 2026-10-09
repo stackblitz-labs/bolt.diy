@@ -69,7 +69,7 @@ export default class OpenRouterProvider extends BaseProvider {
           const contextWindow = m.context_length || 32000; // Use API value or fallback
 
           // Cap at reasonable limits to prevent issues (OpenRouter has some very large models)
-          const maxAllowed = 1000000; // 1M tokens max for safety
+          const maxAllowed = 2000000; // 2M tokens max for safety
           const finalContext = Math.min(contextWindow, maxAllowed);
 
           return {

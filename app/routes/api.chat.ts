@@ -10,7 +10,6 @@ import type { ActionFunctionArgs } from 'react-router';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
-import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
@@ -95,14 +94,6 @@ export const action = withSecurity(chatAction, {
 });
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const streamRecovery = new StreamRecoveryManager({
-    timeout: 45000,
-    maxRetries: 2,
-    onTimeout: () => {
-      logger.warn('Stream timeout - attempting recovery');
-    },
-  });
-
   const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
     await request.json<{
       messages: Messages;
@@ -161,8 +152,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * onChunk rather than by iterating the stream alongside the UI merge.
      */
     const observeChunk = ({ chunk }: { chunk: unknown }) => {
-      streamRecovery.updateActivity();
-
       const part = chunk as { type?: string; error?: unknown };
 
       if (part.type === 'error') {
@@ -172,8 +161,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
     const uiStream = createUIMessageStream({
       async execute({ writer }) {
-        streamRecovery.startMonitoring();
-
         /*
          * createUIMessageStream does not emit a start chunk, and
          * toUIMessageStream only attaches a server-chosen messageId when
@@ -330,6 +317,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
            * v7's own default of isStepCount(1), so the step cap would be dead.
            */
           stopWhen: isStepCount(maxLLMSteps ?? 1),
+          timeout: { chunkMs: 45_000 },
+
+          // @ts-ignore - abortSignal not in type definition but supported at runtime
+          signal: request.signal,
+          telemetry: { functionId: 'bolt-chat' },
           onStepEnd: ({ toolCalls }) => {
             // add tool call annotations for frontend processing
             toolCalls.forEach((toolCall) => {
@@ -477,11 +469,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
        * that every merged stream has drained.
        */
       onEnd: () => {
-        streamRecovery.stop();
+        // no-op: stream is managed by merged consumer
       },
       onError: (error: any) => {
-        streamRecovery.stop();
-
         return toClientErrorMessage(error);
       },
     });

@@ -285,9 +285,10 @@ bolt.diy/
 ├── .performance-budgets.json     ← Ratcheting budgets
 │
 └── docs/
-    ├── PERFORMANCE.md            ← Full guide
-    ├── PERFORMANCE_QUICK_START.md
+    ├── PERFORMANCE_OPTIMIZATION.md ← Worker and dashboard notes
     └── performance-architecture.md ← This file
+
+PERFORMANCE.md at the repo root is the single guide.
 ```
 
 ## Key Metrics Dashboard (Conceptual)
