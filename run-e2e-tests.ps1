@@ -22,6 +22,13 @@ if (!(Test-Path .env.local) -and !$env:OPEN_ROUTER_API_KEY) {
 Write-Host "📦 Checking Playwright browsers..." -ForegroundColor Cyan
 pnpm exec playwright install chromium --with-deps
 
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "❌ Playwright browser installation failed!" -ForegroundColor Red
+    Write-Host "Please check the error messages above." -ForegroundColor Red
+    exit 1
+}
+
 Write-Host ""
 Write-Host "🧪 Running E2E Tests..." -ForegroundColor Cyan
 Write-Host ""

@@ -30,7 +30,8 @@ export function AttachmentMenu({
             'flex items-center text-bolt-elements-item-contentDefault bg-transparent',
             'hover:text-bolt-elements-item-contentActive rounded-md p-1',
             'hover:bg-bolt-elements-item-backgroundActive',
-            'focus:outline-none transition-all',
+            'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-1',
+            'transition-all',
           )}
         >
           <div className="i-ph:plus text-xl"></div>
@@ -59,6 +60,7 @@ export function AttachmentMenu({
               'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
               'text-bolt-elements-textPrimary',
               'hover:bg-bolt-elements-background-depth-3',
+              'data-[highlighted]:bg-bolt-elements-background-depth-3',
               'outline-none transition-colors',
             )}
             onSelect={onAttachFile}
@@ -72,6 +74,7 @@ export function AttachmentMenu({
               'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
               'text-bolt-elements-textPrimary',
               'hover:bg-bolt-elements-background-depth-3',
+              'data-[highlighted]:bg-bolt-elements-background-depth-3',
               'outline-none transition-colors',
             )}
             onSelect={onOpenDesignDialog}
@@ -85,6 +88,7 @@ export function AttachmentMenu({
               'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
               'text-bolt-elements-textPrimary',
               'hover:bg-bolt-elements-background-depth-3',
+              'data-[highlighted]:bg-bolt-elements-background-depth-3',
               'outline-none transition-colors',
               isEnhanceDisabled && 'opacity-50 cursor-not-allowed',
             )}
