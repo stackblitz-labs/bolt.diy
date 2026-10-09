@@ -111,11 +111,14 @@ test.describe('Attachment Menu', () => {
     // Click GitHub
     const githubOption = page.locator('text=GitHub').first();
     await githubOption.click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
     
-    // Check that something happened (settings panel might open)
-    // Just verify the app is still functional
-    const textarea = page.locator('textarea[placeholder*="help"]').first();
-    await expect(textarea).toBeVisible();
+    // Verify settings panel opened by looking for settings-specific elements
+    // Look for control panel, settings modal, or GitHub-related settings UI
+    const hasSettingsPanel = await page.locator('[class*="settings"], [class*="control-panel"], [class*="modal"], [role="dialog"]').count() > 0;
+    const hasGitHubSettings = await page.locator('text=/GitHub|github/i').count() > 1; // More than just the menu item
+    
+    // The settings panel should have opened, or at minimum a dialog/modal
+    expect(hasSettingsPanel || hasGitHubSettings).toBeTruthy();
   });
 });

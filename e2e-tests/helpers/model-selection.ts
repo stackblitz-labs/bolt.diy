@@ -110,17 +110,23 @@ export async function selectFreeModel(page: Page) {
 }
 
 /**
- * Alternative approach: Set model via localStorage before page loads
+ * Alternative approach: Set model via cookies before page loads
  * Call this before navigating to the page
+ * Note: The app reads provider and model from 'selectedProvider' and 'selectedModel' cookies
  */
 export async function setFreeModelInStorage(page: Page) {
-  await page.addInitScript(() => {
-    // Set a known free model in local storage
-    try {
-      localStorage.setItem('bolt_provider', 'OpenRouter');
-      localStorage.setItem('bolt_model', 'meta-llama/llama-3.2-3b-instruct:free');
-    } catch (e) {
-      console.log('Could not set model in storage');
-    }
-  });
+  await page.context().addCookies([
+    {
+      name: 'selectedProvider',
+      value: 'OpenRouter',
+      domain: 'localhost',
+      path: '/',
+    },
+    {
+      name: 'selectedModel',
+      value: 'meta-llama/llama-3.2-3b-instruct:free',
+      domain: 'localhost',
+      path: '/',
+    },
+  ]);
 }

@@ -21,7 +21,26 @@ test.describe('Multi-turn Conversations', () => {
     await textarea.click();
     await textarea.fill('Say hello');
     await page.keyboard.press('Control+Enter');
-    await page.waitForTimeout(8000);
+    
+    // Wait for streaming to complete by monitoring for stable state
+    // Look for a stop button to disappear or check if textarea is re-enabled
+    await page.waitForTimeout(2000);
+    
+    // Wait for the streaming to finish - check if we can send again
+    let canSendAgain = false;
+    for (let i = 0; i < 10; i++) {
+      const isDisabled = await textarea.isDisabled();
+      if (!isDisabled) {
+        canSendAgain = true;
+        break;
+      }
+      await page.waitForTimeout(1000);
+    }
+    
+    expect(canSendAgain).toBeTruthy(); // Textarea should be re-enabled
+    
+    // Additional wait to ensure first response completed
+    await page.waitForTimeout(3000);
     
     // Second message
     await textarea.click();

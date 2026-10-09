@@ -3,8 +3,6 @@
 # E2E Test Runner Script for Bolt.diy
 # This script runs the complete E2E test suite using Playwright
 
-set -e  # Exit on error
-
 echo "🚀 Starting Bolt.diy E2E Test Suite"
 echo "===================================="
 echo ""
@@ -28,21 +26,23 @@ echo ""
 echo "🧪 Running E2E Tests..."
 echo ""
 
-# Run tests
+# Run tests and capture exit code
 pnpm exec playwright test --config=playwright.config.e2e.ts
+TEST_EXIT_CODE=$?
 
 # Check exit code
-if [ $? -eq 0 ]; then
+if [ $TEST_EXIT_CODE -eq 0 ]; then
     echo ""
     echo "✅ All E2E tests passed!"
     echo ""
     echo "📊 View detailed report:"
     echo "   pnpm exec playwright show-report"
+    exit 0
 else
     echo ""
     echo "❌ Some tests failed"
     echo ""
     echo "📊 View detailed report:"
     echo "   pnpm exec playwright show-report"
-    exit 1
+    exit $TEST_EXIT_CODE
 fi

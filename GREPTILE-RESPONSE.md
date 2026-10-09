@@ -45,7 +45,8 @@ The Supabase connection dialog DOES open correctly. The implementation uses a cu
 **Result:**
 - Model selection is now more reliable
 - Fallback behavior is documented
-- Tests explicitly attempt free model selection before every suite
+- Tests that make AI requests explicitly call `selectFreeModel()` in their `beforeEach` hooks
+- Health-check and attachment-menu tests don't need model selection as they don't make AI requests
 
 ---
 

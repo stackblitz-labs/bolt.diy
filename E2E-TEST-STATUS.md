@@ -1,7 +1,7 @@
 # Bolt.diy E2E Test Status
 
 ## Summary
-Comprehensive automated Playwright E2E test suite covering all major functionality with 28 tests across 6 test suites.
+Comprehensive automated Playwright E2E test suite covering all major functionality with 29 tests across 6 test suites.
 
 ## Configuration ✅
 - **Playwright Version:** 1.64.0
