@@ -11,101 +11,95 @@ export async function selectFreeModel(page: Page) {
     // Wait for initial page load
     await page.waitForTimeout(2000);
     
-    // Try multiple strategies to find and click the model selector
+    // Strategy 1: Look for combobox elements (ModelSelector uses div with role="combobox")
+    const providerCombo = page.locator('[role="combobox"]').first();
+    const modelCombo = page.locator('[role="combobox"]').nth(1);
     
-    // Strategy 1: Look for button with model name text
-    const modelButtons = page.locator('button').filter({ 
-      hasText: /claude|sonnet|gpt|model|llama|gemini/i 
-    });
+    const providerExists = await providerCombo.count() > 0;
+    const modelExists = await modelCombo.count() > 0;
     
-    const buttonCount = await modelButtons.count();
-    console.log(`Found ${buttonCount} potential model selector buttons`);
+    console.log(`Found ${providerExists ? 1 : 0} provider combobox and ${modelExists ? 1 : 0} model combobox`);
     
-    if (buttonCount > 0) {
-      // Click the first one that's visible
-      for (let i = 0; i < Math.min(buttonCount, 3); i++) {
-        const button = modelButtons.nth(i);
-        if (await button.isVisible({ timeout: 2000 })) {
-          console.log(`Clicking model button ${i}`);
-          await button.click();
+    if (providerExists && modelExists) {
+      try {
+        // Click provider combobox
+        await providerCombo.click({ timeout: 2000 });
+        await page.waitForTimeout(500);
+        
+        // Look for OpenRouter option
+        const openRouterOption = page.locator('[role="option"]').filter({ hasText: /OpenRouter/i }).first();
+        
+        if (await openRouterOption.isVisible({ timeout: 2000 })) {
+          console.log('Selecting OpenRouter provider');
+          await openRouterOption.click();
           await page.waitForTimeout(1500);
           
-          // Look for OpenRouter or free model options
-          const openRouterOption = page.locator('text=OpenRouter, [role="option"]').filter({ hasText: /openrouter/i }).first();
-          const freeModelOption = page.locator('[role="option"], [role="menuitem"]').filter({ 
-            hasText: /free|llama.*free|gratis/i 
-          }).first();
+          // Click model combobox
+          await modelCombo.click({ timeout: 2000 });
+          await page.waitForTimeout(500);
           
-          // Try to select OpenRouter provider first
-          if (await openRouterOption.isVisible({ timeout: 1000 })) {
-            console.log('Selecting OpenRouter provider');
-            await openRouterOption.click();
-            await page.waitForTimeout(2000);
-          }
+          // Look for a free model option
+          const freeModelOption = page
+            .locator('[role="option"]')
+            .filter({ hasText: /free|Free/i })
+            .first();
           
-          // Try to select a free model
-          if (await freeModelOption.isVisible({ timeout: 1000 })) {
+          if (await freeModelOption.isVisible({ timeout: 2000 })) {
             console.log('Selecting free model');
             await freeModelOption.click();
             await page.waitForTimeout(1000);
-          }
-          
-          // Close any open menus
-          await page.keyboard.press('Escape');
-          await page.waitForTimeout(500);
-          
-          console.log('Model selection attempted successfully');
-          return;
-        }
-      }
-    }
-    
-    // Strategy 2: Look for select elements
-    const selects = page.locator('select');
-    const selectCount = await selects.count();
-    
-    if (selectCount > 0) {
-      console.log(`Found ${selectCount} select elements, trying first one`);
-      const firstSelect = selects.first();
-      
-      // Try to select OpenRouter
-      try {
-        await firstSelect.selectOption({ label: 'OpenRouter' });
-        await page.waitForTimeout(1000);
-        console.log('Selected OpenRouter via select element');
-      } catch (e) {
-        console.log('Could not select OpenRouter via select element');
-      }
-      
-      // Try to select a free model from second select if it exists
-      if (selectCount > 1) {
-        const modelSelect = selects.nth(1);
-        try {
-          // Get all options and look for a free one
-          const options = await modelSelect.locator('option').all();
-          for (const option of options) {
-            const text = await option.textContent();
-            if (text && /free|llama.*free|gratis/i.test(text)) {
-              const value = await option.getAttribute('value');
-              if (value) {
-                await modelSelect.selectOption(value);
-                console.log(`Selected free model: ${text}`);
-                await page.waitForTimeout(1000);
-                return;
-              }
+            
+            // Verify selection worked
+            const providerText = await providerCombo.textContent();
+            const modelText = await modelCombo.textContent();
+            console.log(`Selected provider: ${providerText}, model: ${modelText}`);
+            
+            if (!providerText?.includes('OpenRouter')) {
+              throw new Error('Provider selection failed');
             }
+            
+            console.log('Model selection succeeded');
+            return;
           }
-        } catch (e) {
-          console.log('Could not select model via select element');
+        }
+      } catch (e) {
+        console.log('Combobox selection failed:', e);
+      }
+    }
+    
+    // Strategy 2: Fall back to searching for any model buttons or selects
+    const modelButtons = page.locator('button').filter({ hasText: /model|provider/i });
+    const buttonCount = await modelButtons.count();
+    
+    if (buttonCount > 0) {
+      console.log(`Found ${buttonCount} potential model buttons, trying fallback`);
+      
+      for (let i = 0; i < Math.min(buttonCount, 3); i++) {
+        const button = modelButtons.nth(i);
+        
+        if (await button.isVisible({ timeout: 2000 })) {
+          await button.click();
+          await page.waitForTimeout(1500);
+          
+          const openRouterOption = page.locator('text=OpenRouter').first();
+          
+          if (await openRouterOption.isVisible({ timeout: 1000 })) {
+            await openRouterOption.click();
+            await page.waitForTimeout(2000);
+            console.log('Selected via fallback method');
+            return;
+          }
         }
       }
     }
     
-    console.log('Model selection complete (may be using default)');
+    // If we get here, model selection failed
+    console.error('⚠️  Model selection failed - tests may use wrong model');
+    throw new Error('Failed to select free model - no valid selector found');
     
   } catch (error) {
-    console.log('Model selection failed, continuing with default:', error);
-    // Continue anyway - the app will fall back to a default model
+    console.error('❌ Model selection error:', error);
+    throw error; // Re-throw to fail the test rather than silently continuing
   }
 }
 
