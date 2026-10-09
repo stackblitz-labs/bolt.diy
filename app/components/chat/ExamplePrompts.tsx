@@ -1,12 +1,13 @@
 import React from 'react';
 
 const EXAMPLE_PROMPTS = [
-  { text: 'Build a modern portfolio website with React and Tailwind' },
-  { text: 'Create a real-time chat app with WebSockets' },
-  { text: 'Build a task management app with drag and drop' },
-  { text: 'Make an AI-powered image gallery with search' },
-  { text: 'Create a weather dashboard with API integration' },
-  { text: 'Build a markdown blog with dark mode support' },
+  { text: 'Build a personal portfolio' },
+  { text: 'Make a recipe finder' },
+  { text: 'Build a markdown blog' },
+  { text: 'Create a Kanban board in react' },
+  { text: 'Make a Pomodoro timer' },
+  { text: 'Make a simple landing page' },
+  { text: 'Make a slide deck about dogs' },
 ];
 
 /**
