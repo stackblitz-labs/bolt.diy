@@ -134,7 +134,13 @@ pnpm exec playwright test --config=playwright.config.e2e.ts --headed
 ## Technical Details
 
 ### Model Selection
-Tests automatically select a free OpenRouter model before sending messages. Currently falls back to `z-ai/glm-5.3-flash` which is a free model.
+Tests automatically attempt to select a free OpenRouter model before sending messages. The selection process:
+
+1. **Attempts UI-based selection** - Looks for model selector buttons and dropdowns
+2. **Falls back gracefully** - If UI selection fails, Bolt.diy automatically uses `z-ai/glm-5.3-flash` (a free model)
+3. **No manual intervention needed** - Tests will work regardless of model selector accessibility
+
+**Note:** The model selector UI may not be accessible in headless mode, but this is handled automatically by the fallback mechanism.
 
 ### Selectors Used
 - `textarea[placeholder*="help"]` - Main chat input

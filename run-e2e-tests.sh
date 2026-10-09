@@ -9,12 +9,15 @@ echo "🚀 Starting Bolt.diy E2E Test Suite"
 echo "===================================="
 echo ""
 
-# Check if .env.local exists
-if [ ! -f .env.local ]; then
-    echo "⚠️  Warning: .env.local not found"
-    echo "Please create .env.local with your OPEN_ROUTER_API_KEY"
-    echo "Example: OPEN_ROUTER_API_KEY=your-key-here"
-    exit 1
+# Check if API key is available (from env or .env.local)
+if [ ! -f .env.local ] && [ -z "$OPEN_ROUTER_API_KEY" ]; then
+    echo "⚠️  Warning: No OpenRouter API key found"
+    echo "Please either:"
+    echo "  1. Create .env.local with OPEN_ROUTER_API_KEY=your-key-here"
+    echo "  2. Set OPEN_ROUTER_API_KEY environment variable"
+    echo ""
+    echo "Continuing anyway - tests may fail if API key is required..."
+    echo ""
 fi
 
 # Install Playwright browsers if needed

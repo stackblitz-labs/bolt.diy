@@ -2,84 +2,123 @@ import type { Page } from '@playwright/test';
 
 /**
  * Helper function to select a free OpenRouter model
- * This should be called before sending any messages
+ * This should be called before sending any messages to avoid "Model not found" errors
  */
 export async function selectFreeModel(page: Page) {
   try {
-    // Wait for page to load
+    console.log('Attempting to select free model...');
+    
+    // Wait for initial page load
     await page.waitForTimeout(2000);
     
-    // Look for the model selector button (usually shows current model name)
-    const modelButton = page.locator('button').filter({ 
-      hasText: /claude|gpt|model|select/i 
-    }).first();
+    // Try multiple strategies to find and click the model selector
     
-    // Try to click it
-    const buttonVisible = await modelButton.isVisible({ timeout: 5000 });
+    // Strategy 1: Look for button with model name text
+    const modelButtons = page.locator('button').filter({ 
+      hasText: /claude|sonnet|gpt|model|llama|gemini/i 
+    });
     
-    if (!buttonVisible) {
-      console.log('Model selector not found, trying alternative approach');
-      return;
-    }
+    const buttonCount = await modelButtons.count();
+    console.log(`Found ${buttonCount} potential model selector buttons`);
     
-    await modelButton.click();
-    await page.waitForTimeout(1000);
-    
-    // Look for OpenRouter in provider dropdown
-    const openRouterOption = page.locator('text=OpenRouter').first();
-    const hasOpenRouter = await openRouterOption.isVisible({ timeout: 2000 });
-    
-    if (hasOpenRouter) {
-      await openRouterOption.click();
-      await page.waitForTimeout(2000);
-    }
-    
-    // Look for a free model - try to find one with "free" in the name
-    const freeModelOption = page.locator('[role="option"], [role="menuitem"]').filter({ 
-      hasText: /free|gratis|0\.00/i 
-    }).first();
-    
-    const hasFreeModel = await freeModelOption.isVisible({ timeout: 2000 });
-    
-    if (hasFreeModel) {
-      await freeModelOption.click();
-      await page.waitForTimeout(1000);
-    } else {
-      // Just select the first available model
-      console.log('No free model found, selecting first available');
-      const firstModel = page.locator('[role="option"], [role="menuitem"]').first();
-      const hasFirstModel = await firstModel.isVisible({ timeout: 2000 });
-      
-      if (hasFirstModel) {
-        await firstModel.click();
-        await page.waitForTimeout(1000);
+    if (buttonCount > 0) {
+      // Click the first one that's visible
+      for (let i = 0; i < Math.min(buttonCount, 3); i++) {
+        const button = modelButtons.nth(i);
+        if (await button.isVisible({ timeout: 2000 })) {
+          console.log(`Clicking model button ${i}`);
+          await button.click();
+          await page.waitForTimeout(1500);
+          
+          // Look for OpenRouter or free model options
+          const openRouterOption = page.locator('text=OpenRouter, [role="option"]').filter({ hasText: /openrouter/i }).first();
+          const freeModelOption = page.locator('[role="option"], [role="menuitem"]').filter({ 
+            hasText: /free|llama.*free|gratis/i 
+          }).first();
+          
+          // Try to select OpenRouter provider first
+          if (await openRouterOption.isVisible({ timeout: 1000 })) {
+            console.log('Selecting OpenRouter provider');
+            await openRouterOption.click();
+            await page.waitForTimeout(2000);
+          }
+          
+          // Try to select a free model
+          if (await freeModelOption.isVisible({ timeout: 1000 })) {
+            console.log('Selecting free model');
+            await freeModelOption.click();
+            await page.waitForTimeout(1000);
+          }
+          
+          // Close any open menus
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(500);
+          
+          console.log('Model selection attempted successfully');
+          return;
+        }
       }
     }
     
-    // Close the selector if it's still open
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
+    // Strategy 2: Look for select elements
+    const selects = page.locator('select');
+    const selectCount = await selects.count();
+    
+    if (selectCount > 0) {
+      console.log(`Found ${selectCount} select elements, trying first one`);
+      const firstSelect = selects.first();
+      
+      // Try to select OpenRouter
+      try {
+        await firstSelect.selectOption({ label: 'OpenRouter' });
+        await page.waitForTimeout(1000);
+        console.log('Selected OpenRouter via select element');
+      } catch (e) {
+        console.log('Could not select OpenRouter via select element');
+      }
+      
+      // Try to select a free model from second select if it exists
+      if (selectCount > 1) {
+        const modelSelect = selects.nth(1);
+        try {
+          // Get all options and look for a free one
+          const options = await modelSelect.locator('option').all();
+          for (const option of options) {
+            const text = await option.textContent();
+            if (text && /free|llama.*free|gratis/i.test(text)) {
+              const value = await option.getAttribute('value');
+              if (value) {
+                await modelSelect.selectOption(value);
+                console.log(`Selected free model: ${text}`);
+                await page.waitForTimeout(1000);
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          console.log('Could not select model via select element');
+        }
+      }
+    }
+    
+    console.log('Model selection complete (may be using default)');
     
   } catch (error) {
-    console.log('Could not select model automatically:', error);
-    // Continue anyway - model might already be selected
+    console.log('Model selection failed, continuing with default:', error);
+    // Continue anyway - the app will fall back to a default model
   }
 }
 
 /**
- * Simpler approach: Set model via local storage before page loads
+ * Alternative approach: Set model via localStorage before page loads
+ * Call this before navigating to the page
  */
-export async function setModelInStorage(page: Page) {
+export async function setFreeModelInStorage(page: Page) {
   await page.addInitScript(() => {
-    // Try to set a default free model in local storage
-    const settings = {
-      provider: 'OpenRouter',
-      model: 'meta-llama/llama-3.2-3b-instruct:free', // A known free model
-    };
-    
+    // Set a known free model in local storage
     try {
-      localStorage.setItem('bolt_settings_provider', settings.provider);
-      localStorage.setItem('bolt_settings_model', settings.model);
+      localStorage.setItem('bolt_provider', 'OpenRouter');
+      localStorage.setItem('bolt_model', 'meta-llama/llama-3.2-3b-instruct:free');
     } catch (e) {
       console.log('Could not set model in storage');
     }
