@@ -220,19 +220,25 @@ export async function createChatWithNextId(
     const store = transaction.objectStore('chats');
 
     let created: { id: string; urlId?: string } | undefined;
+    let highestId = 0;
 
-    const request = store.getAll();
+    const usedUrlIds = new Set<string>();
 
-    request.onsuccess = () => {
-      const chats = request.result as ChatHistoryItem[];
-      const highestId = chats.reduce((max, chat) => Math.max(max, Number(chat.id) || 0), 0);
+    let scansRemaining = ensureUrlId ? 2 : 1;
+
+    const finishScan = () => {
+      scansRemaining--;
+
+      if (scansRemaining > 0) {
+        return;
+      }
+
       const id = String(highestId + 1);
+      const baseUrlId = urlId || id;
 
       let finalUrlId = urlId;
 
       if (ensureUrlId) {
-        const baseUrlId = urlId || id;
-        const usedUrlIds = new Set(chats.map((chat) => chat.urlId).filter(Boolean));
         finalUrlId = baseUrlId;
 
         let suffix = 2;
@@ -252,7 +258,40 @@ export async function createChatWithNextId(
       });
       created = { id, urlId: finalUrlId };
     };
-    request.onerror = () => reject(request.error);
+
+    const idCursorRequest = store.openKeyCursor();
+
+    idCursorRequest.onsuccess = () => {
+      const cursor = idCursorRequest.result;
+
+      if (cursor) {
+        highestId = Math.max(highestId, Number(cursor.key) || 0);
+        cursor.continue();
+      } else {
+        finishScan();
+      }
+    };
+    idCursorRequest.onerror = () => reject(idCursorRequest.error);
+
+    if (ensureUrlId) {
+      const urlIdIndex = store.index('urlId');
+      const urlIdCursorRequest = urlIdIndex.openKeyCursor();
+
+      urlIdCursorRequest.onsuccess = () => {
+        const cursor = urlIdCursorRequest.result;
+
+        if (cursor) {
+          if (typeof cursor.key === 'string') {
+            usedUrlIds.add(cursor.key);
+          }
+
+          cursor.continue();
+        } else {
+          finishScan();
+        }
+      };
+      urlIdCursorRequest.onerror = () => reject(urlIdCursorRequest.error);
+    }
 
     transaction.oncomplete = () => {
       if (created) {

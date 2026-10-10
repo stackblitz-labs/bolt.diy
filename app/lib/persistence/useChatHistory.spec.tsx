@@ -203,10 +203,9 @@ describe('useChatHistory chat switching', () => {
   });
 
   /*
-   * Persisting the first exchange of a new chat moves it to /chat/<id> with
-   * history.replaceState, which the router does pick up. The messages, artifacts
-   * and files on screen already belong to that chat, so the re-run it triggers
-   * must not empty them.
+   * Persisting the first exchange of a new chat moves it to /chat/<id>, which the
+   * router picks up. The live chat already owns the in-flight response, so its
+   * route handoff must not reload or replace its messages.
    */
   it('should not reset when the route catches up with the chat just persisted', async () => {
     const useChatHistory = await importHook();
@@ -231,8 +230,9 @@ describe('useChatHistory chat switching', () => {
     routeId = '3';
     rerender();
 
-    await waitFor(() => expect(result.current.initialMessages.length).toBeGreaterThan(0));
+    await waitFor(() => expect(result.current.ready).toBe(true));
     expect(resetWorkbench).not.toHaveBeenCalled();
     expect(result.current.chatChanged).toBe(false);
+    expect(result.current.initialMessages).toEqual([]);
   });
 });

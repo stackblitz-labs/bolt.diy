@@ -17,9 +17,11 @@ export interface BoltCloudflare {
  */
 export class BoltRouterContext extends RouterContextProvider {
   readonly cloudflare: BoltCloudflare;
+  readonly clientAddress?: string;
 
-  constructor(cloudflare: BoltCloudflare) {
+  constructor(cloudflare: BoltCloudflare, clientAddress?: string) {
     super();
     this.cloudflare = cloudflare;
+    this.clientAddress = clientAddress;
   }
 }

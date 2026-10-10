@@ -26,12 +26,13 @@ export function checkRateLimit(
   request: Request,
   endpoint: string,
   context?: unknown,
-): { allowed: boolean; resetTime?: number } {
-  /*
-   * When client identity cannot be established from a trusted proxy, put all
-   * requests in one bucket instead of trusting spoofable forwarding headers.
-   */
-  const clientIP = getTrustedClientIP(request, context) ?? 'unknown';
+): { allowed: boolean; resetTime?: number; unavailable?: boolean } {
+  const clientIP = getTrustedClientIP(request, context);
+
+  if (!clientIP) {
+    return { allowed: false, unavailable: true };
+  }
+
   const key = `${clientIP}:${endpoint}`;
 
   // Find matching rate limit rule: exact match first, then specific prefix, then generic wildcard
@@ -93,7 +94,16 @@ export function checkRateLimit(
  * Get client IP address from request
  */
 export function getTrustedClientIP(request: Request, context?: unknown): string | undefined {
-  const cloudflare = (context as { cloudflare?: { ctx?: { waitUntil?: unknown } } } | undefined)?.cloudflare;
+  const runtimeContext = context as
+    { clientAddress?: string; cloudflare?: { ctx?: { waitUntil?: unknown } } } | undefined;
+
+  const adapterClientAddress = runtimeContext?.clientAddress;
+
+  if (adapterClientAddress) {
+    return normalizeIpAddress(adapterClientAddress);
+  }
+
+  const cloudflare = runtimeContext?.cloudflare;
 
   if (cloudflare?.ctx && typeof cloudflare.ctx.waitUntil === 'function') {
     return normalizeIpAddress(request.headers.get('cf-connecting-ip'));
@@ -247,6 +257,13 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
     // Apply rate limiting
     if (options.rateLimit !== false) {
       const rateLimitResult = checkRateLimit(request, endpoint, args.context);
+
+      if (rateLimitResult.unavailable) {
+        return new Response('Rate limiting requires trusted client IP configuration', {
+          status: 503,
+          headers: createSecurityHeaders(),
+        });
+      }
 
       if (!rateLimitResult.allowed) {
         return new Response('Rate limit exceeded', {

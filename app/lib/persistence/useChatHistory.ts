@@ -80,6 +80,8 @@ export function useChatHistory() {
    */
   const loadedChatIdRef = useRef<string | undefined>(undefined);
   const loadGenerationRef = useRef(0);
+  const routeHandoffChatIdRef = useRef<string | undefined>(undefined);
+  const pendingChatCreationRef = useRef<Promise<{ id: string; urlId?: string }> | undefined>(undefined);
 
   useEffect(() => {
     const generation = ++loadGenerationRef.current;
@@ -102,7 +104,10 @@ export function useChatHistory() {
     }
 
     if (mixedId) {
-      setReady(false);
+      if (!routeHandoffChatIdRef.current) {
+        setReady(false);
+      }
+
       Promise.all([getCachedMessages(db, mixedId), getCachedSnapshot(db, mixedId)])
         .then(async ([storedMessages, snapshot]) => {
           if (!isCurrentLoad()) {
@@ -110,6 +115,17 @@ export function useChatHistory() {
           }
 
           if (storedMessages && storedMessages.messages.length > 0) {
+            if (routeHandoffChatIdRef.current === storedMessages.id && loadedChatIdRef.current === storedMessages.id) {
+              /*
+               * A new chat has just been persisted while its live response is
+               * still running. Keep ChatImpl mounted and retain its live state.
+               */
+              routeHandoffChatIdRef.current = undefined;
+              setReady(true);
+
+              return;
+            }
+
             /*
              * Keyed on the persisted record, not on the route. The effect also
              * re-runs for a rewind or a `?prompt=` navigation within the same
@@ -288,7 +304,7 @@ ${value.content}
 
           setReady(true);
         })
-        .catch((error) => {
+        .catch(async (error) => {
           if (!isCurrentLoad()) {
             return;
           }
@@ -297,10 +313,27 @@ ${value.content}
 
           logStore.logError('Failed to load chat messages or snapshot', error);
           toast.error('Failed to load chat: ' + (error instanceof Error ? error.message : 'Unknown error'));
+
+          try {
+            await serializeFilesystemTransition(async () => {
+              if (isCurrentLoad()) {
+                await workbenchStore.resetWorkbench();
+              }
+            });
+          } catch (resetError) {
+            logStore.logError('Failed to reset the workbench after a chat load error', resetError);
+          }
+
+          if (!isCurrentLoad()) {
+            return;
+          }
+
           loadedChatIdRef.current = undefined;
+          routeHandoffChatIdRef.current = undefined;
           setInitialMessages([]);
           setArchivedMessages([]);
           setChatChanged(true);
+          setUrlId(undefined);
           description.set(undefined);
           chatId.set(undefined);
           chatMetadata.set(undefined);
@@ -312,10 +345,23 @@ ${value.content}
 
       if (leftChat) {
         loadedChatIdRef.current = undefined;
+        setReady(false);
 
-        void serializeFilesystemTransition(() => workbenchStore.resetWorkbench()).catch((error) => {
-          logStore.logError('Failed to empty the workbench', error);
-        });
+        void serializeFilesystemTransition(() => workbenchStore.resetWorkbench())
+          .then(() => {
+            if (isCurrentLoad()) {
+              setReady(true);
+            }
+          })
+          .catch((error) => {
+            logStore.logError('Failed to empty the workbench', error);
+
+            if (isCurrentLoad()) {
+              setReady(true);
+            }
+          });
+      } else {
+        setReady(true);
       }
 
       setChatChanged(leftChat);
@@ -325,7 +371,6 @@ ${value.content}
       description.set(undefined);
       chatId.set(undefined);
       chatMetadata.set(undefined);
-      setReady(true);
     }
 
     return () => {
@@ -392,9 +437,12 @@ ${value.content}
 
       for (const [filePath, value] of entries) {
         if (value?.type === 'file') {
-          await container.fs.writeFile(getContainerPath(filePath), value.content, {
-            encoding: value.isBinary ? undefined : 'utf8',
-          });
+          if (value.isBinary) {
+            const binaryContent = Uint8Array.from(atob(value.content), (character) => character.charCodeAt(0));
+            await container.fs.writeFile(getContainerPath(filePath), binaryContent);
+          } else {
+            await container.fs.writeFile(getContainerPath(filePath), value.content, { encoding: 'utf8' });
+          }
 
           if (!isCurrentLoad()) {
             return;
@@ -407,7 +455,7 @@ ${value.content}
   }, []);
 
   return {
-    ready: !mixedId || ready,
+    ready,
     initialMessages,
     chatChanged,
     updateChatMestaData: async (metadata: IChatMetadata) => {
@@ -463,35 +511,55 @@ ${value.content}
       const creatingNewChat = initialMessages.length === 0 && !chatId.get();
 
       let createdChat: { id: string; urlId?: string } | undefined;
+      let ownsChatCreation = false;
 
       if (creatingNewChat) {
-        createdChat = await createChatWithNextId(
-          db,
-          [...archivedMessages, ...messages],
-          _urlId,
-          description.get(),
-          chatMetadata.get(),
-          Boolean(_urlId),
-        );
+        let creationPromise = pendingChatCreationRef.current;
 
-        const nextId = createdChat.id;
+        if (!creationPromise) {
+          ownsChatCreation = true;
+          creationPromise = createChatWithNextId(
+            db,
+            [...archivedMessages, ...messages],
+            _urlId,
+            description.get(),
+            chatMetadata.get(),
+            Boolean(_urlId),
+          );
+          pendingChatCreationRef.current = creationPromise;
+        }
+
+        try {
+          createdChat = await creationPromise;
+        } finally {
+          if (ownsChatCreation && pendingChatCreationRef.current === creationPromise) {
+            pendingChatCreationRef.current = undefined;
+          }
+        }
+
         _urlId = createdChat.urlId;
 
-        chatId.set(nextId);
+        if (ownsChatCreation) {
+          const nextId = createdChat.id;
+          _urlId = createdChat.urlId;
 
-        /*
-         * Claimed before navigating: the messages on screen already belong to
-         * this chat, so the re-run that the new route triggers must not be read
-         * as a switch away from it.
-         */
-        loadedChatIdRef.current = nextId;
+          chatId.set(nextId);
 
-        navigateChat(_urlId || nextId, navigate);
-        setUrlId(_urlId);
+          /*
+           * Claimed before navigating: the messages on screen already belong to
+           * this chat, so the re-run that the new route triggers must not be read
+           * as a switch away from it.
+           */
+          loadedChatIdRef.current = nextId;
+          routeHandoffChatIdRef.current = nextId;
+
+          navigateChat(_urlId || nextId, navigate);
+          setUrlId(_urlId);
+        }
       }
 
       // Ensure chatId.get() is used for the final setMessages call
-      const finalChatId = chatId.get();
+      const finalChatId = createdChat?.id ?? chatId.get();
 
       if (!finalChatId) {
         console.error('Cannot save messages, chat ID is not set.');
@@ -500,7 +568,7 @@ ${value.content}
         return;
       }
 
-      if (!createdChat) {
+      if (!createdChat || !ownsChatCreation) {
         await setMessages(
           db,
           finalChatId,
