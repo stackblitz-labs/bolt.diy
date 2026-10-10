@@ -1,5 +1,220 @@
 import { StreamingMessageParser, type StreamingMessageParserOptions } from './message-parser';
+import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
+
+const TOOL_CALL_OPEN = '<|tool_call_start|>';
+const TOOL_CALL_CLOSE = '<|tool_call_end|>';
+
+const UNSUPPORTED_TOOL_CALL_NOTICE =
+  'The selected model returned an unsupported tool call instead of a Bolt file action. Choose a model with tool-calling support or ask it to use a Bolt artifact.';
+
+interface TextFileWrite {
+  filePath: string;
+  content: string;
+}
+
+function readQuotedString(source: string, start: number): { value: string; next: number } | undefined {
+  const quote = source[start];
+
+  if (quote !== "'" && quote !== '"') {
+    return undefined;
+  }
+
+  let value = '';
+
+  for (let index = start + 1; index < source.length; index++) {
+    const char = source[index];
+
+    if (char === quote) {
+      return { value, next: index + 1 };
+    }
+
+    if (char !== '\\') {
+      value += char;
+      continue;
+    }
+
+    const escaped = source[++index];
+
+    if (escaped === undefined) {
+      return undefined;
+    }
+
+    const escapes: Record<string, string> = {
+      '0': '\0',
+      b: '\b',
+      f: '\f',
+      n: '\n',
+      r: '\r',
+      t: '\t',
+      v: '\v',
+      '\\': '\\',
+      "'": "'",
+      '"': '"',
+    };
+
+    value += escapes[escaped] ?? escaped;
+  }
+
+  return undefined;
+}
+
+function decodeEscapedText(source: string): string {
+  let value = '';
+
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index];
+
+    if (char !== '\\' || index + 1 >= source.length) {
+      value += char;
+      continue;
+    }
+
+    const escaped = source[++index];
+
+    const escapes: Record<string, string> = {
+      '0': '\0',
+      b: '\b',
+      f: '\f',
+      n: '\n',
+      r: '\r',
+      t: '\t',
+      v: '\v',
+      '\\': '\\',
+      "'": "'",
+      '"': '"',
+    };
+
+    value += escapes[escaped] ?? escaped;
+  }
+
+  return value;
+}
+
+function skipWhitespace(source: string, start: number) {
+  let index = start;
+
+  while (index < source.length && /\s/.test(source[index])) {
+    index++;
+  }
+
+  return index;
+}
+
+function parseWriteCall(source: string, start: number): { write: TextFileWrite; next: number } | undefined {
+  const name = source.slice(start).match(/^write\s*\(/i);
+
+  if (!name) {
+    return undefined;
+  }
+
+  let index = start + name[0].length;
+  let filePath: string | undefined;
+  let content: string | undefined;
+
+  while (index < source.length) {
+    index = skipWhitespace(source, index);
+
+    if (source[index] === ')') {
+      index++;
+      break;
+    }
+
+    const keyMatch = source.slice(index).match(/^([A-Za-z_][\w]*)\s*=/);
+
+    if (!keyMatch) {
+      return undefined;
+    }
+
+    const key = keyMatch[1];
+    index += keyMatch[0].length;
+    index = skipWhitespace(source, index);
+
+    const parsedValue = readQuotedString(source, index);
+
+    if (!parsedValue) {
+      return undefined;
+    }
+
+    if (key === 'filePath' || key === 'path') {
+      filePath = parsedValue.value;
+    } else if (key === 'content') {
+      content = parsedValue.value;
+    }
+
+    index = skipWhitespace(source, parsedValue.next);
+
+    if (source[index] === ',') {
+      index++;
+      continue;
+    }
+
+    if (source[index] === ')') {
+      index++;
+      break;
+    }
+
+    return undefined;
+  }
+
+  if (!filePath || content === undefined || source[index - 1] !== ')') {
+    return undefined;
+  }
+
+  const normalizedPath = normalizeProjectFilePath(filePath);
+
+  if (!normalizedPath) {
+    return undefined;
+  }
+
+  return { write: { filePath: normalizedPath, content }, next: index };
+}
+
+function parseLooseWriteCall(source: string): TextFileWrite | undefined {
+  let block = source.trim();
+
+  if (block.startsWith('[') && block.endsWith(']')) {
+    block = block.slice(1, -1).trim();
+  }
+
+  const call = block.match(/^write\s*\(([\s\S]*)\)\s*$/i);
+
+  if (!call) {
+    return undefined;
+  }
+
+  const body = call[1].trimEnd();
+  const args = body.match(/^\s*(?:filePath|path)\s*=\s*(['"])(.*?)\1\s*,\s*content\s*=\s*(['"])([\s\S]*)\3\s*$/i);
+
+  if (!args) {
+    return undefined;
+  }
+
+  const filePath = normalizeProjectFilePath(args[2]);
+  const content = decodeEscapedText(args[4].slice(0, -1));
+
+  return filePath ? { filePath, content } : undefined;
+}
+
+function normalizeProjectFilePath(filePath: string): string | undefined {
+  const path = filePath.trim().replace(/\\/g, '/');
+  const relative = path.startsWith(`${WORK_DIR}/`) ? path.slice(WORK_DIR.length + 1) : path;
+
+  if (!relative || relative.startsWith('/') || relative.split('/').some((segment) => segment === '..')) {
+    return undefined;
+  }
+
+  const normalized = relative
+    .split('/')
+    .filter((segment) => segment && segment !== '.')
+    .join('/');
+
+  if (!normalized || !/^[A-Za-z0-9_./-]+$/.test(normalized)) {
+    return undefined;
+  }
+
+  return `${WORK_DIR}/${normalized}`;
+}
 
 const logger = createScopedLogger('EnhancedMessageParser');
 
@@ -32,7 +247,9 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
     super(options);
   }
 
-  parse(messageId: string, input: string): string {
+  parse(messageId: string, input: string, isFinal = false): string {
+    input = this._normalizeToolCallText(messageId, input, isFinal);
+
     // First try the normal parsing
     let output = super.parse(messageId, input);
 
@@ -48,6 +265,98 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
     }
 
     return output;
+  }
+
+  private _normalizeToolCallText(messageId: string, input: string, isFinal: boolean): string {
+    let normalized = '';
+    let cursor = 0;
+
+    while (cursor < input.length) {
+      const callStart = input.indexOf(TOOL_CALL_OPEN, cursor);
+
+      if (callStart === -1) {
+        // Hide a marker while it is arriving a few characters at a time.
+        for (let length = Math.min(TOOL_CALL_OPEN.length - 1, input.length - cursor); length > 0; length--) {
+          const suffix = input.slice(-length);
+
+          if (TOOL_CALL_OPEN.startsWith(suffix)) {
+            return (
+              normalized + input.slice(cursor, input.length - length) + (isFinal ? UNSUPPORTED_TOOL_CALL_NOTICE : '')
+            );
+          }
+        }
+
+        return normalized + input.slice(cursor);
+      }
+
+      normalized += input.slice(cursor, callStart);
+
+      const callEnd = input.indexOf(TOOL_CALL_CLOSE, callStart + TOOL_CALL_OPEN.length);
+
+      if (callEnd === -1) {
+        return normalized + (isFinal ? UNSUPPORTED_TOOL_CALL_NOTICE : '');
+      }
+
+      const callBlock = input.slice(callStart + TOOL_CALL_OPEN.length, callEnd);
+      const writes = this._parseWriteCalls(callBlock);
+
+      if (writes.length === 0) {
+        const looseWrite = parseLooseWriteCall(callBlock);
+
+        if (looseWrite) {
+          writes.push(looseWrite);
+        }
+      }
+
+      if (writes.length === 0) {
+        normalized += UNSUPPORTED_TOOL_CALL_NOTICE;
+      } else {
+        for (const write of writes) {
+          normalized += this._writeCallAsArtifact(messageId, write);
+        }
+      }
+
+      cursor = callEnd + TOOL_CALL_CLOSE.length;
+    }
+
+    return normalized;
+  }
+
+  private _parseWriteCalls(callBlock: string): TextFileWrite[] {
+    const writes: TextFileWrite[] = [];
+
+    let index = 0;
+
+    while (index < callBlock.length) {
+      index = skipWhitespace(callBlock, index);
+
+      while (callBlock[index] === '[' || callBlock[index] === ']' || callBlock[index] === ',') {
+        index = skipWhitespace(callBlock, index + 1);
+      }
+
+      if (index >= callBlock.length) {
+        break;
+      }
+
+      const parsedCall = parseWriteCall(callBlock, index);
+
+      if (!parsedCall) {
+        return [];
+      }
+
+      writes.push(parsedCall.write);
+      index = parsedCall.next;
+    }
+
+    return writes;
+  }
+
+  private _writeCallAsArtifact(messageId: string, write: TextFileWrite): string {
+    const artifactId = `tool-write-${messageId}-${this._artifactCounter++}`;
+    const title = write.filePath.split('/').pop() || 'File';
+    const safeContent = write.content.replace(/<\/(boltAction|boltArtifact)\b/gi, '&lt;/$1');
+
+    return `<boltArtifact id="${artifactId}" title="${title}" type="bundled"><boltAction type="file" filePath="${write.filePath}">${safeContent}</boltAction></boltArtifact>`;
   }
 
   private _hasDetectedArtifacts(input: string): boolean {
