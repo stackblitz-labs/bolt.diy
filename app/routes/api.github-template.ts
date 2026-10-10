@@ -1,5 +1,21 @@
 import JSZip from 'jszip';
 
+function decodeTextFile(bytes: Uint8Array): string | null {
+  /*
+   * Starter templates are injected through text-based boltAction tags, so binary
+   * assets cannot be represented safely in this response format.
+   */
+  if (bytes.includes(0)) {
+    return null;
+  }
+
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
 // Function to detect if we're running in Cloudflare
 function isCloudflareEnvironment(context: any): boolean {
   /*
@@ -114,7 +130,13 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
         }
 
         const contentData = (await contentResponse.json()) as any;
-        const content = atob(contentData.content.replace(/\s/g, ''));
+        const binaryContent = atob(contentData.content.replace(/\s/g, ''));
+        const contentBytes = Uint8Array.from(binaryContent, (character) => character.charCodeAt(0));
+        const content = decodeTextFile(contentBytes);
+
+        if (content === null) {
+          return null;
+        }
 
         return {
           name: file.path.split('/').pop() || '',
@@ -206,7 +228,11 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
     }
 
     // Get the file content
-    const content = await zipEntry.async('string');
+    const content = decodeTextFile(await zipEntry.async('uint8array'));
+
+    if (content === null) {
+      return null;
+    }
 
     return {
       name: normalizedPath.split('/').pop() || '',

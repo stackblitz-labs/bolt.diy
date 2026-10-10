@@ -26,7 +26,7 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
     event.preventDefault();
 
     console.log('GitLab connect attempt:', {
-      token: token ? `${token.substring(0, 10)}...` : 'empty',
+      hasToken: Boolean(token),
       gitlabUrl,
       tokenLength: token.length,
     });
@@ -180,9 +180,7 @@ export default function GitLabConnection({ connectionTest, onTestConnection }: G
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    console.log('Manual test:', { token: token ? `${token.substring(0, 10)}...` : 'empty', gitlabUrl })
-                  }
+                  onClick={() => console.log('Manual test:', { hasToken: Boolean(token), gitlabUrl })}
                   className="px-4 py-2 rounded-lg text-sm bg-gray-500 text-white hover:bg-gray-600"
                 >
                   Test Values

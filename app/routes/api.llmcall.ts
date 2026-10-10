@@ -114,6 +114,8 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         env: context.cloudflare?.env as any,
         apiKeys,
         providerSettings,
+        model,
+        provider: providerName,
       });
 
       return new Response(result.textStream, {

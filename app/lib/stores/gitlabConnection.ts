@@ -270,7 +270,6 @@ class GitLabConnectionStore {
       // Log more detailed error information
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('GitLab auto-connect error details:', {
-        token: envToken.substring(0, 10) + '...', // Log first 10 chars for debugging
         error: errorMessage,
       });
 

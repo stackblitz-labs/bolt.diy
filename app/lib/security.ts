@@ -22,8 +22,17 @@ const RATE_LIMITS: Record<string, { windowMs: number; maxRequests: number }> = {
 /**
  * Rate limiting middleware
  */
-export function checkRateLimit(request: Request, endpoint: string): { allowed: boolean; resetTime?: number } {
-  const clientIP = getClientIP(request);
+export function checkRateLimit(
+  request: Request,
+  endpoint: string,
+  context?: unknown,
+): { allowed: boolean; resetTime?: number; unavailable?: boolean } {
+  const clientIP = getTrustedClientIP(request, context);
+
+  if (!clientIP) {
+    return { allowed: false, unavailable: true };
+  }
+
   const key = `${clientIP}:${endpoint}`;
 
   // Find matching rate limit rule: exact match first, then specific prefix, then generic wildcard
@@ -84,14 +93,51 @@ export function checkRateLimit(request: Request, endpoint: string): { allowed: b
 /**
  * Get client IP address from request
  */
-function getClientIP(request: Request): string {
-  // Try various headers that might contain the real IP
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  const realIP = request.headers.get('x-real-ip');
-  const cfConnectingIP = request.headers.get('cf-connecting-ip');
+export function getTrustedClientIP(request: Request, context?: unknown): string | undefined {
+  const runtimeContext = context as
+    { clientAddress?: string; cloudflare?: { ctx?: { waitUntil?: unknown } } } | undefined;
 
-  // Return the first available IP or a fallback
-  return cfConnectingIP || realIP || forwardedFor?.split(',')[0]?.trim() || 'unknown';
+  const adapterClientAddress = runtimeContext?.clientAddress;
+
+  if (adapterClientAddress) {
+    return normalizeIpAddress(adapterClientAddress);
+  }
+
+  const cloudflare = runtimeContext?.cloudflare;
+
+  if (cloudflare?.ctx && typeof cloudflare.ctx.waitUntil === 'function') {
+    return normalizeIpAddress(request.headers.get('cf-connecting-ip'));
+  }
+
+  /*
+   * Only trust this header when an operator has configured a reverse proxy to
+   * overwrite it and blocked direct access to the application origin.
+   */
+  if (process.env.BUG_REPORT_TRUSTED_IP_HEADER === 'x-real-ip') {
+    return normalizeIpAddress(request.headers.get('x-real-ip'));
+  }
+
+  return undefined;
+}
+
+function normalizeIpAddress(value: string | null): string | undefined {
+  const address = value?.trim();
+
+  if (!address || address.includes(',')) {
+    return undefined;
+  }
+
+  const ipv4 = address.split('.');
+
+  if (ipv4.length === 4 && ipv4.every((part) => /^\d{1,3}$/.test(part) && Number(part) >= 0 && Number(part) <= 255)) {
+    return address;
+  }
+
+  try {
+    return new URL(`http://[${address}]/`).hostname.slice(1, -1);
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -210,7 +256,14 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
 
     // Apply rate limiting
     if (options.rateLimit !== false) {
-      const rateLimitResult = checkRateLimit(request, endpoint);
+      const rateLimitResult = checkRateLimit(request, endpoint, args.context);
+
+      if (rateLimitResult.unavailable) {
+        return new Response('Rate limiting requires trusted client IP configuration', {
+          status: 503,
+          headers: createSecurityHeaders(),
+        });
+      }
 
       if (!rateLimitResult.allowed) {
         return new Response('Rate limit exceeded', {

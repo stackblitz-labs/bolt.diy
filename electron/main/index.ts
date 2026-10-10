@@ -124,7 +124,7 @@ declare global {
        * Electron has no Workers bindings, but routes read `context.cloudflare.env`
        * unconditionally, so hand them an empty environment rather than undefined.
        */
-      const result = await handler(req, new BoltRouterContext({} as BoltCloudflare));
+      const result = await handler(req, new BoltRouterContext({} as BoltCloudflare, '127.0.0.1'));
 
       return result;
     } catch (err) {

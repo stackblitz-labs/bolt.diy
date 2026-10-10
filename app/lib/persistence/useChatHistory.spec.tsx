@@ -29,8 +29,7 @@ vi.mock('~/lib/webcontainer', () => ({
 
 vi.mock('./db', () => ({
   openDatabase: vi.fn(async () => ({})),
-  getNextId: vi.fn(async () => '3'),
-  getUrlId: vi.fn(async () => 'chat-new'),
+  createChatWithNextId: vi.fn(async () => ({ id: '3' })),
   setMessages: vi.fn(async () => undefined),
   setSnapshot: vi.fn(async () => undefined),
   duplicateChat: vi.fn(async () => 'dupe'),
@@ -82,7 +81,12 @@ const searchParamsCache = new Map<string, URLSearchParams>();
  * `navigate` is an effect dependency, so it has to keep its identity across
  * renders the way the router's does.
  */
-const navigate = vi.fn();
+const navigate = vi.fn((to: string, options?: { replace?: boolean }) => {
+  if (options?.replace) {
+    window.history.replaceState(window.history.state, '', to);
+  }
+});
+
 const setSearchParams = vi.fn();
 
 vi.mock('react-router', () => ({
@@ -108,9 +112,11 @@ async function importHook() {
 describe('useChatHistory chat switching', () => {
   beforeEach(() => {
     resetWorkbench.mockClear();
+    navigate.mockClear();
     routeId = 'chat-a';
     routeSearch = '';
     searchParamsCache.clear();
+    window.history.replaceState(window.history.state, '', '/');
 
     /*
      * `openDatabase` bails out when there is no indexedDB, which would send the
@@ -197,10 +203,9 @@ describe('useChatHistory chat switching', () => {
   });
 
   /*
-   * Persisting the first exchange of a new chat moves it to /chat/<id> with
-   * history.replaceState, which the router does pick up. The messages, artifacts
-   * and files on screen already belong to that chat, so the re-run it triggers
-   * must not empty them.
+   * Persisting the first exchange of a new chat moves it to /chat/<id>, which the
+   * router picks up. The live chat already owns the in-flight response, so its
+   * route handoff must not reload or replace its messages.
    */
   it('should not reset when the route catches up with the chat just persisted', async () => {
     const useChatHistory = await importHook();
@@ -219,13 +224,15 @@ describe('useChatHistory chat switching', () => {
     });
 
     expect(window.location.pathname).toBe('/chat/3');
+    expect(navigate).toHaveBeenCalledWith('/chat/3', { replace: true });
 
     // The router re-renders now that it can see the new path.
     routeId = '3';
     rerender();
 
-    await waitFor(() => expect(result.current.initialMessages.length).toBeGreaterThan(0));
+    await waitFor(() => expect(result.current.ready).toBe(true));
     expect(resetWorkbench).not.toHaveBeenCalled();
     expect(result.current.chatChanged).toBe(false);
+    expect(result.current.initialMessages).toEqual([]);
   });
 });

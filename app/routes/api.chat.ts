@@ -139,12 +139,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const responseMessageId = generateId();
 
     /*
-     * Counts continuation segments. This used to read SwitchableStream.switches,
+     * Counts model responses, including the initial response. This used to read SwitchableStream.switches,
      * which is only incremented by switchSource() and is never called, so the
      * MAX_RESPONSE_SEGMENTS guard was dead and a model that kept returning
      * finishReason 'length' could recurse without bound.
      */
-    let responseSegments = 0;
+    let responseSegments = 1;
 
     /*
      * Single chunk observer shared by the initial and continuation segments.
