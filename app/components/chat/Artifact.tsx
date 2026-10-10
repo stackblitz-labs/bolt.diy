@@ -5,6 +5,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { createHighlighter, type Highlighter } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { streamingState } from '~/lib/stores/streaming';
 import { classNames } from '~/utils/classNames';
 import { WORK_DIR } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
@@ -212,12 +213,27 @@ export function openArtifactInWorkbench(filePath: any) {
 }
 
 const ActionList = memo(({ actions }: ActionListProps) => {
+  /*
+   * A 'file' action can end up stuck at 'pending'/'running' forever -- e.g. a
+   * response interrupted mid-file (hit a token limit, connection dropped,
+   * client crashed), which never emits the close event that would normally
+   * flip it to 'complete'. Rather than chase every code path that can leave an
+   * action in that state, guard it at render time: never show a spinner for a
+   * 'file' action once nothing is actually streaming, regardless of what its
+   * stored status says. 'start'/'shell' are excluded -- those can legitimately
+   * keep running well after the text stream ends (e.g. a real in-progress
+   * `npm install`).
+   */
+  const isStreaming = useStore(streamingState);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
       <ul className="list-none space-y-2.5">
         {actions.map((action, index) => {
-          const { status, type, content } = action;
+          const { type, content } = action;
           const isLast = index === actions.length - 1;
+          const isStuck = !isStreaming && type === 'file' && (action.status === 'pending' || action.status === 'running');
+          const status = isStuck ? 'aborted' : action.status;
 
           return (
             <motion.li
@@ -231,7 +247,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
               }}
             >
               <div className="flex items-center gap-1.5 text-sm">
-                <div className={classNames('text-lg', getIconColor(action.status))}>
+                <div className={classNames('text-lg', getIconColor(status))}>
                   {status === 'running' ? (
                     <>
                       {type !== 'start' ? (
