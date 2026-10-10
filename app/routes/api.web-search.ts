@@ -1,106 +1,78 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { isAllowedUrl } from '~/utils/url';
+import { fetchPageContent } from '~/lib/.server/web-search/fetch-page';
+import { searchWeb, type WebSearchEnv } from '~/lib/.server/web-search/search';
+import { WebSearchError } from '~/lib/.server/web-search/types';
 
-const MAX_CONTENT_LENGTH = 8000;
-
-const FETCH_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5',
-};
-
-function extractTitle(html: string): string {
-  const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  return match ? match[1].trim() : '';
+interface WebSearchRequestBody {
+  url?: unknown;
+  query?: unknown;
+  maxResults?: unknown;
 }
 
-function extractMetaDescription(html: string): string {
-  const match = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+/*
+ * Search provider keys come from the server environment only (Cloudflare
+ * bindings first, then .env.local via process.env) so they never reach the
+ * browser.
+ */
+function getSearchEnv(context: ActionFunctionArgs['context']): WebSearchEnv {
+  const cloudflareEnv: Partial<Env> = context?.cloudflare?.env ?? {};
+  const processEnv = typeof process !== 'undefined' ? process.env : {};
 
-  if (match) {
-    return match[1].trim();
-  }
+  // Empty strings (e.g. `TAVILY_API_KEY=` copied from .env.example) count as unset
+  const pick = (key: 'WEB_SEARCH_PROVIDER' | 'TAVILY_API_KEY' | 'BRAVE_SEARCH_API_KEY') =>
+    cloudflareEnv[key]?.trim() || processEnv[key]?.trim() || undefined;
 
-  // Try reverse attribute order
-  const altMatch = html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["'][^>]*>/i);
-
-  return altMatch ? altMatch[1].trim() : '';
+  return {
+    WEB_SEARCH_PROVIDER: pick('WEB_SEARCH_PROVIDER'),
+    TAVILY_API_KEY: pick('TAVILY_API_KEY'),
+    BRAVE_SEARCH_API_KEY: pick('BRAVE_SEARCH_API_KEY'),
+  };
 }
 
-function extractTextContent(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-    .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, ' ')
-    .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, ' ')
-    .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-export async function action({ request }: ActionFunctionArgs) {
+/**
+ * POST /api/web-search
+ *
+ * - `{ url }`   fetches a single public page and returns its readable content.
+ * - `{ query }` runs a web search and returns a list of results.
+ */
+export async function action({ request, context }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
     return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
+  let body: WebSearchRequestBody;
+
   try {
-    const { url } = (await request.json()) as { url?: string };
+    body = (await request.json()) as WebSearchRequestBody;
+  } catch {
+    return Response.json({ error: 'Request body must be valid JSON' }, { status: 400 });
+  }
 
-    if (!url || typeof url !== 'string') {
-      return Response.json({ error: 'URL is required' }, { status: 400 });
+  try {
+    if (typeof body?.url === 'string' && body.url.trim()) {
+      const data = await fetchPageContent(body.url.trim());
+      return Response.json({ success: true, type: 'page', data });
     }
 
-    if (!isAllowedUrl(url)) {
-      return Response.json({ error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' }, { status: 400 });
+    if (typeof body?.query === 'string' && body.query.trim()) {
+      const maxResults = typeof body.maxResults === 'number' ? body.maxResults : undefined;
+      const data = await searchWeb(body.query, getSearchEnv(context), { maxResults });
+
+      return Response.json({ success: true, type: 'search', data });
     }
 
-    const response = await fetch(url, {
-      headers: FETCH_HEADERS,
-      signal: AbortSignal.timeout(10_000),
-    });
-
-    if (!response.ok) {
-      return Response.json(
-        { error: `Failed to fetch URL: ${response.status} ${response.statusText}` },
-        { status: 502 },
-      );
-    }
-
-    const contentType = response.headers.get('content-type') || '';
-
-    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
-      return Response.json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
-    }
-
-    const html = await response.text();
-    const title = extractTitle(html);
-    const description = extractMetaDescription(html);
-    const content = extractTextContent(html);
-
-    return Response.json({
-      success: true,
-      data: {
-        title,
-        description,
-        content: content.length > MAX_CONTENT_LENGTH ? content.slice(0, MAX_CONTENT_LENGTH) + '...' : content,
-        sourceUrl: url,
-      },
-    });
+    return Response.json({ error: 'A URL or search query is required' }, { status: 400 });
   } catch (error) {
+    if (error instanceof WebSearchError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+
     if (error instanceof DOMException && error.name === 'TimeoutError') {
       return Response.json({ error: 'Request timed out after 10 seconds' }, { status: 504 });
     }
 
     console.error('Web search error:', error);
 
-    return Response.json({ error: error instanceof Error ? error.message : 'Failed to fetch URL' }, { status: 500 });
+    return Response.json({ error: 'Web search failed' }, { status: 500 });
   }
 }

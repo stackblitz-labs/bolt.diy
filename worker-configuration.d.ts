@@ -19,4 +19,7 @@ interface Env {
   XAI_API_KEY: string;
   PERPLEXITY_API_KEY: string;
   AWS_BEDROCK_CONFIG: string;
+  TAVILY_API_KEY?: string;
+  BRAVE_SEARCH_API_KEY?: string;
+  WEB_SEARCH_PROVIDER?: string;
 }
