@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import type { ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
+import { getTrustedClientIP } from '~/lib/security';
 
 // Rate limiting store (in production, use Redis or similar)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -60,15 +61,6 @@ function checkRateLimit(ip: string): boolean {
   rateLimitStore.set(key, limit);
 
   return true;
-}
-
-// Get client IP address
-function getClientIP(request: Request): string {
-  const cfConnectingIP = request.headers.get('cf-connecting-ip');
-  const xForwardedFor = request.headers.get('x-forwarded-for');
-  const xRealIP = request.headers.get('x-real-ip');
-
-  return cfConnectingIP || xForwardedFor?.split(',')[0] || xRealIP || 'unknown';
 }
 
 // Basic spam detection
@@ -149,7 +141,14 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   try {
     // Rate limiting
-    const clientIP = getClientIP(request);
+    const clientIP = getTrustedClientIP(request, context);
+
+    if (!clientIP) {
+      return Response.json(
+        { error: 'Bug reporting is unavailable because trusted client IP forwarding is not configured.' },
+        { status: 503 },
+      );
+    }
 
     if (!checkRateLimit(clientIP)) {
       return Response.json(

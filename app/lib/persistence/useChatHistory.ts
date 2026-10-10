@@ -1,7 +1,7 @@
 import { generateId, type UIMessage } from 'ai';
 import { atom } from 'nanostores';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useLoaderData, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useLoaderData, useNavigate, useParams, useSearchParams, type NavigateFunction } from 'react-router';
 import { toast } from 'react-toastify';
 import { getCachedMessages, getCachedSnapshot, invalidateChatCache } from './chatCache';
 import {
@@ -40,6 +40,19 @@ export const db = persistenceEnabled ? await openDatabase() : undefined;
 export const chatId = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
 export const chatMetadata = atom<IChatMetadata | undefined>(undefined);
+
+let filesystemTransitionQueue: Promise<void> = Promise.resolve();
+
+function serializeFilesystemTransition<T>(operation: () => Promise<T>): Promise<T> {
+  const transition = filesystemTransitionQueue.then(operation, operation);
+  filesystemTransitionQueue = transition.then(
+    () => undefined,
+    () => undefined,
+  );
+
+  return transition;
+}
+
 export function useChatHistory() {
   const navigate = useNavigate();
   const { id: paramId } = useParams<{ id?: string }>();
@@ -66,8 +79,12 @@ export function useChatHistory() {
    * which the router does pick up. That re-run is not a switch.
    */
   const loadedChatIdRef = useRef<string | undefined>(undefined);
+  const loadGenerationRef = useRef(0);
 
   useEffect(() => {
+    const generation = ++loadGenerationRef.current;
+    const isCurrentLoad = () => loadGenerationRef.current === generation;
+
     if (!db) {
       setReady(true);
 
@@ -77,12 +94,21 @@ export function useChatHistory() {
         toast.error('Chat persistence is unavailable');
       }
 
-      return;
+      return () => {
+        if (isCurrentLoad()) {
+          loadGenerationRef.current++;
+        }
+      };
     }
 
     if (mixedId) {
+      setReady(false);
       Promise.all([getCachedMessages(db, mixedId), getCachedSnapshot(db, mixedId)])
         .then(async ([storedMessages, snapshot]) => {
+          if (!isCurrentLoad()) {
+            return;
+          }
+
           if (storedMessages && storedMessages.messages.length > 0) {
             /*
              * Keyed on the persisted record, not on the route. The effect also
@@ -90,7 +116,6 @@ export function useChatHistory() {
              * chat, and those must not empty the project.
              */
             const switchedChat = loadedChatIdRef.current !== storedMessages.id;
-            loadedChatIdRef.current = storedMessages.id;
 
             /*
              * Emptied before anything of the incoming chat is written, so the
@@ -98,7 +123,11 @@ export function useChatHistory() {
              * chats.
              */
             if (switchedChat) {
-              await workbenchStore.resetWorkbench();
+              await serializeFilesystemTransition(() => workbenchStore.resetWorkbench());
+
+              if (!isCurrentLoad()) {
+                return;
+              }
             }
 
             /*
@@ -133,8 +162,6 @@ export function useChatHistory() {
               archivedMessages = storedMessages.messages.slice(0, startingIdx + 1);
             }
 
-            setArchivedMessages(archivedMessages);
-
             if (startingIdx > 0) {
               const files = Object.entries(validSnapshot?.files || {})
                 .map(([key, value]) => {
@@ -150,6 +177,10 @@ export function useChatHistory() {
                 .filter((x): x is { content: string; path: string } => !!x); // Type assertion
 
               const projectCommands = await detectProjectCommands(files);
+
+              if (!isCurrentLoad()) {
+                return;
+              }
 
               // Call the modified function to get only the command actions string
               const commandActionsString = createCommandActionsString(projectCommands);
@@ -231,9 +262,19 @@ ${value.content}
 
                 ...filteredMessages,
               ];
-              restoreSnapshot(mixedId, validSnapshot);
+              await restoreSnapshot(validSnapshot, isCurrentLoad);
+
+              if (!isCurrentLoad()) {
+                return;
+              }
             }
 
+            if (!isCurrentLoad()) {
+              return;
+            }
+
+            loadedChatIdRef.current = storedMessages.id;
+            setArchivedMessages(archivedMessages);
             setChatChanged(switchedChat);
             setInitialMessages(filteredMessages);
 
@@ -248,10 +289,22 @@ ${value.content}
           setReady(true);
         })
         .catch((error) => {
+          if (!isCurrentLoad()) {
+            return;
+          }
+
           console.error(error);
 
-          logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
-          toast.error('Failed to load chat: ' + error.message); // More specific error
+          logStore.logError('Failed to load chat messages or snapshot', error);
+          toast.error('Failed to load chat: ' + (error instanceof Error ? error.message : 'Unknown error'));
+          loadedChatIdRef.current = undefined;
+          setInitialMessages([]);
+          setArchivedMessages([]);
+          setChatChanged(true);
+          description.set(undefined);
+          chatId.set(undefined);
+          chatMetadata.set(undefined);
+          setReady(true);
         });
     } else {
       // Clean reset when switching to a fresh chat (e.g., /)
@@ -260,7 +313,7 @@ ${value.content}
       if (leftChat) {
         loadedChatIdRef.current = undefined;
 
-        void workbenchStore.resetWorkbench().catch((error) => {
+        void serializeFilesystemTransition(() => workbenchStore.resetWorkbench()).catch((error) => {
           logStore.logError('Failed to empty the workbench', error);
         });
       }
@@ -274,6 +327,12 @@ ${value.content}
       chatMetadata.set(undefined);
       setReady(true);
     }
+
+    return () => {
+      if (isCurrentLoad()) {
+        loadGenerationRef.current++;
+      }
+    };
   }, [mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
 
   const takeSnapshot = useCallback(
@@ -301,37 +360,50 @@ ${value.content}
     [db],
   );
 
-  const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
-    // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
-    const container = await webcontainer;
+  const restoreSnapshot = useCallback(async (snapshot?: Snapshot, isCurrentLoad: () => boolean = () => true) => {
+    await serializeFilesystemTransition(async () => {
+      // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
+      const container = await webcontainer;
 
-    const validSnapshot = snapshot || { chatIndex: '', files: {} };
-
-    if (!validSnapshot?.files) {
-      return;
-    }
-
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (key.startsWith(container.workdir)) {
-        key = key.replace(container.workdir, '');
+      if (!isCurrentLoad()) {
+        return;
       }
 
-      if (value?.type === 'folder') {
-        await container.fs.mkdir(key, { recursive: true });
+      const validSnapshot = snapshot || { chatIndex: '', files: {} };
+
+      if (!validSnapshot?.files) {
+        return;
       }
-    });
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (value?.type === 'file') {
-        if (key.startsWith(container.workdir)) {
-          key = key.replace(container.workdir, '');
+
+      const entries = Object.entries(validSnapshot.files);
+
+      const getContainerPath = (filePath: string) =>
+        filePath.startsWith(container.workdir) ? filePath.slice(container.workdir.length) : filePath;
+
+      for (const [filePath, value] of entries) {
+        if (value?.type === 'folder') {
+          await container.fs.mkdir(getContainerPath(filePath), { recursive: true });
+
+          if (!isCurrentLoad()) {
+            return;
+          }
         }
-
-        await container.fs.writeFile(key, value.content, { encoding: value.isBinary ? undefined : 'utf8' });
-      } else {
       }
-    });
 
-    // workbenchStore.files.setKey(snapshot?.files)
+      for (const [filePath, value] of entries) {
+        if (value?.type === 'file') {
+          await container.fs.writeFile(getContainerPath(filePath), value.content, {
+            encoding: value.isBinary ? undefined : 'utf8',
+          });
+
+          if (!isCurrentLoad()) {
+            return;
+          }
+        }
+      }
+
+      // workbenchStore.files.setKey(snapshot?.files)
+    });
   }, []);
 
   return {
@@ -414,7 +486,7 @@ ${value.content}
          */
         loadedChatIdRef.current = nextId;
 
-        navigateChat(_urlId || nextId);
+        navigateChat(_urlId || nextId, navigate);
         setUrlId(_urlId);
       }
 
@@ -507,14 +579,9 @@ ${value.content}
   };
 }
 
-function navigateChat(nextId: string) {
-  /**
-   * FIXME: Using the intended navigate function causes a rerender for <Chat /> that breaks the app.
-   *
-   * `navigate(`/chat/${nextId}`, { replace: true });`
-   */
+function navigateChat(nextId: string, navigate: NavigateFunction) {
   const url = new URL(window.location.href);
   url.pathname = `/chat/${nextId}`;
 
-  window.history.replaceState({}, '', url);
+  navigate(`${url.pathname}${url.search}${url.hash}`, { replace: true });
 }

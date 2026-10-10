@@ -81,7 +81,12 @@ const searchParamsCache = new Map<string, URLSearchParams>();
  * `navigate` is an effect dependency, so it has to keep its identity across
  * renders the way the router's does.
  */
-const navigate = vi.fn();
+const navigate = vi.fn((to: string, options?: { replace?: boolean }) => {
+  if (options?.replace) {
+    window.history.replaceState(window.history.state, '', to);
+  }
+});
+
 const setSearchParams = vi.fn();
 
 vi.mock('react-router', () => ({
@@ -107,9 +112,11 @@ async function importHook() {
 describe('useChatHistory chat switching', () => {
   beforeEach(() => {
     resetWorkbench.mockClear();
+    navigate.mockClear();
     routeId = 'chat-a';
     routeSearch = '';
     searchParamsCache.clear();
+    window.history.replaceState(window.history.state, '', '/');
 
     /*
      * `openDatabase` bails out when there is no indexedDB, which would send the
@@ -218,6 +225,7 @@ describe('useChatHistory chat switching', () => {
     });
 
     expect(window.location.pathname).toBe('/chat/3');
+    expect(navigate).toHaveBeenCalledWith('/chat/3', { replace: true });
 
     // The router re-renders now that it can see the new path.
     routeId = '3';

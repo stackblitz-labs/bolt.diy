@@ -86,6 +86,8 @@ export async function streamText(props: {
   apiKeys?: Record<string, string>;
   files?: FileMap;
   providerSettings?: Record<string, IProviderSetting>;
+  model?: string;
+  provider?: string;
   promptId?: string;
   contextOptimization?: boolean;
   contextFiles?: FileMap;
@@ -117,16 +119,22 @@ export async function streamText(props: {
     onChunk,
   } = props;
 
-  let currentModel = DEFAULT_MODEL;
-  let currentProvider = DEFAULT_PROVIDER.name;
+  let currentModel = props.model ?? DEFAULT_MODEL;
+  let currentProvider = props.provider ?? DEFAULT_PROVIDER.name;
 
   let processedMessages = messages.map((message) => {
     const newMessage = { ...message } as Record<string, any>;
 
     if (message.role === 'user') {
       const { model, provider } = extractPropertiesFromMessage(message);
-      currentModel = model;
-      currentProvider = provider;
+
+      if (!props.model) {
+        currentModel = model;
+      }
+
+      if (!props.provider) {
+        currentProvider = provider;
+      }
     }
 
     /*
