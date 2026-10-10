@@ -29,8 +29,7 @@ vi.mock('~/lib/webcontainer', () => ({
 
 vi.mock('./db', () => ({
   openDatabase: vi.fn(async () => ({})),
-  getNextId: vi.fn(async () => '3'),
-  getUrlId: vi.fn(async () => 'chat-new'),
+  createChatWithNextId: vi.fn(async () => ({ id: '3' })),
   setMessages: vi.fn(async () => undefined),
   setSnapshot: vi.fn(async () => undefined),
   duplicateChat: vi.fn(async () => 'dupe'),

@@ -247,7 +247,17 @@ export async function streamText(props: {
       ---
       `;
 
-      processedMessages = pruneMessages({ messages: processedMessages } as any);
+      /*
+       * The summary replaces older conversation history. Keep only the recent
+       * turns that the context optimizer selected, while pruning empty parts.
+       * A zero slice ID means no cutoff was selected, so keep only the latest
+       * message because the summary carries the earlier context.
+       */
+      const recentMessages =
+        props.messageSliceId && props.messageSliceId > 0
+          ? processedMessages.slice(props.messageSliceId)
+          : processedMessages.slice(-1);
+      processedMessages = pruneMessages({ messages: recentMessages as ModelMessage[] });
     }
   }
 

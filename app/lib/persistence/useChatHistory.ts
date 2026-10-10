@@ -7,12 +7,11 @@ import { getCachedMessages, getCachedSnapshot, invalidateChatCache } from './cha
 import {
   getMessagesByIdRaw,
   getMessagesByUrlIdRaw,
-  getNextId,
-  getUrlId,
   openDatabase,
   setMessages,
   duplicateChat,
   createChatFromMessages,
+  createChatWithNextId,
   setSnapshot,
   type IChatMetadata,
 } from './db';
@@ -365,10 +364,7 @@ ${value.content}
       let _urlId = urlId;
 
       if (!urlId && firstArtifact?.id) {
-        const urlId = await getUrlId(db, firstArtifact.id);
-        _urlId = urlId;
-        navigateChat(urlId);
-        setUrlId(urlId);
+        _urlId = firstArtifact.id;
       }
 
       let chatSummary: string | undefined = undefined;
@@ -392,8 +388,22 @@ ${value.content}
       }
 
       // Ensure chatId.get() is used here as well
-      if (initialMessages.length === 0 && !chatId.get()) {
-        const nextId = await getNextId(db);
+      const creatingNewChat = initialMessages.length === 0 && !chatId.get();
+
+      let createdChat: { id: string; urlId?: string } | undefined;
+
+      if (creatingNewChat) {
+        createdChat = await createChatWithNextId(
+          db,
+          [...archivedMessages, ...messages],
+          _urlId,
+          description.get(),
+          chatMetadata.get(),
+          Boolean(_urlId),
+        );
+
+        const nextId = createdChat.id;
+        _urlId = createdChat.urlId;
 
         chatId.set(nextId);
 
@@ -404,9 +414,8 @@ ${value.content}
          */
         loadedChatIdRef.current = nextId;
 
-        if (!urlId) {
-          navigateChat(nextId);
-        }
+        navigateChat(_urlId || nextId);
+        setUrlId(_urlId);
       }
 
       // Ensure chatId.get() is used for the final setMessages call
@@ -419,15 +428,17 @@ ${value.content}
         return;
       }
 
-      await setMessages(
-        db,
-        finalChatId, // Use the potentially updated chatId
-        [...archivedMessages, ...messages],
-        urlId,
-        description.get(),
-        undefined,
-        chatMetadata.get(),
-      );
+      if (!createdChat) {
+        await setMessages(
+          db,
+          finalChatId,
+          [...archivedMessages, ...messages],
+          _urlId,
+          description.get(),
+          undefined,
+          chatMetadata.get(),
+        );
+      }
 
       invalidateChatCache(finalChatId);
 

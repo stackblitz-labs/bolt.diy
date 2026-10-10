@@ -202,18 +202,67 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
   });
 }
 
-export async function getNextId(db: IDBDatabase): Promise<string> {
+/**
+ * Allocate the next numeric chat ID and persist the chat in one readwrite
+ * transaction. IndexedDB serializes overlapping readwrite transactions, so a
+ * concurrent creator observes the ID written by the previous transaction.
+ */
+export async function createChatWithNextId(
+  db: IDBDatabase,
+  messages: UIMessage[],
+  urlId?: string,
+  description?: string,
+  metadata?: IChatMetadata,
+  ensureUrlId = false,
+): Promise<{ id: string; urlId?: string }> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction('chats', 'readonly');
+    const transaction = db.transaction('chats', 'readwrite');
     const store = transaction.objectStore('chats');
-    const request = store.getAllKeys();
+
+    let created: { id: string; urlId?: string } | undefined;
+
+    const request = store.getAll();
 
     request.onsuccess = () => {
-      const highestId = request.result.reduce((cur, acc) => Math.max(+cur, +acc), 0);
-      resolve(String(+highestId + 1));
-    };
+      const chats = request.result as ChatHistoryItem[];
+      const highestId = chats.reduce((max, chat) => Math.max(max, Number(chat.id) || 0), 0);
+      const id = String(highestId + 1);
 
+      let finalUrlId = urlId;
+
+      if (ensureUrlId) {
+        const baseUrlId = urlId || id;
+        const usedUrlIds = new Set(chats.map((chat) => chat.urlId).filter(Boolean));
+        finalUrlId = baseUrlId;
+
+        let suffix = 2;
+
+        while (usedUrlIds.has(finalUrlId)) {
+          finalUrlId = `${baseUrlId}-${suffix++}`;
+        }
+      }
+
+      store.add({
+        id,
+        messages,
+        urlId: finalUrlId,
+        description,
+        timestamp: new Date().toISOString(),
+        metadata,
+      });
+      created = { id, urlId: finalUrlId };
+    };
     request.onerror = () => reject(request.error);
+
+    transaction.oncomplete = () => {
+      if (created) {
+        resolve(created);
+      } else {
+        reject(new Error('Chat creation transaction completed without creating a chat'));
+      }
+    };
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error('Chat creation was aborted'));
   });
 }
 
@@ -294,20 +343,9 @@ export async function createChatFromMessages(
   messages: UIMessage[],
   metadata?: IChatMetadata,
 ): Promise<string> {
-  const newId = await getNextId(db);
-  const newUrlId = await getUrlId(db, newId); // Get a new urlId for the duplicated chat
+  const created = await createChatWithNextId(db, messages, undefined, description, metadata, true);
 
-  await setMessages(
-    db,
-    newId,
-    messages,
-    newUrlId, // Use the new urlId
-    description,
-    undefined, // Use the current timestamp
-    metadata,
-  );
-
-  return newUrlId; // Return the urlId instead of id for navigation
+  return created.urlId!;
 }
 
 export async function updateChatDescription(db: IDBDatabase, id: string, description: string): Promise<void> {
