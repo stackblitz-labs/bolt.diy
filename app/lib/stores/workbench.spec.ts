@@ -108,12 +108,12 @@ describe('WorkbenchStore.selectWorkbenchView', () => {
     expect(store.userSelectedView.get()).toBe('diff');
   });
 
-  it('should reset userSelectedView when resetWorkbench() is called', () => {
+  it('should reset userSelectedView when resetWorkbench() is called', async () => {
     store.selectWorkbenchView('diff', { userInitiated: true });
     expect(store.userSelectedView.get()).toBe('diff');
 
     store.showWorkbench.set(false);
-    store.resetWorkbench();
+    await store.resetWorkbench();
     expect(store.userSelectedView.get()).toBeUndefined();
     expect(store.currentView.get()).toBe('code');
     expect(store.showWorkbench.get()).toBe(true);

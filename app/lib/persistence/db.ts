@@ -111,8 +111,10 @@ export async function setMessages(
       metadata,
     });
 
-    request.onsuccess = () => resolve();
+    transaction.oncomplete = () => resolve();
     request.onerror = () => reject(request.error);
+    transaction.onerror = () => reject(transaction.error || request.error);
+    transaction.onabort = () => reject(transaction.error || new Error('Chat message save was aborted'));
   });
 }
 
@@ -432,8 +434,10 @@ export async function setSnapshot(db: IDBDatabase, chatId: string, snapshot: Sna
     const store = transaction.objectStore('snapshots');
     const request = store.put({ chatId, snapshot });
 
-    request.onsuccess = () => resolve();
+    transaction.oncomplete = () => resolve();
     request.onerror = () => reject(request.error);
+    transaction.onerror = () => reject(transaction.error || request.error);
+    transaction.onabort = () => reject(transaction.error || new Error('Chat snapshot save was aborted'));
   });
 }
 

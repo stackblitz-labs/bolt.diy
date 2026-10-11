@@ -17,7 +17,6 @@ import type { ITerminal } from '~/types/terminal';
 import { extractRelativePath } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
 import { path } from '~/utils/path';
-import { createSampler } from '~/utils/sampler';
 import { unreachable } from '~/utils/unreachable';
 
 const { saveAs } = fileSaver;
@@ -69,6 +68,12 @@ export class WorkbenchStore {
   artifactIdList: string[] = [];
   #globalExecutionQueue = Promise.resolve();
   #fileActionQueue = Promise.resolve();
+  #actionGeneration = 0;
+  #inFlightActionTasks = new Set<Promise<void>>();
+  #pendingStreamActions = new Map<
+    string,
+    { data: ActionCallbackData; generation: number; timer: ReturnType<typeof setTimeout> }
+  >();
   constructor() {
     if (import.meta.hot) {
       import.meta.hot.data.artifacts = this.artifacts;
@@ -105,7 +110,38 @@ export class WorkbenchStore {
   }
 
   waitForExecutionQueue() {
-    return this.#globalExecutionQueue;
+    return this.#waitForAllActions();
+  }
+
+  async #waitForAllActions() {
+    while (true) {
+      await this.#globalExecutionQueue;
+      this.#flushPendingStreamActions();
+
+      const inFlightActions = [...this.#inFlightActionTasks];
+
+      if (inFlightActions.length > 0) {
+        await Promise.allSettled(inFlightActions);
+        continue;
+      }
+
+      if (this.#pendingStreamActions.size === 0) {
+        return;
+      }
+    }
+  }
+
+  #flushPendingStreamActions() {
+    for (const [actionId, pending] of this.#pendingStreamActions) {
+      clearTimeout(pending.timer);
+      this.#pendingStreamActions.delete(actionId);
+
+      if (pending.generation === this.#actionGeneration) {
+        void this.#trackAction(pending.data, true, pending.generation).catch((error) => {
+          logger.error('Streamed action failed', error);
+        });
+      }
+    }
   }
 
   async waitForFileActions() {
@@ -180,6 +216,20 @@ export class WorkbenchStore {
    * chat only starts writing once the outgoing project is gone.
    */
   async resetWorkbench() {
+    /*
+     * Invalidate streamed callbacks immediately, then let any filesystem work
+     * already in progress finish before clearing the container.
+     */
+    this.#actionGeneration++;
+
+    for (const pending of this.#pendingStreamActions.values()) {
+      clearTimeout(pending.timer);
+    }
+
+    this.#pendingStreamActions.clear();
+
+    await this.waitForExecutionQueue();
+
     this.artifacts.set({});
     this.artifactIdList = [];
     this.showWorkbench.set(true);
@@ -630,17 +680,55 @@ export class WorkbenchStore {
   }
 
   runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+    const generation = this.#actionGeneration;
+    const streamKey = `${data.artifactId}:${data.actionId}`;
+
     if (isStreaming) {
-      this.actionStreamSampler(data, isStreaming);
+      const pending = this.#pendingStreamActions.get(streamKey);
+
+      if (pending) {
+        clearTimeout(pending.timer);
+      }
+
+      const timer = setTimeout(() => {
+        this.#pendingStreamActions.delete(streamKey);
+
+        if (generation === this.#actionGeneration) {
+          void this.#trackAction(data, true, generation).catch((error) => {
+            logger.error('Streamed action failed', error);
+          });
+        }
+      }, 100);
+
+      this.#pendingStreamActions.set(streamKey, { data, generation, timer });
     } else {
-      const queuedAction = this.addToExecutionQueue(() => this._runAction(data, isStreaming));
+      const queuedAction = this.addToExecutionQueue(() => this.#trackAction(data, isStreaming, generation));
 
       if (data.action.type === 'file') {
         this.#fileActionQueue = queuedAction;
       }
     }
   }
-  async _runAction(data: ActionCallbackData, isStreaming: boolean = false) {
+  async #trackAction(data: ActionCallbackData, isStreaming: boolean, generation: number) {
+    if (generation !== this.#actionGeneration) {
+      return;
+    }
+
+    const task = this._runAction(data, isStreaming, generation);
+    this.#inFlightActionTasks.add(task);
+
+    try {
+      await task;
+    } finally {
+      this.#inFlightActionTasks.delete(task);
+    }
+  }
+
+  async _runAction(data: ActionCallbackData, isStreaming: boolean = false, generation = this.#actionGeneration) {
+    if (generation !== this.#actionGeneration) {
+      return;
+    }
+
     const { artifactId } = data;
 
     const artifact = this.#getArtifact(artifactId);
@@ -666,7 +754,20 @@ export class WorkbenchStore {
       }
 
       const wc = await webcontainer;
-      const fullPath = path.join(wc.workdir, data.action.filePath);
+
+      if (generation !== this.#actionGeneration) {
+        return;
+      }
+
+      const fullPath = path.isAbsolute(data.action.filePath)
+        ? path.normalize(data.action.filePath)
+        : path.join(wc.workdir, data.action.filePath);
+
+      const relativePath = path.relative(wc.workdir, fullPath);
+
+      if (relativePath === '..' || relativePath.startsWith('../') || path.isAbsolute(relativePath)) {
+        throw new Error(`Cannot update file outside the project directory: ${data.action.filePath}`);
+      }
 
       /*
        * For scoped locks, we would need to implement diff checking here
@@ -686,12 +787,20 @@ export class WorkbenchStore {
 
       if (!doc) {
         await artifact.runner.runAction(data, isStreaming);
+
+        if (generation !== this.#actionGeneration) {
+          return;
+        }
       }
 
       this.#editorStore.updateFile(fullPath, data.action.content);
 
       if (!isStreaming && data.action.content) {
         await this.saveFile(fullPath);
+
+        if (generation !== this.#actionGeneration) {
+          return;
+        }
       }
 
       if (!isStreaming) {
@@ -702,10 +811,6 @@ export class WorkbenchStore {
       await artifact.runner.runAction(data);
     }
   }
-
-  actionStreamSampler = createSampler(async (data: ActionCallbackData, isStreaming: boolean = false) => {
-    return await this._runAction(data, isStreaming);
-  }, 100); // TODO: remove this magic number to have it configurable
 
   #getArtifact(id: string) {
     const artifacts = this.artifacts.get();

@@ -596,6 +596,12 @@ export class FilesStore {
         unreachable('Expected content to be defined');
       }
 
+      const parentPath = path.dirname(relativePath);
+
+      if (parentPath !== '.') {
+        await webcontainer.fs.mkdir(parentPath, { recursive: true });
+      }
+
       await webcontainer.fs.writeFile(relativePath, content);
 
       if (!this.#modifiedFiles.has(filePath)) {

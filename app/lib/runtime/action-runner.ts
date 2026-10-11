@@ -336,7 +336,19 @@ export class ActionRunner {
     }
 
     const webcontainer = await this.#webcontainer;
-    const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
+
+    const relativePath = nodePath.isAbsolute(action.filePath)
+      ? nodePath.relative(webcontainer.workdir, action.filePath)
+      : nodePath.normalize(action.filePath);
+
+    if (
+      relativePath === '.' ||
+      relativePath === '..' ||
+      relativePath.startsWith('../') ||
+      nodePath.isAbsolute(relativePath)
+    ) {
+      throw new Error(`Cannot write file outside the project directory: ${action.filePath}`);
+    }
 
     let folder = nodePath.dirname(relativePath);
 
@@ -349,6 +361,7 @@ export class ActionRunner {
         logger.debug('Created folder', folder);
       } catch (error) {
         logger.error('Failed to create folder\n\n', error);
+        throw error;
       }
     }
 
@@ -357,6 +370,7 @@ export class ActionRunner {
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
+      throw error;
     }
   }
 

@@ -1,6 +1,6 @@
 import { generateId, type UIMessage } from 'ai';
 import { atom } from 'nanostores';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useLoaderData, useNavigate, useParams, useSearchParams, type NavigateFunction } from 'react-router';
 import { toast } from 'react-toastify';
 import { getCachedMessages, getCachedSnapshot, invalidateChatCache } from './chatCache';
@@ -83,6 +83,16 @@ export function useChatHistory() {
   const routeHandoffChatIdRef = useRef<string | undefined>(undefined);
   const pendingChatCreationRef = useRef<Promise<{ id: string; urlId?: string }> | undefined>(undefined);
   const pendingChatNavigationRef = useRef<{ id: string; urlId?: string } | undefined>(undefined);
+  const messageHistoryQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const messageHistoryGenerationRef = useRef(0);
+  const persistenceRouteRef = useRef(mixedId);
+
+  useLayoutEffect(() => {
+    if (persistenceRouteRef.current !== mixedId) {
+      persistenceRouteRef.current = mixedId;
+      messageHistoryGenerationRef.current++;
+    }
+  }, [mixedId]);
 
   useEffect(() => {
     const generation = ++loadGenerationRef.current;
@@ -109,7 +119,12 @@ export function useChatHistory() {
         setReady(false);
       }
 
-      Promise.all([getCachedMessages(db, mixedId), getCachedSnapshot(db, mixedId)])
+      getCachedMessages(db, mixedId)
+        .then(async (storedMessages) => {
+          const snapshot = storedMessages ? await getCachedSnapshot(db, storedMessages.id) : undefined;
+
+          return [storedMessages, snapshot] as const;
+        })
         .then(async ([storedMessages, snapshot]) => {
           if (!isCurrentLoad()) {
             return;
@@ -383,10 +398,8 @@ ${value.content}
   }, [mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
 
   const takeSnapshot = useCallback(
-    async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {
-      const id = chatId.get();
-
-      if (!id || !db) {
+    async (chatRecordId: string, chatIdx: string, files: FileMap, chatSummary?: string) => {
+      if (!chatRecordId || !db) {
         return;
       }
 
@@ -398,10 +411,11 @@ ${value.content}
 
       // localStorage.setItem(`snapshot:${id}`, JSON.stringify(snapshot)); // Remove localStorage usage
       try {
-        await setSnapshot(db, id, snapshot);
+        await setSnapshot(db, chatRecordId, snapshot);
       } catch (error) {
         console.error('Failed to save snapshot:', error);
         toast.error('Failed to save chat snapshot.');
+        throw error;
       }
     },
     [db],
@@ -424,8 +438,19 @@ ${value.content}
 
       const entries = Object.entries(validSnapshot.files);
 
-      const getContainerPath = (filePath: string) =>
-        filePath.startsWith(container.workdir) ? filePath.slice(container.workdir.length) : filePath;
+      const getContainerPath = (filePath: string) => {
+        const workdirPrefix = `${container.workdir}/`;
+
+        if (filePath.startsWith(workdirPrefix)) {
+          return filePath.slice(workdirPrefix.length);
+        }
+
+        /*
+         * WebContainer filesystem methods resolve paths relative to the project
+         * workdir; a leading slash would instead target the container root.
+         */
+        return filePath.replace(/^\/+/, '');
+      };
 
       for (const [filePath, value] of entries) {
         if (value?.type === 'folder') {
@@ -475,124 +500,170 @@ ${value.content}
         console.error(error);
       }
     },
-    storeMessageHistory: async (messages: UIMessage[], isStreaming = false) => {
-      if (!db || messages.length === 0) {
-        return;
-      }
+    storeMessageHistory: (messages: UIMessage[], isStreaming = false) => {
+      const messageHistoryGeneration = messageHistoryGenerationRef.current;
 
-      const { firstArtifact } = workbenchStore;
-      messages = messages.filter((m) => !hasMessageFlag(m, 'no-store'));
-
-      let _urlId = urlId;
-
-      if (!urlId && firstArtifact?.id) {
-        _urlId = firstArtifact.id;
-      }
-
-      let chatSummary: string | undefined = undefined;
-
-      const lastMessage = messages[messages.length - 1];
-
-      if (lastMessage.role === 'assistant') {
-        const chatSummaryAnnotation = getMessageAnnotations(lastMessage).find(
-          (annotation) => annotation.type === 'chatSummary',
-        );
-
-        if (chatSummaryAnnotation) {
-          chatSummary = chatSummaryAnnotation.summary as string;
+      const persistMessageHistory = async () => {
+        if (!db || messages.length === 0 || messageHistoryGeneration !== messageHistoryGenerationRef.current) {
+          return;
         }
-      }
 
-      takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), _urlId, chatSummary);
+        const { firstArtifact } = workbenchStore;
+        messages = messages.filter((m) => !hasMessageFlag(m, 'no-store'));
 
-      if (!description.get() && firstArtifact?.title) {
-        description.set(firstArtifact?.title);
-      }
+        if (messages.length === 0) {
+          return;
+        }
 
-      // Ensure chatId.get() is used here as well
-      const creatingNewChat = initialMessages.length === 0 && !chatId.get();
+        let _urlId = urlId;
 
-      let createdChat: { id: string; urlId?: string } | undefined;
-      let ownsChatCreation = false;
+        if (!urlId && firstArtifact?.id) {
+          _urlId = firstArtifact.id;
+        }
 
-      if (creatingNewChat) {
-        let creationPromise = pendingChatCreationRef.current;
+        let chatSummary: string | undefined = undefined;
 
-        if (!creationPromise) {
-          ownsChatCreation = true;
-          creationPromise = createChatWithNextId(
-            db,
-            [...archivedMessages, ...messages],
-            _urlId,
-            description.get(),
-            chatMetadata.get(),
-            Boolean(_urlId),
+        const lastMessage = messages[messages.length - 1];
+
+        if (lastMessage.role === 'assistant') {
+          const chatSummaryAnnotation = getMessageAnnotations(lastMessage).find(
+            (annotation) => annotation.type === 'chatSummary',
           );
-          pendingChatCreationRef.current = creationPromise;
-        }
 
-        try {
-          createdChat = await creationPromise;
-        } finally {
-          if (ownsChatCreation && pendingChatCreationRef.current === creationPromise) {
-            pendingChatCreationRef.current = undefined;
+          if (chatSummaryAnnotation) {
+            chatSummary = chatSummaryAnnotation.summary as string;
           }
         }
 
-        _urlId = createdChat.urlId;
+        if (!description.get() && firstArtifact?.title) {
+          description.set(firstArtifact?.title);
+        }
 
-        if (ownsChatCreation) {
-          const nextId = createdChat.id;
+        // Ensure chatId.get() is used here as well
+        const creatingNewChat = initialMessages.length === 0 && !chatId.get();
+
+        let createdChat: { id: string; urlId?: string } | undefined;
+        let ownsChatCreation = false;
+
+        if (creatingNewChat) {
+          let creationPromise = pendingChatCreationRef.current;
+
+          if (!creationPromise) {
+            ownsChatCreation = true;
+            creationPromise = createChatWithNextId(
+              db,
+              [...archivedMessages, ...messages],
+              _urlId,
+              description.get(),
+              chatMetadata.get(),
+              Boolean(_urlId),
+            );
+            pendingChatCreationRef.current = creationPromise;
+          }
+
+          try {
+            createdChat = await creationPromise;
+          } finally {
+            if (ownsChatCreation && pendingChatCreationRef.current === creationPromise) {
+              pendingChatCreationRef.current = undefined;
+            }
+          }
+
+          if (messageHistoryGeneration !== messageHistoryGenerationRef.current) {
+            return;
+          }
+
           _urlId = createdChat.urlId;
 
-          chatId.set(nextId);
+          if (ownsChatCreation) {
+            const nextId = createdChat.id;
+            _urlId = createdChat.urlId;
 
-          /*
-           * Claimed before navigating: the messages on screen already belong to
-           * this chat, so the re-run that the new route triggers must not be read
-           * as a switch away from it.
-           */
-          loadedChatIdRef.current = nextId;
-          setUrlId(_urlId);
+            chatId.set(nextId);
 
-          pendingChatNavigationRef.current = { id: nextId, urlId: _urlId };
+            /*
+             * Claimed before navigating: the messages on screen already belong to
+             * this chat, so the re-run that the new route triggers must not be read
+             * as a switch away from it.
+             */
+            loadedChatIdRef.current = nextId;
+            setUrlId(_urlId);
+
+            pendingChatNavigationRef.current = { id: nextId, urlId: _urlId };
+          }
         }
-      }
 
-      // Ensure chatId.get() is used for the final setMessages call
-      const finalChatId = createdChat?.id ?? chatId.get();
+        // Ensure chatId.get() is used for the final setMessages call
+        const finalChatId = createdChat?.id ?? chatId.get();
 
-      if (!finalChatId) {
-        console.error('Cannot save messages, chat ID is not set.');
-        toast.error('Failed to save chat messages: Chat ID missing.');
+        if (!finalChatId) {
+          console.error('Cannot save messages, chat ID is not set.');
+          toast.error('Failed to save chat messages: Chat ID missing.');
 
-        return;
-      }
+          return;
+        }
 
-      if (!createdChat || !ownsChatCreation) {
-        await setMessages(
-          db,
-          finalChatId,
-          [...archivedMessages, ...messages],
-          _urlId,
-          description.get(),
-          undefined,
-          chatMetadata.get(),
-        );
-      }
+        if (!createdChat || !ownsChatCreation) {
+          await setMessages(
+            db,
+            finalChatId,
+            [...archivedMessages, ...messages],
+            _urlId,
+            description.get(),
+            undefined,
+            chatMetadata.get(),
+          );
+        }
 
-      invalidateChatCache(finalChatId);
+        /*
+         * The IndexedDB write may finish after a route change; invalidate its
+         * cache as soon as it commits even when this job is now stale.
+         */
+        invalidateChatCache(finalChatId);
 
-      if (urlId) {
-        invalidateChatCache(urlId);
-      }
+        if (urlId) {
+          invalidateChatCache(urlId);
+        }
 
-      if (!isStreaming && pendingChatNavigationRef.current?.id === finalChatId) {
-        const pendingNavigation = pendingChatNavigationRef.current;
-        pendingChatNavigationRef.current = undefined;
-        routeHandoffChatIdRef.current = pendingNavigation.id;
-        navigateChat(pendingNavigation.urlId || pendingNavigation.id, navigate);
-      }
+        if (messageHistoryGeneration !== messageHistoryGenerationRef.current) {
+          return;
+        }
+
+        if (!isStreaming) {
+          /*
+           * Final file actions and assistant tool calls must finish before the
+           * snapshot is captured, otherwise a newer chat record can point at an
+           * older or empty filesystem snapshot after reload.
+           */
+          await workbenchStore.waitForExecutionQueue();
+
+          if (messageHistoryGeneration !== messageHistoryGenerationRef.current) {
+            return;
+          }
+
+          await takeSnapshot(finalChatId, messages[messages.length - 1].id, workbenchStore.files.get(), chatSummary);
+          invalidateChatCache(finalChatId);
+
+          if (_urlId) {
+            invalidateChatCache(_urlId);
+          }
+        }
+
+        if (!isStreaming && pendingChatNavigationRef.current?.id === finalChatId) {
+          const pendingNavigation = pendingChatNavigationRef.current;
+          pendingChatNavigationRef.current = undefined;
+          routeHandoffChatIdRef.current = pendingNavigation.id;
+          navigateChat(pendingNavigation.urlId || pendingNavigation.id, navigate);
+        }
+      };
+
+      const queuedPersistence = messageHistoryQueueRef.current.then(persistMessageHistory, persistMessageHistory);
+      messageHistoryQueueRef.current = queuedPersistence.then(
+        () => undefined,
+        () => undefined,
+      );
+
+      return queuedPersistence;
     },
     duplicateCurrentChat: async (listItemId: string) => {
       if (!db || (!mixedId && !listItemId)) {
