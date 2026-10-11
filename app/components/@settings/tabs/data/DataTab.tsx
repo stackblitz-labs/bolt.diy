@@ -443,7 +443,6 @@ export function DataTab() {
                 </motion.div>
               </CardFooter>
             </Card>
-
           </div>
         )}
       </div>
@@ -562,7 +561,6 @@ export function DataTab() {
               </motion.div>
             </CardFooter>
           </Card>
-
         </div>
       </div>
 
@@ -698,7 +696,9 @@ export function DataTab() {
                 <div className="i-ph-key-duotone w-5 h-5 text-red-500 dark:text-red-400 mr-2" />
                 <CardTitle className="text-lg">Delete All API Keys</CardTitle>
               </div>
-              <CardDescription>Remove API keys saved in this browser. Environment keys are not affected.</CardDescription>
+              <CardDescription>
+                Remove API keys saved in this browser. Environment keys are not affected.
+              </CardDescription>
             </CardHeader>
             <CardFooter>
               <Button
@@ -713,7 +713,6 @@ export function DataTab() {
           </Card>
         </div>
       </div>
-
     </div>
   );
 }

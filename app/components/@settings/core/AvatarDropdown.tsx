@@ -24,13 +24,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
         >
           <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-bolt-elements-background-depth-4 text-bolt-elements-textSecondary">
             {profile?.avatar ? (
-              <img
-                src={profile.avatar}
-                alt=""
-                className="h-full w-full object-cover"
-                loading="eager"
-                decoding="sync"
-              />
+              <img src={profile.avatar} alt="" className="h-full w-full object-cover" loading="eager" decoding="sync" />
             ) : (
               <span className="flex h-full w-full items-center justify-center">
                 <span className="i-ph:user h-6 w-6" />
