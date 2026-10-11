@@ -134,6 +134,41 @@ describe('MCPService.processToolInvocations', () => {
     });
   });
 
+  it('executes an approved dynamic-tool part, which is how MCP tool calls arrive from the client', async () => {
+    const execute = vi.fn().mockResolvedValue('dynamic output');
+    const service = serviceWithTools({ fetch_url: { execute } });
+    const writer = createWriter();
+
+    const part = {
+      type: 'dynamic-tool',
+      toolName: 'fetch_url',
+      toolCallId: 'call-dyn',
+      state: 'output-available',
+      input: { url: 'https://example.com' },
+      output: TOOL_EXECUTION_APPROVAL.APPROVE,
+    };
+
+    const result = await service.processToolInvocations(messageWithParts([part]), writer);
+
+    expect(execute.mock.calls[0][0]).toEqual({ url: 'https://example.com' });
+    expect(resultOf(result)).toBe('dynamic output');
+    expect(writer.write).toHaveBeenCalledWith({
+      type: 'tool-output-available',
+      toolCallId: 'call-dyn',
+      output: 'dynamic output',
+    });
+  });
+
+  it('passes the caller-supplied context to the tool', async () => {
+    const execute = vi.fn().mockResolvedValue('ok');
+    const service = serviceWithTools({ search: { execute } });
+    const part = toolInvocationPart('search', 'result', TOOL_EXECUTION_APPROVAL.APPROVE);
+
+    await service.processToolInvocations(messageWithParts([part]), createWriter(), { context: { key: 'value' } });
+
+    expect(execute.mock.calls[0][1]).toMatchObject({ toolCallId: 'call-search', context: { key: 'value' } });
+  });
+
   it('reports a tool error instead of throwing when execution fails', async () => {
     const service = serviceWithTools({ search: { execute: vi.fn().mockRejectedValue(new Error('boom')) } });
     const writer = createWriter();
@@ -278,5 +313,78 @@ describe('MCP config schemas', () => {
     const config = mcpConfigSchema.parse({ mcpServers: { local: { type: 'stdio', command: 'node' } } });
 
     expect(Object.keys(config.mcpServers)).toEqual(['local']);
+  });
+});
+
+describe('MCPService built-in servers', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('registers the bolt-web tools when enabled', async () => {
+    const service = MCPService.getInstance();
+    const servers = await service.updateConfig({ mcpServers: {}, builtinServers: { 'bolt-web': true } });
+
+    expect(servers['bolt-web']).toMatchObject({
+      status: 'available',
+      config: { type: 'builtin', description: 'Built-in web search & page fetch' },
+    });
+    expect(Object.keys(service.tools)).toEqual(['web_search', 'fetch_url']);
+    expect(service.toolsWithoutExecute.web_search.execute).toBeUndefined();
+  });
+
+  it('annotates built-in tool calls with the bolt-web server name', async () => {
+    const service = MCPService.getInstance();
+    const writer = createWriter();
+
+    await service.updateConfig({ mcpServers: {}, builtinServers: { 'bolt-web': true } });
+    service.processToolCall({ toolCallId: 'c1', toolName: 'fetch_url' }, writer);
+
+    expect(writer.write.mock.calls[0][0]).toMatchObject({
+      type: 'data-toolCall',
+      data: { serverName: 'bolt-web', toolName: 'fetch_url' },
+    });
+  });
+
+  it('registers nothing when disabled or omitted', async () => {
+    const service = MCPService.getInstance();
+
+    await service.updateConfig({ mcpServers: {}, builtinServers: { 'bolt-web': true } });
+    await expect(service.updateConfig({ mcpServers: {}, builtinServers: { 'bolt-web': false } })).resolves.toEqual({});
+    expect(service.tools).toEqual({});
+
+    await expect(service.updateConfig({ mcpServers: {} })).resolves.toEqual({});
+  });
+
+  it('keeps built-in servers available after an availability check', async () => {
+    const service = MCPService.getInstance();
+
+    await service.updateConfig({ mcpServers: {}, builtinServers: { 'bolt-web': true } });
+
+    const servers = await service.checkServersAvailabilities();
+
+    expect(servers['bolt-web'].status).toBe('available');
+    expect(service.isValidToolName('web_search')).toBe(true);
+  });
+
+  it('lets a user-configured server with the same name win', async () => {
+    const service = MCPService.getInstance();
+    vi.spyOn(service as unknown as { _createMCPClient: () => Promise<never> }, '_createMCPClient').mockRejectedValue(
+      new Error('offline'),
+    );
+
+    const servers = await service.updateConfig({
+      mcpServers: { 'bolt-web': { type: 'sse', url: 'https://example.com/sse' } },
+      builtinServers: { 'bolt-web': true },
+    });
+
+    expect(servers['bolt-web']).toMatchObject({ status: 'unavailable', config: { type: 'sse' } });
+    expect(service.isValidToolName('web_search')).toBe(false);
+  });
+
+  it('accepts builtinServers in the config schema', () => {
+    expect(mcpConfigSchema.parse({ mcpServers: {}, builtinServers: { 'bolt-web': true } }).builtinServers).toEqual({
+      'bolt-web': true,
+    });
   });
 });

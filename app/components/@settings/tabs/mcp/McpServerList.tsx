@@ -48,7 +48,11 @@ export default function McpServerList({
                 </div>
 
                 <div className="flex-1 min-w-0 truncate">
-                  {mcpServer.config.type === 'sse' || mcpServer.config.type === 'streamable-http' ? (
+                  {mcpServer.config.type === 'builtin' ? (
+                    <span className="text-xs text-bolt-elements-textSecondary truncate">
+                      {mcpServer.config.description}
+                    </span>
+                  ) : mcpServer.config.type === 'sse' || mcpServer.config.type === 'streamable-http' ? (
                     <span className="text-xs text-bolt-elements-textSecondary truncate">{mcpServer.config.url}</span>
                   ) : (
                     <span className="text-xs text-bolt-elements-textSecondary truncate">

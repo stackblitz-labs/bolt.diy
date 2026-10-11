@@ -12,6 +12,8 @@ import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
+import { getWebSearchEnv } from '~/lib/.server/web-search/env';
+import type { WebToolContext } from '~/lib/.server/web-search/mcp-tools';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { createMessage, getMessageText } from '~/lib/persistence/messageMigration';
@@ -176,7 +178,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let summary: string | undefined = undefined;
         let messageSliceId = 0;
 
-        const processedMessages = await mcpService.processToolInvocations(messages, writer);
+        const toolContext: WebToolContext = { webSearchEnv: getWebSearchEnv(context.cloudflare?.env) };
+        const processedMessages = await mcpService.processToolInvocations(messages, writer, { context: toolContext });
 
         if (processedMessages.length > 3) {
           messageSliceId = processedMessages.length - 3;

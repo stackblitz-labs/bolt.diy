@@ -1,12 +1,18 @@
 import { create } from 'zustand';
 import type { MCPConfig, MCPServerTools } from '~/lib/services/mcpService';
+import { BUILTIN_WEB_MCP_SERVER } from '~/types/web-search';
 
 const MCP_SETTINGS_KEY = 'mcp_settings';
 const isBrowser = typeof window !== 'undefined';
 
-type MCPSettings = {
+export type BuiltinServerSettings = Record<typeof BUILTIN_WEB_MCP_SERVER, boolean>;
+
+export type MCPSettings = {
   mcpConfig: MCPConfig;
   maxLLMSteps: number;
+
+  // Kept apart from mcpConfig so the user's JSON config stays Claude Desktop compatible
+  builtinServers: BuiltinServerSettings;
 };
 
 const defaultSettings = {
@@ -14,7 +20,19 @@ const defaultSettings = {
   mcpConfig: {
     mcpServers: {},
   },
+  builtinServers: {
+    [BUILTIN_WEB_MCP_SERVER]: false,
+  },
 } satisfies MCPSettings;
+
+/** Fills in fields added after a user's settings were first saved. */
+function withDefaults(saved: Partial<MCPSettings>): MCPSettings {
+  return {
+    ...defaultSettings,
+    ...saved,
+    builtinServers: { ...defaultSettings.builtinServers, ...saved.builtinServers },
+  };
+}
 
 type Store = {
   isInitialized: boolean;
@@ -46,8 +64,8 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
 
       if (savedConfig) {
         try {
-          const settings = JSON.parse(savedConfig) as MCPSettings;
-          const serverTools = await updateServerConfig(settings.mcpConfig);
+          const settings = withDefaults(JSON.parse(savedConfig) as Partial<MCPSettings>);
+          const serverTools = await updateServerConfig(settings);
           set(() => ({ settings, serverTools }));
         } catch (error) {
           console.error('Error parsing saved mcp config:', error);
@@ -70,7 +88,7 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
     try {
       set(() => ({ isUpdatingConfig: true }));
 
-      const serverTools = await updateServerConfig(newSettings.mcpConfig);
+      const serverTools = await updateServerConfig(newSettings);
 
       if (isBrowser) {
         localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(newSettings));
@@ -98,7 +116,9 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
   },
 }));
 
-async function updateServerConfig(config: MCPConfig) {
+async function updateServerConfig(settings: MCPSettings) {
+  const config: MCPConfig = { ...settings.mcpConfig, builtinServers: settings.builtinServers };
+
   const response = await fetch('/api/mcp-update-config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

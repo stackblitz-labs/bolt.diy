@@ -3,6 +3,7 @@ import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { convertToModelMessages, type ToolSet, type UIMessage, type UIMessageStreamWriter } from 'ai';
 import { z } from 'zod';
+import { createWebMcpTools } from '~/lib/.server/web-search/mcp-tools';
 import {
   getToolCallId,
   getToolInput,
@@ -13,6 +14,7 @@ import {
   migrateLegacyMessages,
 } from '~/lib/persistence/messageMigration';
 import type { ToolCallAnnotation } from '~/types/context';
+import { BUILTIN_WEB_MCP_SERVER } from '~/types/web-search';
 import {
   TOOL_EXECUTION_APPROVAL,
   TOOL_EXECUTION_DENIED,
@@ -69,8 +71,25 @@ export const mcpServerConfigSchema = z.union([
 ]);
 export type MCPServerConfig = z.infer<typeof mcpServerConfigSchema>;
 
+/*
+ * Built-in servers run in-process rather than over a transport. They aren't
+ * part of the user's JSON config; they're switched on via `builtinServers`.
+ */
+export type BuiltinServerConfig = {
+  type: 'builtin';
+  description: string;
+};
+
+const BUILTIN_SERVERS: Record<typeof BUILTIN_WEB_MCP_SERVER, { description: string; createTools: () => ToolSet }> = {
+  [BUILTIN_WEB_MCP_SERVER]: {
+    description: 'Built-in web search & page fetch',
+    createTools: createWebMcpTools,
+  },
+};
+
 export const mcpConfigSchema = z.object({
   mcpServers: z.record(z.string(), mcpServerConfigSchema),
+  builtinServers: z.object({ [BUILTIN_WEB_MCP_SERVER]: z.boolean().optional() }).optional(),
 });
 export type MCPConfig = z.infer<typeof mcpConfigSchema>;
 
@@ -94,13 +113,13 @@ export type MCPServerAvailable = {
   status: 'available';
   tools: ToolSet;
   client: MCPClient;
-  config: MCPServerConfig;
+  config: MCPServerConfig | BuiltinServerConfig;
 };
 export type MCPServerUnavailable = {
   status: 'unavailable';
   error: string;
   client: MCPClient | null;
-  config: MCPServerConfig;
+  config: MCPServerConfig | BuiltinServerConfig;
 };
 export type MCPServer = MCPServerAvailable | MCPServerUnavailable;
 
@@ -236,8 +255,35 @@ export class MCPService {
     }
   }
 
+  private _registerBuiltinServers() {
+    for (const [serverName, server] of Object.entries(BUILTIN_SERVERS)) {
+      if (!this._config?.builtinServers?.[serverName as keyof typeof BUILTIN_SERVERS]) {
+        continue;
+      }
+
+      if (this._config.mcpServers?.[serverName]) {
+        logger.warn(`Built-in server "${serverName}" skipped: a configured server already uses that name`);
+        continue;
+      }
+
+      const tools = server.createTools();
+      const client: MCPClient = { serverName, tools: async () => tools, close: async () => undefined };
+
+      this._registerTools(serverName, tools);
+      this._mcpToolsPerServer[serverName] = {
+        status: 'available',
+        client,
+        tools,
+        config: { type: 'builtin', description: server.description },
+      };
+    }
+  }
+
   private async _createClients() {
     await this._closeClients();
+
+    // Registered first so a user-configured tool with the same name takes precedence
+    this._registerBuiltinServers();
 
     const createClientPromises = Object.entries(this._config?.mcpServers || []).map(async ([serverName, config]) => {
       let client: MCPClient | null = null;
@@ -384,7 +430,15 @@ export class MCPService {
     }
   }
 
-  async processToolInvocations(messages: UIMessage[], dataStream: UIMessageStreamWriter): Promise<UIMessage[]> {
+  /**
+   * @param options.context passed to each tool's `execute` as `options.context`;
+   *   built-in tools read server-only settings (e.g. search API keys) from it.
+   */
+  async processToolInvocations(
+    messages: UIMessage[],
+    dataStream: UIMessageStreamWriter,
+    options: { context?: unknown } = {},
+  ): Promise<UIMessage[]> {
     const lastMessage = messages[messages.length - 1];
     const parts = lastMessage?.parts;
 
@@ -427,6 +481,7 @@ export class MCPService {
                    */
                   messages: await convertToModelMessages(migrateLegacyMessages(messages) as any),
                   toolCallId,
+                  context: options.context,
                 } as any,
               );
             } catch (error) {

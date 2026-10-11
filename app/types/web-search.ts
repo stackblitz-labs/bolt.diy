@@ -23,3 +23,6 @@ export type WebSearchApiResponse =
   | { success: true; type: 'page'; data: WebPageContent }
   | { success: true; type: 'search'; data: WebSearchResponseData }
   | { success?: false; error: string };
+
+/** Server name of the built-in web search & fetch MCP server. */
+export const BUILTIN_WEB_MCP_SERVER = 'bolt-web';

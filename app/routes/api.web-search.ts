@@ -1,32 +1,13 @@
 import type { ActionFunctionArgs } from 'react-router';
+import { getWebSearchEnv } from '~/lib/.server/web-search/env';
 import { fetchPageContent } from '~/lib/.server/web-search/fetch-page';
-import { searchWeb, type WebSearchEnv } from '~/lib/.server/web-search/search';
+import { searchWeb } from '~/lib/.server/web-search/search';
 import { WebSearchError } from '~/lib/.server/web-search/types';
 
 interface WebSearchRequestBody {
   url?: unknown;
   query?: unknown;
   maxResults?: unknown;
-}
-
-/*
- * Search provider keys come from the server environment only (Cloudflare
- * bindings first, then .env.local via process.env) so they never reach the
- * browser.
- */
-function getSearchEnv(context: ActionFunctionArgs['context']): WebSearchEnv {
-  const cloudflareEnv: Partial<Env> = context?.cloudflare?.env ?? {};
-  const processEnv = typeof process !== 'undefined' ? process.env : {};
-
-  // Empty strings (e.g. `TAVILY_API_KEY=` copied from .env.example) count as unset
-  const pick = (key: 'WEB_SEARCH_PROVIDER' | 'TAVILY_API_KEY' | 'BRAVE_SEARCH_API_KEY') =>
-    cloudflareEnv[key]?.trim() || processEnv[key]?.trim() || undefined;
-
-  return {
-    WEB_SEARCH_PROVIDER: pick('WEB_SEARCH_PROVIDER'),
-    TAVILY_API_KEY: pick('TAVILY_API_KEY'),
-    BRAVE_SEARCH_API_KEY: pick('BRAVE_SEARCH_API_KEY'),
-  };
 }
 
 /**
@@ -56,7 +37,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
     if (typeof body?.query === 'string' && body.query.trim()) {
       const maxResults = typeof body.maxResults === 'number' ? body.maxResults : undefined;
-      const data = await searchWeb(body.query, getSearchEnv(context), { maxResults });
+      const data = await searchWeb(body.query, getWebSearchEnv(context?.cloudflare?.env), { maxResults });
 
       return Response.json({ success: true, type: 'search', data });
     }

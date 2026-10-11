@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import McpServerList from '~/components/@settings/tabs/mcp/McpServerList';
+import { Switch } from '~/components/ui/Switch';
 import type { MCPConfig } from '~/lib/services/mcpService';
 import { useMCPStore } from '~/lib/stores/mcp';
+import { BUILTIN_WEB_MCP_SERVER } from '~/types/web-search';
 import { classNames } from '~/utils/classNames';
 
 const EXAMPLE_MCP_CONFIG: MCPConfig = {
@@ -40,6 +42,7 @@ export default function McpTab() {
   const [error, setError] = useState<string | null>(null);
   const [isCheckingServers, setIsCheckingServers] = useState(false);
   const [expandedServer, setExpandedServer] = useState<string | null>(null);
+  const [isTogglingBuiltin, setIsTogglingBuiltin] = useState(false);
 
   useEffect(() => {
     if (!isInitialized) {
@@ -79,6 +82,7 @@ export default function McpTab() {
 
     try {
       await updateSettings({
+        ...settings,
         mcpConfig: parsedConfig,
         maxLLMSteps,
       });
@@ -90,6 +94,22 @@ export default function McpTab() {
       toast.error('Failed to save MCP configuration');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleToggleWebServer = async (enabled: boolean) => {
+    setIsTogglingBuiltin(true);
+
+    try {
+      await updateSettings({
+        ...settings,
+        builtinServers: { ...settings.builtinServers, [BUILTIN_WEB_MCP_SERVER]: enabled },
+      });
+      toast.success(enabled ? 'Web search & fetch tools enabled' : 'Web search & fetch tools disabled');
+    } catch (e) {
+      toast.error(`Failed to update built-in server: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setIsTogglingBuiltin(false);
     }
   };
 
@@ -123,6 +143,33 @@ export default function McpTab() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <section aria-labelledby="builtin-servers-heading">
+        <h2 id="builtin-servers-heading" className="text-base font-medium text-bolt-elements-textPrimary mb-3">
+          Built-in Servers
+        </h2>
+        <div className="flex items-start justify-between gap-4 p-3 rounded-lg bg-bolt-elements-background-depth-1">
+          <div className="flex gap-3 min-w-0">
+            <div className="i-ph:globe w-5 h-5 mt-0.5 shrink-0 text-bolt-elements-textSecondary" />
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-bolt-elements-textPrimary">
+                Web search &amp; fetch <span className="font-normal text-bolt-elements-textTertiary">(bolt-web)</span>
+              </div>
+              <p className="mt-0.5 text-xs text-bolt-elements-textSecondary">
+                Lets the AI search the web and read pages with the <code>web_search</code> and <code>fetch_url</code>{' '}
+                tools. You approve each call. Uses Tavily or Brave Search when <code>TAVILY_API_KEY</code> or{' '}
+                <code>BRAVE_SEARCH_API_KEY</code> is set, otherwise DuckDuckGo. Requires a model that supports tool
+                calling.
+              </p>
+            </div>
+          </div>
+          <Switch
+            className={classNames('shrink-0', isTogglingBuiltin ? 'pointer-events-none opacity-50' : '')}
+            checked={settings.builtinServers[BUILTIN_WEB_MCP_SERVER]}
+            onCheckedChange={handleToggleWebServer}
+          />
+        </div>
+      </section>
+
       <section aria-labelledby="server-status-heading">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-base font-medium text-bolt-elements-textPrimary">MCP Servers Configured</h2>{' '}
