@@ -7,9 +7,10 @@ import { classNames } from '~/utils/classNames';
 
 interface AvatarDropdownProps {
   onSelectTab: (tab: TabType) => void;
+  onOpenDocs: () => void;
 }
 
-export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
+export const AvatarDropdown = ({ onSelectTab, onOpenDocs }: AvatarDropdownProps) => {
   const profile = useStore(profileStore) as Profile;
 
   return (
@@ -163,7 +164,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               'outline-none',
               'group',
             )}
-            onClick={() => window.open('https://stackblitz-labs.github.io/bolt.diy/', '_blank')}
+            onClick={onOpenDocs}
           >
             <div className="i-ph:question w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
             Help & Documentation
