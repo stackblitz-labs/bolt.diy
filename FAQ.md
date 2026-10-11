@@ -3,31 +3,7 @@
 <details>
 <summary><strong>What are the best models for bolt.diy?</strong></summary>
 
-For the best experience with bolt.diy, we recommend using the following models:
-
-**Recommended for Production:**
-- **Claude 4 Opus**: Flagship model with enhanced reasoning (200K context)
-- **Claude 3.5 Sonnet**: Proven excellent performance across all tasks
-- **GPT-4o**: Strong general-purpose coding with great reliability
-- **xAI Grok 4**: 256K context window for large projects
-
-**Fast & Efficient:**
-- **Gemini 2.0 Flash**: Exceptional speed for rapid development
-- **Claude 3 Haiku**: Cost-effective for simpler tasks
-- **xAI Grok 3 Mini Fast**: Optimized for speed and efficiency
-
-**Advanced Reasoning:**
-- **Moonshot AI Kimi K2**: Advanced reasoning with 128K context
-- **Moonshot AI Kimi Thinking**: Specialized for complex reasoning tasks
-
-**Open Source & Self-Hosting:**
-- **DeepSeekCoder V3**: Outstanding open-source model
-- **DeepSeekCoder V2 236b**: Powerful self-hosted option
-- **Qwen 2.5 Coder 32b**: Good balance of performance and resource requirements
-
-**Local Models (Ollama):**
-- Best for privacy and offline development
-- Use 7B+ parameter models for reasonable performance
+Available models and their capabilities change over time. Choose a capable coding model with a context window large enough for your project; use a faster, smaller model for quick edits or when cost and latency matter. For private or offline work, configure a local provider such as Ollama or LM Studio. Check the model catalog in Settings for the options currently available from your configured providers.
 
 </details>
 
@@ -73,9 +49,9 @@ We're forming a team of maintainers to manage demand and streamline issue resolu
 </details>
 
 <details>
-<summary><strong>How do local LLMs compare to larger models like Claude 3.5 Sonnet for bolt.diy?</strong></summary>
+<summary><strong>How do local LLMs compare to hosted models for bolt.diy?</strong></summary>
 
-While local LLMs are improving rapidly, larger models like GPT-4o, Claude 3.5 Sonnet, and DeepSeek Coder V2 236b still offer the best results for complex applications. Our ongoing focus is to improve prompts, agents, and the platform to better support smaller local LLMs.
+Local models can provide privacy and offline access, while larger hosted models often handle complex projects more reliably. Performance depends on the model, available context, and your hardware. Try a small task first, then choose the model that best fits your quality, privacy, cost, and speed needs.
 
 </details>
 
@@ -104,9 +80,13 @@ Blank previews usually indicate code generation issues:
 - Check for hallucinated or incomplete code in generated files
 - Restart the development server if issues persist
 
+### **How do I use MCP tools?**
+
+Configure a server under **Settings → Integrations → MCP Servers**. In the prompt composer, open the attachment menu and choose **MCP Tools Available** to select tools for your prompt.
+
 ### **MCP server connection failed**
 If you're having trouble with MCP integrations:
-- Verify server configuration in Settings -> MCP
+- Verify server configuration in Settings → Integrations → MCP Servers
 - Check server endpoints and authentication credentials
 - Test server connectivity outside of bolt.diy
 - Review MCP server logs for specific errors
@@ -145,7 +125,7 @@ If the live preview isn't working:
 - Check for conflicting ports (default is 5173)
 
 ### **"Everything works, but the results are bad"**
-Local LLMs like Qwen-2.5-Coder are powerful for small applications but still experimental for larger projects. For better results, consider using larger models like GPT-4o, Claude 3.5 Sonnet, or Claude 4 Opus.
+Local LLMs can work well for smaller applications, while larger hosted models may handle complex projects more reliably. Try a small task first and choose based on the quality, privacy, cost, and speed you need.
 
 ### **"Received structured exception #0xc0000005: access violation"**
 **Windows-specific issue**: Update the [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170).

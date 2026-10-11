@@ -1,6 +1,6 @@
 # Welcome to bolt diy
 
-bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 21+ providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, Cerebras, Fireworks, Z-AI, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 22+ providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, Cerebras, Fireworks, Z-AI, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! OpenRouter, Anthropic, OpenAI, and Google are enabled by default; enable and configure other providers in Settings.
 
 ## Table of Contents
 
@@ -40,7 +40,7 @@ Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos
 ## Features
 
 - **AI-powered full-stack web development** directly in your browser with live preview
-- **Support for 21+ LLM providers** with an extensible architecture to integrate additional models
+- **Support for 22+ LLM providers** with an extensible architecture to integrate additional models
 - **Attach images and files to prompts** for better contextual understanding
 - **Integrated terminal** with WebContainer sandbox for running commands and testing
 - **Version control with Git** - import/export projects, connect to GitHub repositories
@@ -383,10 +383,14 @@ bolt.diy supports MCP (Model Context Protocol) servers to extend AI capabilities
 
 ### Setting up MCP Servers
 
-1. Navigate to Settings → MCP tab
+1. Navigate to Settings → Integrations → MCP Servers.
 2. Add MCP server configurations
 3. Configure server endpoints and authentication
 4. Enable/disable servers as needed
+
+### Using MCP Tools
+
+After connecting an MCP server, open the attachment menu beside the prompt composer and choose **MCP Tools Available** to select tools for your prompt. Connection indicators in the prompt menu show the status of configured integrations.
 
 MCP servers can provide:
 - Database connections and queries
@@ -598,7 +602,7 @@ All templates are pre-configured with modern tooling, linting, and build process
 - `pnpm electron:build:unpack`: Creates unpacked build for testing
 
 ### Deployment Scripts
-- `pnpm run deploy`: Builds and deploys to Cloudflare Pages
+- `pnpm run deploy`: Builds and deploys to Cloudflare Workers
 - `npm run dockerbuild`: Alternative Docker build command
 
 ### Utility Scripts

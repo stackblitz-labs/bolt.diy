@@ -2,7 +2,7 @@
 
 [![bolt.diy: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index(1).jpg)](https://bolt.diy)
 
-Welcome to **bolt.diy**, the open-source AI developer workspace that lets you select your preferred LLM for every prompt. Build full-stack web applications in the browser with support for 21+ model providers (OpenAI, Anthropic, Gemini, Groq, xAI, DeepSeek, Ollama, LM Studio, and more), or extend it with any provider supported by the Vercel AI SDK.
+Welcome to **bolt.diy**, the open-source AI developer workspace that lets you select your preferred LLM for every prompt. Build full-stack web applications in the browser with support for 22+ model providers (OpenAI, Anthropic, Gemini, Groq, xAI, DeepSeek, Ollama, LM Studio, and more), or extend it with any provider supported by the Vercel AI SDK. OpenRouter, Anthropic, OpenAI, and Google are enabled by default; enable and configure other providers in Settings.
 
 [Documentation](https://stackblitz-labs.github.io/bolt.diy/) | [Community Forum](https://thinktank.ottomator.ai) | [FAQ & Troubleshooting](FAQ.md)
 
@@ -111,9 +111,10 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 ## Features
 
 - **In-Browser Web Development**: Full-stack Node.js development environment powered by WebContainers.
-- **21+ AI Providers**: Cloud (Anthropic, OpenAI, Google, DeepSeek, Groq, xAI, Mistral, etc.) and Local (Ollama, LM Studio).
+- **22+ AI Providers**: Cloud (Anthropic, OpenAI, Google, DeepSeek, Groq, xAI, Mistral, etc.) and Local (Ollama, LM Studio). OpenRouter, Anthropic, OpenAI, and Google are enabled by default.
 - **Interactive Workbench**: Integrated code editor, terminal, visual diff viewer, and real-time live preview. Opens by default for a started chat and can be reopened after closing.
 - **Starter Setup**: Explicit framework requests select a matching starter in code. Starter files include detected install and development server commands before the first customization request.
+- **Prompt Library**: Choose a system prompt under Settings → Workspace → Features, including Simple Sal for concise guidance and Tiny Tim for smaller models.
 - **Project Workflows**: Git cloning/pushing, snapshot restoration, file conflict locking, and ZIP export.
 - **Deployments**: One-click deployment to Netlify, Vercel, and GitHub Pages.
 - **Database & Visuals**: Supabase integration, data visualization charts, and Model Context Protocol (MCP) tooling.
@@ -122,10 +123,11 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 
 ## Recent Highlights
 
-- **Expanded AI & Tooling Ecosystem**: 21+ cloud and local LLM providers, Model Context Protocol (MCP) integration, and voice prompting.
+- **Expanded AI & Tooling Ecosystem**: 22+ cloud and local LLM providers, Model Context Protocol (MCP) integration, and voice prompting.
 - **Enhanced Code & Project Workflows**: Visual diff inspection, file conflict locking, codebase search, Git integration, and snapshot restoration.
 - **Cross-Platform & Deployments**: Native Electron desktop app, Expo (React Native) support, and direct deployment to Netlify, Vercel, and GitHub Pages.
 - **Data & Backend Integrations**: Built-in Supabase management, interactive charts, and bulk chat operations.
+- **Prompt and Connector Controls**: Select MCP tools from the prompt attachment menu; manage GitHub, GitLab, Netlify, and other service connections under Settings → Integrations → Connectors.
 
 > **Looking Ahead**: Ongoing work includes bug Fixes, dependance updates and fixes for reliability issues no new features are planed.
 

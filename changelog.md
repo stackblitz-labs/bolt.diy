@@ -8,7 +8,10 @@
 
 ### ✨ Features
 
-* consolidate connector tabs into unified Connectors tab (78d6b7e) by @dustinwloring1988
+* add Simple Sal, Tiny Tim, and DiligentDan options to the Prompt Library, including prompts optimized for smaller models (91bb67a, 4a6181e, a3d6483)
+* add a blank starter flow and framework starter setup that opens the project without an initial generation request (5397ce4, e4af3b0)
+* move MCP tool selection into the prompt attachment menu and show connector connection status there (2ea9f30, e49c8d5)
+* regroup settings navigation and combine service integrations in the Connectors tab (ca935e8, 78d6b7e)
 * restore all 22 cloud and local AI providers (9ca2a34) by @dustinwloring1988
 * preserve user-selected workbench tab, lazy-mount diff and preview panels, and inject prompt workstyle commentary instructions ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
 * update model catalogs, context windows, and token limits across all supported LLM providers ([#2216](https://github.com/stackblitz-labs/bolt.diy/pull/2216)) by @dustinwloring1988
@@ -22,6 +25,10 @@
 
 ### 🐛 Bug Fixes
 
+* preserve workbench access when starting a project and fix blank starter creation (6358436, 5397ce4)
+* handle tool calls emitted as assistant text and fix route configuration startup crashes (acf91f9, bf0ce1b)
+* improve terminal drawer behavior and light/dark theme styling (1618553)
+* make the redesigned settings panel fit the viewport and improve navigation (2c3b77d, ca935e8)
 * resolve race condition when switching between chats (90d1912) by @dustinwloring1988
 * update GitHub fine-grained token URL from /beta to /personal-access-tokens/new (e6d0c9a) by @chen-jiying
 * update LLM manager tests to reflect all 22 enabled providers (963f6d4) by @dustinwloring1988
