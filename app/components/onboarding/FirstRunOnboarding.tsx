@@ -176,11 +176,10 @@ export function FirstRunOnboarding() {
   }
 
   return (
-    <DialogRoot open={open} onOpenChange={(nextOpen) => !nextOpen && finish()}>
+    <DialogRoot open={open} onOpenChange={() => {}}>
       <Dialog
         className="w-[min(560px,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto bg-bolt-elements-background-depth-1 p-6 text-bolt-elements-textPrimary"
-        onClose={finish}
-        onBackdrop={finish}
+        showCloseButton={false}
       >
         <div className="mb-5">
           <div className="mb-2 text-xs font-medium text-bolt-elements-textSecondary">
@@ -196,7 +195,7 @@ export function FirstRunOnboarding() {
           </div>
           <DialogTitle className="text-xl font-semibold">Welcome to Bolt</DialogTitle>
           <DialogDescription className="mt-1 text-sm text-bolt-elements-textSecondary">
-            Let’s get your workspace ready. You can skip any step and change these settings later.
+            Let’s get your workspace ready. Optional details can be left blank and changed later in Settings.
           </DialogDescription>
         </div>
 
@@ -430,14 +429,7 @@ export function FirstRunOnboarding() {
           </div>
         )}
 
-        <div className="mt-6 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={finish}
-            className="appearance-none cursor-pointer border-0 bg-transparent px-0 py-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:underline"
-          >
-            Skip setup
-          </button>
+        <div className="mt-6 flex items-center justify-end gap-3">
           <div className="flex gap-2">
             {step > 0 && (
               <button
