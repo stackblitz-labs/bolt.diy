@@ -425,7 +425,7 @@ export default function SettingsTab() {
                   type="button"
                   aria-pressed={interfaceOptions.cornerRadius === radius}
                   onClick={() => setInterfaceOptions({ ...interfaceOptions, cornerRadius: radius })}
-                  className={`px-2 py-1 text-[11px] capitalize ${interfaceOptions.cornerRadius === radius ? 'bg-purple-500/20 text-purple-500' : 'text-bolt-elements-textSecondary'}`}
+                  className={`appearance-none rounded border-0 px-2 py-1 text-[11px] capitalize transition-colors ${interfaceOptions.cornerRadius === radius ? 'bg-purple-500/20 text-purple-500' : 'bg-transparent text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2'}`}
                 >
                   {radius}
                 </button>
@@ -438,7 +438,7 @@ export default function SettingsTab() {
               ['animatedTransitions', 'Animated transitions', 'Smooth theme switching'],
             ] as const
           ).map(([key, title, description]) => (
-            <label
+            <div
               key={key}
               className="flex cursor-pointer items-center justify-between rounded-lg bg-bolt-elements-background-depth-2 p-3"
             >
@@ -446,13 +446,17 @@ export default function SettingsTab() {
                 <span className="block text-xs font-medium text-bolt-elements-textPrimary">{title}</span>
                 <span className="text-[11px] text-bolt-elements-textSecondary">{description}</span>
               </span>
-              <input
-                type="checkbox"
-                checked={interfaceOptions[key]}
-                onChange={(event) => setInterfaceOptions({ ...interfaceOptions, [key]: event.target.checked })}
-                className="h-4 w-4 accent-bolt-elements-borderColorActive"
-              />
-            </label>
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={interfaceOptions[key]}
+                aria-label={title}
+                onClick={() => setInterfaceOptions({ ...interfaceOptions, [key]: !interfaceOptions[key] })}
+                className={`flex h-4 w-4 shrink-0 appearance-none items-center justify-center rounded border p-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive ${interfaceOptions[key] ? 'border-purple-500 bg-purple-500 text-white' : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 text-transparent hover:bg-bolt-elements-background-depth-3'}`}
+              >
+                {interfaceOptions[key] && <span aria-hidden="true" className="i-ph:check-bold text-[10px]" />}
+              </button>
+            </div>
           ))}
         </div>
       </section>
