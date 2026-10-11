@@ -15,6 +15,7 @@ import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import type { ElementInfo } from '~/components/workbench/Inspector';
+import { useMCPStore } from '~/lib/stores/mcp';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ProviderInfo } from '~/types/model';
@@ -66,6 +67,9 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  const [isMcpToolsOpen, setIsMcpToolsOpen] = React.useState(false);
+  const mcpToolsInitialized = useMCPStore((state) => state.isInitialized);
+
   return (
     <div
       className={classNames(
@@ -283,6 +287,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   onGithubConnect={() => {
                     document.dispatchEvent(new CustomEvent('open-github-settings'));
                   }}
+                  onOpenMcpTools={() => setIsMcpToolsOpen(true)}
+                  mcpToolsInitialized={mcpToolsInitialized}
                   enhancingPrompt={props.enhancingPrompt}
                   isEnhanceDisabled={props.input.length === 0 || props.enhancingPrompt}
                 />
@@ -293,7 +299,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
               <SupabaseConnection />
             </div>
-            <McpTools />
+            <McpTools open={isMcpToolsOpen} onOpenChange={setIsMcpToolsOpen} />
             <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
 
             <SpeechRecognitionButton

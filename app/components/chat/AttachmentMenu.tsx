@@ -7,6 +7,8 @@ interface AttachmentMenuProps {
   onGithubConnect: () => void;
   onEnhancePrompt: () => void;
   onOpenDesignDialog: () => void;
+  onOpenMcpTools: () => void;
+  mcpToolsInitialized: boolean;
   enhancingPrompt?: boolean;
   isEnhanceDisabled?: boolean;
 }
@@ -17,6 +19,8 @@ export function AttachmentMenu({
   onGithubConnect,
   onEnhancePrompt,
   onOpenDesignDialog,
+  onOpenMcpTools,
+  mcpToolsInitialized,
   enhancingPrompt = false,
   isEnhanceDisabled = false,
 }: AttachmentMenuProps) {
@@ -101,6 +105,22 @@ export function AttachmentMenu({
               <div className="i-bolt:stars text-lg"></div>
             )}
             <span>Enhance Prompt</span>
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Item
+            className={classNames(
+              'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
+              'text-bolt-elements-textPrimary',
+              'hover:bg-bolt-elements-background-depth-3',
+              'data-[highlighted]:bg-bolt-elements-background-depth-3',
+              'outline-none transition-colors',
+              !mcpToolsInitialized && 'opacity-50 cursor-not-allowed',
+            )}
+            onSelect={onOpenMcpTools}
+            disabled={!mcpToolsInitialized}
+          >
+            <div className="i-bolt:mcp text-lg"></div>
+            <span>MCP Tools Available</span>
           </DropdownMenu.Item>
 
           <DropdownMenu.Separator className="h-px bg-bolt-elements-borderColor my-1" />
