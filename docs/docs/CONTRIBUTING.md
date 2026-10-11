@@ -132,7 +132,7 @@ pnpm test
 
 ## 🚀 Deployment
 
-### Deploy to Cloudflare Pages
+### Deploy to Cloudflare Workers
 
 ```bash
 pnpm run deploy

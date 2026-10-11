@@ -3,30 +3,7 @@
 ## Models and Setup
 
 ??? question "What are the best models for bolt.diy?"
-For the best experience with bolt.diy, we recommend using the following models from our 19 supported providers:
-
-    **Top Recommended Models:**
-    - **Claude 3.5 Sonnet** (Anthropic): Best overall coder, excellent for complex applications
-    - **GPT-4o** (OpenAI): Strong alternative with great performance across all use cases
-    - **Claude 4 Opus** (Anthropic): Latest flagship model with enhanced capabilities
-    - **Gemini 2.0 Flash** (Google): Exceptional speed for rapid development
-    - **DeepSeekCoder V3** (DeepSeek): Best open-source model for coding tasks
-
-    **Self-Hosting Options:**
-    - **DeepSeekCoder V2 236b**: Powerful self-hosted option
-    - **Qwen 2.5 Coder 32b**: Best for moderate hardware requirements
-    - **Ollama models**: Local inference with various model sizes
-
-    **Latest Specialized Models:**
-    - **Moonshot AI (Kimi)**: Kimi K2 models with advanced reasoning capabilities
-    - **xAI Grok 4**: Latest Grok model with 256K context window
-    - **Anthropic Claude 4 Opus**: Latest flagship model from Anthropic
-
-    !!! tip "Model Selection Tips"
-        - Use larger models (7B+ parameters) for complex applications
-        - Claude models excel at structured code generation
-        - GPT-4o provides excellent general-purpose coding assistance
-        - Gemini models offer the fastest response times
+Available models and their capabilities change over time. Choose a capable coding model with a context window large enough for your project; use a faster, smaller model for quick edits or when cost and latency matter. For private or offline work, configure a local provider such as Ollama or LM Studio. Check the model catalog in Settings for the options currently available from your configured providers.
 
 ??? question "How do I configure API keys for different providers?"
 You can configure API keys in two ways:
@@ -141,10 +118,11 @@ Follow these proven strategies for optimal results:
 MCP extends bolt.diy's AI capabilities with external tools:
 
     **Setting up MCP:**
-    1. Go to Settings → MCP tab
+    1. Go to Settings → Integrations → MCP Servers
     2. Add MCP server configurations
     3. Configure server endpoints and authentication
     4. Enable/disable servers as needed
+    5. Open the attachment menu beside the prompt composer and choose **MCP Tools Available** to select tools for your prompt.
 
     **Available MCP Capabilities:**
     - Database connections and queries
@@ -276,39 +254,8 @@ Use Supabase for backend database functionality:
 
 ## Model Comparisons
 
-??? question "How do local LLMs compare to larger models like Claude 3.5 Sonnet for bolt.diy?"
-While local LLMs are improving rapidly, larger models still offer the best results for complex applications. Here's the current landscape:
-
-    **Recommended for Production:**
-    - **Claude 4 Opus**: Latest flagship model with enhanced reasoning (200K context)
-    - **Claude 3.5 Sonnet**: Proven excellent performance across all tasks
-    - **GPT-4o**: Strong general-purpose coding with great reliability
-    - **xAI Grok 4**: Latest Grok with 256K context window
-
-    **Fast & Efficient:**
-    - **Gemini 2.0 Flash**: Exceptional speed for rapid development
-    - **Claude 3 Haiku**: Cost-effective for simpler tasks
-    - **xAI Grok 3 Mini Fast**: Optimized for speed and efficiency
-
-    **Advanced Reasoning:**
-    - **Moonshot AI Kimi K2**: Advanced reasoning with 128K context
-    - **Moonshot AI Kimi Thinking**: Specialized for complex reasoning tasks
-
-    **Open Source & Self-Hosting:**
-    - **DeepSeekCoder V3**: Best open-source model available
-    - **DeepSeekCoder V2 236b**: Powerful self-hosted option
-    - **Qwen 2.5 Coder 32b**: Good balance of performance and resource usage
-
-    **Local Models (Ollama):**
-    - Best for privacy and offline development
-    - Use 7B+ parameter models for reasonable performance
-    - Still experimental for complex, large-scale applications
-
-    !!! tip "Model Selection Guide"
-        - Use Claude/GPT-4o for complex applications
-        - Use Gemini for fast prototyping
-        - Use local models for privacy/offline development
-        - Always test with your specific use case
+??? question "How do local LLMs compare to hosted models for bolt.diy?"
+Available models and their capabilities change over time. Choose a capable coding model with a context window large enough for your project; use a faster, smaller model for quick edits or when cost and latency matter. For private or offline work, configure a local provider such as Ollama or LM Studio. Check the model catalog in Settings for the options currently available from your configured providers, and test models with your own tasks.
 
 ## Troubleshooting
 
@@ -340,7 +287,7 @@ Blank previews usually indicate code generation issues:
 ??? error "MCP server connection failed"
 If you're having trouble with MCP integrations:
 
-    - **Verify server configuration** in Settings → MCP
+    - **Verify server configuration** in Settings → Integrations → MCP Servers
     - **Check server endpoints** and authentication credentials
     - **Test server connectivity** outside of bolt.diy
     - **Review MCP server logs** for specific error messages
@@ -367,7 +314,7 @@ Deployment issues can be resolved by:
 ??? error "Everything works, but the results are bad"
 For suboptimal AI responses, try these solutions:
 
-    - **Switch to a more capable model**: Use Claude 3.5 Sonnet, GPT-4o, or Claude 4 Opus
+    - **Switch to a more capable model**: Choose a model with stronger coding ability and a context window suited to your project from the current catalog
     - **Be more specific** in your prompts about requirements and technologies
     - **Use the enhance prompt feature** to refine your requests
     - **Break complex tasks** into smaller, focused prompts
