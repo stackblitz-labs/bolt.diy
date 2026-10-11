@@ -67,6 +67,14 @@ export default defineConfig((config) => {
         '@radix-ui/react-tooltip',
         'react-toastify',
 
+        // These imports are added by Vite/React Router transforms, so the
+        // dependency scanner cannot reliably see them before the browser does.
+        // Pre-bundle them up front to avoid invalidating optimized URLs on the
+        // first page load (504 "Outdated Optimize Dep").
+        '@octokit/rest',
+        'vite-plugin-node-polyfills/shims/buffer',
+        'vite-plugin-node-polyfills/shims/process',
+
         'class-variance-authority',
         'react-markdown',
         'remark-gfm',
