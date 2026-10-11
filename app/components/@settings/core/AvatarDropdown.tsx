@@ -16,23 +16,24 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <motion.button
-          className="w-10 h-10 rounded-full bg-transparent flex items-center justify-center focus:outline-none"
+          type="button"
+          aria-label={`Open profile menu for ${profile?.username || 'Guest User'}`}
+          className="flex h-12 w-full min-w-0 items-center justify-start gap-3 rounded-lg bg-transparent px-2 text-left transition-colors hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          {profile?.avatar ? (
-            <img
-              src={profile.avatar}
-              alt={profile?.username || 'Profile'}
-              className="w-full h-full rounded-full object-cover"
-              loading="eager"
-              decoding="sync"
-            />
-          ) : (
-            <div className="w-full h-full rounded-full flex items-center justify-center bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500">
-              <div className="i-ph:user w-6 h-6" />
-            </div>
-          )}
+          <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-bolt-elements-background-depth-4 text-bolt-elements-textSecondary">
+            {profile?.avatar ? (
+              <img src={profile.avatar} alt="" className="h-full w-full object-cover" loading="eager" decoding="sync" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center">
+                <span className="i-ph:user h-6 w-6" />
+              </span>
+            )}
+          </span>
+          <span className="min-w-0 truncate text-sm font-medium text-bolt-elements-textPrimary">
+            {profile?.username?.trim() || 'Guest User'}
+          </span>
         </motion.button>
       </DropdownMenu.Trigger>
 
