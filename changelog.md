@@ -8,6 +8,10 @@
 
 ### ✨ Features
 
+* add in-app documentation and bug report panels ([#2252](https://github.com/stackblitz-labs/bolt.diy/pull/2252))
+* add selectable color themes, profile avatars, and theme and interface appearance controls ([#2254](https://github.com/stackblitz-labs/bolt.diy/pull/2254), [#2255](https://github.com/stackblitz-labs/bolt.diy/pull/2255), [#2256](https://github.com/stackblitz-labs/bolt.diy/pull/2256))
+* restore first-run onboarding with profile and appearance setup ([#2258](https://github.com/stackblitz-labs/bolt.diy/pull/2258))
+* improve settings and data management navigation, and retain the selected cloud provider tab ([#2250](https://github.com/stackblitz-labs/bolt.diy/pull/2250), [#2251](https://github.com/stackblitz-labs/bolt.diy/pull/2251))
 * add Simple Sal, Tiny Tim, and DiligentDan options to the Prompt Library, including prompts optimized for smaller models (91bb67a, 4a6181e, a3d6483)
 * add a blank starter flow and framework starter setup that opens the project without an initial generation request (5397ce4, e4af3b0)
 * move MCP tool selection into the prompt attachment menu and show connector connection status there (2ea9f30, e49c8d5)
@@ -25,6 +29,10 @@
 
 ### 🐛 Bug Fixes
 
+* prevent chat persistence and workbench action races, and restore snapshots correctly on URL-based chat routes ([#2260](https://github.com/stackblitz-labs/bolt.diy/pull/2260))
+* keep first-run onboarding from being dismissed prematurely and fix its navigation and appearance controls ([#2258](https://github.com/stackblitz-labs/bolt.diy/pull/2258))
+* apply theme surfaces consistently to event logs, notifications, and local provider endpoints ([#2256](https://github.com/stackblitz-labs/bolt.diy/pull/2256))
+* fix first-load dependency optimization in Vite ([#2249](https://github.com/stackblitz-labs/bolt.diy/pull/2249))
 * preserve workbench access when starting a project and fix blank starter creation (6358436, 5397ce4)
 * handle tool calls emitted as assistant text and fix route configuration startup crashes (acf91f9, bf0ce1b)
 * improve terminal drawer behavior and light/dark theme styling (1618553)
@@ -45,6 +53,7 @@
 
 ### ⚡ Performance Improvements
 
+* speed up template responses and improve XML file call parsing ([#2248](https://github.com/stackblitz-labs/bolt.diy/pull/2248))
 * on-demand lazy mounting of DiffView and Preview panels in Workbench to reduce initial render overhead ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
 * eliminate mid-load dependency re-bundling screen flashes via comprehensive optimizeDeps pre-bundling, and lazy-load Workbench on landing page ([#2215](https://github.com/stackblitz-labs/bolt.diy/pull/2215)) by @dustinwloring1988
 * chat mount preservation across navigation, hover prefetching into in-memory cache, deferred Shiki syntax highlighting during streaming, and memoized frozen markdown blocks ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
