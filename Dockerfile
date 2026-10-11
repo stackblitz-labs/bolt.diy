@@ -7,7 +7,7 @@ ENV HUSKY=0
 ENV CI=true
 
 # Use pnpm
-RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+RUN corepack enable && corepack prepare pnpm@12.11.2 --activate
 
 # Ensure git is available for build and runtime scripts
 RUN apt-get update && apt-get install -y --no-install-recommends git \

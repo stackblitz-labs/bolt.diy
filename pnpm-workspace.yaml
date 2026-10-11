@@ -1,0 +1,29 @@
+overrides:
+  '@typescript-eslint/utils': ^8.0.0-alpha.30
+  app-builder-lib: ^26.15.3
+  bn.js@^4: ^4.12.3
+  bn.js@^5: ^5.2.3
+  brace-expansion@^2: ^2.1.7
+  builder-util-runtime: ^9.7.0
+  js-yaml@^4: ^4.3.2
+  minimatch@^9: ^9.0.9
+  path-to-regexp@0.1: ^0.1.13
+  picomatch@^2: ^2.3.2
+  postcss@^8: ^8.5.28
+  tar: ^7.5.21
+  tar-fs: ^2.1.4
+  yaml@^2: ^2.8.3
+peerDependencyRules:
+  allowedVersions:
+    '@cloudflare/workers-types': '>=4.0.0'
+    electron-builder-squirrel-windows: '>=26.0.0'
+allowBuilds:
+  '@parcel/watcher': true
+  core-js: true
+  electron-winstaller: true
+  esbuild: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types@5.20261011.1'
+  - react-resizable-panels@4.14.4
+  - react-window@2.3.4
