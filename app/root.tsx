@@ -54,6 +54,15 @@ const inlineThemeCode = stripIndents`
   setTutorialKitTheme();
 
   function setTutorialKitTheme() {
+    try {
+      const options = JSON.parse(localStorage.getItem('bolt_interface_options') || '{}');
+      const root = document.documentElement;
+      root.dataset.accentIntensity = String(typeof options.accentIntensity === 'number' ? options.accentIntensity : 50);
+      root.style.setProperty('--interface-accent-strength', String(typeof options.accentIntensity === 'number' ? options.accentIntensity : 50) + '%');
+      root.dataset.cornerRadius = ['sharp', 'soft', 'round'].includes(options.cornerRadius) ? options.cornerRadius : 'soft';
+      root.dataset.compactMode = String(Boolean(options.compactMode));
+      root.dataset.animatedTransitions = String(options.animatedTransitions !== false);
+    } catch {}
     let colorTheme = localStorage.getItem('bolt_theme');
 
     if (!colorTheme) {
