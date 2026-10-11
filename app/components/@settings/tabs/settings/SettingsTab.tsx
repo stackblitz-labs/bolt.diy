@@ -28,6 +28,17 @@ const getModifierSymbol = (modifier: string): string => {
 
 export default function SettingsTab() {
   const activeTheme = useStore(themeStore);
+
+  const [interfaceOptions, setInterfaceOptions] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem('bolt_interface_options') || '{}');
+    return {
+      accentIntensity: typeof saved.accentIntensity === 'number' ? saved.accentIntensity : 50,
+      cornerRadius: ['sharp', 'soft', 'round'].includes(saved.cornerRadius) ? saved.cornerRadius : 'soft',
+      compactMode: Boolean(saved.compactMode),
+      animatedTransitions: saved.animatedTransitions !== false,
+    };
+  });
+
   const [currentTimezone, setCurrentTimezone] = useState('');
   const [chatStats, setChatStats] = useState({ totalChats: 0, totalMessages: 0, averageMessagesPerChat: 0 });
 
@@ -45,6 +56,17 @@ export default function SettingsTab() {
   useEffect(() => {
     setCurrentTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('bolt_interface_options', JSON.stringify(interfaceOptions));
+
+    const root = document.documentElement;
+    root.dataset.accentIntensity = String(interfaceOptions.accentIntensity);
+    root.style.setProperty('--interface-accent-strength', `${interfaceOptions.accentIntensity}%`);
+    root.dataset.cornerRadius = interfaceOptions.cornerRadius;
+    root.dataset.compactMode = String(interfaceOptions.compactMode);
+    root.dataset.animatedTransitions = String(interfaceOptions.animatedTransitions);
+  }, [interfaceOptions]);
 
   useEffect(() => {
     let isActive = true;
@@ -351,6 +373,88 @@ export default function SettingsTab() {
             </div>
           </div>
         ))}
+      </section>
+      <section
+        aria-labelledby="interface-heading"
+        className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
+      >
+        <div className="mb-3 flex items-center gap-2">
+          <span className="i-ph:palette text-bolt-elements-borderColorActive" aria-hidden="true" />
+          <h2 id="interface-heading" className="text-sm font-medium text-bolt-elements-textPrimary">
+            Interface
+          </h2>
+          <span className="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-purple-500">
+            NEW
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label className="rounded-lg bg-bolt-elements-background-depth-2 p-3">
+            <span className="flex justify-between text-xs font-medium text-bolt-elements-textPrimary">
+              <span>Accent intensity</span>
+              <span>{interfaceOptions.accentIntensity}%</span>
+            </span>
+            <span className="mt-1 flex items-center gap-3">
+              <span className="text-[11px] text-bolt-elements-textSecondary">Low</span>
+              <input
+                aria-label="Accent intensity"
+                type="range"
+                min="0"
+                max="100"
+                value={interfaceOptions.accentIntensity}
+                onChange={(event) =>
+                  setInterfaceOptions({ ...interfaceOptions, accentIntensity: Number(event.target.value) })
+                }
+                className="w-full accent-bolt-elements-borderColorActive"
+              />
+              <span className="text-[11px] text-bolt-elements-textSecondary">High</span>
+            </span>
+          </label>
+          <div className="flex items-center justify-between rounded-lg bg-bolt-elements-background-depth-2 p-3">
+            <div>
+              <div className="text-xs font-medium text-bolt-elements-textPrimary">Corner radius</div>
+              <div className="text-[11px] text-bolt-elements-textSecondary">Sharp, soft or round</div>
+            </div>
+            <div
+              className="flex rounded-md bg-bolt-elements-background-depth-1 p-0.5"
+              role="group"
+              aria-label="Corner radius"
+            >
+              {(['sharp', 'soft', 'round'] as const).map((radius) => (
+                <button
+                  key={radius}
+                  type="button"
+                  aria-pressed={interfaceOptions.cornerRadius === radius}
+                  onClick={() => setInterfaceOptions({ ...interfaceOptions, cornerRadius: radius })}
+                  className={`px-2 py-1 text-[11px] capitalize ${interfaceOptions.cornerRadius === radius ? 'bg-purple-500/20 text-purple-500' : 'text-bolt-elements-textSecondary'}`}
+                >
+                  {radius}
+                </button>
+              ))}
+            </div>
+          </div>
+          {(
+            [
+              ['compactMode', 'Compact mode', 'Tighter spacing in lists'],
+              ['animatedTransitions', 'Animated transitions', 'Smooth theme switching'],
+            ] as const
+          ).map(([key, title, description]) => (
+            <label
+              key={key}
+              className="flex cursor-pointer items-center justify-between rounded-lg bg-bolt-elements-background-depth-2 p-3"
+            >
+              <span>
+                <span className="block text-xs font-medium text-bolt-elements-textPrimary">{title}</span>
+                <span className="text-[11px] text-bolt-elements-textSecondary">{description}</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={interfaceOptions[key]}
+                onChange={(event) => setInterfaceOptions({ ...interfaceOptions, [key]: event.target.checked })}
+                className="h-4 w-4 accent-bolt-elements-borderColorActive"
+              />
+            </label>
+          ))}
+        </div>
       </section>
     </div>
   );
