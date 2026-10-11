@@ -1,7 +1,6 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { TAB_LABELS, TAB_ICONS } from '~/components/@settings/core/constants';
 import type { TabVisibilityConfig } from '~/components/@settings/core/types';
-import { GlowingEffect } from '~/components/ui/GlowingEffect';
 import { classNames } from '~/utils/classNames';
 
 interface TabTileProps {
@@ -32,24 +31,14 @@ export const TabTile: React.FC<TabTileProps> = ({
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <div className={classNames('min-h-[160px] list-none', className || '')}>
-            <div className="relative h-full rounded-xl border border-[#E5E5E5] dark:border-[#333333] p-0.5">
-              <GlowingEffect
-                blur={0}
-                borderWidth={1}
-                spread={20}
-                glow={true}
-                disabled={false}
-                proximity={40}
-                inactiveZone={0.3}
-                movementDuration={0.4}
-              />
+            <div className="relative h-full rounded-xl border border-[#333333]">
               <div
                 onClick={onClick}
                 className={classNames(
                   'relative flex flex-col items-center justify-center h-full p-4 rounded-lg',
-                  'bg-white dark:bg-[#141414]',
+                  'bg-[#141414]',
                   'group cursor-pointer',
-                  'hover:bg-purple-50 dark:hover:bg-[#1a1a1a]',
+                  'hover:bg-[#1a1a1a]',
                   'transition-colors duration-100 ease-out',
                   isActive ? 'bg-purple-500/5 dark:bg-purple-500/10' : '',
                   isLoading ? 'cursor-wait opacity-70 pointer-events-none' : '',
