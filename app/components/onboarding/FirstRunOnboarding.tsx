@@ -176,27 +176,34 @@ export function FirstRunOnboarding() {
   }
 
   return (
-    <DialogRoot open={open} onOpenChange={(nextOpen) => !nextOpen && finish()}>
+    <DialogRoot
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          setOpen(true);
+        }
+      }}
+    >
       <Dialog
-        className="w-[min(560px,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto bg-bolt-elements-background-depth-1 p-6 text-bolt-elements-textPrimary"
-        onClose={finish}
-        onBackdrop={finish}
+        backdropClassName="!bg-[#09080f]/80 !backdrop-blur-md bg-[radial-gradient(ellipse_at_top,_rgba(91,33,182,0.18),_transparent_55%)]"
+        className="w-[min(560px,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto !rounded-xl !border-[#302e39] !bg-[#1b1a22] p-6 !text-[#f4f1fa]"
+        showCloseButton={false}
       >
         <div className="mb-5">
-          <div className="mb-2 text-xs font-medium text-bolt-elements-textSecondary">
+          <div className="mb-2 text-xs font-medium text-[#a09baa]">
             Step {step + 1} of {stepTitles.length}
           </div>
           <div className="mb-3 flex gap-1" aria-hidden="true">
             {stepTitles.map((title, index) => (
               <span
                 key={title}
-                className={`h-1.5 flex-1 rounded-full ${index <= step ? 'bg-bolt-elements-borderColorActive' : 'bg-bolt-elements-background-depth-3'}`}
+                className={`h-1 flex-1 rounded-full ${index <= step ? 'bg-[#8b5cf6]' : 'bg-[#393641]'}`}
               />
             ))}
           </div>
           <DialogTitle className="text-xl font-semibold">Welcome to Bolt</DialogTitle>
-          <DialogDescription className="mt-1 text-sm text-bolt-elements-textSecondary">
-            Let’s get your workspace ready. You can skip any step and change these settings later.
+          <DialogDescription className="mt-1 text-sm !text-[#a09baa]">
+            Let’s get your workspace ready. Optional details can be left blank and changed later in Settings.
           </DialogDescription>
         </div>
 
@@ -211,7 +218,7 @@ export function FirstRunOnboarding() {
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Your name"
-              className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm outline-none focus:border-bolt-elements-borderColorActive"
+              className="w-full rounded-md border border-[#302e39] bg-[#121116] px-3 py-2 text-sm text-[#f4f1fa] outline-none focus:border-[#8b5cf6]"
             />
             <div>
               <span className="mb-2 block text-sm font-medium">Choose an avatar</span>
@@ -223,12 +230,12 @@ export function FirstRunOnboarding() {
                     aria-label={`Use ${preset.name} avatar`}
                     aria-pressed={avatar === preset.src}
                     onClick={() => setAvatar(preset.src)}
-                    className={`h-14 w-14 overflow-hidden rounded-full border-2 ${avatar === preset.src ? 'border-bolt-elements-borderColorActive' : 'border-bolt-elements-borderColor'}`}
+                    className={`h-14 w-14 overflow-hidden rounded-full border-2 ${avatar === preset.src ? 'border-[#8b5cf6] ring-2 ring-[#8b5cf6]/40' : 'border-[#393641]'}`}
                   >
                     <img src={preset.src} alt="" className="h-full w-full object-cover" />
                   </button>
                 ))}
-                <label className="flex h-14 cursor-pointer items-center rounded-md border border-dashed border-bolt-elements-borderColor px-3 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2">
+                <label className="flex h-14 cursor-pointer items-center rounded-md border border-dashed border-[#393641] px-3 text-xs text-[#a09baa] hover:bg-[#25232d]">
                   <input
                     type="file"
                     accept="image/*"
@@ -271,7 +278,7 @@ export function FirstRunOnboarding() {
                   <img
                     src={avatar}
                     alt="Uploaded avatar preview"
-                    className="h-14 w-14 rounded-full border border-bolt-elements-borderColor object-cover"
+                    className="h-14 w-14 rounded-full border border-[#393641] object-cover"
                   />
                 )}
               </div>
@@ -286,7 +293,7 @@ export function FirstRunOnboarding() {
 
         {step === 1 && (
           <div className="space-y-3">
-            <p className="text-sm text-bolt-elements-textSecondary">
+            <p className="text-sm text-[#a09baa]">
               Choose a provider and add its API key to start building. You can also skip this and use a locally
               configured provider.
             </p>
@@ -297,7 +304,7 @@ export function FirstRunOnboarding() {
               id="onboarding-provider"
               value={providerName}
               onChange={(event) => setProviderName(event.target.value)}
-              className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-[#302e39] bg-[#121116] px-3 py-2 text-sm text-[#f4f1fa]"
             >
               {PROVIDER_LIST.map((provider) => (
                 <option key={provider.name} value={provider.name}>
@@ -315,14 +322,14 @@ export function FirstRunOnboarding() {
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
               placeholder="Paste your API key"
-              className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm outline-none focus:border-bolt-elements-borderColorActive"
+              className="w-full rounded-md border border-[#302e39] bg-[#121116] px-3 py-2 text-sm text-[#f4f1fa] outline-none focus:border-[#8b5cf6]"
             />
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-3">
-            <p className="text-sm text-bolt-elements-textSecondary">
+            <p className="text-sm text-[#a09baa]">
               Add MCP server configuration as JSON. You can leave this empty and set it up later in Settings.
             </p>
             <label className="block text-sm font-medium" htmlFor="onboarding-mcp">
@@ -334,7 +341,7 @@ export function FirstRunOnboarding() {
               value={mcpText}
               onChange={(event) => setMcpText(event.target.value)}
               rows={9}
-              className="w-full resize-y rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 font-mono text-xs outline-none focus:border-bolt-elements-borderColorActive"
+              className="w-full resize-y rounded-md border border-[#302e39] bg-[#121116] px-3 py-2 font-mono text-xs text-[#f4f1fa] outline-none focus:border-[#8b5cf6]"
             />
             {error && (
               <p role="alert" className="text-sm text-red-500">
@@ -354,7 +361,7 @@ export function FirstRunOnboarding() {
                 id="onboarding-theme"
                 value={selectedTheme}
                 onChange={(event) => setSelectedTheme(event.target.value as Theme)}
-                className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm"
+                className="w-full rounded-md border border-[#302e39] bg-[#121116] px-3 py-2 text-sm text-[#f4f1fa]"
               >
                 {(['light', 'dark'] as const).map((mode) => (
                   <optgroup key={mode} label={`${mode[0].toUpperCase()}${mode.slice(1)} themes`}>
@@ -368,11 +375,10 @@ export function FirstRunOnboarding() {
               </select>
             </div>
 
-            <div className="rounded-md bg-bolt-elements-background-depth-2 p-3">
+            <div className="rounded-md bg-[#22212a] p-3">
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span>
-                  Accent intensity{' '}
-                  <span className="text-bolt-elements-textSecondary">({interfaceOptions.accentIntensity}%)</span>
+                  Accent intensity <span className="text-[#a09baa]">({interfaceOptions.accentIntensity}%)</span>
                 </span>
                 <input
                   aria-label="Accent intensity"
@@ -383,12 +389,12 @@ export function FirstRunOnboarding() {
                   onChange={(event) =>
                     setInterfaceOptions({ ...interfaceOptions, accentIntensity: Number(event.target.value) })
                   }
-                  className="w-1/2 accent-bolt-elements-borderColorActive"
+                  className="w-1/2 accent-[#8b5cf6]"
                 />
               </label>
             </div>
 
-            <div className="flex items-center justify-between gap-3 rounded-md bg-bolt-elements-background-depth-2 p-3">
+            <div className="flex items-center justify-between gap-3 rounded-md bg-[#22212a] p-3">
               <span className="text-sm">Corner radius</span>
               <div className="flex gap-1" role="group" aria-label="Corner radius">
                 {(['sharp', 'soft', 'round'] as const).map((radius) => (
@@ -397,7 +403,7 @@ export function FirstRunOnboarding() {
                     type="button"
                     aria-pressed={interfaceOptions.cornerRadius === radius}
                     onClick={() => setInterfaceOptions({ ...interfaceOptions, cornerRadius: radius })}
-                    className={`appearance-none rounded-md px-2 py-1 text-xs capitalize ${interfaceOptions.cornerRadius === radius ? 'bg-bolt-elements-borderColorActive text-white' : 'bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary'}`}
+                    className={`appearance-none rounded-md px-2 py-1 text-xs capitalize ${interfaceOptions.cornerRadius === radius ? 'bg-[#8b5cf6] text-white' : 'bg-[#302e39] text-[#b8b3c2]'}`}
                   >
                     {radius}
                   </button>
@@ -413,37 +419,30 @@ export function FirstRunOnboarding() {
             ).map(([key, label, description]) => (
               <label
                 key={key}
-                className="flex cursor-pointer items-center justify-between gap-3 rounded-md bg-bolt-elements-background-depth-2 p-3"
+                className="flex cursor-pointer items-center justify-between gap-3 rounded-md bg-[#22212a] p-3"
               >
                 <span>
                   <span className="block text-sm">{label}</span>
-                  <span className="text-xs text-bolt-elements-textSecondary">{description}</span>
+                  <span className="text-xs text-[#a09baa]">{description}</span>
                 </span>
                 <input
                   type="checkbox"
                   checked={interfaceOptions[key]}
                   onChange={(event) => setInterfaceOptions({ ...interfaceOptions, [key]: event.target.checked })}
-                  className="h-4 w-4 accent-bolt-elements-borderColorActive"
+                  className="h-4 w-4 accent-[#8b5cf6]"
                 />
               </label>
             ))}
           </div>
         )}
 
-        <div className="mt-6 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={finish}
-            className="appearance-none cursor-pointer border-0 bg-transparent px-0 py-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:underline"
-          >
-            Skip setup
-          </button>
+        <div className="mt-6 flex items-center justify-end gap-3">
           <div className="flex gap-2">
             {step > 0 && (
               <button
                 type="button"
                 onClick={() => setStep((current) => current - 1)}
-                className="appearance-none rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+                className="appearance-none rounded-md border border-[#393641] bg-[#302e39] px-4 py-2 text-sm text-[#eeeaf5] hover:bg-[#3b3846] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5cf6]"
               >
                 Back
               </button>
@@ -452,7 +451,7 @@ export function FirstRunOnboarding() {
               type="button"
               disabled={saving}
               onClick={() => void next()}
-              className="rounded-md bg-bolt-elements-borderColorActive px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="rounded-md bg-[#8b5cf6] px-4 py-2 text-sm font-medium text-white hover:bg-[#9a6bff] disabled:opacity-60"
             >
               {saving ? 'Saving…' : step === 3 ? 'Finish setup' : 'Continue'}
             </button>

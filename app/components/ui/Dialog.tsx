@@ -95,51 +95,57 @@ export const dialogVariants = {
 interface DialogProps {
   children: ReactNode;
   className?: string;
+  backdropClassName?: string;
   showCloseButton?: boolean;
   onClose?: () => void;
   onBackdrop?: () => void;
 }
 
-export const Dialog = memo(({ children, className, showCloseButton = true, onClose, onBackdrop }: DialogProps) => {
-  return (
-    <RadixDialog.Portal>
-      <RadixDialog.Overlay asChild>
-        <motion.div
-          className={classNames('fixed inset-0 z-[9999] bg-black/70 dark:bg-black/80 backdrop-blur-sm')}
-          initial="closed"
-          animate="open"
-          exit="closed"
-          variants={dialogBackdropVariants}
-          onClick={onBackdrop}
-        />
-      </RadixDialog.Overlay>
-      <RadixDialog.Content asChild>
-        <motion.div
-          className={classNames(
-            'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[520px] focus:outline-none',
-            className,
-          )}
-          initial="closed"
-          animate="open"
-          exit="closed"
-          variants={dialogVariants}
-        >
-          <div className="flex flex-col">
-            {children}
-            {showCloseButton && (
-              <RadixDialog.Close asChild onClick={onClose}>
-                <IconButton
-                  icon="i-ph:x"
-                  className="absolute top-3 right-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
-                />
-              </RadixDialog.Close>
+export const Dialog = memo(
+  ({ children, className, backdropClassName, showCloseButton = true, onClose, onBackdrop }: DialogProps) => {
+    return (
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay asChild>
+          <motion.div
+            className={classNames(
+              'fixed inset-0 z-[9999] bg-black/70 dark:bg-black/80 backdrop-blur-sm',
+              backdropClassName,
             )}
-          </div>
-        </motion.div>
-      </RadixDialog.Content>
-    </RadixDialog.Portal>
-  );
-});
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={dialogBackdropVariants}
+            onClick={onBackdrop}
+          />
+        </RadixDialog.Overlay>
+        <RadixDialog.Content asChild>
+          <motion.div
+            className={classNames(
+              'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[520px] focus:outline-none',
+              className,
+            )}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={dialogVariants}
+          >
+            <div className="flex flex-col">
+              {children}
+              {showCloseButton && (
+                <RadixDialog.Close asChild onClick={onClose}>
+                  <IconButton
+                    icon="i-ph:x"
+                    className="absolute top-3 right-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
+                  />
+                </RadixDialog.Close>
+              )}
+            </div>
+          </motion.div>
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    );
+  },
+);
 
 /**
  * Props for the ConfirmationDialog component
