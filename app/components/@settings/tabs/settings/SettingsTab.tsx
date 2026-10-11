@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react';
 import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
@@ -6,6 +7,8 @@ import { Card, CardContent } from '~/components/ui/Card';
 import { Switch } from '~/components/ui/Switch';
 import { getAllChats } from '~/lib/persistence/chats';
 import { openDatabase } from '~/lib/persistence/db';
+import { setTheme, themeStore } from '~/lib/stores/theme';
+import { THEMES } from '~/types/theme';
 import { classNames } from '~/utils/classNames';
 import { isMac } from '~/utils/os';
 
@@ -24,6 +27,7 @@ const getModifierSymbol = (modifier: string): string => {
 };
 
 export default function SettingsTab() {
+  const activeTheme = useStore(themeStore);
   const [currentTimezone, setCurrentTimezone] = useState('');
   const [chatStats, setChatStats] = useState({ totalChats: 0, totalMessages: 0, averageMessagesPerChat: 0 });
 
@@ -144,7 +148,7 @@ export default function SettingsTab() {
 
       {/* Language & Notifications */}
       <motion.div
-        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4 space-y-4"
+        className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 space-y-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
@@ -164,8 +168,8 @@ export default function SettingsTab() {
             onChange={(e) => setSettings((prev) => ({ ...prev, language: e.target.value }))}
             className={classNames(
               'w-full px-3 py-2 rounded-lg text-sm',
-              'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-              'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+              'bg-bolt-elements-background-depth-2',
+              'border border-bolt-elements-borderColor',
               'text-bolt-elements-textPrimary',
               'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
               'transition-all duration-200',
@@ -225,7 +229,7 @@ export default function SettingsTab() {
 
       {/* Timezone */}
       <motion.div
-        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4"
+        className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -245,8 +249,8 @@ export default function SettingsTab() {
             onChange={(e) => setSettings((prev) => ({ ...prev, timezone: e.target.value }))}
             className={classNames(
               'w-full px-3 py-2 rounded-lg text-sm',
-              'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-              'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+              'bg-bolt-elements-background-depth-2',
+              'border border-bolt-elements-borderColor',
               'text-bolt-elements-textPrimary',
               'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
               'transition-all duration-200',
@@ -259,7 +263,7 @@ export default function SettingsTab() {
 
       {/* Simplified Keyboard Shortcuts */}
       <motion.div
-        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4"
+        className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
@@ -270,28 +274,84 @@ export default function SettingsTab() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-2 rounded-lg bg-[#FAFAFA] dark:bg-[#1A1A1A]">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-bolt-elements-background-depth-2">
             <div className="flex flex-col">
               <span className="text-sm text-bolt-elements-textPrimary">Toggle Theme</span>
               <span className="text-xs text-bolt-elements-textSecondary">Switch between light and dark mode</span>
             </div>
             <div className="flex items-center gap-1">
-              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
+              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded shadow-sm">
                 {getModifierSymbol('meta')}
               </kbd>
-              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
+              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded shadow-sm">
                 {getModifierSymbol('alt')}
               </kbd>
-              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
+              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded shadow-sm">
                 {getModifierSymbol('shift')}
               </kbd>
-              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
+              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded shadow-sm">
                 D
               </kbd>
             </div>
           </div>
         </div>
       </motion.div>
+
+      <section
+        aria-labelledby="appearance-heading"
+        className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
+      >
+        <div className="mb-4">
+          <h2 id="appearance-heading" className="text-sm font-medium text-bolt-elements-textPrimary">
+            Appearance
+          </h2>
+          <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+            Choose a light or dark color palette. Your choice is saved on this device.
+          </p>
+        </div>
+        {(['light', 'dark'] as const).map((mode) => (
+          <div key={mode} className="mb-4 last:mb-0">
+            <h3 className="mb-2 text-xs font-medium capitalize text-bolt-elements-textSecondary">{mode} themes</h3>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {THEMES.filter((theme) => theme.mode === mode).map((theme) => {
+                const selected = activeTheme === theme.id || (activeTheme === 'dark' && theme.id === 'dark-dracula');
+
+                return (
+                  <button
+                    key={theme.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setTheme(theme.id)}
+                    className={`flex min-h-16 items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
+                      selected
+                        ? 'border-bolt-elements-borderColorActive bg-bolt-elements-background-depth-2 ring-1 ring-bolt-elements-borderColorActive'
+                        : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-2'
+                    }`}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-md border border-black/10 dark:border-white/10">
+                      {theme.colors.map((color) => (
+                        <span key={color} className="h-full flex-1" style={{ backgroundColor: color }} />
+                      ))}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-bolt-elements-textPrimary">{theme.name}</span>
+                      <span className="block text-xs text-bolt-elements-textSecondary">
+                        {selected ? 'Selected' : 'Select theme'}
+                      </span>
+                    </span>
+                    {selected && (
+                      <span
+                        aria-hidden="true"
+                        className="i-ph-check-circle-fill ml-auto text-lg text-bolt-elements-borderColorActive"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

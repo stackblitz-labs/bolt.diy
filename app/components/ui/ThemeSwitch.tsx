@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react';
 import { memo, useEffect, useState } from 'react';
 import { IconButton } from './IconButton';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
+import { getThemeMode } from '~/types/theme';
 
 interface ThemeSwitchProps {
   className?: string;
@@ -19,7 +20,7 @@ export const ThemeSwitch = memo(({ className }: ThemeSwitchProps) => {
     domLoaded && (
       <IconButton
         className={className}
-        icon={theme === 'dark' ? 'i-ph-sun-dim-duotone' : 'i-ph-moon-stars-duotone'}
+        icon={getThemeMode(theme) === 'dark' ? 'i-ph-sun-dim-duotone' : 'i-ph-moon-stars-duotone'}
         size="xl"
         title="Toggle Theme"
         onClick={toggleTheme}

@@ -13,6 +13,7 @@ import {
 } from '~/lib/persistence/messageMigration';
 import { themeStore, type Theme } from '~/lib/stores/theme';
 import type { ToolCallAnnotation } from '~/types/context';
+import { getThemeMode } from '~/types/theme';
 import { classNames } from '~/utils/classNames';
 import {
   TOOL_EXECUTION_APPROVAL,
@@ -80,7 +81,7 @@ function JsonCodeBlock({ className, code, theme }: JsonCodeBlockProps) {
       dangerouslySetInnerHTML={{
         __html: jsonHighlighter.codeToHtml(formattedCode, {
           lang: 'json',
-          theme: theme === 'dark' ? 'dark-plus' : 'light-plus',
+          theme: getThemeMode(theme) === 'dark' ? 'dark-plus' : 'light-plus',
         }),
       }}
       style={{
