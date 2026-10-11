@@ -15,6 +15,7 @@ export default [
     ],
   },
   { file: 'routes/git.tsx', path: '/git' },
+  { file: 'routes/starter.tsx', path: '/starter' },
   { file: 'routes/webcontainer.connect.$id.tsx', path: '/webcontainer/connect/:id' },
   { file: 'routes/webcontainer.preview.$id.tsx', path: '/webcontainer/preview/:id' },
   { file: 'routes/api.bug-report.ts', path: '/api/bug-report' },

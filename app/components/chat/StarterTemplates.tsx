@@ -8,7 +8,8 @@ interface FrameworkLinkProps {
 
 const FrameworkLink: React.FC<FrameworkLinkProps> = ({ template }) => (
   <a
-    href={`/git?url=https://github.com/${template.githubRepo}.git`}
+    href={`/starter?template=${encodeURIComponent(template.name)}`}
+    aria-label={`Start a blank ${template.label} app`}
     data-state="closed"
     data-discover="true"
     className="items-center justify-center"
