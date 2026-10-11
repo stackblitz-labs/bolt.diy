@@ -20,6 +20,7 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 - [Running with Docker](#running-with-docker)
 - [Desktop App (Electron)](#desktop-app-electron)
 - [Configuring API Keys and Providers](#configuring-api-keys-and-providers)
+- [Web search with MCP](#web-search-with-mcp)
 - [Features](#features)
 - [Recent Highlights](#recent-highlights)
 - [Available Scripts](#available-scripts)
@@ -105,6 +106,36 @@ GEMINI_API_KEY=your_key_here
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 ```
+
+---
+
+## Web search with MCP
+
+In community **bolt.diy**, open **Settings → MCP Servers** to connect external tools. This does not configure hosted Bolt.new.
+
+### Parallel Search
+
+[Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp) provides `web_search` and `web_fetch` over Streamable HTTP. Anonymous access needs no Parallel account, API key, headers, or local command. Free search is rate limited; your chat model and hosting may still have their own costs.
+
+1. Add the `parallel-search` entry below inside your existing `mcpServers` object, keeping your other servers. For a new configuration, you can paste the whole example.
+2. Click **Save Configuration**. Saving connects the configured servers. Expand `parallel-search` under **MCP Servers Configured** and confirm that `web_search` and `web_fetch` appear. A saved configuration does not guarantee a successful connection; use **Check availability** to retry discovery.
+3. In chat, use a model that supports tool calling and ask, for example: "Use web_search to find the official Vite documentation on environment variables, then use web_fetch to read it. Include the source URLs."
+4. When chat proposes a tool, click **Run tool** to approve it or **Cancel** to decline. The approval card shows the tool name and description, not its arguments. Queries, requested URLs, and any supplied objective/context go to Parallel when you approve the call. After the call, expand **MCP Tool Invocations** to inspect its parameters and result. Tool results retain the source URLs and excerpts for the chat to use.
+
+```json
+{
+  "mcpServers": {
+    "parallel-search": {
+      "type": "streamable-http",
+      "url": "https://search.parallel.ai/mcp"
+    }
+  }
+}
+```
+
+**Load Example** also includes this connection alongside other example servers. It replaces the editor draft, not saved settings. Keep only the entries you want before saving; do not save the whole sample over an existing configuration. Nothing is enabled by default, and adding Parallel does not change your selected model or automatically run its tools.
+
+Use `streamable-http`, not `sse`, and leave out authentication headers for anonymous access. If a call fails or reaches a rate limit, wait before retrying and check the [service guidance](https://docs.parallel.ai/integrations/mcp/search-mcp#troubleshooting). bolt.diy may show a generic tool execution error; that is not a successful empty search. To disconnect, remove only `parallel-search` from the configuration and save again.
 
 ---
 

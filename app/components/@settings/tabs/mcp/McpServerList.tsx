@@ -1,5 +1,6 @@
 import McpServerListItem from '~/components/@settings/tabs/mcp/McpServerListItem';
 import McpStatusBadge from '~/components/@settings/tabs/mcp/McpStatusBadge';
+import McpToolErrorBoundary from '~/components/@settings/tabs/mcp/McpToolErrorBoundary';
 import type { MCPServer } from '~/lib/services/mcpService';
 
 type McpServerListProps = {
@@ -30,7 +31,8 @@ export default function McpServerList({
       {filteredEntries.map(([serverName, mcpServer]) => {
         const isAvailable = mcpServer.status === 'available';
         const isExpanded = expandedServer === serverName;
-        const serverTools = isAvailable ? Object.entries(mcpServer.tools) : [];
+        const tools = isAvailable ? mcpServer.tools : undefined;
+        const serverTools = tools && typeof tools === 'object' ? Object.entries(tools) : [];
 
         return (
           <div key={serverName} className="flex flex-col p-2 rounded-md bg-bolt-elements-background-depth-1">
@@ -81,11 +83,9 @@ export default function McpServerList({
                 ) : (
                   <div className="mt-1 space-y-2">
                     {serverTools.map(([toolName, toolSchema]) => (
-                      <McpServerListItem
-                        key={`${serverName}-${toolName}`}
-                        toolName={toolName}
-                        toolSchema={toolSchema}
-                      />
+                      <McpToolErrorBoundary key={`${serverName}-${toolName}`} toolName={toolName}>
+                        <McpServerListItem toolName={toolName} toolSchema={toolSchema} />
+                      </McpToolErrorBoundary>
                     ))}
                   </div>
                 )}

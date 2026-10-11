@@ -16,6 +16,10 @@ const EXAMPLE_MCP_CONFIG: MCPConfig = {
       type: 'streamable-http',
       url: 'https://mcp.deepwiki.com/mcp',
     },
+    'parallel-search': {
+      type: 'streamable-http',
+      url: 'https://search.parallel.ai/mcp',
+    },
     'local-sse': {
       type: 'sse',
       url: 'http://localhost:8000/sse',
@@ -193,7 +197,23 @@ export default function McpTab() {
             />
           </div>
           <div className="mt-2 text-sm text-bolt-elements-textSecondary">
-            The MCP configuration format is identical to the one used in Claude Desktop.
+            Load Example replaces the editor contents, not your saved settings. Keep only the servers you want before
+            saving. To preserve existing servers, add individual entries to your current mcpServers object instead.
+          </div>
+          <div className="text-sm text-bolt-elements-textSecondary">
+            The Parallel Search example provides web_search and web_fetch without a Parallel account or API key. Free
+            access is rate limited. When you approve a tool call in chat, its queries, URLs and context are sent to
+            Parallel.{' '}
+            <a
+              href="https://docs.parallel.ai/integrations/mcp/search-mcp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-bolt-elements-link hover:underline"
+            >
+              Parallel Search setup and limits
+            </a>
+          </div>
+          <div className="text-sm text-bolt-elements-textSecondary">
             <a
               href="https://modelcontextprotocol.io/examples"
               target="_blank"
