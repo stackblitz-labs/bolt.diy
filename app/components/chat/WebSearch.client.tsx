@@ -198,11 +198,11 @@ export function WebSearch({ onSearchResult, provider, model, disabled = false }:
                 onClick={() => changeMode(nextMode)}
                 disabled={isSearching}
                 className={classNames(
-                  'flex-1 rounded px-3 py-1.5 text-sm transition-colors',
+                  'flex-1 appearance-none rounded border-0 px-3 py-1.5 text-sm transition-colors',
                   'disabled:cursor-not-allowed disabled:opacity-50',
                   mode === nextMode
-                    ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                    : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-transparent text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
                 )}
               >
                 {nextMode === 'search' ? 'Search the web' : 'Fetch a URL'}
@@ -231,7 +231,7 @@ export function WebSearch({ onSearchResult, provider, model, disabled = false }:
                 className={classNames(
                   'w-full rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm',
                   'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
-                  'placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
+                  'placeholder:text-bolt-elements-textSecondary placeholder:opacity-100 focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
                 )}
               />
               {mode === 'url' && (
@@ -244,13 +244,14 @@ export function WebSearch({ onSearchResult, provider, model, disabled = false }:
                   className={classNames(
                     'w-full rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm',
                     'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
-                    'placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
+                    'placeholder:text-bolt-elements-textSecondary placeholder:opacity-100 focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
                   )}
                 />
               )}
-              <p className="text-xs text-bolt-elements-textSecondary">
-                Search queries and URLs are sent to Tavily. Page text is summarized with your selected model. Review the
-                sources before adding context.
+              <p className="text-xs leading-relaxed text-bolt-elements-textPrimary">
+                Searches use Tavily when configured, or free DuckDuckGo results summarized from snippets. Fetching a URL
+                requires Tavily. Search queries, URLs, and page text are sent to the selected services. Review sources
+                before adding context.
               </p>
               <button
                 type="button"
@@ -258,8 +259,8 @@ export function WebSearch({ onSearchResult, provider, model, disabled = false }:
                 disabled={isSearching || !input.trim()}
                 className={classNames(
                   'rounded-md px-3 py-2 text-sm font-medium',
-                  'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
-                  'hover:bg-bolt-elements-button-primary-backgroundHover disabled:cursor-not-allowed disabled:opacity-50',
+                  'bg-purple-600 text-white hover:bg-purple-700',
+                  'disabled:cursor-not-allowed disabled:opacity-70',
                 )}
               >
                 {isSearching ? 'Reading sources…' : mode === 'search' ? 'Search and summarize' : 'Fetch and summarize'}

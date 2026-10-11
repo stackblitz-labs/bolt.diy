@@ -40,9 +40,9 @@ export default function TavilyTab() {
       <div>
         <h2 className="text-lg font-medium text-bolt-elements-textPrimary">Tavily Web Search</h2>
         <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-          Add a Tavily API key to search the web and extract page content for chat context. Your key is stored in your
-          browser cookies and sent to this app when you use web search. A server-side <code>TAVILY_API_KEY</code> can be
-          used instead.
+          Add a Tavily API key for full-page extraction in web search and URL fetching. Web search also works without a
+          key using DuckDuckGo snippets. Your key is stored in your browser cookies and sent to this app when you use
+          web search. A server-side <code>TAVILY_API_KEY</code> can be used instead.
         </p>
       </div>
       <div className="space-y-2">

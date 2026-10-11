@@ -58,6 +58,68 @@ type TavilyExtractResult = {
 
 type CandidateSource = WebContextSource & { content: string };
 
+function decodeHtml(text: string): string {
+  return text
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&#x27;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#(\d+);/g, (_, value: string) => String.fromCodePoint(Number(value)))
+    .replace(/&#x([\da-f]+);/gi, (_, value: string) => String.fromCodePoint(parseInt(value, 16)));
+}
+
+function stripHtml(value: string): string {
+  return decodeHtml(value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')).trim();
+}
+
+async function searchDuckDuckGo(query: string) {
+  const searchUrl = new URL('https://html.duckduckgo.com/html/');
+  searchUrl.searchParams.set('q', query);
+
+  const response = await fetch(searchUrl, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BoltDIY/1.0; +https://github.com/stackblitz-labs/bolt.diy)' },
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!response.ok) {
+    throw new WebContextError('Free DuckDuckGo search is temporarily unavailable. Try again or configure Tavily.', 502);
+  }
+
+  const html = await response.text();
+
+  const resultLinks = [
+    ...html.matchAll(/<a\b(?=[^>]*\bclass=["'][^"']*\bresult__a\b)[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi),
+  ];
+
+  return resultLinks.slice(0, MAX_PAGES_TO_READ).flatMap((match, index) => {
+    const nextIndex = resultLinks[index + 1]?.index ?? html.length;
+    const blockEnd = match.index! + match[0].length;
+    const block = html.slice(blockEnd, nextIndex);
+
+    const snippetMatch = block.match(
+      /<a\b[^>]*class=["'][^"']*\bresult__snippet\b[^"']*["'][^>]*>([\s\S]*?)<\/a>|<td\b[^>]*class=["'][^"']*\bresult__snippet\b[^"']*["'][^>]*>([\s\S]*?)<\/td>/i,
+    );
+
+    const title = stripHtml(match[2]);
+    const snippet = snippetMatch ? stripHtml(snippetMatch[1] || snippetMatch[2] || '') : '';
+
+    try {
+      const link = new URL(decodeHtml(match[1]), searchUrl);
+      const destination = link.hostname.endsWith('duckduckgo.com') ? link.searchParams.get('uddg') : link.toString();
+      const url = destination ? new URL(destination).toString() : '';
+
+      if (!title || !snippet || !url || !isAllowedUrl(url)) {
+        return [];
+      }
+
+      return [{ title, url, snippet }];
+    } catch {
+      return [];
+    }
+  });
+}
+
 export class WebContextError extends Error {
   constructor(
     message: string,
@@ -120,7 +182,7 @@ function trimContent(content: string, remaining: number): string {
 }
 
 async function getCandidateSources(options: {
-  apiKey: string;
+  apiKey?: string;
   mode: 'search' | 'url';
   query: string;
   url?: string;
@@ -140,28 +202,50 @@ async function getCandidateSources(options: {
       throw new WebContextError('Enter a search query.', 400);
     }
 
-    const search = await callTavily<{ results?: TavilySearchResult[] }>(options.apiKey, 'search', {
-      query: options.query,
-      search_depth: 'basic',
-      topic: 'general',
-      max_results: MAX_SEARCH_RESULTS,
-      include_answer: false,
-      include_raw_content: false,
-    });
+    if (options.apiKey) {
+      const search = await callTavily<{ results?: TavilySearchResult[] }>(options.apiKey, 'search', {
+        query: options.query,
+        search_depth: 'basic',
+        topic: 'general',
+        max_results: MAX_SEARCH_RESULTS,
+        include_answer: false,
+        include_raw_content: false,
+      });
 
-    candidates = (search.results || [])
-      .filter((result): result is TavilySearchResult & { url: string } => !!result.url && isAllowedUrl(result.url))
-      .slice(0, MAX_PAGES_TO_READ)
-      .map((result) => ({
-        title: result.title?.trim() || new URL(result.url).hostname,
-        url: result.url,
-        publishedAt: result.published_date,
-        snippet: result.content,
-      }));
+      candidates = (search.results || [])
+        .filter((result): result is TavilySearchResult & { url: string } => !!result.url && isAllowedUrl(result.url))
+        .slice(0, MAX_PAGES_TO_READ)
+        .map((result) => ({
+          title: result.title?.trim() || new URL(result.url).hostname,
+          url: result.url,
+          publishedAt: result.published_date,
+          snippet: result.content,
+        }));
+    } else {
+      candidates = await searchDuckDuckGo(options.query);
+    }
   }
 
   if (candidates.length === 0) {
     throw new WebContextError('No usable web results were found. Try a different query.', 404);
+  }
+
+  if (!options.apiKey) {
+    let remaining = MAX_TOTAL_CONTENT_LENGTH;
+
+    return candidates
+      .map((candidate, index) => {
+        const content = trimContent(candidate.snippet || '', remaining);
+        remaining -= content.length;
+
+        return {
+          id: `s${index + 1}`,
+          title: candidate.title || new URL(candidate.url).hostname,
+          url: normalizeUrl(candidate.url),
+          content,
+        };
+      })
+      .filter((source) => source.content.length > 0);
   }
 
   const extraction = await callTavily<{ results?: TavilyExtractResult[] }>(options.apiKey, 'extract', {
@@ -228,9 +312,9 @@ export async function createWebContext(options: {
   const apiKeys = getApiKeysFromCookie(cookieHeader);
   const tavilyApiKey = apiKeys.TAVILY_API_KEY?.trim() || env.TAVILY_API_KEY?.trim();
 
-  if (!tavilyApiKey) {
+  if (!tavilyApiKey && options.mode === 'url') {
     throw new WebContextError(
-      'Web search and page extraction need a Tavily API key. Add one in Settings → Connectors → Tavily or set TAVILY_API_KEY on the server.',
+      'Fetching and extracting a page URL needs a Tavily API key. Add one in Settings → Connectors → Tavily or use Search the web for free DuckDuckGo results.',
       503,
     );
   }
@@ -322,7 +406,12 @@ ${JSON.stringify(sources.map(({ id, title, url, publishedAt, content }) => ({ id
     query: options.query.trim(),
     summary: output.summary,
     keyPoints,
-    limitations: output.limitations,
+    limitations: tavilyApiKey
+      ? output.limitations
+      : [
+          ...output.limitations,
+          'Free DuckDuckGo fallback used; summaries are based on search snippets, not full-page extraction.',
+        ],
     sources: sources.map(({ id, title, url, publishedAt }) => ({ id, title, url, publishedAt })),
   };
 }
