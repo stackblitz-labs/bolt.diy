@@ -235,4 +235,75 @@ describe('useChatHistory chat switching', () => {
     expect(result.current.chatChanged).toBe(false);
     expect(result.current.initialMessages).toEqual([]);
   });
+
+  it('should defer the new chat route handoff until the initial response finishes', async () => {
+    const useChatHistory = await importHook();
+    routeId = undefined;
+
+    const { result } = renderHook(() => useChatHistory());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    await act(async () => {
+      await result.current.storeMessageHistory(
+        [
+          {
+            id: 'streaming',
+            role: 'assistant',
+            content: 'building',
+            parts: [{ type: 'text', text: 'building' }],
+          } as any,
+        ],
+        true,
+      );
+    });
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(window.location.pathname).toBe('/');
+
+    await act(async () => {
+      await result.current.storeMessageHistory(
+        [
+          {
+            id: 'complete',
+            role: 'assistant',
+            content: 'finished',
+            parts: [{ type: 'text', text: 'finished' }],
+          } as any,
+        ],
+        false,
+      );
+    });
+
+    expect(navigate).toHaveBeenCalledWith('/chat/3', { replace: true });
+    expect(window.location.pathname).toBe('/chat/3');
+  });
+
+  it('should clear the previous chat switch when a fresh chat is persisted', async () => {
+    const useChatHistory = await importHook();
+    const { rerender, result } = renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    routeId = undefined;
+    rerender();
+    await waitFor(() => expect(result.current.chatChanged).toBe(true));
+
+    await act(async () => {
+      await result.current.storeMessageHistory([
+        {
+          id: 'new-after-switch',
+          role: 'assistant',
+          content: 'building',
+          parts: [{ type: 'text', text: 'building' }],
+        } as any,
+      ]);
+    });
+
+    routeId = '3';
+    rerender();
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(result.current.chatChanged).toBe(false);
+    expect(result.current.initialMessages).toEqual([]);
+  });
 });

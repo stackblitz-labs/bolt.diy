@@ -572,8 +572,8 @@ export class FilesStore {
     const container = await this.#webcontainer;
 
     try {
-      for (const entry of await container.fs.readdir(WORK_DIR)) {
-        await container.fs.rm(path.join(WORK_DIR, entry), { recursive: true });
+      for (const entry of await container.fs.readdir('.')) {
+        await container.fs.rm(entry, { recursive: true });
       }
     } catch (error) {
       logger.error('Failed to empty the working directory', error);

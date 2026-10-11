@@ -7,8 +7,13 @@ import type { RouteConfig } from '@react-router/dev/routes';
  * those dependencies correctly.
  */
 export default [
-  { file: 'routes/_index.tsx', path: '/' },
-  { file: 'routes/chat.$id.tsx', path: '/chat/:id' },
+  {
+    file: 'routes/_index.tsx',
+    children: [
+      { file: 'routes/chat-home.tsx', index: true },
+      { file: 'routes/chat.$id.tsx', path: 'chat/:id' },
+    ],
+  },
   { file: 'routes/git.tsx', path: '/git' },
   { file: 'routes/webcontainer.connect.$id.tsx', path: '/webcontainer/connect/:id' },
   { file: 'routes/webcontainer.preview.$id.tsx', path: '/webcontainer/preview/:id' },
