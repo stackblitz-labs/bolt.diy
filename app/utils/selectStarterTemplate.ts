@@ -2,98 +2,12 @@ import ignore from 'ignore';
 import { STARTER_TEMPLATES } from './constants';
 import { createCommandActionsString, detectProjectCommands } from './projectCommands';
 import type { ProviderInfo } from '~/types/model';
-import type { Template } from '~/types/template';
 
-const starterTemplateSelectionPrompt = (templates: Template[]) => `
-You are an experienced developer who helps people choose the best starter template for their projects.
-IMPORTANT: Vite is preferred
-IMPORTANT: Only choose shadcn templates if the user explicitly asks for shadcn.
-
-Available templates:
-<template>
-  <name>blank</name>
-  <description>Empty starter for simple scripts and trivial tasks that don't require a full template setup</description>
-  <tags>basic, script</tags>
-</template>
-${templates
-  .map(
-    (template) => `
-<template>
-  <name>${template.name}</name>
-  <description>${template.description}</description>
-  ${template.tags ? `<tags>${template.tags.join(', ')}</tags>` : ''}
-</template>
-`,
-  )
-  .join('\n')}
-
-Response Format:
-<selection>
-  <templateName>{selected template name}</templateName>
-  <title>{a proper title for the project}</title>
-</selection>
-
-Examples:
-
-<example>
-User: I need to build a todo app
-Response:
-<selection>
-  <templateName>react-basic-starter</templateName>
-  <title>Simple React todo application</title>
-</selection>
-</example>
-
-<example>
-User: Write a script to generate numbers from 1 to 100
-Response:
-<selection>
-  <templateName>blank</templateName>
-  <title>script to generate numbers from 1 to 100</title>
-</selection>
-</example>
-
-Instructions:
-1. For trivial tasks and simple scripts, always recommend the blank template
-2. For more complex projects, recommend templates from the provided list
-3. Follow the exact XML format
-4. Consider both technical requirements and tags
-5. If no perfect match exists, recommend the closest option
-
-Important: Provide only the selection tags in your response, no additional text.
-MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH 
-`;
-
-const templates: Template[] = STARTER_TEMPLATES.filter((t) => !t.name.includes('shadcn'));
-
-const parseSelectedTemplate = (llmOutput: string): { template: string; title: string } | null => {
-  try {
-    // A failed or empty upstream response must not throw a TypeError here.
-    if (typeof llmOutput !== 'string' || llmOutput.length === 0) {
-      console.error('Template selection received no text from the model');
-      return null;
-    }
-
-    // Extract content between <templateName> tags
-    const templateNameMatch = llmOutput.match(/<templateName>(.*?)<\/templateName>/);
-    const titleMatch = llmOutput.match(/<title>(.*?)<\/title>/);
-
-    if (!templateNameMatch) {
-      return null;
-    }
-
-    return { template: templateNameMatch[1].trim(), title: titleMatch?.[1].trim() || 'Untitled Project' };
-  } catch (error) {
-    console.error('Error parsing template selection:', error);
-    return null;
-  }
-};
-
-export const selectStarterTemplate = async (options: { message: string; model: string; provider: ProviderInfo }) => {
-  const { message, model, provider } = options;
+export const selectStarterTemplate = async (options: { message: string; model?: string; provider?: ProviderInfo }) => {
+  const { message } = options;
 
   const requestedFrameworks: [RegExp, string][] = [
-    [/\bnext\.?js\b/i, 'NextJS Shadcn'],
+    [/\bnext\.?js\b/i, /\bshadcn\b/i.test(message) ? 'NextJS Shadcn' : 'blank'],
     [/\bshadcn\b/i, 'Vite Shadcn'],
     [/\bastro\b/i, 'Basic Astro'],
     [/\bexpo\b/i, 'Expo App'],
@@ -112,33 +26,12 @@ export const selectStarterTemplate = async (options: { message: string; model: s
     return { template: requestedTemplate[1], title: message.trim().slice(0, 100) };
   }
 
-  const requestBody = {
-    message,
-    model,
-    provider,
-    system: starterTemplateSelectionPrompt(templates),
+  const simpleTask = /\b(script|snippet|one[- ]off|quick calculation|simple command)\b/i.test(message);
+
+  return {
+    template: simpleTask ? 'blank' : 'Vite React',
+    title: message.trim().slice(0, 100) || 'Untitled Project',
   };
-  const response = await fetch('/api/llmcall', {
-    method: 'POST',
-    body: JSON.stringify(requestBody),
-  });
-
-  const respJson: { text: string } = await response.json();
-  console.log(respJson);
-
-  const { text } = respJson;
-  const selectedTemplate = parseSelectedTemplate(text);
-
-  if (selectedTemplate) {
-    return selectedTemplate;
-  } else {
-    console.log('No template selected, using blank template');
-
-    return {
-      template: 'blank',
-      title: '',
-    };
-  }
 };
 
 const getGitHubRepoContent = async (

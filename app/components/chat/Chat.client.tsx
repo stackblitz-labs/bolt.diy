@@ -299,12 +299,13 @@ export const ChatImpl = memo(
 
       void (async () => {
         /*
-         * Replay the template artifact, then wait for its install/start actions
-         * before asking the model to make the first customization pass.
+         * Wait for imported files to reach the project before asking the model
+         * to customize them. Dependency installation and server startup remain
+         * queued afterward and do not delay the first response.
          */
         try {
           parseMessages(messages, false);
-          await workbenchStore.waitForExecutionQueue();
+          await workbenchStore.waitForFileActions();
           await sendChatMessage(pendingMessage);
         } catch (error) {
           handleError(error, 'chat');
