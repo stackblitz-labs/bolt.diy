@@ -155,7 +155,7 @@ export async function getTemplates(templateName: string, title?: string) {
    * ignoring common unwanted files
    * exclude    .git
    */
-  filteredFiles = filteredFiles.filter((x) => x.path.startsWith('.git') == false);
+  filteredFiles = filteredFiles.filter((x) => x.path !== '.git' && !x.path.startsWith('.git/'));
 
   /*
    * exclude    lock files
