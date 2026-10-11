@@ -4,7 +4,6 @@ import { Panel, type PanelImperativeHandle } from 'react-resizable-panels';
 import { Terminal, type TerminalRef } from './Terminal';
 import { TerminalManager } from './TerminalManager';
 import { IconButton } from '~/components/ui/IconButton';
-import { shortcutEventEmitter } from '~/lib/hooks';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -15,16 +14,19 @@ const logger = createScopedLogger('Terminal');
 const MAX_TERMINALS = 3;
 export const DEFAULT_TERMINAL_SIZE = 25;
 
+const MINIMIZED_TERMINAL_SIZE = '34px';
+const MINIMIZED_TERMINAL_HEIGHT = 34;
+
 export const TerminalTabs = memo(() => {
   const showTerminal = useStore(workbenchStore.showTerminal);
   const theme = useStore(themeStore);
 
   const terminalRefs = useRef<Map<number, TerminalRef>>(new Map());
   const terminalPanelRef = useRef<PanelImperativeHandle>(null);
-  const terminalToggledByShortcut = useRef(false);
 
   const [activeTerminal, setActiveTerminal] = useState(0);
   const [terminalCount, setTerminalCount] = useState(0);
+  const [isMinimized, setIsMinimized] = useState(!showTerminal);
 
   const addTerminal = () => {
     if (terminalCount < MAX_TERMINALS) {
@@ -85,22 +87,16 @@ export const TerminalTabs = memo(() => {
       return;
     }
 
-    const isCollapsed = terminal.isCollapsed();
+    const terminalSize = terminal.getSize().inPixels;
 
-    if (!showTerminal && !isCollapsed) {
-      terminal.collapse();
-    } else if (showTerminal && isCollapsed) {
-      terminal.resize(DEFAULT_TERMINAL_SIZE);
+    if (!showTerminal && terminalSize > MINIMIZED_TERMINAL_HEIGHT) {
+      terminal.resize(MINIMIZED_TERMINAL_SIZE);
+    } else if (showTerminal && terminalSize <= MINIMIZED_TERMINAL_HEIGHT) {
+      terminal.resize(`${DEFAULT_TERMINAL_SIZE}%`);
     }
-
-    terminalToggledByShortcut.current = false;
   }, [showTerminal]);
 
   useEffect(() => {
-    const unsubscribeFromEventEmitter = shortcutEventEmitter.on('toggleTerminal', () => {
-      terminalToggledByShortcut.current = true;
-    });
-
     const unsubscribeFromThemeStore = themeStore.subscribe(() => {
       terminalRefs.current.forEach((ref) => {
         ref?.reloadStyles();
@@ -108,7 +104,6 @@ export const TerminalTabs = memo(() => {
     });
 
     return () => {
-      unsubscribeFromEventEmitter();
       unsubscribeFromThemeStore();
     };
   }, []);
@@ -116,18 +111,35 @@ export const TerminalTabs = memo(() => {
   return (
     <Panel
       panelRef={terminalPanelRef}
-      defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}
-      minSize={10}
-      collapsible
-      onResize={() => {
-        if (terminalToggledByShortcut.current) {
-          return;
-        }
+      defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : MINIMIZED_TERMINAL_SIZE}
+      minSize={MINIMIZED_TERMINAL_SIZE}
+      onResize={(size) => {
+        const minimized = size.inPixels <= MINIMIZED_TERMINAL_HEIGHT + 1;
+        setIsMinimized(minimized);
 
-        workbenchStore.toggleTerminal(!terminalPanelRef.current?.isCollapsed());
+        if (workbenchStore.showTerminal.get() !== !minimized) {
+          workbenchStore.toggleTerminal(!minimized);
+        }
       }}
     >
-      <div className="h-full">
+      {isMinimized && (
+        <div className="h-full min-h-[34px] flex items-center justify-end bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor px-2">
+          <button
+            type="button"
+            className="flex items-center gap-2 px-3 py-1 rounded-md bg-transparent text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-terminals-buttonBackground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
+            title="Expand terminal"
+            onClick={() => {
+              terminalPanelRef.current?.resize(`${DEFAULT_TERMINAL_SIZE}%`);
+              workbenchStore.toggleTerminal(true);
+            }}
+          >
+            <div className="i-ph:terminal-window-duotone text-lg" />
+            <span>Terminal</span>
+            <div className="i-ph:caret-up text-sm" />
+          </button>
+        </div>
+      )}
+      <div className={classNames('h-full', { hidden: isMinimized })}>
         <div className="bg-bolt-elements-terminals-background h-full flex flex-col">
           <div className="flex items-center bg-bolt-elements-background-depth-2 border-y border-bolt-elements-borderColor gap-1.5 min-h-[34px] p-2">
             {Array.from({ length: terminalCount + 1 }, (_, index) => {
@@ -206,10 +218,13 @@ export const TerminalTabs = memo(() => {
             />
             <IconButton
               className="ml-auto"
-              icon="i-ph:caret-down"
-              title="Close"
+              icon="i-ph:minus"
+              title="Minimize terminal"
               size="md"
-              onClick={() => workbenchStore.toggleTerminal(false)}
+              onClick={() => {
+                terminalPanelRef.current?.resize(MINIMIZED_TERMINAL_SIZE);
+                workbenchStore.toggleTerminal(false);
+              }}
             />
           </div>
           {Array.from({ length: terminalCount + 1 }, (_, index) => {

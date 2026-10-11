@@ -31,14 +31,14 @@ export const TabTile: React.FC<TabTileProps> = ({
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <div className={classNames('min-h-[160px] list-none', className || '')}>
-            <div className="relative h-full rounded-xl border border-[#333333]">
+            <div className="relative h-full rounded-xl border border-bolt-elements-borderColor">
               <div
                 onClick={onClick}
                 className={classNames(
                   'relative flex flex-col items-center justify-center h-full p-4 rounded-lg',
-                  'bg-[#141414]',
+                  'bg-bolt-elements-background-depth-2',
                   'group cursor-pointer',
-                  'hover:bg-[#1a1a1a]',
+                  'hover:bg-bolt-elements-background-depth-3',
                   'transition-colors duration-100 ease-out',
                   isActive ? 'bg-purple-500/5 dark:bg-purple-500/10' : '',
                   isLoading ? 'cursor-wait opacity-70 pointer-events-none' : '',
@@ -51,8 +51,8 @@ export const TabTile: React.FC<TabTileProps> = ({
                     'w-14 h-14',
                     'flex items-center justify-center',
                     'rounded-xl',
-                    'bg-gray-100 dark:bg-gray-800',
-                    'ring-1 ring-gray-200 dark:ring-gray-700',
+                    'bg-bolt-elements-background-depth-3',
+                    'ring-1 ring-bolt-elements-borderColor',
                     'group-hover:bg-purple-100 dark:group-hover:bg-gray-700/80',
                     'group-hover:ring-purple-200 dark:group-hover:ring-purple-800/30',
                     'transition-all duration-100 ease-out',
@@ -65,7 +65,7 @@ export const TabTile: React.FC<TabTileProps> = ({
                       <IconComponent
                         className={classNames(
                           'w-8 h-8',
-                          'text-gray-600 dark:text-gray-300',
+                          'text-bolt-elements-textSecondary',
                           'group-hover:text-purple-500 dark:group-hover:text-purple-400/80',
                           'transition-colors duration-100 ease-out',
                           isActive ? 'text-purple-500 dark:text-purple-400/90' : '',
@@ -80,7 +80,7 @@ export const TabTile: React.FC<TabTileProps> = ({
                   <h3
                     className={classNames(
                       'text-[15px] font-medium leading-snug mb-2',
-                      'text-gray-700 dark:text-gray-200',
+                      'text-bolt-elements-textPrimary',
                       'group-hover:text-purple-600 dark:group-hover:text-purple-300/90',
                       'transition-colors duration-100 ease-out',
                       isActive ? 'text-purple-500 dark:text-purple-400/90' : '',
@@ -92,7 +92,7 @@ export const TabTile: React.FC<TabTileProps> = ({
                     <p
                       className={classNames(
                         'text-[13px] leading-relaxed',
-                        'text-gray-500 dark:text-gray-400',
+                        'text-bolt-elements-textSecondary',
                         'max-w-[85%]',
                         'text-center',
                         'group-hover:text-purple-500 dark:group-hover:text-purple-400/70',

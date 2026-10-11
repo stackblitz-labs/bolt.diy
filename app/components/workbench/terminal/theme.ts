@@ -12,6 +12,9 @@ export function getTerminalTheme(overrides?: ITheme): ITheme {
     selectionBackground: cssVar('--bolt-elements-terminal-selection-backgroundColor'),
     selectionForeground: cssVar('--bolt-elements-terminal-selection-textColor'),
     selectionInactiveBackground: cssVar('--bolt-elements-terminal-selection-backgroundColorInactive'),
+    scrollbarSliderBackground: cssVar('--modern-scrollbar-thumb-background'),
+    scrollbarSliderHoverBackground: cssVar('--modern-scrollbar-thumb-backgroundHover'),
+    scrollbarSliderActiveBackground: cssVar('--modern-scrollbar-thumb-backgroundHover'),
 
     // ansi escape code colors
     black: cssVar('--bolt-elements-terminal-color-black'),

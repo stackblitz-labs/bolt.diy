@@ -191,8 +191,8 @@ export default function ConnectorsTab() {
           className={classNames(
             'appearance-none rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
             selectedCategory === null
-              ? 'border-purple-500 bg-transparent text-purple-300'
-              : 'border-[#303030] bg-transparent text-neutral-300 hover:border-[#555] hover:text-white',
+              ? 'border-bolt-elements-borderColorActive bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+              : 'border-bolt-elements-borderColor bg-transparent text-bolt-elements-textSecondary hover:border-bolt-elements-borderColorActive hover:text-bolt-elements-textPrimary',
           )}
         >
           All
@@ -204,8 +204,8 @@ export default function ConnectorsTab() {
             className={classNames(
               'appearance-none rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
               selectedCategory === category
-                ? 'border-purple-500 bg-transparent text-purple-300'
-                : 'border-[#303030] bg-transparent text-neutral-300 hover:border-[#555] hover:text-white',
+                ? 'border-bolt-elements-borderColorActive bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                : 'border-bolt-elements-borderColor bg-transparent text-bolt-elements-textSecondary hover:border-bolt-elements-borderColorActive hover:text-bolt-elements-textPrimary',
             )}
           >
             {CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}
@@ -236,21 +236,21 @@ export default function ConnectorsTab() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => setSelectedConnector(connector.id)}
-                    className="group flex w-full appearance-none items-center gap-4 rounded-xl border border-[#303030] bg-[#171717] px-5 py-4 text-left text-white transition-colors hover:border-[#555] hover:bg-[#1c1c1c] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="group flex w-full appearance-none items-center gap-4 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-5 py-4 text-left text-bolt-elements-textPrimary transition-colors hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-3 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                   >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#252525] text-neutral-300">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary">
                       {connector.icon}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <h4 className="text-sm font-semibold text-white">{connector.name}</h4>
-                        <span className="rounded-full bg-[#292929] px-2 py-0.5 text-[11px] text-neutral-300">
+                        <h4 className="text-sm font-semibold text-bolt-elements-textPrimary">{connector.name}</h4>
+                        <span className="rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary">
                           {CATEGORY_LABELS[connector.category]}
                         </span>
                       </div>
-                      <p className="text-sm text-neutral-400">{connector.description}</p>
+                      <p className="text-sm text-bolt-elements-textSecondary">{connector.description}</p>
                     </div>
-                    <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-neutral-300 group-hover:text-white">
+                    <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary">
                       Configure <span aria-hidden="true">→</span>
                     </span>
                   </motion.button>

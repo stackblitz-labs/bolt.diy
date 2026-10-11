@@ -102,7 +102,7 @@
   --bolt-terminal-brightMagenta: #bc05bc;
   --bolt-terminal-brightCyan: #0598bc;
   --bolt-terminal-brightWhite: #a5a5a5;
-  --modern-scrollbar-thumb-background: rgba(100, 100, 100, 0.3); // Example light theme color
+  --modern-scrollbar-thumb-background: rgba(100, 100, 100, 0.45);
   --modern-scrollbar-thumb-backgroundHover: rgba(74, 74, 74, 0.8);
 }
 
@@ -210,8 +210,8 @@
   --bolt-terminal-brightMagenta: #ff6ac1;
   --bolt-terminal-brightCyan: #9aedfe;
   --bolt-terminal-brightWhite: #f1f1f0;
-  --modern-scrollbar-thumb-background: rgba(100, 100, 100, 0.3); // Example dark theme color (adjust as needed)
-  --modern-scrollbar-thumb-backgroundHover: rgba(10, 10, 10, 0.8);
+  --modern-scrollbar-thumb-background: rgba(160, 160, 160, 0.45);
+  --modern-scrollbar-thumb-backgroundHover: rgba(190, 190, 190, 0.7);
 }
 
 /*
