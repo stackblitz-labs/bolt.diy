@@ -327,7 +327,7 @@ export function FirstRunOnboarding() {
               <button
                 type="button"
                 onClick={() => setStep((current) => current - 1)}
-                className="rounded-md border border-bolt-elements-borderColor px-4 py-2 text-sm"
+                className="appearance-none rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
               >
                 Back
               </button>
