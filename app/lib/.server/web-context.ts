@@ -57,6 +57,7 @@ type TavilyExtractResult = {
 };
 
 type CandidateSource = WebContextSource & { content: string };
+export type WebSearchResult = { title: string; url: string; snippet: string };
 
 function decodeHtml(text: string): string {
   return text
@@ -73,51 +74,39 @@ function stripHtml(value: string): string {
   return decodeHtml(value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')).trim();
 }
 
-async function searchDuckDuckGo(query: string) {
-  const searchUrl = new URL('https://html.duckduckgo.com/html/');
-  searchUrl.searchParams.set('q', query);
+function resolveDuckDuckGoLink(href: string): string {
+  try {
+    const parsed = new URL(decodeHtml(href), 'https://duckduckgo.com');
+    return parsed.searchParams.get('uddg') ?? parsed.toString();
+  } catch {
+    return '';
+  }
+}
 
-  const response = await fetch(searchUrl, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BoltDIY/1.0; +https://github.com/stackblitz-labs/bolt.diy)' },
-    signal: AbortSignal.timeout(15_000),
-  });
+function parseDuckDuckGoHtml(html: string): WebSearchResult[] {
+  const results: WebSearchResult[] = [];
+  const blocks = html.split(/<div[^>]+class="[^"]*?\bresult\b/i).slice(1);
 
-  if (!response.ok) {
-    throw new WebContextError('Free DuckDuckGo search is temporarily unavailable. Try again or configure Tavily.', 502);
+  for (const block of blocks) {
+    if (/result--ad\b/.test(block.slice(0, 200))) {
+      continue;
+    }
+
+    const link = block.match(/<a[^>]*class="[^"]*\bresult__a\b[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+
+    if (!link) {
+      continue;
+    }
+
+    const snippet = block.match(/class="[^"]*\bresult__snippet\b[^"]*"[^>]*>([\s\S]*?)<\/(?:a|div|td)>/i);
+    const url = resolveDuckDuckGoLink(link[1]);
+
+    if (url && isAllowedUrl(url)) {
+      results.push({ title: stripHtml(link[2]), url, snippet: snippet ? stripHtml(snippet[1]) : '' });
+    }
   }
 
-  const html = await response.text();
-
-  const resultLinks = [
-    ...html.matchAll(/<a\b(?=[^>]*\bclass=["'][^"']*\bresult__a\b)[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi),
-  ];
-
-  return resultLinks.slice(0, MAX_PAGES_TO_READ).flatMap((match, index) => {
-    const nextIndex = resultLinks[index + 1]?.index ?? html.length;
-    const blockEnd = match.index! + match[0].length;
-    const block = html.slice(blockEnd, nextIndex);
-
-    const snippetMatch = block.match(
-      /<a\b[^>]*class=["'][^"']*\bresult__snippet\b[^"']*["'][^>]*>([\s\S]*?)<\/a>|<td\b[^>]*class=["'][^"']*\bresult__snippet\b[^"']*["'][^>]*>([\s\S]*?)<\/td>/i,
-    );
-
-    const title = stripHtml(match[2]);
-    const snippet = snippetMatch ? stripHtml(snippetMatch[1] || snippetMatch[2] || '') : '';
-
-    try {
-      const link = new URL(decodeHtml(match[1]), searchUrl);
-      const destination = link.hostname.endsWith('duckduckgo.com') ? link.searchParams.get('uddg') : link.toString();
-      const url = destination ? new URL(destination).toString() : '';
-
-      if (!title || !snippet || !url || !isAllowedUrl(url)) {
-        return [];
-      }
-
-      return [{ title, url, snippet }];
-    } catch {
-      return [];
-    }
-  });
+  return results;
 }
 
 export class WebContextError extends Error {
@@ -168,6 +157,64 @@ async function callTavily<T>(
   return (await response.json()) as T;
 }
 
+export async function searchWeb(options: { request: Request; cloudflareEnv?: Record<string, unknown>; query: string }) {
+  const env = getRuntimeEnv(options.cloudflareEnv);
+  const apiKeys = getApiKeysFromCookie(options.request.headers.get('Cookie'));
+  const tavilyApiKey = apiKeys.TAVILY_API_KEY?.trim() || env.TAVILY_API_KEY?.trim();
+
+  if (tavilyApiKey) {
+    const search = await callTavily<{ results?: TavilySearchResult[] }>(tavilyApiKey, 'search', {
+      query: options.query,
+      search_depth: 'basic',
+      topic: 'general',
+      max_results: MAX_SEARCH_RESULTS,
+      include_answer: false,
+      include_raw_content: false,
+    });
+    const results = (search.results || [])
+      .filter((result): result is TavilySearchResult & { url: string } => !!result.url && isAllowedUrl(result.url))
+      .slice(0, MAX_SEARCH_RESULTS)
+      .map((result) => ({
+        title: result.title?.trim() || new URL(result.url).hostname,
+        url: normalizeUrl(result.url),
+        snippet: trimContent(result.content || '', 500),
+      }));
+
+    return { query: options.query, provider: 'tavily' as const, results };
+  }
+
+  const response = await fetch('https://html.duckduckgo.com/html/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      Accept: 'text/html',
+    },
+    body: new URLSearchParams({ q: options.query }).toString(),
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  const results = response.ok ? parseDuckDuckGoHtml(await response.text()) : [];
+
+  if (results.length === 0 && response.status !== 200) {
+    throw new WebContextError(
+      'DuckDuckGo blocked the search request. Add a Tavily API key for reliable web search.',
+      502,
+    );
+  }
+
+  return {
+    query: options.query,
+    provider: 'duckduckgo' as const,
+    results: results.slice(0, MAX_SEARCH_RESULTS).map((result) => ({
+      ...result,
+      title: result.title || result.url,
+      snippet: trimContent(result.snippet, 500),
+    })),
+  };
+}
+
 function normalizeUrl(value: string): string {
   const url = new URL(value);
   url.hash = '';
@@ -181,7 +228,170 @@ function trimContent(content: string, remaining: number): string {
   return cleanContent.slice(0, Math.min(MAX_PAGE_CONTENT_LENGTH, remaining));
 }
 
+async function fetchPageText(inputUrl: string): Promise<{ url: string; title: string; content: string }> {
+  let currentUrl = inputUrl;
+
+  for (let hop = 0; hop <= 5; hop++) {
+    if (!isAllowedUrl(currentUrl)) {
+      throw new WebContextError('The page URL or one of its redirects is not allowed.', 400);
+    }
+
+    const response = await fetch(currentUrl, {
+      redirect: 'manual',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,text/plain;q=0.8',
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+
+      if (!location) {
+        throw new WebContextError('The page redirected without a destination.', 502);
+      }
+
+      currentUrl = new URL(location, currentUrl).toString();
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new WebContextError(`Could not fetch page (${response.status}).`, 502);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+
+    if (!/text\/html|application\/xhtml|text\/plain|text\/markdown/i.test(contentType)) {
+      throw new WebContextError('The selected URL does not contain an HTML or text page.', 415);
+    }
+
+    const declaredLength = Number(response.headers.get('content-length'));
+
+    if (declaredLength > 2 * 1024 * 1024) {
+      throw new WebContextError('The selected page is too large to fetch.', 413);
+    }
+
+    const reader = response.body?.getReader();
+
+    let text = '';
+
+    if (reader) {
+      const decoder = new TextDecoder();
+
+      let received = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        received += value.byteLength;
+
+        if (received > 2 * 1024 * 1024) {
+          await reader.cancel();
+          break;
+        }
+
+        text += decoder.decode(value, { stream: true });
+      }
+
+      text += decoder.decode();
+    } else {
+      text = await response.text();
+    }
+
+    if (!/text\/html|application\/xhtml/i.test(contentType)) {
+      return { url: currentUrl, title: '', content: trimContent(text, MAX_PAGE_CONTENT_LENGTH) };
+    }
+
+    const titleMatch = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+
+    const withoutChrome = text
+      .replace(/<!--[\s\S]*?-->/g, ' ')
+      .replace(
+        /<(head|title|script|style|noscript|svg|template|iframe|nav|header|footer|aside|form)\b[^>]*>[\s\S]*?<\/\1>/gi,
+        ' ',
+      );
+
+    const mainContent = withoutChrome.match(/<(main|article)\b[^>]*>([\s\S]*?)<\/\1>/i)?.[2] || withoutChrome;
+    const content = trimContent(stripHtml(mainContent), MAX_PAGE_CONTENT_LENGTH);
+
+    return { url: currentUrl, title: titleMatch ? stripHtml(titleMatch[1]) : '', content };
+  }
+
+  throw new WebContextError('The selected page redirected too many times.', 502);
+}
+
+async function prepareSelectedSources(
+  results: WebSearchResult[],
+  includePageContent: boolean,
+  apiKey?: string,
+): Promise<CandidateSource[]> {
+  const candidates = results.slice(0, MAX_PAGES_TO_READ).filter((result) => isAllowedUrl(result.url));
+  const extractedByUrl = new Map<string, { title?: string; content: string }>();
+
+  if (includePageContent && apiKey && candidates.length > 0) {
+    try {
+      const extraction = await callTavily<{ results?: TavilyExtractResult[] }>(apiKey, 'extract', {
+        urls: candidates.map((candidate) => candidate.url),
+        chunks_per_source: 3,
+        extract_depth: 'basic',
+        format: 'markdown',
+        include_images: false,
+        timeout: 15,
+      });
+
+      for (const result of extraction.results || []) {
+        if (result.url && result.raw_content) {
+          extractedByUrl.set(normalizeUrl(result.url), { title: result.title, content: result.raw_content });
+        }
+      }
+    } catch {
+      // The selected sources still work through the bounded direct-fetch fallback below.
+    }
+  }
+
+  const pages = await Promise.all(
+    candidates.map(async (candidate) => {
+      const extracted = extractedByUrl.get(normalizeUrl(candidate.url));
+
+      if (extracted?.content || !includePageContent) {
+        return { candidate, extracted };
+      }
+
+      try {
+        const page = await fetchPageText(candidate.url);
+        return { candidate: { ...candidate, url: page.url }, extracted: { title: page.title, content: page.content } };
+      } catch {
+        return { candidate, extracted: undefined };
+      }
+    }),
+  );
+
+  let remaining = MAX_TOTAL_CONTENT_LENGTH;
+
+  return pages
+    .map(({ candidate, extracted }, index) => {
+      const content = trimContent(extracted?.content || candidate.snippet || '', remaining);
+      remaining -= content.length;
+
+      return {
+        id: `s${index + 1}`,
+        title: candidate.title || extracted?.title || new URL(candidate.url).hostname,
+        url: normalizeUrl(candidate.url),
+        content,
+      };
+    })
+    .filter((source) => source.content.length > 0);
+}
+
 async function getCandidateSources(options: {
+  request: Request;
+  cloudflareEnv?: Record<string, unknown>;
   apiKey?: string;
   mode: 'search' | 'url';
   query: string;
@@ -222,7 +432,12 @@ async function getCandidateSources(options: {
           snippet: result.content,
         }));
     } else {
-      candidates = await searchDuckDuckGo(options.query);
+      const search = await searchWeb({
+        request: options.request,
+        cloudflareEnv: options.cloudflareEnv,
+        query: options.query,
+      });
+      candidates = search.results.map((result) => ({ ...result }));
     }
   }
 
@@ -304,6 +519,8 @@ export async function createWebContext(options: {
   mode: 'search' | 'url';
   query: string;
   url?: string;
+  selectedResults?: WebSearchResult[];
+  includePageContent?: boolean;
   model: string;
   providerName: string;
 }): Promise<WebContextResult> {
@@ -311,13 +528,6 @@ export async function createWebContext(options: {
   const cookieHeader = options.request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
   const tavilyApiKey = apiKeys.TAVILY_API_KEY?.trim() || env.TAVILY_API_KEY?.trim();
-
-  if (!tavilyApiKey && options.mode === 'url') {
-    throw new WebContextError(
-      'Fetching and extracting a page URL needs a Tavily API key. Add one in Settings → Connectors → Tavily or use Search the web for free DuckDuckGo results.',
-      503,
-    );
-  }
 
   if (options.query.length > MAX_QUERY_LENGTH) {
     throw new WebContextError(`Search queries must be ${MAX_QUERY_LENGTH} characters or fewer.`, 400);
@@ -352,12 +562,31 @@ export async function createWebContext(options: {
     );
   }
 
-  const sources = await getCandidateSources({
-    apiKey: tavilyApiKey,
-    mode: options.mode,
-    query: options.query.trim(),
-    url: options.url,
-  });
+  let sources: CandidateSource[];
+
+  if (options.selectedResults) {
+    sources = await prepareSelectedSources(options.selectedResults, options.includePageContent ?? false, tavilyApiKey);
+  } else if (!tavilyApiKey && options.mode === 'url') {
+    const url = options.url?.trim();
+
+    if (!url || url.length > MAX_URL_LENGTH || !isAllowedUrl(url)) {
+      throw new WebContextError('Enter a valid public HTTP or HTTPS URL.', 400);
+    }
+
+    const page = await fetchPageText(url);
+    sources = page.content
+      ? [{ id: 's1', title: page.title || new URL(page.url).hostname, url: page.url, content: page.content }]
+      : [];
+  } else {
+    sources = await getCandidateSources({
+      request: options.request,
+      cloudflareEnv: options.cloudflareEnv,
+      apiKey: tavilyApiKey || '',
+      mode: options.mode,
+      query: options.query.trim(),
+      url: options.url,
+    });
+  }
 
   if (sources.length === 0) {
     throw new WebContextError('The pages did not contain readable text. Try another URL or search.', 422);
@@ -406,12 +635,10 @@ ${JSON.stringify(sources.map(({ id, title, url, publishedAt, content }) => ({ id
     query: options.query.trim(),
     summary: output.summary,
     keyPoints,
-    limitations: tavilyApiKey
-      ? output.limitations
-      : [
-          ...output.limitations,
-          'Free DuckDuckGo fallback used; summaries are based on search snippets, not full-page extraction.',
-        ],
+    limitations:
+      options.mode === 'search' && !tavilyApiKey
+        ? [...output.limitations, 'DuckDuckGo is the no-key search fallback; page text is fetched only when requested.']
+        : output.limitations,
     sources: sources.map(({ id, title, url, publishedAt }) => ({ id, title, url, publishedAt })),
   };
 }

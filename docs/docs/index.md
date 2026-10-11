@@ -404,9 +404,9 @@ The MCP integration enhances the AI's ability to perform complex tasks by giving
 
 ## Web Search and URL Context
 
-The globe control beside the prompt composer can search the web or fetch a URL. Search works without a key using DuckDuckGo result snippets. Configure a personal Tavily API key in **Settings → Connectors → Tavily**, or add `TAVILY_API_KEY` to the server environment for full-page extraction and URL fetching. The selected chat model reads up to three sources and returns a compact summary with evidence quotes and source links. Review the preview and select **Add to prompt** to include it in your request.
+The globe control beside the prompt composer can search the web or fetch a URL. Search works without a key using selectable DuckDuckGo results. You can include snippets alone or fetch selected pages before the selected chat model produces a compact summary with evidence quotes and source links. Configure a personal Tavily API key in **Settings → Connectors → Tavily**, or add `TAVILY_API_KEY` to the server environment to use Tavily search and extraction. URL fetching also works without a Tavily key. Review the preview and select **Add to prompt** to include it in your request.
 
-Search queries and URLs are sent to Tavily. Extracted page text is sent to the selected model provider for summarization. For Cloudflare Workers, configure `TAVILY_API_KEY` as a runtime secret.
+With a Tavily key, search queries and URLs are sent to Tavily. Without one, queries go to DuckDuckGo and selected pages are fetched directly by the app when full page text is requested. Extracted page text is sent to the selected model provider for summarization. For Cloudflare Workers, configure `TAVILY_API_KEY` as a runtime secret to enable Tavily search and extraction.
 
 ---
 

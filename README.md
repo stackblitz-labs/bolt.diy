@@ -109,7 +109,7 @@ OLLAMA_BASE_URL=http://127.0.0.1:11434
 LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 ```
 
-**Search the web** works without a search API key using DuckDuckGo result snippets. Configure a Tavily API key in **Settings → Connectors → Tavily**, or set `TAVILY_API_KEY` in the server environment, to enable full-page extraction for web search and the **Fetch a URL** action. The selected chat model turns up to three sources into a compact, cited context preview before you add it to your prompt. Search queries and URLs are sent to the search provider, and extracted page text is sent to the selected model provider. For Cloudflare Workers, set `TAVILY_API_KEY` as a runtime secret.
+**Search the web** works without a search API key using DuckDuckGo results. Select the results to include, optionally fetch their full page text, and let your selected chat model turn them into a compact cited context preview. Configure a Tavily API key in **Settings → Connectors → Tavily**, or set `TAVILY_API_KEY` in the server environment, to use Tavily search and extraction. The **Fetch a URL** action works without a Tavily key. Search queries and selected URLs are sent to the search/fetch services, and extracted page text is sent to the selected model provider. For Cloudflare Workers, set `TAVILY_API_KEY` as a runtime secret to use Tavily.
 
 ---
 
