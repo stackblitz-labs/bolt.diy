@@ -308,7 +308,12 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               <SupabaseConnection />
             </div>
             <McpTools open={isMcpToolsOpen} onOpenChange={setIsMcpToolsOpen} />
-            <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
+            <WebSearch
+              onSearchResult={(result) => props.onWebSearchResult?.(result)}
+              provider={props.provider}
+              model={props.model}
+              disabled={props.isStreaming}
+            />
 
             <SpeechRecognitionButton
               isListening={props.isListening}

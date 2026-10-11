@@ -8,6 +8,7 @@ const RATE_LIMITS: Record<string, { windowMs: number; maxRequests: number }> = {
   // LLM streaming and call APIs (most restrictive)
   '/api/chat': { windowMs: 60 * 1000, maxRequests: 60 }, // 60 requests per minute
   '/api/llmcall': { windowMs: 60 * 1000, maxRequests: 30 }, // 30 requests per minute
+  '/api/web-search': { windowMs: 60 * 1000, maxRequests: 8 }, // 8 web context requests per minute
 
   // GitHub API endpoints
   '/api/github-*': { windowMs: 60 * 1000, maxRequests: 30 }, // 30 requests per minute

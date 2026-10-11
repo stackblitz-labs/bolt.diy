@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import TavilyTab from '~/components/@settings/tabs/connectors/TavilyTab';
 import GitHubTab from '~/components/@settings/tabs/github/GitHubTab';
 import GitLabTab from '~/components/@settings/tabs/gitlab/GitLabTab';
 import NetlifyTab from '~/components/@settings/tabs/netlify/NetlifyTab';
@@ -7,14 +8,14 @@ import SupabaseTab from '~/components/@settings/tabs/supabase/SupabaseTab';
 import VercelTab from '~/components/@settings/tabs/vercel/VercelTab';
 import { classNames } from '~/utils/classNames';
 
-type ConnectorType = 'github' | 'gitlab' | 'vercel' | 'netlify' | 'supabase';
+type ConnectorType = 'github' | 'gitlab' | 'vercel' | 'netlify' | 'supabase' | 'tavily';
 
 interface Connector {
   id: ConnectorType;
   name: string;
   description: string;
   icon: React.ReactNode;
-  category: 'source-control' | 'deployment' | 'database';
+  category: 'source-control' | 'deployment' | 'database' | 'search';
 }
 
 // GitHub icon
@@ -109,12 +110,20 @@ const CONNECTORS: Connector[] = [
     icon: <SupabaseIcon />,
     category: 'database',
   },
+  {
+    id: 'tavily',
+    name: 'Tavily',
+    description: 'Configure web search and page extraction for compact, sourced chat context',
+    icon: <div className="i-ph:magnifying-glass w-5 h-5" />,
+    category: 'search',
+  },
 ];
 
 const CATEGORY_LABELS = {
   'source-control': 'Source Control',
   deployment: 'Deployment',
   database: 'Database & Backend',
+  search: 'Search',
 };
 
 export default function ConnectorsTab() {
@@ -151,6 +160,8 @@ export default function ConnectorsTab() {
         return <NetlifyTab />;
       case 'supabase':
         return <SupabaseTab />;
+      case 'tavily':
+        return <TavilyTab />;
       default:
         return null;
     }

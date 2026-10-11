@@ -18,6 +18,7 @@ bolt.diy allows you to choose the LLM that you use for each prompt! Currently, y
 - [Update Your Local Version to the Latest](#update-your-local-version-to-the-latest)
 - [Adding New LLMs](#adding-new-llms)
 - [MCP (Model Context Protocol) Integration](#mcp-model-context-protocol-integration)
+- [Web Search and URL Context](#web-search-and-url-context)
 - [Git Integration and Version Control](#git-integration-and-version-control)
 - [Deployment Options](#deployment-options)
 - [Supabase Integration](#supabase-integration)
@@ -400,6 +401,12 @@ MCP servers can provide:
 - And much more...
 
 The MCP integration enhances the AI's ability to perform complex tasks by giving it access to external tools and data sources.
+
+## Web Search and URL Context
+
+The globe control beside the prompt composer can search the web or fetch a URL. Configure a personal Tavily API key in **Settings → Connectors → Tavily**, or add `TAVILY_API_KEY` to the server environment for a shared deployment. The selected chat model reads up to three sources and returns a compact summary with evidence quotes and source links. Review the preview and select **Add to prompt** to include it in your request.
+
+Search queries and URLs are sent to Tavily. Extracted page text is sent to the selected model provider for summarization. For Cloudflare Workers, configure `TAVILY_API_KEY` as a runtime secret.
 
 ---
 

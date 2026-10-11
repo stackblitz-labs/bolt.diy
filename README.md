@@ -101,10 +101,15 @@ ANTHROPIC_API_KEY=your_key_here
 OPENAI_API_KEY=your_key_here
 GEMINI_API_KEY=your_key_here
 
+# Optional: web search and page extraction
+TAVILY_API_KEY=your_tavily_key_here
+
 # Local Providers
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 ```
+
+The composer’s **Search the web** and **Fetch a URL** actions require a Tavily API key. Configure a personal key in **Settings → Connectors → Tavily**, or set `TAVILY_API_KEY` in the server environment (useful for shared deployments). The selected chat model turns up to three sources into a compact, cited context preview before you add it to your prompt. Search queries and URLs are sent to Tavily, and extracted page text is sent to the selected model provider. For Cloudflare Workers, set `TAVILY_API_KEY` as a runtime secret.
 
 ---
 

@@ -1,106 +1,67 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { isAllowedUrl } from '~/utils/url';
+import { z } from 'zod';
+import { createWebContext, WebContextError } from '~/lib/.server/web-context';
+import { withSecurity } from '~/lib/security';
 
-const MAX_CONTENT_LENGTH = 8000;
+const webSearchRequestSchema = z.object({
+  mode: z.enum(['search', 'url']),
+  query: z.string().trim().max(500).default(''),
+  url: z.string().trim().max(2048).optional(),
+  model: z.string().trim().min(1).max(200),
+  provider: z.string().trim().min(1).max(80),
+});
 
-const FETCH_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5',
-};
+export const action = withSecurity(webSearchAction, {
+  allowedMethods: ['POST'],
+});
 
-function extractTitle(html: string): string {
-  const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  return match ? match[1].trim() : '';
-}
+async function webSearchAction({ context, request }: ActionFunctionArgs) {
+  let body: unknown;
 
-function extractMetaDescription(html: string): string {
-  const match = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
-
-  if (match) {
-    return match[1].trim();
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: 'Request body must be valid JSON.' }, { status: 400 });
   }
 
-  // Try reverse attribute order
-  const altMatch = html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["'][^>]*>/i);
+  const parsed = webSearchRequestSchema.safeParse(body);
 
-  return altMatch ? altMatch[1].trim() : '';
-}
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.issues[0]?.message || 'Invalid web context request.' }, { status: 400 });
+  }
 
-function extractTextContent(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-    .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, ' ')
-    .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, ' ')
-    .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+  const { mode, query, url, model, provider } = parsed.data;
 
-export async function action({ request }: ActionFunctionArgs) {
-  if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  if (mode === 'url' && !url) {
+    return Response.json({ error: 'Enter a URL to fetch.' }, { status: 400 });
+  }
+
+  if (mode === 'search' && query.length < 2) {
+    return Response.json({ error: 'Enter a search query.' }, { status: 400 });
   }
 
   try {
-    const { url } = (await request.json()) as { url?: string };
-
-    if (!url || typeof url !== 'string') {
-      return Response.json({ error: 'URL is required' }, { status: 400 });
-    }
-
-    if (!isAllowedUrl(url)) {
-      return Response.json({ error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' }, { status: 400 });
-    }
-
-    const response = await fetch(url, {
-      headers: FETCH_HEADERS,
-      signal: AbortSignal.timeout(10_000),
+    const result = await createWebContext({
+      request,
+      cloudflareEnv: context.cloudflare?.env as unknown as Record<string, unknown> | undefined,
+      mode,
+      query,
+      url,
+      model,
+      providerName: provider,
     });
 
-    if (!response.ok) {
-      return Response.json(
-        { error: `Failed to fetch URL: ${response.status} ${response.statusText}` },
-        { status: 502 },
-      );
-    }
-
-    const contentType = response.headers.get('content-type') || '';
-
-    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
-      return Response.json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
-    }
-
-    const html = await response.text();
-    const title = extractTitle(html);
-    const description = extractMetaDescription(html);
-    const content = extractTextContent(html);
-
-    return Response.json({
-      success: true,
-      data: {
-        title,
-        description,
-        content: content.length > MAX_CONTENT_LENGTH ? content.slice(0, MAX_CONTENT_LENGTH) + '...' : content,
-        sourceUrl: url,
-      },
-    });
+    return Response.json({ success: true, data: result });
   } catch (error) {
-    if (error instanceof DOMException && error.name === 'TimeoutError') {
-      return Response.json({ error: 'Request timed out after 10 seconds' }, { status: 504 });
-    }
+    const message = error instanceof Error ? error.message : 'Failed to create web context.';
 
-    console.error('Web search error:', error);
+    const status =
+      error instanceof WebContextError
+        ? error.status
+        : error instanceof DOMException && error.name === 'TimeoutError'
+          ? 504
+          : 502;
 
-    return Response.json({ error: error instanceof Error ? error.message : 'Failed to fetch URL' }, { status: 500 });
+    return Response.json({ error: message }, { status });
   }
 }
