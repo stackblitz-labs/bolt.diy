@@ -438,7 +438,7 @@ export const Menu = () => {
               </div>
             )}
           </div>
-          <div className="flex-1 overflow-auto px-3 pb-3">
+          <div className="flex-1 overflow-auto modern-scrollbar px-3 pb-3">
             {filteredList.length === 0 && (
               <div className="px-4 text-gray-500 dark:text-gray-400 text-sm">
                 {list.length === 0 ? 'No previous conversations' : 'No matches found'}

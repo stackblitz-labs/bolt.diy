@@ -6,10 +6,12 @@ import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
 import { memo, useCallback, useEffect, useState, useMemo, useRef, lazy, Suspense } from 'react';
 import type { JSX } from 'react';
+import { Group, Panel, Separator } from 'react-resizable-panels';
 import { toast } from 'react-toastify';
 import { EditorPanel } from './EditorPanel';
-
 import type { ElementInfo } from './Inspector';
+import { DEFAULT_TERMINAL_SIZE, TerminalTabs } from './terminal/TerminalTabs';
+
 import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
 import {
   type OnChangeCallback as OnEditorChange,
@@ -309,6 +311,7 @@ export const Workbench = memo(
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
+    const showTerminal = useStore(workbenchStore.showTerminal);
     const userSelectedView = useStore(workbenchStore.userSelectedView);
     const { showChat } = useStore(chatStore);
     const canHideChat = showWorkbench || !showChat;
@@ -492,19 +495,6 @@ export const Workbench = memo(
                           </DropdownMenu.Content>
                         </DropdownMenu.Root>
                       </div>
-
-                      {/* Toggle Terminal Button */}
-                      <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden ml-1">
-                        <button
-                          onClick={() => {
-                            workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
-                          }}
-                          className="rounded-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-500 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.7"
-                        >
-                          <div className="i-ph:terminal" />
-                          Toggle Terminal
-                        </button>
-                      </div>
                     </div>
                   )}
 
@@ -520,52 +510,58 @@ export const Workbench = memo(
                     }}
                   />
                 </div>
-                <div className="relative flex-1 overflow-hidden">
-                  <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>
-                    <EditorPanel
-                      editorDocument={currentDocument}
-                      isStreaming={isStreaming}
-                      selectedFile={selectedFile}
-                      files={files}
-                      unsavedFiles={unsavedFiles}
-                      fileHistory={fileHistory}
-                      onFileSelect={onFileSelect}
-                      onEditorScroll={onEditorScroll}
-                      onEditorChange={onEditorChange}
-                      onFileSave={onFileSave}
-                      onFileReset={onFileReset}
-                    />
-                  </View>
-                  {loadedViews.has('diff') ? (
-                    <View
-                      initial={{ x: '100%' }}
-                      animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
-                    >
-                      <Suspense
-                        fallback={
-                          <div className="flex items-center justify-center h-full">
-                            <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
-                          </div>
-                        }
-                      >
-                        <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
-                      </Suspense>
-                    </View>
-                  ) : null}
-                  {loadedViews.has('preview') ? (
-                    <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
-                      <Suspense
-                        fallback={
-                          <div className="flex items-center justify-center h-full">
-                            <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
-                          </div>
-                        }
-                      >
-                        <Preview setSelectedElement={setSelectedElement} />
-                      </Suspense>
-                    </View>
-                  ) : null}
-                </div>
+                <Group orientation="vertical" className="flex-1 min-h-0">
+                  <Panel defaultSize={showTerminal ? 100 - DEFAULT_TERMINAL_SIZE : '100%'} minSize={20}>
+                    <div className="relative h-full overflow-hidden">
+                      <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>
+                        <EditorPanel
+                          editorDocument={currentDocument}
+                          isStreaming={isStreaming}
+                          selectedFile={selectedFile}
+                          files={files}
+                          unsavedFiles={unsavedFiles}
+                          fileHistory={fileHistory}
+                          onFileSelect={onFileSelect}
+                          onEditorScroll={onEditorScroll}
+                          onEditorChange={onEditorChange}
+                          onFileSave={onFileSave}
+                          onFileReset={onFileReset}
+                        />
+                      </View>
+                      {loadedViews.has('diff') ? (
+                        <View
+                          initial={{ x: '100%' }}
+                          animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
+                        >
+                          <Suspense
+                            fallback={
+                              <div className="flex items-center justify-center h-full">
+                                <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
+                              </div>
+                            }
+                          >
+                            <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
+                          </Suspense>
+                        </View>
+                      ) : null}
+                      {loadedViews.has('preview') ? (
+                        <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
+                          <Suspense
+                            fallback={
+                              <div className="flex items-center justify-center h-full">
+                                <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textTertiary" />
+                              </div>
+                            }
+                          >
+                            <Preview setSelectedElement={setSelectedElement} />
+                          </Suspense>
+                        </View>
+                      ) : null}
+                    </div>
+                  </Panel>
+                  <Separator />
+                  <TerminalTabs />
+                </Group>
               </div>
             </div>
           </div>

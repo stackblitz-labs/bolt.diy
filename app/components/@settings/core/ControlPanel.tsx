@@ -248,7 +248,7 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
             <div
               className={classNames(
                 'w-[min(1440px,calc(100vw-2rem))] h-[90vh]',
-                'bg-[#090909]',
+                'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
                 'rounded-2xl shadow-2xl',
                 'border border-bolt-elements-borderColor',
                 'flex flex-col overflow-hidden',
@@ -258,17 +258,17 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
               )}
             >
               <div className="relative z-10 flex h-full min-h-0">
-                <aside className="flex w-[248px] shrink-0 flex-col border-r border-[#292929] bg-[#171717]">
+                <aside className="flex w-[248px] shrink-0 flex-col border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
                   <button
                     onClick={handleClose}
-                    className="mx-4 mt-4 flex appearance-none items-center gap-2 border-0 border-b border-solid border-[#303030] bg-transparent px-2 pb-5 pt-2 text-left text-sm font-semibold text-[#f5f5f5] hover:text-purple-300"
+                    className="mx-4 mt-4 flex appearance-none items-center gap-2 border-0 border-b border-solid border-bolt-elements-borderColor bg-transparent px-2 pb-5 pt-2 text-left text-sm font-semibold text-bolt-elements-textPrimary hover:text-bolt-elements-item-contentAccent"
                   >
                     <span className="i-ph:arrow-left w-4 h-4" /> Back to project
                   </button>
-                  <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+                  <nav className="min-h-0 flex-1 overflow-y-auto modern-scrollbar px-3 py-4">
                     {navigationTabs.map((group) => (
                       <div key={group.label} className="mb-5">
-                        <p className="mb-2 px-2 text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                        <p className="mb-2 px-2 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
                           {group.label}
                         </p>
                         {group.tabs.map((tabId) => {
@@ -280,8 +280,10 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                               key={tabId}
                               onClick={() => handleTabClick(tabId)}
                               className={classNames(
-                                'flex w-full appearance-none items-center gap-3 rounded-md border-0 bg-transparent px-2 py-2 text-left text-sm text-[#e5e5e5] transition-colors',
-                                selected ? 'bg-purple-500/20 text-purple-200' : 'hover:bg-white/10 hover:text-white',
+                                'flex w-full appearance-none items-center gap-3 rounded-md border-0 px-2 py-2 text-left text-sm transition-colors',
+                                selected
+                                  ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                                  : 'bg-transparent text-bolt-elements-textSecondary hover:bg-bolt-elements-item-backgroundActive hover:text-bolt-elements-textPrimary',
                               )}
                             >
                               <Icon className="h-4 w-4" /> {TAB_LABELS[tabId]}
@@ -291,17 +293,19 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                       </div>
                     ))}
                   </nav>
-                  <div className="flex h-16 items-center border-t border-[#303030] px-3">
+                  <div className="flex h-16 items-center border-t border-bolt-elements-borderColor px-3">
                     <AvatarDropdown onSelectTab={handleTabClick} />
                   </div>
                 </aside>
-                <main className="min-w-0 flex-1 overflow-y-auto p-6 md:px-10 md:py-8">
+                <main className="min-w-0 flex-1 overflow-y-auto modern-scrollbar p-6 md:px-10 md:py-8">
                   {activeTab ? (
                     <div className="mx-auto max-w-5xl">{getTabComponent(activeTab)}</div>
                   ) : (
                     <div className="mx-auto max-w-5xl">
-                      <DialogTitle className="mb-1 text-2xl font-semibold text-white">Control Panel</DialogTitle>
-                      <p className="mb-6 text-sm text-neutral-400">
+                      <DialogTitle className="mb-1 text-2xl font-semibold text-bolt-elements-textPrimary">
+                        Control Panel
+                      </DialogTitle>
+                      <p className="mb-6 text-sm text-bolt-elements-textSecondary">
                         Manage your account, preferences, providers, and connected services.
                       </p>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
