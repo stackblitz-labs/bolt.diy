@@ -176,7 +176,14 @@ export function FirstRunOnboarding() {
   }
 
   return (
-    <DialogRoot open={open} onOpenChange={() => {}}>
+    <DialogRoot
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          setOpen(true);
+        }
+      }}
+    >
       <Dialog
         className="w-[min(560px,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto bg-bolt-elements-background-depth-1 p-6 text-bolt-elements-textPrimary"
         showCloseButton={false}
