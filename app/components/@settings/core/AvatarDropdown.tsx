@@ -2,7 +2,7 @@ import { useStore } from '@nanostores/react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { motion } from 'framer-motion';
 import type { TabType, Profile } from './types';
-import { profileStore } from '~/lib/stores/profile';
+import { DEFAULT_AVATAR, profileStore } from '~/lib/stores/profile';
 import { classNames } from '~/utils/classNames';
 
 interface AvatarDropdownProps {
@@ -24,13 +24,13 @@ export const AvatarDropdown = ({ onSelectTab, onOpenDocs }: AvatarDropdownProps)
           whileTap={{ scale: 0.98 }}
         >
           <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-bolt-elements-background-depth-4 text-bolt-elements-textSecondary">
-            {profile?.avatar ? (
-              <img src={profile.avatar} alt="" className="h-full w-full object-cover" loading="eager" decoding="sync" />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center">
-                <span className="i-ph:user h-6 w-6" />
-              </span>
-            )}
+            <img
+              src={profile?.avatar || DEFAULT_AVATAR}
+              alt=""
+              className="h-full w-full object-cover"
+              loading="eager"
+              decoding="sync"
+            />
           </span>
           <span className="min-w-0 truncate text-sm font-medium text-bolt-elements-textPrimary">
             {profile?.username?.trim() || 'Guest User'}
@@ -58,19 +58,13 @@ export const AvatarDropdown = ({ onSelectTab, onOpenDocs }: AvatarDropdownProps)
             )}
           >
             <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm">
-              {profile?.avatar ? (
-                <img
-                  src={profile.avatar}
-                  alt={profile?.username || 'Profile'}
-                  className={classNames('w-full h-full', 'object-cover', 'transform-gpu', 'image-rendering-crisp')}
-                  loading="eager"
-                  decoding="sync"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 font-medium text-lg">
-                  <div className="i-ph:user w-6 h-6" />
-                </div>
-              )}
+              <img
+                src={profile?.avatar || DEFAULT_AVATAR}
+                alt={profile?.username || 'Profile'}
+                className={classNames('w-full h-full', 'object-cover', 'transform-gpu', 'image-rendering-crisp')}
+                loading="eager"
+                decoding="sync"
+              />
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm text-gray-900 dark:text-white truncate">
