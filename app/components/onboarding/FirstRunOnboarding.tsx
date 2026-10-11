@@ -5,6 +5,8 @@ import { getAll, openDatabase } from '~/lib/persistence/db';
 import type { MCPConfig } from '~/lib/services/mcpService';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { DEFAULT_AVATARS, DEFAULT_AVATAR, updateProfile } from '~/lib/stores/profile';
+import { setTheme, themeStore } from '~/lib/stores/theme';
+import { THEMES, type Theme } from '~/types/theme';
 import { PROVIDER_LIST } from '~/utils/constants';
 
 const COMPLETED_KEY = 'bolt_onboarding_completed';
@@ -18,13 +20,29 @@ export function FirstRunOnboarding() {
   const [providerName, setProviderName] = useState(PROVIDER_LIST[0]?.name ?? '');
   const [apiKey, setApiKey] = useState('');
   const [mcpText, setMcpText] = useState(JSON.stringify(EMPTY_MCP_CONFIG, null, 2));
+  const [selectedTheme, setSelectedTheme] = useState<Theme>(() => themeStore.get());
+
+  const [interfaceOptions, setInterfaceOptions] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('bolt_interface_options') || '{}');
+      return {
+        accentIntensity: typeof saved.accentIntensity === 'number' ? saved.accentIntensity : 50,
+        cornerRadius: ['sharp', 'soft', 'round'].includes(saved.cornerRadius) ? saved.cornerRadius : 'soft',
+        compactMode: Boolean(saved.compactMode),
+        animatedTransitions: saved.animatedTransitions !== false,
+      };
+    } catch {
+      return { accentIntensity: 50, cornerRadius: 'soft', compactMode: false, animatedTransitions: true };
+    }
+  });
+
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const initializeMcp = useMCPStore((store) => store.initialize);
   const updateMcpSettings = useMCPStore((store) => store.updateSettings);
   const mcpInitialized = useMCPStore((store) => store.isInitialized);
-  const stepTitles = useMemo(() => ['Your profile', 'Connect an AI provider', 'MCP servers'], []);
+  const stepTitles = useMemo(() => ['Your profile', 'Connect an AI provider', 'MCP servers', 'Appearance'], []);
 
   useEffect(() => {
     let active = true;
@@ -134,7 +152,19 @@ export function FirstRunOnboarding() {
       setSaving(false);
     }
 
-    if (step >= 2) {
+    if (step === 3) {
+      setTheme(selectedTheme);
+      localStorage.setItem('bolt_interface_options', JSON.stringify(interfaceOptions));
+
+      const root = document.documentElement;
+      root.dataset.accentIntensity = String(interfaceOptions.accentIntensity);
+      root.style.setProperty('--interface-accent-strength', `${interfaceOptions.accentIntensity}%`);
+      root.dataset.cornerRadius = interfaceOptions.cornerRadius;
+      root.dataset.compactMode = String(interfaceOptions.compactMode);
+      root.dataset.animatedTransitions = String(interfaceOptions.animatedTransitions);
+    }
+
+    if (step >= 3) {
       finish();
     } else {
       setStep((current) => current + 1);
@@ -314,6 +344,92 @@ export function FirstRunOnboarding() {
           </div>
         )}
 
+        {step === 3 && (
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium" htmlFor="onboarding-theme">
+                Color theme
+              </label>
+              <select
+                id="onboarding-theme"
+                value={selectedTheme}
+                onChange={(event) => setSelectedTheme(event.target.value as Theme)}
+                className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm"
+              >
+                {(['light', 'dark'] as const).map((mode) => (
+                  <optgroup key={mode} label={`${mode[0].toUpperCase()}${mode.slice(1)} themes`}>
+                    {THEMES.filter((theme) => theme.mode === mode).map((theme) => (
+                      <option key={theme.id} value={theme.id}>
+                        {theme.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+
+            <div className="rounded-md bg-bolt-elements-background-depth-2 p-3">
+              <label className="flex items-center justify-between gap-3 text-sm">
+                <span>
+                  Accent intensity{' '}
+                  <span className="text-bolt-elements-textSecondary">({interfaceOptions.accentIntensity}%)</span>
+                </span>
+                <input
+                  aria-label="Accent intensity"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={interfaceOptions.accentIntensity}
+                  onChange={(event) =>
+                    setInterfaceOptions({ ...interfaceOptions, accentIntensity: Number(event.target.value) })
+                  }
+                  className="w-1/2 accent-bolt-elements-borderColorActive"
+                />
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-md bg-bolt-elements-background-depth-2 p-3">
+              <span className="text-sm">Corner radius</span>
+              <div className="flex gap-1" role="group" aria-label="Corner radius">
+                {(['sharp', 'soft', 'round'] as const).map((radius) => (
+                  <button
+                    key={radius}
+                    type="button"
+                    aria-pressed={interfaceOptions.cornerRadius === radius}
+                    onClick={() => setInterfaceOptions({ ...interfaceOptions, cornerRadius: radius })}
+                    className={`appearance-none rounded-md px-2 py-1 text-xs capitalize ${interfaceOptions.cornerRadius === radius ? 'bg-bolt-elements-borderColorActive text-white' : 'bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary'}`}
+                  >
+                    {radius}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {(
+              [
+                ['compactMode', 'Compact mode', 'Tighter spacing in lists'],
+                ['animatedTransitions', 'Animated transitions', 'Smooth theme switching'],
+              ] as const
+            ).map(([key, label, description]) => (
+              <label
+                key={key}
+                className="flex cursor-pointer items-center justify-between gap-3 rounded-md bg-bolt-elements-background-depth-2 p-3"
+              >
+                <span>
+                  <span className="block text-sm">{label}</span>
+                  <span className="text-xs text-bolt-elements-textSecondary">{description}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={interfaceOptions[key]}
+                  onChange={(event) => setInterfaceOptions({ ...interfaceOptions, [key]: event.target.checked })}
+                  className="h-4 w-4 accent-bolt-elements-borderColorActive"
+                />
+              </label>
+            ))}
+          </div>
+        )}
+
         <div className="mt-6 flex items-center justify-between gap-3">
           <button
             type="button"
@@ -338,7 +454,7 @@ export function FirstRunOnboarding() {
               onClick={() => void next()}
               className="rounded-md bg-bolt-elements-borderColorActive px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
             >
-              {saving ? 'Saving…' : step === 2 ? 'Finish setup' : 'Continue'}
+              {saving ? 'Saving…' : step === 3 ? 'Finish setup' : 'Continue'}
             </button>
           </div>
         </div>
