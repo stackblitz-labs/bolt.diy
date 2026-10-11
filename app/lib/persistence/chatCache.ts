@@ -15,13 +15,16 @@ export function prefetchChat(database: IDBDatabase | undefined, id: string) {
     return;
   }
 
-  if (!messageCache.has(id)) {
-    messageCache.set(id, getMessages(database, id));
-  }
+  const messages = messageCache.get(id) ?? getMessages(database, id);
+  messageCache.set(id, messages);
 
-  if (!snapshotCache.has(id)) {
-    snapshotCache.set(id, getSnapshot(database, id));
-  }
+  void messages
+    .then((chat) => {
+      if (chat && !snapshotCache.has(chat.id)) {
+        snapshotCache.set(chat.id, getSnapshot(database, chat.id));
+      }
+    })
+    .catch(() => undefined);
 }
 
 /**

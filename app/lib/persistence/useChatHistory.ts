@@ -119,7 +119,12 @@ export function useChatHistory() {
         setReady(false);
       }
 
-      Promise.all([getCachedMessages(db, mixedId), getCachedSnapshot(db, mixedId)])
+      getCachedMessages(db, mixedId)
+        .then(async (storedMessages) => {
+          const snapshot = storedMessages ? await getCachedSnapshot(db, storedMessages.id) : undefined;
+
+          return [storedMessages, snapshot] as const;
+        })
         .then(async ([storedMessages, snapshot]) => {
           if (!isCurrentLoad()) {
             return;

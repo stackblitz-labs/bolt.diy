@@ -16,25 +16,25 @@ describe('chatCache', () => {
   });
 
   it('prefetches messages and snapshot into cache', async () => {
-    const fakeChat = { id: 'c1', messages: [], timestamp: 'now' } as any;
+    const fakeChat = { id: 'c1', urlId: 'public-c1', messages: [], timestamp: 'now' } as any;
     const fakeSnapshot = { chatIndex: 'm1', files: {} } as any;
 
     vi.mocked(dbModule.getMessages).mockResolvedValue(fakeChat);
     vi.mocked(dbModule.getSnapshot).mockResolvedValue(fakeSnapshot);
 
-    prefetchChat(fakeDb, 'c1');
+    prefetchChat(fakeDb, 'public-c1');
 
     expect(dbModule.getMessages).toHaveBeenCalledTimes(1);
-    expect(dbModule.getSnapshot).toHaveBeenCalledTimes(1);
 
     // Subsequent getCached calls should use the cached promise without extra DB queries
-    const messages = await getCachedMessages(fakeDb, 'c1');
+    const messages = await getCachedMessages(fakeDb, 'public-c1');
     const snapshot = await getCachedSnapshot(fakeDb, 'c1');
 
     expect(messages).toEqual(fakeChat);
     expect(snapshot).toEqual(fakeSnapshot);
     expect(dbModule.getMessages).toHaveBeenCalledTimes(1);
     expect(dbModule.getSnapshot).toHaveBeenCalledTimes(1);
+    expect(dbModule.getSnapshot).toHaveBeenCalledWith(fakeDb, 'c1');
   });
 
   it('invalidates cache by id', async () => {

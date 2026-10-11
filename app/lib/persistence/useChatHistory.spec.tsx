@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { UIMessage } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { invalidateChatCache } from './chatCache';
+import { getCachedSnapshot, invalidateChatCache } from './chatCache';
 
 const { resetWorkbench, waitForExecutionQueue, setMessages, setSnapshot } = vi.hoisted(() => ({
   resetWorkbench: vi.fn(async () => undefined),
@@ -122,6 +122,7 @@ describe('useChatHistory chat switching', () => {
     waitForExecutionQueue.mockClear();
     setMessages.mockClear();
     setSnapshot.mockClear();
+    vi.mocked(getCachedSnapshot).mockClear();
     navigate.mockClear();
     routeId = 'chat-a';
     routeSearch = '';
@@ -157,6 +158,14 @@ describe('useChatHistory chat switching', () => {
 
     await waitFor(() => expect(resetWorkbench).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(result.current.chatChanged).toBe(true));
+  });
+
+  it('loads a snapshot by the persisted chat ID when the route uses a URL ID', async () => {
+    const useChatHistory = await importHook();
+
+    renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(getCachedSnapshot).toHaveBeenCalledWith({}, '1'));
   });
 
   it('should not reset the workbench when only the query string changes', async () => {
