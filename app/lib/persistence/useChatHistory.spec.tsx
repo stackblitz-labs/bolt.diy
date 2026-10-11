@@ -1,8 +1,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { UIMessage } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { invalidateChatCache } from './chatCache';
 
-const { resetWorkbench } = vi.hoisted(() => ({ resetWorkbench: vi.fn(async () => undefined) }));
+const { resetWorkbench, waitForExecutionQueue, setMessages, setSnapshot } = vi.hoisted(() => ({
+  resetWorkbench: vi.fn(async () => undefined),
+  waitForExecutionQueue: vi.fn(async () => undefined),
+  setMessages: vi.fn(async () => undefined),
+  setSnapshot: vi.fn(async () => undefined),
+}));
 
 /*
  * `~/lib/stores/workbench` and `~/lib/webcontainer` both read
@@ -13,6 +19,7 @@ const { resetWorkbench } = vi.hoisted(() => ({ resetWorkbench: vi.fn(async () =>
 vi.mock('~/lib/stores/workbench', () => ({
   workbenchStore: {
     resetWorkbench,
+    waitForExecutionQueue,
     files: { get: () => ({}) },
     firstArtifact: undefined,
   },
@@ -30,8 +37,8 @@ vi.mock('~/lib/webcontainer', () => ({
 vi.mock('./db', () => ({
   openDatabase: vi.fn(async () => ({})),
   createChatWithNextId: vi.fn(async () => ({ id: '3' })),
-  setMessages: vi.fn(async () => undefined),
-  setSnapshot: vi.fn(async () => undefined),
+  setMessages,
+  setSnapshot,
   duplicateChat: vi.fn(async () => 'dupe'),
   createChatFromMessages: vi.fn(async () => 'imported'),
   getMessagesByIdRaw: vi.fn(async () => undefined),
@@ -112,6 +119,9 @@ async function importHook() {
 describe('useChatHistory chat switching', () => {
   beforeEach(() => {
     resetWorkbench.mockClear();
+    waitForExecutionQueue.mockClear();
+    setMessages.mockClear();
+    setSnapshot.mockClear();
     navigate.mockClear();
     routeId = 'chat-a';
     routeSearch = '';
@@ -257,6 +267,8 @@ describe('useChatHistory chat switching', () => {
       );
     });
 
+    expect(setSnapshot).not.toHaveBeenCalled();
+
     expect(navigate).not.toHaveBeenCalled();
     expect(window.location.pathname).toBe('/');
 
@@ -274,8 +286,61 @@ describe('useChatHistory chat switching', () => {
       );
     });
 
+    expect(waitForExecutionQueue).toHaveBeenCalled();
+    expect(setSnapshot).toHaveBeenCalledWith({}, '3', expect.objectContaining({ chatIndex: 'complete' }));
+    expect(vi.mocked(invalidateChatCache).mock.invocationCallOrder.at(-1)).toBeGreaterThan(
+      setSnapshot.mock.invocationCallOrder.at(-1)!,
+    );
     expect(navigate).toHaveBeenCalledWith('/chat/3', { replace: true });
     expect(window.location.pathname).toBe('/chat/3');
+  });
+
+  it('should drop queued saves from a chat as soon as the route changes', async () => {
+    const useChatHistory = await importHook();
+    const { rerender, result } = renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    let releaseFirstSave: () => void = () => undefined;
+
+    const firstSaveGate = new Promise<void>((resolve) => {
+      releaseFirstSave = resolve;
+    });
+    setMessages.mockImplementationOnce(async () => {
+      await firstSaveGate;
+      return undefined;
+    });
+
+    const firstSave = result.current.storeMessageHistory([
+      {
+        id: 'chat-a-first',
+        role: 'assistant',
+        content: 'first',
+        parts: [{ type: 'text', text: 'first' }],
+      } as any,
+    ]);
+
+    await waitFor(() => expect(setMessages).toHaveBeenCalledTimes(1));
+
+    const queuedSave = result.current.storeMessageHistory([
+      {
+        id: 'chat-a-queued',
+        role: 'assistant',
+        content: 'queued',
+        parts: [{ type: 'text', text: 'queued' }],
+      } as any,
+    ]);
+
+    routeId = 'chat-b';
+    rerender();
+
+    await act(async () => {
+      releaseFirstSave();
+      await Promise.all([firstSave, queuedSave]);
+    });
+
+    expect(setMessages).toHaveBeenCalledTimes(1);
+    expect(setSnapshot).not.toHaveBeenCalled();
   });
 
   it('should clear the previous chat switch when a fresh chat is persisted', async () => {
@@ -302,7 +367,10 @@ describe('useChatHistory chat switching', () => {
     routeId = '3';
     rerender();
 
-    await waitFor(() => expect(result.current.ready).toBe(true));
+    await waitFor(() => {
+      expect(result.current.ready).toBe(true);
+      expect(result.current.chatChanged).toBe(false);
+    });
     expect(result.current.chatChanged).toBe(false);
     expect(result.current.initialMessages).toEqual([]);
   });
