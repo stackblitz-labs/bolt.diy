@@ -54,13 +54,15 @@ const inlineThemeCode = stripIndents`
   setTutorialKitTheme();
 
   function setTutorialKitTheme() {
-    let theme = localStorage.getItem('bolt_theme');
+    let colorTheme = localStorage.getItem('bolt_theme');
 
-    if (!theme) {
-      theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (!colorTheme) {
+      colorTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark-dracula' : 'light';
     }
 
-    document.querySelector('html')?.setAttribute('data-theme', theme);
+    const mode = colorTheme === 'dark' || colorTheme.startsWith('dark-') ? 'dark' : 'light';
+    document.querySelector('html')?.setAttribute('data-theme', mode);
+    document.querySelector('html')?.setAttribute('data-color-theme', colorTheme === 'dark' ? 'dark-dracula' : colorTheme);
   }
 `;
 
@@ -68,11 +70,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    const mode = theme === 'dark' || theme.startsWith('dark-') ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', mode);
+    document.documentElement.setAttribute('data-color-theme', theme === 'dark' ? 'dark-dracula' : theme);
   }, [theme]);
 
   return (
-    <html lang="en" data-theme={theme} className="w-full h-full">
+    <html
+      lang="en"
+      data-theme={theme === 'dark' || theme.startsWith('dark-') ? 'dark' : 'light'}
+      data-color-theme={theme === 'dark' ? 'dark-dracula' : theme}
+      className="w-full h-full"
+    >
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
