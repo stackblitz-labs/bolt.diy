@@ -135,7 +135,7 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
     if (log.category === 'provider') {
       return (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
             <span>Model: {details.model}</span>
             <span>•</span>
             <span>Tokens: {details.totalTokens}</span>
@@ -144,16 +144,16 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
           </div>
           {details.prompt && (
             <div className="flex flex-col gap-1">
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Prompt:</div>
-              <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded p-2 whitespace-pre-wrap">
+              <div className="text-xs font-medium text-bolt-elements-textPrimary">Prompt:</div>
+              <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded p-2 whitespace-pre-wrap">
                 {details.prompt}
               </pre>
             </div>
           )}
           {details.response && (
             <div className="flex flex-col gap-1">
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Response:</div>
-              <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded p-2 whitespace-pre-wrap">
+              <div className="text-xs font-medium text-bolt-elements-textPrimary">Response:</div>
+              <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded p-2 whitespace-pre-wrap">
                 {details.response}
               </pre>
             </div>
@@ -165,26 +165,26 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
     if (log.category === 'api') {
       return (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
             <span className={details.method === 'GET' ? 'text-green-500' : 'text-blue-500'}>{details.method}</span>
             <span>•</span>
             <span>Status: {details.statusCode}</span>
             <span>•</span>
             <span>Duration: {details.duration}ms</span>
           </div>
-          <div className="text-xs text-gray-600 dark:text-gray-400 break-all">{details.url}</div>
+          <div className="text-xs text-bolt-elements-textSecondary break-all">{details.url}</div>
           {details.request && (
             <div className="flex flex-col gap-1">
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Request:</div>
-              <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded p-2 whitespace-pre-wrap">
+              <div className="text-xs font-medium text-bolt-elements-textPrimary">Request:</div>
+              <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded p-2 whitespace-pre-wrap">
                 {JSON.stringify(details.request, null, 2)}
               </pre>
             </div>
           )}
           {details.response && (
             <div className="flex flex-col gap-1">
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Response:</div>
-              <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded p-2 whitespace-pre-wrap">
+              <div className="text-xs font-medium text-bolt-elements-textPrimary">Response:</div>
+              <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded p-2 whitespace-pre-wrap">
                 {JSON.stringify(details.response, null, 2)}
               </pre>
             </div>
@@ -202,7 +202,7 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
     }
 
     return (
-      <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded whitespace-pre-wrap">
+      <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded whitespace-pre-wrap">
         {JSON.stringify(details, null, 2)}
       </pre>
     );
@@ -215,8 +215,8 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
       className={classNames(
         'flex flex-col gap-2',
         'rounded-lg p-4',
-        'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-        'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+        'bg-bolt-elements-background-depth-1',
+        'border border-bolt-elements-borderColor',
         style.bg,
         'transition-all duration-200',
       )}
@@ -225,12 +225,14 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
         <div className="flex items-start gap-3">
           <span className={classNames('text-lg', style.icon, style.color)} />
           <div className="flex flex-col gap-1">
-            <div className="text-sm font-medium text-gray-900 dark:text-white">{log.message}</div>
+            <div className="text-sm font-medium text-bolt-elements-textPrimary">{log.message}</div>
             {log.details && (
               <>
                 <button
+                  type="button"
+                  aria-expanded={localExpanded}
                   onClick={() => setLocalExpanded(!localExpanded)}
-                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-purple-500 dark:hover:text-purple-400 transition-colors"
+                  className="appearance-none self-start rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1 text-xs font-medium text-bolt-elements-textSecondary transition-colors hover:border-purple-500/40 hover:bg-bolt-elements-background-depth-3 hover:text-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                 >
                   {localExpanded ? 'Hide' : 'Show'} Details
                 </button>
@@ -242,14 +244,14 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
                 {log.level}
               </div>
               {log.category && (
-                <div className="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                <div className="px-2 py-0.5 rounded-full text-xs bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary">
                   {log.category}
                 </div>
               )}
             </div>
           </div>
         </div>
-        {showTimestamp && <time className="shrink-0 text-xs text-gray-500 dark:text-gray-400">{timestamp}</time>}
+        {showTimestamp && <time className="shrink-0 text-xs text-bolt-elements-textSecondary">{timestamp}</time>}
       </div>
     </motion.div>
   );

@@ -169,10 +169,8 @@ const CloudProvidersTab = () => {
             <motion.div
               key={provider.name}
               className={classNames(
-                'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary shadow-sm',
-                'bg-bolt-elements-background-depth-2',
-                'hover:bg-bolt-elements-background-depth-3',
-                'transition-all duration-200',
+                'rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary',
+                'transition-colors hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-3',
                 'relative overflow-hidden group',
                 'flex flex-col',
               )}

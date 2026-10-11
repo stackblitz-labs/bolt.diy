@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
+import Cookies from 'js-cookie';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { DataVisualization } from './DataVisualization';
 import { Button } from '~/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '~/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '~/components/ui/Card';
 import { ConfirmationDialog, SelectionDialog } from '~/components/ui/Dialog';
 import { useDataOperations } from '~/lib/hooks/useDataOperations';
 import { getAllChats, type Chat } from '~/lib/persistence/chats';
@@ -83,6 +83,7 @@ export function DataTab() {
   // State for confirmation dialogs
   const [showResetInlineConfirm, setShowResetInlineConfirm] = useState(false);
   const [showDeleteInlineConfirm, setShowDeleteInlineConfirm] = useState(false);
+  const [showDeleteAPIKeysConfirm, setShowDeleteAPIKeysConfirm] = useState(false);
   const [showSettingsSelection, setShowSettingsSelection] = useState(false);
   const [showChatsSelection, setShowChatsSelection] = useState(false);
 
@@ -206,6 +207,13 @@ export function DataTab() {
     handleResetChats().finally(() => setIsDeleting(false));
   }, [handleResetChats]);
 
+  const handleDeleteAllAPIKeys = useCallback(() => {
+    Cookies.remove('apiKeys', { path: '/' });
+    setShowDeleteAPIKeysConfirm(false);
+    toast.success('All saved API keys were deleted');
+    window.location.reload();
+  }, []);
+
   return (
     <div className="space-y-12">
       {/* Hidden file inputs */}
@@ -251,6 +259,17 @@ export function DataTab() {
         onConfirm={handleResetChatsWithState}
       />
 
+      <ConfirmationDialog
+        isOpen={showDeleteAPIKeysConfirm}
+        onClose={() => setShowDeleteAPIKeysConfirm(false)}
+        title="Delete All API Keys?"
+        description="This permanently removes API keys saved in this browser. Keys provided through environment variables are not affected."
+        confirmLabel="Delete All API Keys"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleDeleteAllAPIKeys}
+      />
+
       {/* Settings Selection Dialog */}
       <SelectionDialog
         isOpen={showSettingsSelection}
@@ -287,7 +306,7 @@ export function DataTab() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card>
+            <Card className="bg-bolt-elements-background-depth-2 transition-colors hover:bg-bolt-elements-background-depth-3">
               <CardHeader>
                 <div className="flex items-center mb-2">
                   <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -351,7 +370,7 @@ export function DataTab() {
               </CardFooter>
             </Card>
 
-            <Card>
+            <Card className="bg-bolt-elements-background-depth-2 transition-colors hover:bg-bolt-elements-background-depth-3">
               <CardHeader>
                 <div className="flex items-center mb-2">
                   <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -388,7 +407,7 @@ export function DataTab() {
               </CardFooter>
             </Card>
 
-            <Card>
+            <Card className="bg-bolt-elements-background-depth-2 transition-colors hover:bg-bolt-elements-background-depth-3">
               <CardHeader>
                 <div className="flex items-center mb-2">
                   <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -424,47 +443,6 @@ export function DataTab() {
                 </motion.div>
               </CardFooter>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center mb-2">
-                  <motion.div
-                    className="text-red-500 dark:text-red-400 mr-2"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <div className="i-ph-trash-duotone w-5 h-5" />
-                  </motion.div>
-                  <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
-                    Delete All Chats
-                  </CardTitle>
-                </div>
-                <CardDescription>Delete all your chat history.</CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
-                  <Button
-                    onClick={() => setShowDeleteInlineConfirm(true)}
-                    disabled={isDeleting || chatItems.length === 0}
-                    variant="outline"
-                    size="sm"
-                    className={classNames(
-                      'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
-                      isDeleting || chatItems.length === 0 ? 'cursor-not-allowed' : '',
-                    )}
-                  >
-                    {isDeleting ? (
-                      <>
-                        <div className="i-ph-spinner-gap-bold animate-spin w-4 h-4 mr-2" />
-                        Deleting...
-                      </>
-                    ) : (
-                      'Delete All'
-                    )}
-                  </Button>
-                </motion.div>
-              </CardFooter>
-            </Card>
           </div>
         )}
       </div>
@@ -473,7 +451,7 @@ export function DataTab() {
       <div>
         <h2 className="text-xl font-semibold mb-4 text-bolt-elements-textPrimary">Settings</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card>
+          <Card className="bg-bolt-elements-background-depth-2 transition-colors hover:bg-bolt-elements-background-depth-3">
             <CardHeader>
               <div className="flex items-center mb-2">
                 <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -510,7 +488,7 @@ export function DataTab() {
             </CardFooter>
           </Card>
 
-          <Card>
+          <Card className="bg-bolt-elements-background-depth-2 transition-colors hover:bg-bolt-elements-background-depth-3">
             <CardHeader>
               <div className="flex items-center mb-2">
                 <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -547,7 +525,7 @@ export function DataTab() {
             </CardFooter>
           </Card>
 
-          <Card>
+          <Card className="bg-bolt-elements-background-depth-2 transition-colors hover:bg-bolt-elements-background-depth-3">
             <CardHeader>
               <div className="flex items-center mb-2">
                 <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -583,47 +561,6 @@ export function DataTab() {
               </motion.div>
             </CardFooter>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center mb-2">
-                <motion.div
-                  className="text-red-500 dark:text-red-400 mr-2"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <div className="i-ph-arrow-counter-clockwise-duotone w-5 h-5" />
-                </motion.div>
-                <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
-                  Reset All Settings
-                </CardTitle>
-              </div>
-              <CardDescription>Reset all settings to their default values.</CardDescription>
-            </CardHeader>
-            <CardFooter>
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
-                <Button
-                  onClick={() => setShowResetInlineConfirm(true)}
-                  disabled={isResetting}
-                  variant="outline"
-                  size="sm"
-                  className={classNames(
-                    'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
-                    isResetting ? 'cursor-not-allowed' : '',
-                  )}
-                >
-                  {isResetting ? (
-                    <>
-                      <div className="i-ph-spinner-gap-bold animate-spin w-4 h-4 mr-2" />
-                      Resetting...
-                    </>
-                  ) : (
-                    'Reset All'
-                  )}
-                </Button>
-              </motion.div>
-            </CardFooter>
-          </Card>
         </div>
       </div>
 
@@ -631,7 +568,7 @@ export function DataTab() {
       <div>
         <h2 className="text-xl font-semibold mb-4 text-bolt-elements-textPrimary">API Keys</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card>
+          <Card className="bg-bolt-elements-background-depth-2 transition-colors hover:bg-bolt-elements-background-depth-3">
             <CardHeader>
               <div className="flex items-center mb-2">
                 <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -668,7 +605,7 @@ export function DataTab() {
             </CardFooter>
           </Card>
 
-          <Card>
+          <Card className="bg-bolt-elements-background-depth-2 transition-colors hover:bg-bolt-elements-background-depth-3">
             <CardHeader>
               <div className="flex items-center mb-2">
                 <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -707,14 +644,74 @@ export function DataTab() {
         </div>
       </div>
 
-      {/* Data Visualization */}
+      {/* Danger Section */}
       <div>
-        <h2 className="text-xl font-semibold mb-4 text-bolt-elements-textPrimary">Data Usage</h2>
-        <Card>
-          <CardContent className="p-5">
-            <DataVisualization chats={availableChats} />
-          </CardContent>
-        </Card>
+        <h2 className="text-xl font-semibold mb-4 text-red-500 dark:text-red-400">Danger</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card className="border-red-500/30 bg-bolt-elements-background-depth-2">
+            <CardHeader>
+              <div className="flex items-center mb-2">
+                <div className="i-ph-trash-duotone w-5 h-5 text-red-500 dark:text-red-400 mr-2" />
+                <CardTitle className="text-lg">Delete All Chats</CardTitle>
+              </div>
+              <CardDescription>Permanently delete all your chat history.</CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Button
+                onClick={() => setShowDeleteInlineConfirm(true)}
+                disabled={isDeleting || chatItems.length === 0}
+                variant="destructive"
+                size="sm"
+                className="w-full justify-center"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete All Chats'}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card className="border-red-500/30 bg-bolt-elements-background-depth-2">
+            <CardHeader>
+              <div className="flex items-center mb-2">
+                <div className="i-ph-arrow-counter-clockwise-duotone w-5 h-5 text-red-500 dark:text-red-400 mr-2" />
+                <CardTitle className="text-lg">Reset All Settings</CardTitle>
+              </div>
+              <CardDescription>Restore all settings to their default values.</CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Button
+                onClick={() => setShowResetInlineConfirm(true)}
+                disabled={isResetting}
+                variant="destructive"
+                size="sm"
+                className="w-full justify-center"
+              >
+                {isResetting ? 'Resetting...' : 'Reset All Settings'}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card className="border-red-500/30 bg-bolt-elements-background-depth-2">
+            <CardHeader>
+              <div className="flex items-center mb-2">
+                <div className="i-ph-key-duotone w-5 h-5 text-red-500 dark:text-red-400 mr-2" />
+                <CardTitle className="text-lg">Delete All API Keys</CardTitle>
+              </div>
+              <CardDescription>
+                Remove API keys saved in this browser. Environment keys are not affected.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Button
+                onClick={() => setShowDeleteAPIKeysConfirm(true)}
+                variant="destructive"
+                size="sm"
+                className="w-full justify-center"
+              >
+                Delete All API Keys
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     </div>
   );

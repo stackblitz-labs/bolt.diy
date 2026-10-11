@@ -2,7 +2,10 @@ import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import type { UserProfile } from '~/components/@settings/core/types';
+import { Card, CardContent } from '~/components/ui/Card';
 import { Switch } from '~/components/ui/Switch';
+import { getAllChats } from '~/lib/persistence/chats';
+import { openDatabase } from '~/lib/persistence/db';
 import { classNames } from '~/utils/classNames';
 import { isMac } from '~/utils/os';
 
@@ -22,6 +25,7 @@ const getModifierSymbol = (modifier: string): string => {
 
 export default function SettingsTab() {
   const [currentTimezone, setCurrentTimezone] = useState('');
+  const [chatStats, setChatStats] = useState({ totalChats: 0, totalMessages: 0, averageMessagesPerChat: 0 });
 
   const [settings, setSettings] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('bolt_user_profile');
@@ -36,6 +40,44 @@ export default function SettingsTab() {
 
   useEffect(() => {
     setCurrentTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    let database: IDBDatabase | undefined;
+
+    const loadChatStats = async () => {
+      try {
+        database = await openDatabase();
+
+        if (!database || !isActive) {
+          database?.close();
+          return;
+        }
+
+        const chats = await getAllChats(database);
+        const totalMessages = chats.reduce((total, chat) => total + chat.messages.length, 0);
+
+        if (isActive) {
+          setChatStats({
+            totalChats: chats.length,
+            totalMessages,
+            averageMessagesPerChat: chats.length > 0 ? totalMessages / chats.length : 0,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load chat usage statistics:', error);
+      } finally {
+        database?.close();
+      }
+    };
+
+    void loadChatStats();
+
+    return () => {
+      isActive = false;
+      database?.close();
+    };
   }, []);
 
   // Save settings automatically when they change
@@ -62,6 +104,44 @@ export default function SettingsTab() {
 
   return (
     <div className="space-y-4">
+      {/* Chat usage summary */}
+      <section aria-labelledby="chat-usage-heading">
+        <h2 id="chat-usage-heading" className="mb-3 text-sm font-medium text-bolt-elements-textPrimary">
+          Chat Usage
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card className="bg-bolt-elements-background-depth-2">
+            <CardContent className="flex items-center gap-3 !p-4">
+              <div className="i-ph-chats-duotone h-6 w-6 shrink-0 text-indigo-500 dark:text-indigo-400" />
+              <div>
+                <p className="text-sm text-bolt-elements-textSecondary">Total Chats</p>
+                <p className="text-2xl font-semibold text-bolt-elements-textPrimary">{chatStats.totalChats}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-bolt-elements-background-depth-2">
+            <CardContent className="flex items-center gap-3 !p-4">
+              <div className="i-ph-chat-text-duotone h-6 w-6 shrink-0 text-pink-500 dark:text-pink-400" />
+              <div>
+                <p className="text-sm text-bolt-elements-textSecondary">Total Messages</p>
+                <p className="text-2xl font-semibold text-bolt-elements-textPrimary">{chatStats.totalMessages}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-bolt-elements-background-depth-2">
+            <CardContent className="flex items-center gap-3 !p-4">
+              <div className="i-ph-chart-bar-duotone h-6 w-6 shrink-0 text-green-500 dark:text-green-400" />
+              <div>
+                <p className="text-sm text-bolt-elements-textSecondary">Avg. Messages / Chat</p>
+                <p className="text-2xl font-semibold text-bolt-elements-textPrimary">
+                  {chatStats.averageMessagesPerChat.toFixed(1)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       {/* Language & Notifications */}
       <motion.div
         className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4 space-y-4"
