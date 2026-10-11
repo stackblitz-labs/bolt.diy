@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react';
 import React from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { APIKeyManager } from './APIKeyManager';
@@ -15,8 +16,10 @@ import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import type { ElementInfo } from '~/components/workbench/Inspector';
+import { isGitHubConnected } from '~/lib/stores/githubConnection';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
+import { supabaseConnection } from '~/lib/stores/supabase';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
@@ -69,6 +72,9 @@ interface ChatBoxProps {
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const [isMcpToolsOpen, setIsMcpToolsOpen] = React.useState(false);
   const mcpToolsInitialized = useMCPStore((state) => state.isInitialized);
+  const supabaseConnectionState = useStore(supabaseConnection);
+  const supabaseConnected = !!supabaseConnectionState.isConnected;
+  const githubConnected = useStore(isGitHubConnected);
 
   return (
     <div
@@ -289,6 +295,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   }}
                   onOpenMcpTools={() => setIsMcpToolsOpen(true)}
                   mcpToolsInitialized={mcpToolsInitialized}
+                  supabaseConnected={supabaseConnected}
+                  githubConnected={githubConnected}
                   enhancingPrompt={props.enhancingPrompt}
                   isEnhanceDisabled={props.input.length === 0 || props.enhancingPrompt}
                 />

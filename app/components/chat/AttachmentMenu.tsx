@@ -9,6 +9,8 @@ interface AttachmentMenuProps {
   onOpenDesignDialog: () => void;
   onOpenMcpTools: () => void;
   mcpToolsInitialized: boolean;
+  supabaseConnected: boolean;
+  githubConnected: boolean;
   enhancingPrompt?: boolean;
   isEnhanceDisabled?: boolean;
 }
@@ -21,6 +23,8 @@ export function AttachmentMenu({
   onOpenDesignDialog,
   onOpenMcpTools,
   mcpToolsInitialized,
+  supabaseConnected,
+  githubConnected,
   enhancingPrompt = false,
   isEnhanceDisabled = false,
 }: AttachmentMenuProps) {
@@ -158,6 +162,7 @@ export function AttachmentMenu({
                 <DropdownMenu.Item
                   className={classNames(
                     'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
+                    'justify-between',
                     'text-bolt-elements-textPrimary',
                     'hover:bg-bolt-elements-background-depth-3',
                     'outline-none transition-colors',
@@ -173,11 +178,19 @@ export function AttachmentMenu({
                     alt="Supabase"
                   />
                   <span>Supabase</span>
+                  <span
+                    aria-label={supabaseConnected ? 'Connected' : 'Not connected'}
+                    className={classNames(
+                      'ml-auto h-2 w-2 rounded-full',
+                      supabaseConnected ? 'bg-green-500' : 'bg-red-500',
+                    )}
+                  />
                 </DropdownMenu.Item>
 
                 <DropdownMenu.Item
                   className={classNames(
                     'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
+                    'justify-between',
                     'text-bolt-elements-textPrimary',
                     'hover:bg-bolt-elements-background-depth-3',
                     'outline-none transition-colors',
@@ -186,6 +199,13 @@ export function AttachmentMenu({
                 >
                   <div className="i-ph:github-logo text-lg"></div>
                   <span>GitHub</span>
+                  <span
+                    aria-label={githubConnected ? 'Connected' : 'Not connected'}
+                    className={classNames(
+                      'ml-auto h-2 w-2 rounded-full',
+                      githubConnected ? 'bg-green-500' : 'bg-red-500',
+                    )}
+                  />
                 </DropdownMenu.Item>
               </DropdownMenu.SubContent>
             </DropdownMenu.Portal>
