@@ -4,6 +4,8 @@ import { createScopedLogger } from '~/utils/logger';
 
 const TOOL_CALL_OPEN = '<|tool_call_start|>';
 const TOOL_CALL_CLOSE = '<|tool_call_end|>';
+const XML_TOOL_CALL_OPEN = '<tool_call>';
+const XML_TOOL_CALL_CLOSE = '</tool_call>';
 
 const UNSUPPORTED_TOOL_CALL_NOTICE =
   'The selected model returned an unsupported tool call instead of a Bolt file action. Choose a model with tool-calling support or ask it to use a Bolt artifact.';
@@ -225,6 +227,7 @@ const logger = createScopedLogger('EnhancedMessageParser');
  */
 export class EnhancedStreamingMessageParser extends StreamingMessageParser {
   private _processedCodeBlocks = new Map<string, Set<string>>();
+  private _toolCallArtifacts = new Map<string, Map<string, string>>();
   private _artifactCounter = 0;
 
   // Optimized command pattern lookup
@@ -271,55 +274,139 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
     let normalized = '';
     let cursor = 0;
 
+    const markers = [
+      { open: TOOL_CALL_OPEN, close: TOOL_CALL_CLOSE, type: 'native' as const },
+      { open: XML_TOOL_CALL_OPEN, close: XML_TOOL_CALL_CLOSE, type: 'xml' as const },
+    ];
+
     while (cursor < input.length) {
-      const callStart = input.indexOf(TOOL_CALL_OPEN, cursor);
+      const nextCall = markers
+        .map((marker) => ({ ...marker, index: input.indexOf(marker.open, cursor) }))
+        .filter((marker) => marker.index !== -1)
+        .sort((left, right) => left.index - right.index)[0];
 
-      if (callStart === -1) {
+      if (!nextCall) {
         // Hide a marker while it is arriving a few characters at a time.
-        for (let length = Math.min(TOOL_CALL_OPEN.length - 1, input.length - cursor); length > 0; length--) {
-          const suffix = input.slice(-length);
+        for (const marker of markers) {
+          for (let length = Math.min(marker.open.length - 1, input.length - cursor); length > 0; length--) {
+            const suffix = input.slice(-length);
 
-          if (TOOL_CALL_OPEN.startsWith(suffix)) {
-            return (
-              normalized + input.slice(cursor, input.length - length) + (isFinal ? UNSUPPORTED_TOOL_CALL_NOTICE : '')
-            );
+            if (marker.open.startsWith(suffix)) {
+              return (
+                normalized + input.slice(cursor, input.length - length) + (isFinal ? UNSUPPORTED_TOOL_CALL_NOTICE : '')
+              );
+            }
           }
         }
 
         return normalized + input.slice(cursor);
       }
 
+      const callStart = nextCall.index;
       normalized += input.slice(cursor, callStart);
 
-      const callEnd = input.indexOf(TOOL_CALL_CLOSE, callStart + TOOL_CALL_OPEN.length);
+      const blockStart = callStart + nextCall.open.length;
+      const callEnd = input.indexOf(nextCall.close, blockStart);
 
       if (callEnd === -1) {
         return normalized + (isFinal ? UNSUPPORTED_TOOL_CALL_NOTICE : '');
       }
 
-      const callBlock = input.slice(callStart + TOOL_CALL_OPEN.length, callEnd);
-      const writes = this._parseWriteCalls(callBlock);
+      const callBlock = input.slice(blockStart, callEnd);
+      const writes = nextCall.type === 'xml' ? this._parseXmlFileCall(callBlock) : this._parseWriteCalls(callBlock);
 
       if (writes.length === 0) {
-        const looseWrite = parseLooseWriteCall(callBlock);
+        const looseWrite = nextCall.type === 'native' ? parseLooseWriteCall(callBlock) : undefined;
 
         if (looseWrite) {
           writes.push(looseWrite);
+        } else {
+          normalized += UNSUPPORTED_TOOL_CALL_NOTICE;
         }
       }
 
-      if (writes.length === 0) {
-        normalized += UNSUPPORTED_TOOL_CALL_NOTICE;
-      } else {
-        for (const write of writes) {
-          normalized += this._writeCallAsArtifact(messageId, write);
+      if (writes.length > 0) {
+        let artifactsByCall = this._toolCallArtifacts.get(messageId);
+
+        if (!artifactsByCall) {
+          artifactsByCall = new Map();
+          this._toolCallArtifacts.set(messageId, artifactsByCall);
         }
+
+        const cacheKey = `${callStart}:${nextCall.type}:${callBlock}`;
+
+        let artifacts = artifactsByCall.get(cacheKey);
+
+        if (!artifacts) {
+          artifacts = writes.map((write) => this._writeCallAsArtifact(messageId, write)).join('');
+          artifactsByCall.set(cacheKey, artifacts);
+        }
+
+        normalized += artifacts;
       }
 
-      cursor = callEnd + TOOL_CALL_CLOSE.length;
+      cursor = callEnd + nextCall.close.length;
     }
 
     return normalized;
+  }
+
+  private _parseXmlFileCall(callBlock: string): TextFileWrite[] {
+    const functionMatch = callBlock.match(/<function\s*=\s*([^>\s]+)\s*>/i);
+
+    if (!functionMatch) {
+      return [];
+    }
+
+    const functionName = functionMatch[1].toLowerCase();
+    const functionBody = callBlock.slice(functionMatch.index! + functionMatch[0].length);
+    const jsonBody = functionBody.match(/^\s*(\{[\s\S]*\})\s*<\/function\s*>/);
+
+    if (jsonBody) {
+      try {
+        const args = JSON.parse(jsonBody[1]) as Record<string, unknown>;
+        const filePath = args.filePath ?? args.file_path ?? args.path;
+        const content = args.body ?? args.content ?? args.code;
+
+        if (typeof filePath === 'string' && typeof content === 'string') {
+          const normalizedPath = normalizeProjectFilePath(filePath);
+
+          return normalizedPath ? [{ filePath: normalizedPath, content }] : [];
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    if (!['file', 'write', 'write_file', 'writefile'].includes(functionName)) {
+      return [];
+    }
+
+    const parameters = new Map<string, string>();
+    const parameterPattern = /<parameter\s*=\s*([^>\s]+)\s*>([\s\S]*?)(?=<parameter\s*=|<\/function\s*>|$)/gi;
+
+    let parameterMatch: RegExpExecArray | null;
+
+    while ((parameterMatch = parameterPattern.exec(functionBody)) !== null) {
+      const key = parameterMatch[1].toLowerCase();
+
+      const value = parameterMatch[2]
+        .replace(/<\/parameter\s*>\s*$/i, '')
+        .replace(/^\r?\n/, '')
+        .replace(/\r?\n$/, '');
+      parameters.set(key, value);
+    }
+
+    const filePath = parameters.get('filepath') ?? parameters.get('file_path') ?? parameters.get('path');
+    const content = parameters.get('body') ?? parameters.get('content') ?? parameters.get('code');
+
+    if (!filePath || content === undefined) {
+      return [];
+    }
+
+    const normalizedPath = normalizeProjectFilePath(filePath);
+
+    return normalizedPath ? [{ filePath: normalizedPath, content }] : [];
   }
 
   private _parseWriteCalls(callBlock: string): TextFileWrite[] {
@@ -832,6 +919,7 @@ ${content.trim()}
   reset() {
     super.reset();
     this._processedCodeBlocks.clear();
+    this._toolCallArtifacts.clear();
     this._artifactCounter = 0;
   }
 }

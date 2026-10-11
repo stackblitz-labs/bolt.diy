@@ -68,6 +68,7 @@ export class WorkbenchStore {
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
   #globalExecutionQueue = Promise.resolve();
+  #fileActionQueue = Promise.resolve();
   constructor() {
     if (import.meta.hot) {
       import.meta.hot.data.artifacts = this.artifacts;
@@ -92,15 +93,30 @@ export class WorkbenchStore {
   }
 
   addToExecutionQueue(callback: () => Promise<void>) {
-    this.#globalExecutionQueue = this.#globalExecutionQueue
+    const queuedAction = this.#globalExecutionQueue
       .then(() => callback())
       .catch((error) => {
         logger.error('Queued action failed', error);
       });
+
+    this.#globalExecutionQueue = queuedAction;
+
+    return queuedAction;
   }
 
   waitForExecutionQueue() {
     return this.#globalExecutionQueue;
+  }
+
+  async waitForFileActions() {
+    while (true) {
+      const queuedFiles = this.#fileActionQueue;
+      await queuedFiles;
+
+      if (queuedFiles === this.#fileActionQueue) {
+        return;
+      }
+    }
   }
 
   get previews() {
@@ -617,7 +633,11 @@ export class WorkbenchStore {
     if (isStreaming) {
       this.actionStreamSampler(data, isStreaming);
     } else {
-      this.addToExecutionQueue(() => this._runAction(data, isStreaming));
+      const queuedAction = this.addToExecutionQueue(() => this._runAction(data, isStreaming));
+
+      if (data.action.type === 'file') {
+        this.#fileActionQueue = queuedAction;
+      }
     }
   }
   async _runAction(data: ActionCallbackData, isStreaming: boolean = false) {

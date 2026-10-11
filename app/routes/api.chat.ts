@@ -176,13 +176,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let summary: string | undefined = undefined;
         let messageSliceId = 0;
 
+        const isInitialTemplateRequest = messages.some(
+          (message) =>
+            message.role === 'assistant' &&
+            /<boltArtifact\b[^>]*\bid=["']imported-files["']/i.test(getMessageText(message)),
+        );
+
         const processedMessages = await mcpService.processToolInvocations(messages, writer);
 
         if (processedMessages.length > 3) {
           messageSliceId = processedMessages.length - 3;
         }
 
-        if (filePaths.length > 0 && contextOptimization) {
+        if (filePaths.length > 0 && contextOptimization && !isInitialTemplateRequest) {
           logger.debug('Generating Chat Summary');
           writer.write({
             type: 'data-progress',
