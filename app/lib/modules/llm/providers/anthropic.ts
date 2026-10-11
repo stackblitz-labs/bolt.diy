@@ -164,7 +164,10 @@ export default class AnthropicProvider extends BaseProvider {
     });
     const anthropic = createAnthropic({
       apiKey,
-      headers: { 'anthropic-beta': 'output-128k-2025-02-19' },
+      headers: {
+        'anthropic-beta': 'output-128k-2025-02-19',
+        'User-Agent': 'bolt.diy/1.0.0',
+      },
     });
 
     return anthropic(model);
