@@ -346,7 +346,7 @@ export default function LocalProvidersTab() {
         </div>
 
         {/* Provider Cards */}
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 items-start gap-4">
           {filteredProviders.map((provider) => (
             <div key={provider.name} className="space-y-4">
               <ProviderCard

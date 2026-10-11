@@ -161,7 +161,7 @@ export default function ConnectorsTab() {
       <div className="space-y-4">
         <button
           onClick={handleBack}
-          className="flex items-center gap-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
+          className="flex appearance-none items-center gap-2 border-0 bg-transparent text-sm text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary"
         >
           <div className="i-ph:arrow-left w-4 h-4" />
           Back to Connectors
@@ -189,10 +189,10 @@ export default function ConnectorsTab() {
         <button
           onClick={() => setSelectedCategory(null)}
           className={classNames(
-            'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+            'appearance-none rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
             selectedCategory === null
-              ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
-              : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/50',
+              ? 'border-purple-500 bg-transparent text-purple-300'
+              : 'border-[#303030] bg-transparent text-neutral-300 hover:border-[#555] hover:text-white',
           )}
         >
           All
@@ -202,10 +202,10 @@ export default function ConnectorsTab() {
             key={category}
             onClick={() => setSelectedCategory(category)}
             className={classNames(
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              'appearance-none rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
               selectedCategory === category
-                ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
-                : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/50',
+                ? 'border-purple-500 bg-transparent text-purple-300'
+                : 'border-[#303030] bg-transparent text-neutral-300 hover:border-[#555] hover:text-white',
             )}
           >
             {CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}
@@ -228,7 +228,7 @@ export default function ConnectorsTab() {
                   {CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}
                 </h3>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-3">
                 {connectors.map((connector, index) => (
                   <motion.button
                     key={connector.id}
@@ -236,52 +236,23 @@ export default function ConnectorsTab() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => setSelectedConnector(connector.id)}
-                    className={classNames(
-                      'group relative p-6 rounded-xl text-left transition-all duration-300 overflow-hidden',
-                      'bg-bolt-elements-background-depth-2',
-                      'border border-bolt-elements-borderColor',
-                      'hover:border-transparent',
-                      'hover:shadow-2xl',
-                      'hover:-translate-y-1 hover:scale-[1.02]',
-                      'focus:outline-none focus:ring-2 focus:ring-bolt-elements-item-contentAccent/50',
-                    )}
+                    className="group flex w-full appearance-none items-center gap-4 rounded-xl border border-[#303030] bg-[#171717] px-5 py-4 text-left text-white transition-colors hover:border-[#555] hover:bg-[#1c1c1c] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                   >
-                    {/* Bloom glow effect */}
-                    <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-500/30 via-blue-500/20 to-pink-500/30 blur-xl" />
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-purple-600/20 via-transparent to-blue-600/20" />
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#252525] text-neutral-300">
+                      {connector.icon}
                     </div>
-
-                    {/* Border glow */}
-                    <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                      <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.4)]" />
-                    </div>
-
-                    {/* Content wrapper with relative positioning */}
-                    <div className="relative z-10">
-                      {/* Icon */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div
-                          className={classNames(
-                            'flex items-center justify-center w-12 h-12 rounded-lg',
-                            'bg-bolt-elements-background-depth-3',
-                            'group-hover:bg-bolt-elements-item-backgroundAccent/20',
-                            'transition-colors duration-200',
-                            'text-bolt-elements-textPrimary',
-                            'group-hover:text-bolt-elements-item-contentAccent',
-                          )}
-                        >
-                          {connector.icon}
-                        </div>
-                        <div className="i-ph:arrow-right w-5 h-5 text-bolt-elements-textTertiary group-hover:text-bolt-elements-item-contentAccent transition-colors" />
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm font-semibold text-white">{connector.name}</h4>
+                        <span className="rounded-full bg-[#292929] px-2 py-0.5 text-[11px] text-neutral-300">
+                          {CATEGORY_LABELS[connector.category]}
+                        </span>
                       </div>
-
-                      {/* Content */}
-                      <h4 className="text-base font-semibold text-bolt-elements-textPrimary mb-2 group-hover:text-bolt-elements-item-contentAccent transition-colors">
-                        {connector.name}
-                      </h4>
-                      <p className="text-sm text-bolt-elements-textSecondary line-clamp-2">{connector.description}</p>
+                      <p className="text-sm text-neutral-400">{connector.description}</p>
                     </div>
+                    <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-neutral-300 group-hover:text-white">
+                      Configure <span aria-hidden="true">→</span>
+                    </span>
                   </motion.button>
                 ))}
               </div>

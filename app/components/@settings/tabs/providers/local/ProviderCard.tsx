@@ -40,43 +40,43 @@ function ProviderCard({
   const Icon = getIcon(provider.name);
 
   return (
-    <Card className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-all duration-300 shadow-sm hover:shadow-md border border-bolt-elements-borderColor hover:border-purple-500/30">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4 flex-1">
+    <Card className="border border-[#333] bg-[#171717] transition-colors hover:border-[#555] hover:bg-[#1c1c1c]">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-1 items-center gap-4">
             <div
               className={classNames(
-                'w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300',
-                provider.settings.enabled
-                  ? 'bg-gradient-to-br from-purple-500/20 to-purple-600/20 ring-1 ring-purple-500/30'
-                  : 'bg-bolt-elements-background-depth-3',
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors',
+                provider.settings.enabled ? 'bg-purple-500/15 ring-1 ring-purple-500/30' : 'bg-[#252525]',
               )}
             >
               <Icon
                 className={classNames(
-                  'w-6 h-6 transition-all duration-300',
-                  provider.settings.enabled ? 'text-purple-500' : 'text-bolt-elements-textTertiary',
+                  'h-5 w-5 transition-colors',
+                  provider.settings.enabled ? 'text-purple-300' : 'text-neutral-400',
                 )}
               />
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">{provider.name}</h3>
-                <span className="px-2 py-1 text-xs rounded-full bg-green-500/10 text-green-500 font-medium">Local</span>
+              <div className="mb-1 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white">{provider.name}</h3>
+                <span className="rounded-full bg-[#292929] px-2 py-0.5 text-[11px] font-medium text-neutral-300">
+                  Local
+                </span>
               </div>
-              <p className="text-sm text-bolt-elements-textSecondary mb-4">
+              <p className="mb-3 text-sm text-neutral-400">
                 {PROVIDER_DESCRIPTIONS[provider.name as keyof typeof PROVIDER_DESCRIPTIONS]}
               </p>
 
               {provider.settings.enabled && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-bolt-elements-textPrimary">API Endpoint</label>
+                  <label className="text-sm font-medium text-neutral-200">API Endpoint</label>
                   {isEditing ? (
                     <input
                       type="text"
                       defaultValue={provider.settings.baseUrl}
                       placeholder={`Enter ${provider.name} base URL`}
-                      className="w-full px-4 py-3 rounded-lg text-sm bg-bolt-elements-background-depth-4 border border-purple-500/30 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all duration-200 shadow-sm"
+                      className="w-full rounded-lg border border-purple-500/40 bg-[#101010] px-3 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           onUpdateBaseUrl(e.currentTarget.value);
@@ -94,11 +94,13 @@ function ProviderCard({
                   ) : (
                     <button
                       onClick={onStartEditing}
-                      className="w-full px-4 py-3 rounded-lg text-sm bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor hover:border-purple-500/30 hover:bg-bolt-elements-background-depth-4 hover:shadow-sm transition-all duration-200 text-left group"
+                      className="w-full rounded-lg border border-[#333] bg-[#101010] px-3 py-2.5 text-left text-sm transition-colors hover:border-[#555] hover:bg-[#202020] group"
                     >
-                      <div className="flex items-center gap-3 text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary">
+                      <div className="flex items-center gap-3 text-neutral-300 group-hover:text-white">
                         <Link className="w-4 h-4 group-hover:text-purple-500 transition-colors" />
-                        <span className="font-mono">{provider.settings.baseUrl || 'Click to set base URL'}</span>
+                        <span className="break-all font-mono text-xs">
+                          {provider.settings.baseUrl || 'Click to set base URL'}
+                        </span>
                       </div>
                     </button>
                   )}
