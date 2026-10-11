@@ -23,6 +23,7 @@ import SettingsTab from '~/components/@settings/tabs/settings/SettingsTab';
 import SupabaseTab from '~/components/@settings/tabs/supabase/SupabaseTab';
 import VercelTab from '~/components/@settings/tabs/vercel/VercelTab';
 import { DialogTitle } from '~/components/ui/Dialog';
+import { DocumentationPanel } from '~/components/ui/DocumentationPanel';
 import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
 import { useFeatures } from '~/lib/hooks/useFeatures';
 import { useNotifications } from '~/lib/hooks/useNotifications';
@@ -57,6 +58,7 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
   // State
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
+  const [isDocumentationOpen, setIsDocumentationOpen] = useState(false);
   const [hasVisitedCloudProviders, setHasVisitedCloudProviders] = useState(false);
 
   // Store values
@@ -303,7 +305,7 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                     ))}
                   </nav>
                   <div className="flex h-16 items-center border-t border-bolt-elements-borderColor px-3">
-                    <AvatarDropdown onSelectTab={handleTabClick} />
+                    <AvatarDropdown onSelectTab={handleTabClick} onOpenDocs={() => setIsDocumentationOpen(true)} />
                   </div>
                 </aside>
                 <main className="min-w-0 flex-1 overflow-y-auto modern-scrollbar p-6 md:px-10 md:py-8">
@@ -357,6 +359,7 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
           </RadixDialog.Content>
         </div>
       </RadixDialog.Portal>
+      <DocumentationPanel open={isDocumentationOpen} onClose={() => setIsDocumentationOpen(false)} />
     </RadixDialog.Root>
   );
 };
