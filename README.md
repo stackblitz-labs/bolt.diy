@@ -112,7 +112,8 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 
 - **In-Browser Web Development**: Full-stack Node.js development environment powered by WebContainers.
 - **21+ AI Providers**: Cloud (Anthropic, OpenAI, Google, DeepSeek, Groq, xAI, Mistral, etc.) and Local (Ollama, LM Studio).
-- **Interactive Workbench**: Integrated code editor, terminal, visual diff viewer, and real-time live preview.
+- **Interactive Workbench**: Integrated code editor, terminal, visual diff viewer, and real-time live preview. Opens by default for a started chat and can be reopened after closing.
+- **Starter Setup**: Explicit framework requests select a matching starter in code. Starter files include detected install and development server commands before the first customization request.
 - **Project Workflows**: Git cloning/pushing, snapshot restoration, file conflict locking, and ZIP export.
 - **Deployments**: One-click deployment to Netlify, Vercel, and GitHub Pages.
 - **Database & Visuals**: Supabase integration, data visualization charts, and Model Context Protocol (MCP) tooling.

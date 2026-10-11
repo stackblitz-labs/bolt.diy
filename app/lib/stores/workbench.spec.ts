@@ -112,9 +112,17 @@ describe('WorkbenchStore.selectWorkbenchView', () => {
     store.selectWorkbenchView('diff', { userInitiated: true });
     expect(store.userSelectedView.get()).toBe('diff');
 
+    store.showWorkbench.set(false);
     store.resetWorkbench();
     expect(store.userSelectedView.get()).toBeUndefined();
     expect(store.currentView.get()).toBe('code');
+    expect(store.showWorkbench.get()).toBe(true);
+  });
+});
+
+describe('WorkbenchStore visibility', () => {
+  it('opens the workbench by default', () => {
+    expect(store.showWorkbench.get()).toBe(true);
   });
 });
 

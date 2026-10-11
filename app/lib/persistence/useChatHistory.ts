@@ -82,6 +82,7 @@ export function useChatHistory() {
   const loadGenerationRef = useRef(0);
   const routeHandoffChatIdRef = useRef<string | undefined>(undefined);
   const pendingChatCreationRef = useRef<Promise<{ id: string; urlId?: string }> | undefined>(undefined);
+  const pendingChatNavigationRef = useRef<{ id: string; urlId?: string } | undefined>(undefined);
 
   useEffect(() => {
     const generation = ++loadGenerationRef.current;
@@ -117,10 +118,11 @@ export function useChatHistory() {
           if (storedMessages && storedMessages.messages.length > 0) {
             if (routeHandoffChatIdRef.current === storedMessages.id && loadedChatIdRef.current === storedMessages.id) {
               /*
-               * A new chat has just been persisted while its live response is
-               * still running. Keep ChatImpl mounted and retain its live state.
+               * A new chat has just been persisted and its route is catching
+               * up. Keep ChatImpl mounted and retain its completed live state.
                */
               routeHandoffChatIdRef.current = undefined;
+              setChatChanged(false);
               setReady(true);
 
               return;
@@ -473,7 +475,7 @@ ${value.content}
         console.error(error);
       }
     },
-    storeMessageHistory: async (messages: UIMessage[]) => {
+    storeMessageHistory: async (messages: UIMessage[], isStreaming = false) => {
       if (!db || messages.length === 0) {
         return;
       }
@@ -551,10 +553,9 @@ ${value.content}
            * as a switch away from it.
            */
           loadedChatIdRef.current = nextId;
-          routeHandoffChatIdRef.current = nextId;
-
-          navigateChat(_urlId || nextId, navigate);
           setUrlId(_urlId);
+
+          pendingChatNavigationRef.current = { id: nextId, urlId: _urlId };
         }
       }
 
@@ -584,6 +585,13 @@ ${value.content}
 
       if (urlId) {
         invalidateChatCache(urlId);
+      }
+
+      if (!isStreaming && pendingChatNavigationRef.current?.id === finalChatId) {
+        const pendingNavigation = pendingChatNavigationRef.current;
+        pendingChatNavigationRef.current = undefined;
+        routeHandoffChatIdRef.current = pendingNavigation.id;
+        navigateChat(pendingNavigation.urlId || pendingNavigation.id, navigate);
       }
     },
     duplicateCurrentChat: async (listItemId: string) => {

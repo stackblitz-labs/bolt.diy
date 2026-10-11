@@ -1,5 +1,6 @@
 import ignore from 'ignore';
 import { STARTER_TEMPLATES } from './constants';
+import { createCommandActionsString, detectProjectCommands } from './projectCommands';
 import type { ProviderInfo } from '~/types/model';
 import type { Template } from '~/types/template';
 
@@ -90,6 +91,26 @@ const parseSelectedTemplate = (llmOutput: string): { template: string; title: st
 
 export const selectStarterTemplate = async (options: { message: string; model: string; provider: ProviderInfo }) => {
   const { message, model, provider } = options;
+
+  const requestedFrameworks: [RegExp, string][] = [
+    [/\bnext\.?js\b/i, 'NextJS Shadcn'],
+    [/\bshadcn\b/i, 'Vite Shadcn'],
+    [/\bastro\b/i, 'Basic Astro'],
+    [/\bexpo\b/i, 'Expo App'],
+    [/\bremix\b/i, 'Remix Typescript'],
+    [/\bqwik\b/i, 'Qwik Typescript'],
+    [/\bsvelte(?:kit)?\b/i, 'Sveltekit'],
+    [/\bvue(?:\.js)?\b/i, 'Vue'],
+    [/\bangular\b/i, 'Angular'],
+    [/\bsolid(?:js)?\b/i, 'SolidJS'],
+    [/\breact\b/i, 'Vite React'],
+  ];
+
+  const requestedTemplate = requestedFrameworks.find(([pattern]) => pattern.test(message));
+
+  if (requestedTemplate) {
+    return { template: requestedTemplate[1], title: message.trim().slice(0, 100) };
+  }
 
   const requestBody = {
     message,
@@ -202,6 +223,7 @@ ${file.content}
 </boltAction>`,
   )
   .join('\n')}
+${createCommandActionsString(await detectProjectCommands(filesToImport.files))}
 </boltArtifact>
 `;
 
@@ -255,7 +277,7 @@ NO NOT EDIT/WRITE ANY FILES THAT ALREADY EXIST IN THE PROJECT AND DOES NOT NEED 
 ---
 Now that the Template is imported please continue with my original request
 
-IMPORTANT: Dont Forget to install the dependencies before running the app by using \`npm install && npm run dev\`
+The user's original prompt is authorization to complete the requested work. Start implementing it now. Do not respond with a plan, ask whether to proceed, or wait for another user message. Modify the starter files as needed, install dependencies, and start the app with \`npm install && npm run dev\`. Continue until the requested app is implemented and running.
 `;
 
   return {

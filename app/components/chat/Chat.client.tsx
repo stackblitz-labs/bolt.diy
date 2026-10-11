@@ -22,11 +22,13 @@ import type { LlmErrorAlertType } from '~/types/actions';
 import type { ProgressAnnotation } from '~/types/context';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { ProviderInfo } from '~/types/model';
+import { shouldPreserveChatMessagesOnRefresh } from '~/utils/chatHistoryRefresh';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
 import { debounce } from '~/utils/debounce';
 import { cubicEasingFn } from '~/utils/easings';
 import { filesToArtifacts } from '~/utils/fileUtils';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
+import { createCommandsMessage, detectProjectCommands } from '~/utils/projectCommands';
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 
@@ -62,14 +64,15 @@ const processSampledMessages = createSampler(
     messages: UIMessage[];
     initialMessages: UIMessage[];
     isLoading: boolean;
+    isPreparingProject: boolean;
     parseMessages: (messages: UIMessage[], isLoading: boolean) => void;
-    storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
+    storeMessageHistory: (messages: UIMessage[], isStreaming?: boolean) => Promise<void>;
   }) => {
-    const { messages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
+    const { messages, initialMessages, isLoading, isPreparingProject, parseMessages, storeMessageHistory } = options;
     parseMessages(messages, isLoading);
 
     if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages).catch((error) => toast.error(error.message));
+      storeMessageHistory(messages, isLoading || isPreparingProject).catch((error) => toast.error(error.message));
     }
   },
   50,
@@ -81,7 +84,7 @@ interface ChatProps {
   /** True when `initialMessages` belong to a different chat than the ones they replace. */
   chatChanged: boolean;
 
-  storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
+  storeMessageHistory: (messages: UIMessage[], isStreaming?: boolean) => Promise<void>;
   importChat: (description: string, messages: UIMessage[]) => Promise<void>;
   exportChat: () => void;
   description?: string;
@@ -139,6 +142,11 @@ export const ChatImpl = memo(
      * callback, so progress annotations are local state again.
      */
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+    const pendingTemplateContinuationRef = useRef<UIMessage | null>(null);
+
+    const pendingTemplateParserRef = useRef<(messages: { id: string; role?: string }[], isLoading: boolean) => void>(
+      () => undefined,
+    );
 
     const bodyRef = useRef({
       apiKeys,
@@ -182,7 +190,6 @@ export const ChatImpl = memo(
       stop,
       sendMessage: sendChatMessage,
       setMessages,
-      regenerate,
       error,
       addToolOutput,
     } = useChat({
@@ -227,6 +234,34 @@ export const ChatImpl = memo(
       onFinish: ({ message }) => {
         setProgressAnnotations([]);
 
+        const userMessages = messagesRef.current.filter((item) => item.role === 'user');
+
+        /*
+         * Blank starts have no manifest to inspect until the first code response
+         * has landed. Add the detected setup actions in code when the model did
+         * not include its own install/start actions.
+         */
+        if (userMessages.length === 1 && !/<boltAction\s+type=["'](?:shell|start)["']/.test(getMessageText(message))) {
+          void (async () => {
+            const completedMessages = messagesRef.current.some((item) => item.id === message.id)
+              ? messagesRef.current
+              : [...messagesRef.current, message];
+            pendingTemplateParserRef.current(completedMessages, false);
+            await workbenchStore.waitForExecutionQueue();
+
+            const projectFiles = Object.entries(workbenchStore.files.get()).flatMap(([path, file]) =>
+              file?.type === 'file' ? [{ path, content: file.content }] : [],
+            );
+
+            const commands = await detectProjectCommands(projectFiles);
+            const setupMessage = createCommandsMessage(commands);
+
+            if (setupMessage) {
+              setMessages((current) => [...current, setupMessage]);
+            }
+          })();
+        }
+
         console.log('Chat response completed');
         logStore.logProvider('Chat response completed', {
           component: 'Chat',
@@ -247,6 +282,37 @@ export const ChatImpl = memo(
     });
 
     const isLoading = status === 'submitted' || status === 'streaming';
+    const messagesRef = useRef(messages);
+    messagesRef.current = messages;
+
+    useEffect(() => {
+      const pendingMessage = pendingTemplateContinuationRef.current;
+
+      if (
+        !pendingMessage ||
+        !messages.some((message) => getMessageText(message).includes('<boltArtifact id="imported-files"'))
+      ) {
+        return;
+      }
+
+      pendingTemplateContinuationRef.current = null;
+
+      void (async () => {
+        /*
+         * Replay the template artifact, then wait for its install/start actions
+         * before asking the model to make the first customization pass.
+         */
+        try {
+          parseMessages(messages, false);
+          await workbenchStore.waitForExecutionQueue();
+          await sendChatMessage(pendingMessage);
+        } catch (error) {
+          handleError(error, 'chat');
+        } finally {
+          setFakeLoading(false);
+        }
+      })();
+    }, [messages, sendChatMessage]);
 
     useEffect(() => {
       const prompt = searchParams.get('prompt');
@@ -267,10 +333,28 @@ export const ChatImpl = memo(
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages, resetParsedMessages } = useMessageParser();
+    pendingTemplateParserRef.current = parseMessages;
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
     useEffect(() => {
+      const sameChatRefresh = shouldPreserveChatMessagesOnRefresh({
+        chatChanged,
+        currentMessageCount: messagesRef.current.length,
+        storedMessageCount: initialMessages.length,
+      });
+
+      if (sameChatRefresh) {
+        /*
+         * Saving a new chat updates its route and re-reads the same messages.
+         * Keep the live useChat state so this refresh cannot abort a new build.
+         */
+        setChatStarted(true);
+        chatStore.setKey('started', true);
+
+        return;
+      }
+
       if (isLoading) {
         stop();
       }
@@ -305,10 +389,11 @@ export const ChatImpl = memo(
         messages,
         initialMessages,
         isLoading,
+        isPreparingProject: fakeLoading,
         parseMessages,
         storeMessageHistory,
       });
-    }, [messages, isLoading, parseMessages]);
+    }, [messages, isLoading, fakeLoading, parseMessages]);
 
     const scrollTextArea = () => {
       const textarea = textareaRef.current;
@@ -539,6 +624,12 @@ export const ChatImpl = memo(
               const { assistantMessage, userMessage } = temResp;
               const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
 
+              pendingTemplateContinuationRef.current = createMessage({
+                role: 'user',
+                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
+                flags: ['hidden'],
+              }) as unknown as UIMessage;
+
               setMessages([
                 {
                   id: `1-${new Date().getTime()}`,
@@ -552,19 +643,7 @@ export const ChatImpl = memo(
                   content: assistantMessage,
                   parts: [{ type: 'text', text: assistantMessage }],
                 },
-                {
-                  id: `3-${new Date().getTime()}`,
-                  role: 'user',
-                  content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
-                  parts: [
-                    { type: 'text', text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}` },
-                  ],
-                  annotations: ['hidden'],
-                  metadata: { flags: ['hidden'] },
-                },
               ] as any);
-
-              void regenerate();
               setInput('');
               Cookies.remove(PROMPT_COOKIE_KEY);
 
@@ -574,7 +653,6 @@ export const ChatImpl = memo(
               resetEnhancer();
 
               textareaRef.current?.blur();
-              setFakeLoading(false);
 
               return;
             }
@@ -585,15 +663,12 @@ export const ChatImpl = memo(
         const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
         const fileParts = await filesToFileParts(uploadedFiles);
 
-        setMessages([
-          {
-            id: `${new Date().getTime()}`,
-            role: 'user',
-            content: userMessageText,
-            parts: [...createMessageParts(userMessageText, imageDataList), ...fileParts],
-          },
-        ] as any);
-        void regenerate();
+        void sendChatMessage({
+          id: `${new Date().getTime()}`,
+          role: 'user',
+          content: userMessageText,
+          parts: [...createMessageParts(userMessageText, imageDataList), ...fileParts],
+        } as any);
         setFakeLoading(false);
         setInput('');
         Cookies.remove(PROMPT_COOKIE_KEY);

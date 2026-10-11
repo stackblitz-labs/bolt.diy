@@ -175,6 +175,10 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
   });
 
   if (!releaseResponse.ok) {
+    if (releaseResponse.status === 403 || releaseResponse.status === 404) {
+      return fetchRepoContentsBranchArchive(repo);
+    }
+
     throw new Error(`GitHub API error: ${releaseResponse.status} - ${releaseResponse.statusText}`);
   }
 
@@ -246,6 +250,47 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
   return results.filter(Boolean);
 }
 
+async function fetchRepoContentsBranchArchive(repo: string) {
+  for (const branch of ['main', 'master']) {
+    const response = await fetch(`https://codeload.github.com/${repo}/zip/refs/heads/${branch}`);
+
+    if (response.status === 404) {
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${branch} branch archive: ${response.status}`);
+    }
+
+    const zip = await JSZip.loadAsync(await response.arrayBuffer());
+
+    const rootFolder = Object.keys(zip.files)
+      .find((path) => path.includes('/'))
+      ?.split('/')[0];
+
+    if (!rootFolder) {
+      throw new Error(`The ${branch} branch archive for ${repo} is empty`);
+    }
+
+    const files = await Promise.all(
+      Object.entries(zip.files).map(async ([filename, entry]) => {
+        if (entry.dir || !filename.startsWith(`${rootFolder}/`)) {
+          return null;
+        }
+
+        const path = filename.slice(rootFolder.length + 1);
+        const content = decodeTextFile(await entry.async('uint8array'));
+
+        return content === null ? null : { name: path.split('/').pop() || '', path, content };
+      }),
+    );
+
+    return files.filter((file) => file !== null);
+  }
+
+  throw new Error(`No main or master branch archive found for ${repo}`);
+}
+
 export async function loader({ request, context }: { request: Request; context: any }) {
   const url = new URL(request.url);
   const repo = url.searchParams.get('repo');
@@ -262,7 +307,15 @@ export async function loader({ request, context }: { request: Request; context: 
     let fileList;
 
     if (isCloudflareEnvironment(context)) {
-      fileList = await fetchRepoContentsCloudflare(repo, githubToken);
+      try {
+        fileList = await fetchRepoContentsCloudflare(repo, githubToken);
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes('GitHub API rate limit exceeded')) {
+          throw error;
+        }
+
+        fileList = await fetchRepoContentsBranchArchive(repo);
+      }
     } else {
       fileList = await fetchRepoContentsZip(repo, githubToken);
     }

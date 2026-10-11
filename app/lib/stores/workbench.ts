@@ -54,7 +54,7 @@ export class WorkbenchStore {
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
-  showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
+  showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(true);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
   userSelectedView: WritableAtom<WorkbenchViewType | undefined> =
     import.meta.hot?.data.userSelectedView ?? atom<WorkbenchViewType | undefined>(undefined);
@@ -97,6 +97,10 @@ export class WorkbenchStore {
       .catch((error) => {
         logger.error('Queued action failed', error);
       });
+  }
+
+  waitForExecutionQueue() {
+    return this.#globalExecutionQueue;
   }
 
   get previews() {
@@ -162,7 +166,7 @@ export class WorkbenchStore {
   async resetWorkbench() {
     this.artifacts.set({});
     this.artifactIdList = [];
-    this.showWorkbench.set(false);
+    this.showWorkbench.set(true);
     this.currentView.set('code');
     this.userSelectedView.set(undefined);
     this.unsavedFiles.set(new Set<string>());
