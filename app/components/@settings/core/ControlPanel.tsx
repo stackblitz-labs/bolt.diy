@@ -57,6 +57,7 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
   // State
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
+  const [hasVisitedCloudProviders, setHasVisitedCloudProviders] = useState(false);
 
   // Store values
   const tabConfiguration = useStore(tabConfigurationStore);
@@ -110,6 +111,10 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
       if (initialTab) {
         setActiveTab(initialTab);
         setLoadingTab(null);
+
+        if (initialTab === 'cloud-providers') {
+          setHasVisitedCloudProviders(true);
+        }
       } else {
         setActiveTab(null);
       }
@@ -206,6 +211,10 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
     setLoadingTab(tabId);
     setActiveTab(tabId);
 
+    if (tabId === 'cloud-providers') {
+      setHasVisitedCloudProviders(true);
+    }
+
     // Acknowledge notifications based on tab
     switch (tabId) {
       case 'features':
@@ -298,9 +307,9 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                   </div>
                 </aside>
                 <main className="min-w-0 flex-1 overflow-y-auto modern-scrollbar p-6 md:px-10 md:py-8">
-                  {activeTab ? (
+                  {activeTab && activeTab !== 'cloud-providers' ? (
                     <div className="mx-auto max-w-5xl">{getTabComponent(activeTab)}</div>
-                  ) : (
+                  ) : !activeTab ? (
                     <div className="mx-auto max-w-5xl">
                       <DialogTitle className="mb-1 text-2xl font-semibold text-bolt-elements-textPrimary">
                         Control Panel
@@ -332,6 +341,14 @@ export const ControlPanel = ({ open, onClose, initialTab }: ControlPanelProps) =
                           </div>
                         ))}
                       </div>
+                    </div>
+                  ) : null}
+                  {hasVisitedCloudProviders && (
+                    <div
+                      aria-hidden={activeTab !== 'cloud-providers'}
+                      className={classNames('mx-auto max-w-5xl', activeTab !== 'cloud-providers' && 'hidden')}
+                    >
+                      <CloudProvidersTab />
                     </div>
                   )}
                 </main>
