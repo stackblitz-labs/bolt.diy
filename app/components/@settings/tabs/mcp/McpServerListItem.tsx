@@ -1,9 +1,31 @@
-import { asSchema, type Tool } from 'ai';
+import type { Tool } from 'ai';
 
 type ParameterProperty = {
   type?: string;
   description?: string;
 };
+
+type ToolJsonSchema = {
+  properties?: Record<string, ParameterProperty>;
+  required?: string[];
+};
+
+/*
+ * Tools reach the browser as JSON from /api/mcp-*, which strips the AI SDK's
+ * internal schema marker. `asSchema()` then mistakes the plain `{ jsonSchema }`
+ * object for a lazy schema and calls it ("schema is not a function"), taking
+ * down the settings page. Read the JSON Schema off the object directly instead;
+ * this also works for live `jsonSchema()` instances.
+ */
+function getToolJsonSchema(inputSchema: unknown): ToolJsonSchema | undefined {
+  if (!inputSchema || typeof inputSchema !== 'object' || !('jsonSchema' in inputSchema)) {
+    return undefined;
+  }
+
+  const { jsonSchema } = inputSchema as { jsonSchema: unknown };
+
+  return jsonSchema && typeof jsonSchema === 'object' ? (jsonSchema as ToolJsonSchema) : undefined;
+}
 
 type McpToolProps = {
   toolName: string;
@@ -15,13 +37,8 @@ export default function McpServerListItem({ toolName, toolSchema }: McpToolProps
     return null;
   }
 
-  /*
-   * v5 renamed `parameters` to `inputSchema` and dropped the local ToolParameters
-   * shim in favour of asSchema, which normalises FlexibleSchema. The schema may
-   * be async, hence the local widening at the use site below.
-   */
-  const { jsonSchema } = asSchema((toolSchema as { inputSchema: never }).inputSchema);
-  const resolved = jsonSchema as { properties?: Record<string, ParameterProperty>; required?: string[] } | undefined;
+  // v5 renamed `parameters` to `inputSchema`
+  const resolved = getToolJsonSchema((toolSchema as { inputSchema?: unknown }).inputSchema);
   const parameters = resolved?.properties || {};
   const requiredParams = resolved?.required || [];
 

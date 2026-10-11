@@ -547,6 +547,12 @@ export function getReasoningText(message: AnyMessage): string {
   return typeof message.reasoning === 'string' ? message.reasoning : '';
 }
 
+/**
+ * Matches v4 `tool-invocation`, v5 static `tool-${name}` and v5 `dynamic-tool`
+ * parts. MCP tools are created with `dynamicTool()` (both `@ai-sdk/mcp` and
+ * the built-in servers), so the client stores their calls as `dynamic-tool`;
+ * without it here they are never rendered for approval or executed.
+ */
 export function isToolPart(part: unknown): boolean {
   if (!part || typeof part !== 'object') {
     return false;
@@ -554,7 +560,11 @@ export function isToolPart(part: unknown): boolean {
 
   const typed = part as Record<string, unknown>;
 
-  return typed.type === 'tool-invocation' || (typeof typed.type === 'string' && typed.type.startsWith('tool-'));
+  return (
+    typed.type === 'tool-invocation' ||
+    typed.type === 'dynamic-tool' ||
+    (typeof typed.type === 'string' && typed.type.startsWith('tool-'))
+  );
 }
 
 export function isFilePart(part: unknown): boolean {

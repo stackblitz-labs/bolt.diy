@@ -464,13 +464,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       },
 
       /*
-       * Staleness detection used to be torn down by the tail of the parallel
-       * fullStream loop. With a single consumer, onEnd is the reliable signal
-       * that every merged stream has drained.
+       * Deliberately no `onEnd`/`onFinish` here. Either one makes the SDK rebuild
+       * the response message server-side, and without `originalMessages` it
+       * can't resolve the `tool-output-available` chunk written for an approved
+       * MCP call (the call belongs to the previous response). It then throws
+       * "No tool invocation found" inside the stream and the response is cut
+       * off with no error chunk.
        */
-      onEnd: () => {
-        // no-op: stream is managed by merged consumer
-      },
       onError: (error: any) => {
         return toClientErrorMessage(error);
       },
