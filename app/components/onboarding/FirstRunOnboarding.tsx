@@ -4,7 +4,7 @@ import { Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components
 import { getAll, openDatabase } from '~/lib/persistence/db';
 import type { MCPConfig } from '~/lib/services/mcpService';
 import { useMCPStore } from '~/lib/stores/mcp';
-import { updateProfile } from '~/lib/stores/profile';
+import { DEFAULT_AVATARS, DEFAULT_AVATAR, updateProfile } from '~/lib/stores/profile';
 import { PROVIDER_LIST } from '~/utils/constants';
 
 const COMPLETED_KEY = 'bolt_onboarding_completed';
@@ -14,6 +14,7 @@ export function FirstRunOnboarding() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
+  const [avatar, setAvatar] = useState<string>(DEFAULT_AVATAR);
   const [providerName, setProviderName] = useState(PROVIDER_LIST[0]?.name ?? '');
   const [apiKey, setApiKey] = useState('');
   const [mcpText, setMcpText] = useState(JSON.stringify(EMPTY_MCP_CONFIG, null, 2));
@@ -105,7 +106,9 @@ export function FirstRunOnboarding() {
     setError('');
 
     if (step === 0 && name.trim()) {
-      updateProfile({ username: name.trim() });
+      updateProfile({ username: name.trim(), avatar });
+    } else if (step === 0) {
+      updateProfile({ avatar });
     }
 
     if (step === 1) {
@@ -180,6 +183,74 @@ export function FirstRunOnboarding() {
               placeholder="Your name"
               className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm outline-none focus:border-bolt-elements-borderColorActive"
             />
+            <div>
+              <span className="mb-2 block text-sm font-medium">Choose an avatar</span>
+              <div className="flex flex-wrap items-center gap-3">
+                {DEFAULT_AVATARS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    aria-label={`Use ${preset.name} avatar`}
+                    aria-pressed={avatar === preset.src}
+                    onClick={() => setAvatar(preset.src)}
+                    className={`h-14 w-14 overflow-hidden rounded-full border-2 ${avatar === preset.src ? 'border-bolt-elements-borderColorActive' : 'border-bolt-elements-borderColor'}`}
+                  >
+                    <img src={preset.src} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+                <label className="flex h-14 cursor-pointer items-center rounded-md border border-dashed border-bolt-elements-borderColor px-3 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+
+                      if (!file) {
+                        return;
+                      }
+
+                      if (!file.type.startsWith('image/')) {
+                        setError('Choose an image file.');
+                        return;
+                      }
+
+                      if (file.size > 2 * 1024 * 1024) {
+                        setError('Choose an image smaller than 2 MB.');
+                        return;
+                      }
+
+                      const reader = new FileReader();
+
+                      reader.onload = () => {
+                        if (typeof reader.result === 'string') {
+                          setAvatar(reader.result);
+                          setError('');
+                        } else {
+                          setError('Could not read that image.');
+                        }
+                      };
+                      reader.onerror = () => setError('Could not read that image.');
+                      reader.readAsDataURL(file);
+                      event.target.value = '';
+                    }}
+                  />
+                  Upload image
+                </label>
+                {avatar.startsWith('data:image/') && (
+                  <img
+                    src={avatar}
+                    alt="Uploaded avatar preview"
+                    className="h-14 w-14 rounded-full border border-bolt-elements-borderColor object-cover"
+                  />
+                )}
+              </div>
+              {error && (
+                <p role="alert" className="mt-2 text-xs text-red-500">
+                  {error}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -247,7 +318,7 @@ export function FirstRunOnboarding() {
           <button
             type="button"
             onClick={finish}
-            className="text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+            className="appearance-none cursor-pointer border-0 bg-transparent px-0 py-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:underline"
           >
             Skip setup
           </button>
