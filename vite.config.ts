@@ -66,6 +66,7 @@ export default defineConfig((config) => {
         '@radix-ui/react-tabs',
         '@radix-ui/react-tooltip',
         'react-toastify',
+        '@bjorn3/browser_wasi_shim',
 
         // These imports are added by Vite/React Router transforms, so the
         // dependency scanner cannot reliably see them before the browser does.
