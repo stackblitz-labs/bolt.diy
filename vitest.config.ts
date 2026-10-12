@@ -37,6 +37,7 @@ const DOM_TESTS = [
   // React rendering
   'app/routes.spec.tsx',
   'app/components/chat/Artifact.spec.tsx',
+  'app/components/chat/ImportZipButton.spec.tsx',
   'app/components/workbench/WorkbenchReopenButton.spec.tsx',
   'app/lib/hooks/useMessageParser.spec.ts',
   'app/lib/persistence/useChatHistory.spec.tsx',

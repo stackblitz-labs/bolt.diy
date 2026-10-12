@@ -112,6 +112,7 @@ export const ChatImpl = memo(
     useShortcuts();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const hasAppliedInitialMessagesRef = useRef(false);
     const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [imageDataList, setImageDataList] = useState<string[]>([]);
@@ -521,6 +522,7 @@ export const ChatImpl = memo(
         chatChanged,
         currentMessageCount: messagesRef.current.length,
         storedMessageCount: initialMessages.length,
+        hasAppliedInitialMessages: hasAppliedInitialMessagesRef.current,
       });
 
       if (sameChatRefresh) {
@@ -561,6 +563,10 @@ export const ChatImpl = memo(
       }
 
       parseMessages(initialMessages, false);
+
+      if (initialMessages.length > 0) {
+        hasAppliedInitialMessagesRef.current = true;
+      }
     }, [initialMessages, chatChanged]);
 
     /*

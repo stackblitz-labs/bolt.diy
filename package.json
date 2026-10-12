@@ -13,7 +13,7 @@
   "scripts": {
     "deploy": "pnpm run build && wrangler deploy",
     "build": "react-router build",
-    "dev": "node pre-start.cjs  && react-router dev",
+    "dev": "node pre-start.cjs  && react-router dev --host ::",
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:unit": "vitest --run tests/unit",
@@ -33,7 +33,7 @@
     "perf:report": "pnpm run perf:test && pnpm run perf:analyze",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint app",
     "lint:fix": "npm run lint -- --fix && prettier app --write",
-    "start": "vite preview --port 5173 --strictPort",
+    "start": "vite preview --host :: --port 5173 --strictPort",
     "dockerstart": "vite preview --host 0.0.0.0 --port 5173 --strictPort",
     "dockerrun": "docker run -it -d --name bolt-ai-live -p 5173:5173 --env-file .env.local bolt-ai",
     "dockerbuild:prod": "docker build -t bolt-ai:production -t bolt-ai:latest --target bolt-ai-production .",

@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams('template=Vite React'),
   getTemplates: vi.fn(),
   createChatFromMessages: vi.fn(),
+  getMessagesByUrlIdRaw: vi.fn(),
+  setSnapshot: vi.fn(),
   db: {},
 }));
 
@@ -16,9 +18,14 @@ vi.mock('react-router', () => ({
   useSearchParams: () => [mocks.searchParams],
 }));
 vi.mock('~/lib/persistence', () => ({ db: mocks.db }));
-vi.mock('~/lib/persistence/db', () => ({ createChatFromMessages: mocks.createChatFromMessages }));
+vi.mock('~/lib/persistence/db', () => ({
+  createChatFromMessages: mocks.createChatFromMessages,
+  getMessagesByUrlIdRaw: mocks.getMessagesByUrlIdRaw,
+  setSnapshot: mocks.setSnapshot,
+}));
 vi.mock('~/utils/selectStarterTemplate', () => ({ getTemplates: mocks.getTemplates }));
 vi.mock('~/utils/constants', () => ({
+  WORK_DIR: '/home/project',
   STARTER_TEMPLATES: [{ name: 'Vite React', label: 'React', githubRepo: 'example/react-starter' }],
 }));
 
@@ -27,9 +34,12 @@ describe('homepage starter project import', () => {
     vi.clearAllMocks();
     mocks.searchParams = new URLSearchParams('template=Vite React');
     mocks.createChatFromMessages.mockResolvedValue('react-starter');
+    mocks.getMessagesByUrlIdRaw.mockResolvedValue({ id: 'chat-id' });
+    mocks.setSnapshot.mockResolvedValue(undefined);
     mocks.getTemplates.mockResolvedValue({
       assistantMessage:
         '<boltArtifact id="imported-files"><boltAction type="file" filePath="package.json">{}</boltAction><boltAction type="start">npm run dev</boltAction></boltArtifact>',
+      files: [{ path: 'package.json', content: '{}' }],
     });
   });
 

@@ -183,5 +183,6 @@ The user's original prompt is authorization to complete the requested work. Star
   return {
     assistantMessage,
     userMessage,
+    files: filesToImport.files,
   };
 }

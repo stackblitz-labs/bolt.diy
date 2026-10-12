@@ -195,7 +195,16 @@ export function useChatHistory() {
               archivedMessages = storedMessages.messages.slice(0, startingIdx + 1);
             }
 
-            if (startingIdx > 0) {
+            if (startingIdx > 0 && validSnapshot.preserveMessagesOnRestore) {
+              archivedMessages = [];
+              await restoreSnapshot(validSnapshot, isCurrentLoad);
+
+              if (!isCurrentLoad()) {
+                return;
+              }
+
+              filteredMessages = storedMessages.messages.slice(0, endingIdx);
+            } else if (startingIdx > 0) {
               const files = Object.entries(validSnapshot?.files || {})
                 .map(([key, value]) => {
                   if (value?.type !== 'file') {
