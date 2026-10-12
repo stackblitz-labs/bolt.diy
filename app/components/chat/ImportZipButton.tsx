@@ -1,14 +1,14 @@
+import type { UIMessage } from 'ai';
 import React, { useRef, useState } from 'react';
-import type { Message } from 'ai';
 import { toast } from 'react-toastify';
-import { createChatFromZip } from '~/utils/zipImport';
-import { logStore } from '~/lib/stores/logs';
 import { Button } from '~/components/ui/Button';
+import { logStore } from '~/lib/stores/logs';
 import { classNames } from '~/utils/classNames';
+import { createChatFromZip } from '~/utils/zipImport';
 
 interface ImportZipButtonProps {
   className?: string;
-  importChat?: (description: string, messages: Message[]) => Promise<void>;
+  importChat?: (description: string, messages: UIMessage[]) => Promise<void>;
 }
 
 export const ImportZipButton: React.FC<ImportZipButtonProps> = ({ className, importChat }) => {
