@@ -176,15 +176,16 @@ export const ChatImpl = memo(
       chatMode,
       designScheme,
       supabase: {
-        isConnected: supabaseConn.isConnected,
-        hasSelectedProject: !!selectedProject,
+        isConnected: mcpSettings.connectorEnabled.supabase && supabaseConn.isConnected,
+        hasSelectedProject: mcpSettings.connectorEnabled.supabase && !!selectedProject,
         credentials: {
-          supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
-          anonKey: supabaseConn?.credentials?.anonKey,
+          supabaseUrl: mcpSettings.connectorEnabled.supabase ? supabaseConn?.credentials?.supabaseUrl : undefined,
+          anonKey: mcpSettings.connectorEnabled.supabase ? supabaseConn?.credentials?.anonKey : undefined,
         },
       },
       maxLLMSteps: mcpSettings.maxLLMSteps,
       webSearchEnabled: mcpSettings.webSearchEnabled,
+      connectorEnabled: mcpSettings.connectorEnabled,
     });
 
     bodyRef.current = {
@@ -195,15 +196,16 @@ export const ChatImpl = memo(
       chatMode,
       designScheme,
       supabase: {
-        isConnected: supabaseConn.isConnected,
-        hasSelectedProject: !!selectedProject,
+        isConnected: mcpSettings.connectorEnabled.supabase && supabaseConn.isConnected,
+        hasSelectedProject: mcpSettings.connectorEnabled.supabase && !!selectedProject,
         credentials: {
-          supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
-          anonKey: supabaseConn?.credentials?.anonKey,
+          supabaseUrl: mcpSettings.connectorEnabled.supabase ? supabaseConn?.credentials?.supabaseUrl : undefined,
+          anonKey: mcpSettings.connectorEnabled.supabase ? supabaseConn?.credentials?.anonKey : undefined,
         },
       },
       maxLLMSteps: mcpSettings.maxLLMSteps,
       webSearchEnabled: mcpSettings.webSearchEnabled,
+      connectorEnabled: mcpSettings.connectorEnabled,
     };
 
     const {

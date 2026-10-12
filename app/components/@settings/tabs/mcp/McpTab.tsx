@@ -81,7 +81,8 @@ export default function McpTab() {
       await updateSettings({
         mcpConfig: parsedConfig,
         maxLLMSteps,
-        webSearchEnabled: useMCPStore.getState().settings.webSearchEnabled,
+        webSearchEnabled: settings.webSearchEnabled,
+        connectorEnabled: settings.connectorEnabled,
       });
       toast.success('MCP configuration saved');
 

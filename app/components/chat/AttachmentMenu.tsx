@@ -1,16 +1,23 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import type { ReactNode } from 'react';
+import type { ConnectorId } from '~/lib/stores/mcp';
 import { classNames } from '~/utils/classNames';
+
+type ConnectorMenuItem = {
+  id: ConnectorId;
+  name: string;
+  icon: ReactNode;
+  enabled: boolean;
+};
 
 interface AttachmentMenuProps {
   onAttachFile: () => void;
-  onSupabaseConnect: () => void;
-  onGithubConnect: () => void;
+  connectors: ConnectorMenuItem[];
+  onConnectorEnabledChange: (connector: ConnectorId, enabled: boolean) => void;
   onEnhancePrompt: () => void;
   onOpenDesignDialog: () => void;
   onOpenMcpTools: () => void;
   mcpToolsInitialized: boolean;
-  supabaseConnected: boolean;
-  githubConnected: boolean;
   webSearchEnabled: boolean;
   onWebSearchEnabledChange: (enabled: boolean) => void;
   enhancingPrompt?: boolean;
@@ -19,14 +26,12 @@ interface AttachmentMenuProps {
 
 export function AttachmentMenu({
   onAttachFile,
-  onSupabaseConnect,
-  onGithubConnect,
+  connectors,
+  onConnectorEnabledChange,
   onEnhancePrompt,
   onOpenDesignDialog,
   onOpenMcpTools,
   mcpToolsInitialized,
-  supabaseConnected,
-  githubConnected,
   webSearchEnabled,
   onWebSearchEnabledChange,
   enhancingPrompt = false,
@@ -164,34 +169,6 @@ export function AttachmentMenu({
                 sideOffset={8}
               >
                 <DropdownMenu.Item
-                  className={classNames(
-                    'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
-                    'justify-between',
-                    'text-bolt-elements-textPrimary',
-                    'hover:bg-bolt-elements-background-depth-3',
-                    'outline-none transition-colors',
-                  )}
-                  onSelect={onSupabaseConnect}
-                >
-                  <img
-                    className="w-4 h-4"
-                    height="16"
-                    width="16"
-                    crossOrigin="anonymous"
-                    src="https://cdn.simpleicons.org/supabase"
-                    alt="Supabase"
-                  />
-                  <span>Supabase</span>
-                  <span
-                    aria-label={supabaseConnected ? 'Connected' : 'Not connected'}
-                    className={classNames(
-                      'ml-auto h-2 w-2 rounded-full',
-                      supabaseConnected ? 'bg-green-500' : 'bg-red-500',
-                    )}
-                  />
-                </DropdownMenu.Item>
-
-                <DropdownMenu.Item
                   onSelect={() => onWebSearchEnabledChange(!webSearchEnabled)}
                   className={classNames(
                     'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
@@ -212,26 +189,29 @@ export function AttachmentMenu({
                   />
                 </DropdownMenu.Item>
 
-                <DropdownMenu.Item
-                  className={classNames(
-                    'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
-                    'justify-between',
-                    'text-bolt-elements-textPrimary',
-                    'hover:bg-bolt-elements-background-depth-3',
-                    'outline-none transition-colors',
-                  )}
-                  onSelect={onGithubConnect}
-                >
-                  <div className="i-ph:github-logo text-lg"></div>
-                  <span>GitHub</span>
-                  <span
-                    aria-label={githubConnected ? 'Connected' : 'Not connected'}
+                {connectors.map((connector) => (
+                  <DropdownMenu.Item
+                    key={connector.id}
                     className={classNames(
-                      'ml-auto h-2 w-2 rounded-full',
-                      githubConnected ? 'bg-green-500' : 'bg-red-500',
+                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
+                      'justify-between',
+                      'text-bolt-elements-textPrimary',
+                      'hover:bg-bolt-elements-background-depth-3',
+                      'outline-none transition-colors',
                     )}
-                  />
-                </DropdownMenu.Item>
+                    onSelect={() => onConnectorEnabledChange(connector.id, !connector.enabled)}
+                  >
+                    {connector.icon}
+                    <span>{connector.name}</span>
+                    <span
+                      aria-label={connector.enabled ? 'Enabled' : 'Disabled'}
+                      className={classNames(
+                        'ml-auto h-2 w-2 rounded-full',
+                        connector.enabled ? 'bg-green-500' : 'bg-red-500',
+                      )}
+                    />
+                  </DropdownMenu.Item>
+                ))}
               </DropdownMenu.SubContent>
             </DropdownMenu.Portal>
           </DropdownMenu.Sub>

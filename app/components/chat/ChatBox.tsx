@@ -17,9 +17,12 @@ import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { isGitHubConnected } from '~/lib/stores/githubConnection';
-import { useMCPStore } from '~/lib/stores/mcp';
+import { isGitLabConnected } from '~/lib/stores/gitlabConnection';
+import { useMCPStore, type ConnectorId } from '~/lib/stores/mcp';
+import { netlifyConnection } from '~/lib/stores/netlify';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { supabaseConnection } from '~/lib/stores/supabase';
+import { vercelConnection } from '~/lib/stores/vercel';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
@@ -73,9 +76,83 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const mcpToolsInitialized = useMCPStore((state) => state.isInitialized);
   const mcpSettings = useMCPStore((state) => state.settings);
   const setWebSearchEnabled = useMCPStore((state) => state.setWebSearchEnabled);
+  const setConnectorEnabled = useMCPStore((state) => state.setConnectorEnabled);
+  const serverTools = useMCPStore((state) => state.serverTools);
   const supabaseConnectionState = useStore(supabaseConnection);
   const supabaseConnected = !!supabaseConnectionState.isConnected;
   const githubConnected = useStore(isGitHubConnected);
+  const gitlabConnected = useStore(isGitLabConnected);
+  const vercelConnected = !!useStore(vercelConnection).user;
+  const netlifyConnected = !!useStore(netlifyConnection).user;
+  const browserUseCloudAvailable = serverTools['browser-use-cloud']?.status === 'available';
+
+  const connectors = (
+    [
+      { id: 'github', name: 'GitHub', icon: <div className="i-ph:github-logo text-lg" />, available: githubConnected },
+      {
+        id: 'gitlab',
+        name: 'GitLab',
+        icon: <div className="i-ph:gitlab-logo text-lg" />,
+        available: gitlabConnected,
+      },
+      {
+        id: 'vercel',
+        name: 'Vercel',
+        icon: <div className="i-ph:triangle text-lg" />,
+        available: vercelConnected,
+      },
+      {
+        id: 'netlify',
+        name: 'Netlify',
+        icon: <div className="i-ph:cloud text-lg" />,
+        available: netlifyConnected,
+      },
+      {
+        id: 'supabase',
+        name: 'Supabase',
+        icon: <img className="w-4 h-4" height="16" width="16" src="https://cdn.simpleicons.org/supabase" alt="" />,
+        available: supabaseConnected,
+      },
+      {
+        id: 'browserUseCloud',
+        name: 'Browser Use Cloud',
+        icon: <div className="i-ph:browser text-lg" />,
+        available: browserUseCloudAvailable,
+      },
+    ] as { id: ConnectorId; name: string; icon: React.ReactNode; available: boolean }[]
+  )
+    .filter((connector) => connector.available)
+    .map(({ available: _available, ...connector }) => ({
+      ...connector,
+      enabled: mcpSettings.connectorEnabled[connector.id],
+    }));
+
+  React.useEffect(() => {
+    const availability: Record<ConnectorId, boolean> = {
+      github: githubConnected,
+      gitlab: gitlabConnected,
+      vercel: vercelConnected,
+      netlify: netlifyConnected,
+      supabase: supabaseConnected,
+      browserUseCloud: browserUseCloudAvailable,
+    };
+
+    for (const [connector, available] of Object.entries(availability) as [ConnectorId, boolean][]) {
+      if (!available && mcpSettings.connectorEnabled[connector]) {
+        setConnectorEnabled(connector, false);
+      }
+    }
+  }, [
+    githubConnected,
+    gitlabConnected,
+    vercelConnected,
+    netlifyConnected,
+    browserUseCloudAvailable,
+    mcpSettings.connectorEnabled.github,
+    mcpSettings.connectorEnabled,
+    setConnectorEnabled,
+    supabaseConnected,
+  ]);
 
   return (
     <div
@@ -288,16 +365,10 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   onEnhancePrompt={() => {
                     props.enhancePrompt?.();
                   }}
-                  onSupabaseConnect={() => {
-                    document.dispatchEvent(new CustomEvent('open-supabase-connection'));
-                  }}
-                  onGithubConnect={() => {
-                    document.dispatchEvent(new CustomEvent('open-github-settings'));
-                  }}
+                  connectors={connectors}
+                  onConnectorEnabledChange={setConnectorEnabled}
                   onOpenMcpTools={() => setIsMcpToolsOpen(true)}
                   mcpToolsInitialized={mcpToolsInitialized}
-                  supabaseConnected={supabaseConnected}
-                  githubConnected={githubConnected}
                   webSearchEnabled={mcpSettings.webSearchEnabled}
                   onWebSearchEnabledChange={setWebSearchEnabled}
                   enhancingPrompt={props.enhancingPrompt}

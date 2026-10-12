@@ -4,15 +4,28 @@ import type { MCPConfig, MCPServerTools } from '~/lib/services/mcpService';
 const MCP_SETTINGS_KEY = 'mcp_settings';
 const isBrowser = typeof window !== 'undefined';
 
+export type ConnectorId = 'github' | 'gitlab' | 'vercel' | 'netlify' | 'supabase' | 'browserUseCloud';
+
 type MCPSettings = {
   mcpConfig: MCPConfig;
   maxLLMSteps: number;
   webSearchEnabled: boolean;
+  connectorEnabled: {
+    [connector in ConnectorId]: boolean;
+  };
 };
 
 const defaultSettings = {
   maxLLMSteps: 5,
   webSearchEnabled: true,
+  connectorEnabled: {
+    github: false,
+    gitlab: false,
+    vercel: false,
+    netlify: false,
+    supabase: false,
+    browserUseCloud: false,
+  },
   mcpConfig: {
     mcpServers: {},
   },
@@ -30,6 +43,7 @@ type Actions = {
   initialize: () => Promise<void>;
   updateSettings: (settings: MCPSettings) => Promise<void>;
   setWebSearchEnabled: (enabled: boolean) => void;
+  setConnectorEnabled: (connector: keyof MCPSettings['connectorEnabled'], enabled: boolean) => void;
   checkServersAvailabilities: () => Promise<void>;
 };
 
@@ -49,7 +63,14 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
 
       if (savedConfig) {
         try {
-          const settings = { ...defaultSettings, ...(JSON.parse(savedConfig) as Partial<MCPSettings>) };
+          const savedSettings = JSON.parse(savedConfig) as Partial<MCPSettings>;
+
+          const settings = {
+            ...defaultSettings,
+            ...savedSettings,
+            connectorEnabled: { ...defaultSettings.connectorEnabled, ...savedSettings.connectorEnabled },
+          };
+
           const serverTools = await updateServerConfig(settings.mcpConfig);
           set(() => ({ settings, serverTools }));
         } catch (error) {
@@ -88,6 +109,18 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
   },
   setWebSearchEnabled: (enabled: boolean) => {
     const settings = { ...get().settings, webSearchEnabled: enabled };
+
+    if (isBrowser) {
+      localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    set({ settings });
+  },
+  setConnectorEnabled: (connector, enabled) => {
+    const settings = {
+      ...get().settings,
+      connectorEnabled: { ...get().settings.connectorEnabled, [connector]: enabled },
+    };
 
     if (isBrowser) {
       localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(settings));
