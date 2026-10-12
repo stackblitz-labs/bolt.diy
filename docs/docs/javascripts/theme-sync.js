@@ -11,7 +11,7 @@
 
   if (isAllowedTheme(requestedTheme)) {
     theme = requestedTheme;
-    document.documentElement.setAttribute('data-md-color-scheme', theme === 'dark' ? 'slate' : 'default');
+    document.body.setAttribute('data-md-color-scheme', theme === 'dark' ? 'slate' : 'default');
 
     try {
       localStorage.setItem('bolt-theme', theme);
@@ -25,6 +25,6 @@
   } catch {}
 
   if (isAllowedTheme(theme)) {
-    document.documentElement.setAttribute('data-md-color-scheme', theme === 'dark' ? 'slate' : 'default');
+    document.body.setAttribute('data-md-color-scheme', theme === 'dark' ? 'slate' : 'default');
   }
 })();
