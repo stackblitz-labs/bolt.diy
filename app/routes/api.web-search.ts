@@ -1,106 +1,176 @@
 import type { ActionFunctionArgs } from 'react-router';
-import { isAllowedUrl } from '~/utils/url';
+import { z } from 'zod';
+import { getTrustedClientIP } from '~/lib/security';
+import { validatePublicHttpUrl, webFetch, webSearch } from '~/lib/services/webTools.server';
 
-const MAX_CONTENT_LENGTH = 8000;
+const MAX_BODY_BYTES = 4_096;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMITS = { search: 20, fetch: 30 } as const;
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
-const FETCH_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5',
-};
+const searchRequestSchema = z
+  .object({
+    operation: z.literal('search'),
+    query: z.string().trim().min(1).max(500),
+    limit: z.number().int().min(1).max(10).optional(),
+  })
+  .strict();
 
-function extractTitle(html: string): string {
-  const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  return match ? match[1].trim() : '';
+const fetchRequestSchema = z.object({ url: z.string().min(1).max(2_048) }).strict();
+
+function bodyError(message: string, status: number): Response {
+  return Response.json({ error: message }, { status });
 }
 
-function extractMetaDescription(html: string): string {
-  const match = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+async function readJsonBody(request: Request): Promise<unknown> {
+  const contentType = request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
 
-  if (match) {
-    return match[1].trim();
+  if (contentType !== 'application/json') {
+    throw bodyError('Content-Type must be application/json', 415);
   }
 
-  // Try reverse attribute order
-  const altMatch = html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["'][^>]*>/i);
+  const declaredLength = Number(request.headers.get('content-length'));
 
-  return altMatch ? altMatch[1].trim() : '';
-}
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    throw bodyError('Request body exceeds the 4 KB limit', 413);
+  }
 
-function extractTextContent(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-    .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, ' ')
-    .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, ' ')
-    .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+  if (!request.body) {
+    throw bodyError('Request body is required', 400);
+  }
 
-export async function action({ request }: ActionFunctionArgs) {
-  if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+
+  let size = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      size += value.byteLength;
+
+      if (size > MAX_BODY_BYTES) {
+        await reader.cancel();
+        throw bodyError('Request body exceeds the 4 KB limit', 413);
+      }
+
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
   }
 
   try {
-    const { url } = (await request.json()) as { url?: string };
+    const bytes = new Uint8Array(size);
 
-    if (!url || typeof url !== 'string') {
-      return Response.json({ error: 'URL is required' }, { status: 400 });
+    let offset = 0;
+
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
     }
 
-    if (!isAllowedUrl(url)) {
-      return Response.json({ error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' }, { status: 400 });
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+
+    return JSON.parse(text);
+  } catch {
+    throw bodyError('Request body must be valid JSON', 400);
+  }
+}
+
+function applyRateLimit(request: Request, context: ActionFunctionArgs['context'], operation: keyof typeof RATE_LIMITS) {
+  const now = Date.now();
+  const clientIp = getTrustedClientIP(request, context) ?? 'unidentified-client';
+  const key = `${clientIp}:${operation}`;
+  const prior = rateLimitStore.get(key);
+  const entry = prior && prior.resetAt > now ? prior : { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+
+  if (rateLimitStore.size > 1_000) {
+    for (const [storedKey, value] of rateLimitStore) {
+      if (value.resetAt <= now) {
+        rateLimitStore.delete(storedKey);
+      }
+    }
+  }
+
+  if (entry.count >= RATE_LIMITS[operation]) {
+    return Response.json(
+      { error: 'Rate limit exceeded. Try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.max(1, Math.ceil((entry.resetAt - now) / 1000))) } },
+    );
+  }
+
+  entry.count++;
+  rateLimitStore.set(key, entry);
+
+  return undefined;
+}
+
+function errorResponse(error: unknown): Response {
+  if (error instanceof Response) {
+    return error;
+  }
+
+  const message = error instanceof Error ? error.message : 'Web operation failed';
+  const status = /timed out/i.test(message) ? 504 : 502;
+  console.error('Web tool error:', message);
+
+  return Response.json({ error: message }, { status });
+}
+
+export async function action({ request, context }: ActionFunctionArgs) {
+  if (request.method !== 'POST') {
+    return Response.json({ error: 'Method not allowed' }, { status: 405, headers: { Allow: 'POST' } });
+  }
+
+  try {
+    const body = await readJsonBody(request);
+
+    if (typeof body === 'object' && body !== null && 'operation' in body && body.operation === 'search') {
+      const parsed = searchRequestSchema.safeParse(body);
+
+      if (!parsed.success) {
+        return Response.json({ error: parsed.error.issues[0]?.message ?? 'Invalid search request' }, { status: 400 });
+      }
+
+      const rateLimitResponse = applyRateLimit(request, context, 'search');
+
+      if (rateLimitResponse) {
+        return rateLimitResponse;
+      }
+
+      const results = await webSearch(parsed.data.query, parsed.data.limit ?? 8);
+
+      return Response.json({ success: true, data: { query: parsed.data.query, source: 'DuckDuckGo', results } });
     }
 
-    const response = await fetch(url, {
-      headers: FETCH_HEADERS,
-      signal: AbortSignal.timeout(10_000),
-    });
+    const parsed = fetchRequestSchema.safeParse(body);
 
-    if (!response.ok) {
-      return Response.json(
-        { error: `Failed to fetch URL: ${response.status} ${response.statusText}` },
-        { status: 502 },
-      );
+    if (!parsed.success) {
+      return Response.json({ error: parsed.error.issues[0]?.message ?? 'URL is required' }, { status: 400 });
     }
 
-    const contentType = response.headers.get('content-type') || '';
-
-    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
-      return Response.json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
+    try {
+      validatePublicHttpUrl(parsed.data.url);
+    } catch (error) {
+      return Response.json({ error: error instanceof Error ? error.message : 'URL is not allowed' }, { status: 400 });
     }
 
-    const html = await response.text();
-    const title = extractTitle(html);
-    const description = extractMetaDescription(html);
-    const content = extractTextContent(html);
+    const rateLimitResponse = applyRateLimit(request, context, 'fetch');
 
-    return Response.json({
-      success: true,
-      data: {
-        title,
-        description,
-        content: content.length > MAX_CONTENT_LENGTH ? content.slice(0, MAX_CONTENT_LENGTH) + '...' : content,
-        sourceUrl: url,
-      },
-    });
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    const data = await webFetch(parsed.data.url);
+
+    return Response.json({ success: true, data });
   } catch (error) {
-    if (error instanceof DOMException && error.name === 'TimeoutError') {
-      return Response.json({ error: 'Request timed out after 10 seconds' }, { status: 504 });
-    }
-
-    console.error('Web search error:', error);
-
-    return Response.json({ error: error instanceof Error ? error.message : 'Failed to fetch URL' }, { status: 500 });
+    return errorResponse(error);
   }
 }

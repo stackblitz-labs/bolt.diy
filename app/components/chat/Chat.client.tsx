@@ -11,7 +11,18 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { description, useChatHistory } from '~/lib/persistence';
-import { createMessage, getMessageText, type AnyPart } from '~/lib/persistence/messageMigration';
+import {
+  createMessage,
+  getMessageParts,
+  getMessageText,
+  getToolCallId,
+  getToolInput,
+  getToolName,
+  isToolCallPart,
+  type AnyPart,
+} from '~/lib/persistence/messageMigration';
+import { chatId } from '~/lib/persistence/useChatHistory';
+import { callProjectMcpTool, PROJECT_TOOL_NAMES } from '~/lib/runtime/projectMcp';
 import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
@@ -23,7 +34,13 @@ import type { ProgressAnnotation } from '~/types/context';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { ProviderInfo } from '~/types/model';
 import { shouldPreserveChatMessagesOnRefresh } from '~/utils/chatHistoryRefresh';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
+import {
+  DEFAULT_MODEL,
+  DEFAULT_PROVIDER,
+  PROMPT_COOKIE_KEY,
+  PROVIDER_LIST,
+  TOOL_EXECUTION_APPROVAL,
+} from '~/utils/constants';
 import { debounce } from '~/utils/debounce';
 import { cubicEasingFn } from '~/utils/easings';
 import { filesToArtifacts } from '~/utils/fileUtils';
@@ -241,7 +258,18 @@ export const ChatImpl = memo(
          * has landed. Add the detected setup actions in code when the model did
          * not include its own install/start actions.
          */
-        if (userMessages.length === 1 && !/<boltAction\s+type=["'](?:shell|start)["']/.test(getMessageText(message))) {
+        const hasNativeProjectTools = [...messagesRef.current, message].some((candidate) =>
+          (getMessageParts(candidate) ?? []).some((part) => {
+            const name = getToolName(part);
+            return name !== undefined && PROJECT_TOOL_NAMES.includes(name as (typeof PROJECT_TOOL_NAMES)[number]);
+          }),
+        );
+
+        if (
+          userMessages.length === 1 &&
+          !hasNativeProjectTools &&
+          !/<boltAction\s+type=["'](?:shell|start)["']/.test(getMessageText(message))
+        ) {
           void (async () => {
             const completedMessages = messagesRef.current.some((item) => item.id === message.id)
               ? messagesRef.current
@@ -284,6 +312,156 @@ export const ChatImpl = memo(
     const isLoading = status === 'submitted' || status === 'streaming';
     const messagesRef = useRef(messages);
     messagesRef.current = messages;
+
+    const executingProjectCallsRef = useRef(new Set<string>());
+    const projectToolControllersRef = useRef(new Map<string, AbortController>());
+    const projectCallGenerationsRef = useRef(new Map<string, { generation: number; chatId?: string }>());
+    const currentProjectGeneration = workbenchStore.projectGeneration.get();
+
+    useEffect(() => {
+      const unsubscribe = workbenchStore.projectGeneration.listen(() => {
+        for (const controller of projectToolControllersRef.current.values()) {
+          controller.abort();
+        }
+        projectToolControllersRef.current.clear();
+      });
+
+      return () => {
+        unsubscribe();
+
+        for (const controller of projectToolControllersRef.current.values()) {
+          controller.abort();
+        }
+        projectToolControllersRef.current.clear();
+      };
+    }, []);
+
+    for (const message of messages) {
+      for (const part of getMessageParts(message) ?? []) {
+        const callId = getToolCallId(part);
+        const name = getToolName(part);
+
+        if (
+          callId &&
+          name &&
+          PROJECT_TOOL_NAMES.includes(name as (typeof PROJECT_TOOL_NAMES)[number]) &&
+          !projectCallGenerationsRef.current.has(callId)
+        ) {
+          projectCallGenerationsRef.current.set(callId, { generation: currentProjectGeneration, chatId: chatId.get() });
+        }
+      }
+    }
+
+    const handleToolOutput = useCallback(
+      (options: { tool: string; toolCallId: string; output: unknown }) => {
+        const { tool, toolCallId, output } = options;
+
+        if (
+          PROJECT_TOOL_NAMES.includes(tool as (typeof PROJECT_TOOL_NAMES)[number]) &&
+          output === TOOL_EXECUTION_APPROVAL.REJECT &&
+          executingProjectCallsRef.current.has(toolCallId)
+        ) {
+          return;
+        }
+
+        if (
+          !PROJECT_TOOL_NAMES.includes(tool as (typeof PROJECT_TOOL_NAMES)[number]) ||
+          output !== TOOL_EXECUTION_APPROVAL.APPROVE
+        ) {
+          addToolOutput(
+            PROJECT_TOOL_NAMES.includes(tool as (typeof PROJECT_TOOL_NAMES)[number]) &&
+              output === TOOL_EXECUTION_APPROVAL.REJECT
+              ? { ...options, output: { isError: true, denied: true, error: 'Tool execution was rejected.' } }
+              : options,
+          );
+          return;
+        }
+
+        if (executingProjectCallsRef.current.has(toolCallId)) {
+          return;
+        }
+
+        let input: unknown;
+
+        for (const message of messagesRef.current) {
+          const parts = getMessageParts(message) ?? [];
+          const call = parts.find((part) => isToolCallPart(part) && getToolCallId(part) === toolCallId);
+
+          if (call) {
+            input = getToolInput(call);
+            break;
+          }
+        }
+
+        if (!input || typeof input !== 'object' || Array.isArray(input)) {
+          addToolOutput({
+            tool,
+            toolCallId,
+            output: { isError: true, error: 'Approved tool input was not available.' },
+          });
+          return;
+        }
+
+        executingProjectCallsRef.current.add(toolCallId);
+
+        const origin = projectCallGenerationsRef.current.get(toolCallId);
+
+        if (
+          origin &&
+          (origin.generation !== workbenchStore.projectGeneration.get() || origin.chatId !== chatId.get())
+        ) {
+          addToolOutput({
+            tool,
+            toolCallId,
+            output: { isError: true, error: 'The active project changed before this approval.' },
+          });
+          return;
+        }
+
+        const abortController = new AbortController();
+        projectToolControllersRef.current.set(toolCallId, abortController);
+        void callProjectMcpTool(tool, input as Record<string, unknown>, {
+          signal: abortController.signal,
+          generation: origin?.generation,
+          chatId: origin?.chatId,
+        })
+          .then((result) => {
+            if (abortController.signal.aborted) {
+              return;
+            }
+
+            const mcpResult = result as unknown as {
+              content?: Array<{ type: string; text?: string }>;
+              structuredContent?: Record<string, unknown>;
+              isError?: boolean;
+            };
+            const resultText = (mcpResult.content ?? [])
+              .filter((block) => block.type === 'text')
+              .map((block) => block.text)
+              .join('\n');
+            const toolOutput = mcpResult.isError
+              ? { isError: true, error: resultText || 'Project MCP tool failed.' }
+              : (mcpResult.structuredContent ?? { content: mcpResult.content ?? [] });
+            addToolOutput({ tool, toolCallId, output: toolOutput });
+          })
+          .catch((error) => {
+            if (abortController.signal.aborted) {
+              return;
+            }
+
+            addToolOutput({
+              tool,
+              toolCallId,
+              output: { isError: true, error: error instanceof Error ? error.message : String(error) },
+            });
+          })
+          .finally(() => {
+            executingProjectCallsRef.current.delete(toolCallId);
+            projectToolControllersRef.current.delete(toolCallId);
+          });
+      },
+      [addToolOutput],
+    );
 
     useEffect(() => {
       const pendingMessage = pendingTemplateContinuationRef.current;
@@ -869,7 +1047,7 @@ export const ChatImpl = memo(
         setDesignScheme={setDesignScheme}
         selectedElement={selectedElement}
         setSelectedElement={setSelectedElement}
-        addToolOutput={addToolOutput}
+        addToolOutput={handleToolOutput}
         onWebSearchResult={handleWebSearchResult}
       />
     );

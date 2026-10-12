@@ -51,6 +51,7 @@ changelogUI.md
 docs/instructions/Roadmap.md
 .cursorrules
 *.md
+!docs/mcp-tool-migration.md
 .qodo
 
 test-results/
