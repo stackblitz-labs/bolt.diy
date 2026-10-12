@@ -16,15 +16,15 @@ test.describe('Attachment Menu', () => {
     // Find the + button by title
     const plusButton = page.locator('button[title="Add attachment or connector"]');
     await plusButton.waitFor({ state: 'visible', timeout: 10000 });
-    
+
     // Click to open
     await plusButton.click();
     await page.waitForTimeout(500);
-    
+
     // Menu should be visible (look for menu items)
     const attachFileOption = page.locator('text=Attach File');
     await expect(attachFileOption).toBeVisible({ timeout: 5000 });
-    
+
     // Press Escape to close
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
@@ -34,7 +34,7 @@ test.describe('Attachment Menu', () => {
     const plusButton = page.locator('button[title="Add attachment or connector"]');
     await plusButton.click();
     await page.waitForTimeout(500);
-    
+
     const attachFileOption = page.locator('text=Attach File');
     await expect(attachFileOption).toBeVisible({ timeout: 5000 });
   });
@@ -43,7 +43,7 @@ test.describe('Attachment Menu', () => {
     const plusButton = page.locator('button[title="Add attachment or connector"]');
     await plusButton.click();
     await page.waitForTimeout(500);
-    
+
     const enhanceOption = page.locator('text=Enhance Prompt');
     await expect(enhanceOption).toBeVisible({ timeout: 5000 });
   });
@@ -52,28 +52,30 @@ test.describe('Attachment Menu', () => {
     const plusButton = page.locator('button[title="Add attachment or connector"]');
     await plusButton.click();
     await page.waitForTimeout(500);
-    
+
     const designOption = page.locator('text=Design Palette');
     await expect(designOption).toBeVisible({ timeout: 5000 });
   });
 
-  test('should show Connectors submenu with Supabase and GitHub', async ({ page }) => {
+  test('should show Search while unconfigured connectors stay hidden', async ({ page }) => {
     const plusButton = page.locator('button[title="Add attachment or connector"]');
     await plusButton.click();
     await page.waitForTimeout(500);
-    
+
     // Find and hover over Connectors
     const connectorsOption = page.locator('text=Connectors').first();
     await expect(connectorsOption).toBeVisible({ timeout: 5000 });
     await connectorsOption.hover();
     await page.waitForTimeout(700);
-    
-    // Check for submenu items
-    const supabaseOption = page.locator('text=Supabase');
-    const githubOption = page.locator('text=GitHub');
-    
-    await expect(supabaseOption).toBeVisible({ timeout: 5000 });
-    await expect(githubOption).toBeVisible({ timeout: 5000 });
+
+    // Search remains available without a connector account.
+    const searchOption = page.locator('text=Web Search');
+    const supabaseOption = page.getByRole('menuitem', { name: 'Supabase' });
+    const githubOption = page.getByRole('menuitem', { name: 'GitHub' });
+
+    await expect(searchOption).toBeVisible({ timeout: 5000 });
+    await expect(supabaseOption).toHaveCount(0);
+    await expect(githubOption).toHaveCount(0);
   });
 
   test('should click Enhance Prompt', async ({ page }) => {
@@ -81,44 +83,33 @@ test.describe('Attachment Menu', () => {
     const textarea = page.locator('textarea[placeholder*="help"]').first();
     await textarea.click();
     await textarea.fill('make a website');
-    
+
     // Open menu and click Enhance Prompt
     const plusButton = page.locator('button[title="Add attachment or connector"]');
     await plusButton.click();
     await page.waitForTimeout(500);
-    
+
     const enhanceOption = page.locator('text=Enhance Prompt').first();
     await enhanceOption.click();
-    
+
     // Wait for enhancement to potentially happen
     await page.waitForTimeout(3000);
-    
+
     // Textarea should still be visible and functional
     await expect(textarea).toBeVisible();
   });
 
-  test('should open settings when clicking GitHub connector', async ({ page }) => {
+  test('should keep GitHub out of the menu until it is configured', async ({ page }) => {
     // Open menu
     const plusButton = page.locator('button[title="Add attachment or connector"]');
     await plusButton.click();
     await page.waitForTimeout(500);
-    
-    // Hover over Connectors
+
+    // Hover over Connectors without a saved GitHub connection.
     const connectorsOption = page.locator('text=Connectors').first();
     await connectorsOption.hover();
     await page.waitForTimeout(700);
-    
-    // Click GitHub
-    const githubOption = page.locator('text=GitHub').first();
-    await githubOption.click();
-    await page.waitForTimeout(2000);
-    
-    // Verify settings panel opened by looking for settings-specific elements
-    // Look for control panel, settings modal, or GitHub-related settings UI
-    const hasSettingsPanel = await page.locator('[class*="settings"], [class*="control-panel"], [class*="modal"], [role="dialog"]').count() > 0;
-    const hasGitHubSettings = await page.locator('text=/GitHub|github/i').count() > 1; // More than just the menu item
-    
-    // The settings panel should have opened, or at minimum a dialog/modal
-    expect(hasSettingsPanel || hasGitHubSettings).toBeTruthy();
+
+    await expect(page.getByRole('menuitem', { name: 'GitHub' })).toHaveCount(0);
   });
 });

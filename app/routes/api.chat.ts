@@ -59,7 +59,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     return toApiErrorResponse(error);
   }
 
-  const { promptId, contextOptimization, supabase, chatMode, maxLLMSteps, webSearchEnabled = true } = body;
+  const {
+    promptId,
+    contextOptimization,
+    supabase,
+    chatMode,
+    maxLLMSteps,
+    webSearchEnabled = true,
+    connectorEnabled,
+  } = body;
 
   const messages = asMessages(body.messages);
   const files = asFileMap(body.files);
@@ -134,7 +142,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             /<boltArtifact\b[^>]*\bid=["']imported-files["']/i.test(getMessageText(message)),
         );
 
-        const processedMessages = await mcpService.processToolInvocations(messages, writer);
+        const processedMessages = await mcpService.processToolInvocations(messages, writer, {
+          browserUseCloudEnabled: connectorEnabled?.browserUseCloud === true,
+        });
 
         if (processedMessages.length > 3) {
           messageSliceId = processedMessages.length - 3;
@@ -255,7 +265,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           // logger.debug('Code Files Selected');
         }
 
-        const mcpTools = mcpService.toolsWithoutExecute;
+        const mcpTools = mcpService.getToolsWithoutExecute({
+          disabledServers: connectorEnabled?.browserUseCloud === true ? [] : ['browser-use-cloud'],
+        });
 
         const projectTools =
           chatMode === 'build'

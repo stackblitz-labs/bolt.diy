@@ -159,6 +159,16 @@ export const chatRequestSchema = z
     supabase: supabaseSchema.optional(),
     maxLLMSteps: z.number().int().min(1).max(REQUEST_LIMITS.MAX_LLM_STEPS).optional(),
     webSearchEnabled: z.boolean().optional(),
+    connectorEnabled: z
+      .object({
+        github: z.boolean().optional(),
+        gitlab: z.boolean().optional(),
+        vercel: z.boolean().optional(),
+        netlify: z.boolean().optional(),
+        supabase: z.boolean().optional(),
+        browserUseCloud: z.boolean().optional(),
+      })
+      .optional(),
   })
   .transform(({ apiKeys: _discarded, ...rest }) => rest);
 
