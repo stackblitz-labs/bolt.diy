@@ -1,6 +1,12 @@
 import { generateText, type UIMessage } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
-import { ApiError, toApiErrorResponse, toMissingCredentialError } from '~/lib/.server/api/errors';
+import {
+  ApiError,
+  toApiErrorResponse,
+  toMissingCredentialError,
+  toSafeTextStream,
+  toTokenLimitError,
+} from '~/lib/.server/api/errors';
 import { readJsonBody } from '~/lib/.server/api/read-body';
 import { REQUEST_LIMITS, asProviderInfo, llmCallRequestSchema, parseBody } from '~/lib/.server/api/schemas';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel } from '~/lib/.server/llm/constants';
@@ -117,7 +123,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         provider: providerName,
       });
 
-      return new Response(result.textStream, {
+      return new Response(toSafeTextStream(result.textStream), {
         status: 200,
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
@@ -247,12 +253,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
           error.message.includes('exceeds') ||
           error.message.includes('maximum'))
       ) {
-        return toApiErrorResponse(
-          new ApiError(
-            `Token limit error: ${error.message}. Try reducing your request size or using a model with higher token limits.`,
-            { status: 400, code: 'token_limit_exceeded', isRetryable: false, provider: providerName },
-          ),
-        );
+        return toApiErrorResponse(toTokenLimitError(providerName));
       }
 
       if (error instanceof Error && error.message.includes('API key')) {
