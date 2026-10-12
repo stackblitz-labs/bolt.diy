@@ -35,6 +35,16 @@ export type MarketplaceSnapshot = {
   fetchedAt: string;
 };
 
+function getMarketplaceError(error: unknown): Error {
+  if (error instanceof z.ZodError) {
+    return new Error(
+      'Marketplace metadata is invalid. The repository needs valid plugin IDs, version paths, supported manifest fields, and SHA-256 hashes.',
+    );
+  }
+
+  return error instanceof Error ? error : new Error('Could not load the plugin marketplace.');
+}
+
 const CACHE_KEY = 'bolt_marketplace_snapshot_v1';
 const encoder = new TextEncoder();
 
@@ -388,7 +398,7 @@ export async function fetchMarketplace(): Promise<MarketplaceSnapshot> {
     // Ignore a corrupt cache and report the original catalog error.
   }
 
-  throw catalogError instanceof Error ? catalogError : new Error('Could not load the plugin marketplace.');
+  throw getMarketplaceError(catalogError);
 }
 
 async function validatePackage(bytes: Uint8Array, expected?: PluginManifest): Promise<PluginManifest> {
