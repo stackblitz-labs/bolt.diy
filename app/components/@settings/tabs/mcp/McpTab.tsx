@@ -83,6 +83,7 @@ export default function McpTab() {
         maxLLMSteps,
         webSearchEnabled: settings.webSearchEnabled,
         connectorEnabled: settings.connectorEnabled,
+        toolEnabled: settings.toolEnabled,
       });
       toast.success('MCP configuration saved');
 

@@ -186,6 +186,7 @@ export const ChatImpl = memo(
       maxLLMSteps: mcpSettings.maxLLMSteps,
       webSearchEnabled: mcpSettings.webSearchEnabled,
       connectorEnabled: mcpSettings.connectorEnabled,
+      toolEnabled: mcpSettings.toolEnabled,
     });
 
     bodyRef.current = {
@@ -206,6 +207,7 @@ export const ChatImpl = memo(
       maxLLMSteps: mcpSettings.maxLLMSteps,
       webSearchEnabled: mcpSettings.webSearchEnabled,
       connectorEnabled: mcpSettings.connectorEnabled,
+      toolEnabled: mcpSettings.toolEnabled,
     };
 
     const {

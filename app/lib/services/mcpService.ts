@@ -384,17 +384,18 @@ export class MCPService {
     }
   }
 
-  getToolsWithoutExecute(options: { disabledServers?: string[] } = {}): ToolSet {
+  getToolsWithoutExecute(options: { disabledServers?: string[]; disabledTools?: string[] } = {}): ToolSet {
     const disabledServers = new Set(options.disabledServers || []);
+    const disabledTools = new Set(options.disabledTools || []);
 
-    if (disabledServers.size === 0) {
+    if (disabledServers.size === 0 && disabledTools.size === 0) {
       return this._toolsWithoutExecute;
     }
 
     return Object.fromEntries(
       Object.entries(this._toolsWithoutExecute).filter(([toolName]) => {
         const serverName = this._toolNamesToServerNames.get(toolName);
-        return !serverName || !disabledServers.has(serverName);
+        return !disabledTools.has(toolName) && (!serverName || !disabledServers.has(serverName));
       }),
     );
   }
@@ -402,7 +403,7 @@ export class MCPService {
   async processToolInvocations(
     messages: UIMessage[],
     dataStream: UIMessageStreamWriter,
-    options: { browserUseCloudEnabled?: boolean } = {},
+    options: { browserUseCloudEnabled?: boolean; disabledTools?: string[] } = {},
   ): Promise<UIMessage[]> {
     const lastMessage = messages[messages.length - 1];
     const parts = lastMessage?.parts;
@@ -432,7 +433,9 @@ export class MCPService {
         const isDisabledBrowserUseTool =
           this._toolNamesToServerNames.get(toolName) === 'browser-use-cloud' && !options.browserUseCloudEnabled;
 
-        if (isDisabledBrowserUseTool) {
+        const isDisabledTool = options.disabledTools?.includes(toolName) === true;
+
+        if (isDisabledBrowserUseTool || isDisabledTool) {
           result = TOOL_EXECUTION_DENIED;
         } else if (getToolOutput(part) === TOOL_EXECUTION_APPROVAL.APPROVE) {
           const toolInstance = this._tools[toolName];

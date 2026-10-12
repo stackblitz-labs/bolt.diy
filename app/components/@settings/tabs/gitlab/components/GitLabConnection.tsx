@@ -14,10 +14,17 @@ interface ConnectionTestResult {
 interface GitLabConnectionProps {
   connectionTest: ConnectionTestResult | null;
   onTestConnection: () => void;
+  fetchStatsOnConnect?: boolean;
 }
 
-export default function GitLabConnection({ connectionTest, onTestConnection }: GitLabConnectionProps) {
-  const { isConnected, isConnecting, connection, error, connect, disconnect } = useGitLabConnection();
+export default function GitLabConnection({
+  connectionTest,
+  onTestConnection,
+  fetchStatsOnConnect = true,
+}: GitLabConnectionProps) {
+  const { isConnected, isConnecting, connection, error, connect, disconnect } = useGitLabConnection({
+    fetchStatsOnConnect,
+  });
 
   const [token, setToken] = useState('');
   const [gitlabUrl, setGitlabUrl] = useState('https://gitlab.com');

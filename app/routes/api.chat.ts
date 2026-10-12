@@ -144,6 +144,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const processedMessages = await mcpService.processToolInvocations(messages, writer, {
           browserUseCloudEnabled: connectorEnabled?.browserUseCloud === true,
+          disabledTools: Object.entries(body.toolEnabled ?? {})
+            .filter(([, enabled]) => !enabled)
+            .map(([toolName]) => toolName),
         });
 
         if (processedMessages.length > 3) {
@@ -267,6 +270,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const mcpTools = mcpService.getToolsWithoutExecute({
           disabledServers: connectorEnabled?.browserUseCloud === true ? [] : ['browser-use-cloud'],
+          disabledTools: Object.entries(body.toolEnabled ?? {})
+            .filter(([, enabled]) => !enabled)
+            .map(([toolName]) => toolName),
         });
 
         const projectTools =
