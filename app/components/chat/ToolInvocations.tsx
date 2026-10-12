@@ -1,17 +1,19 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useState, useEffect } from 'react';
+import { memo, useMemo, useState, useEffect, useRef } from 'react';
 import { createHighlighter, type Highlighter } from 'shiki';
 import {
   getToolCallId,
   getToolInput,
   getToolName,
   getToolOutput,
+  getToolState,
   isToolCallPart,
   isToolResultPart,
   type AnyPart,
 } from '~/lib/persistence/messageMigration';
 import { themeStore, type Theme } from '~/lib/stores/theme';
+import { useToolAccessStore } from '~/lib/stores/toolAccess';
 import type { ToolCallAnnotation } from '~/types/context';
 import { getThemeMode } from '~/types/theme';
 import { classNames } from '~/utils/classNames';
@@ -227,9 +229,11 @@ const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: T
             return annotation.toolCallId === toolCallId;
           });
 
-          const isErrorResult = [TOOL_NO_EXECUTE_FUNCTION, TOOL_EXECUTION_DENIED, TOOL_EXECUTION_ERROR].includes(
-            getToolOutput(tool) as any,
-          );
+          const output = getToolOutput(tool);
+
+          const isErrorResult =
+            [TOOL_NO_EXECUTE_FUNCTION, TOOL_EXECUTION_DENIED, TOOL_EXECUTION_ERROR].includes(output as any) ||
+            (typeof output === 'object' && output !== null && 'isError' in output && output.isError === true);
 
           return (
             <motion.li
@@ -290,6 +294,9 @@ interface ToolCallsListProps {
 
 const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolCallsListProps) => {
   const [expanded, setExpanded] = useState<{ [id: string]: boolean }>({});
+  const [runningToolCalls, setRunningToolCalls] = useState<Set<string>>(new Set());
+  const fullAccess = useToolAccessStore((state) => state.mode === 'full-access');
+  const autoApprovedCalls = useRef(new Set<string>());
 
   // OS detection for shortcut display
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -302,6 +309,36 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
       }
     });
     setExpanded(expandedState);
+  }, [toolInvocations]);
+
+  useEffect(() => {
+    if (!fullAccess) {
+      return;
+    }
+
+    for (const invocation of toolInvocations) {
+      if (!isToolCallPart(invocation) || getToolState(invocation) !== 'input-available') {
+        continue;
+      }
+
+      const toolCallId = getToolCallId(invocation);
+      const toolName = getToolName(invocation);
+
+      if (!toolCallId || !toolName || autoApprovedCalls.current.has(toolCallId)) {
+        continue;
+      }
+
+      autoApprovedCalls.current.add(toolCallId);
+      setRunningToolCalls((current) => new Set(current).add(toolCallId));
+      addToolResult({ tool: toolName, toolCallId, output: TOOL_EXECUTION_APPROVAL.APPROVE });
+    }
+  }, [addToolResult, fullAccess, toolInvocations]);
+
+  useEffect(() => {
+    const pendingIds = new Set(
+      toolInvocations.filter(isToolCallPart).map((invocation) => getToolCallId(invocation) as string),
+    );
+    setRunningToolCalls((current) => new Set([...current].filter((id) => pendingIds.has(id))));
   }, [toolInvocations]);
 
   // Keyboard shortcut logic
@@ -324,11 +361,25 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
         return;
       }
 
+      const openTool = toolInvocations.find(
+        (invocation) => isToolCallPart(invocation) && getToolCallId(invocation) === openId,
+      );
+
+      if (!openTool || !isToolCallPart(openTool)) {
+        return;
+      }
+
+      const openToolName = getToolName(openTool) ?? '';
+
+      if (runningToolCalls.has(openId)) {
+        return;
+      }
+
       // Cancel: Cmd/Ctrl + Backspace
       if ((isMac ? e.metaKey : e.ctrlKey) && e.key === 'Backspace') {
         e.preventDefault();
         addToolResult({
-          tool: '',
+          tool: openToolName,
           toolCallId: openId,
           output: TOOL_EXECUTION_APPROVAL.REJECT,
         });
@@ -337,8 +388,9 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
       // Run tool: Cmd/Ctrl + Enter
       if ((isMac ? e.metaKey : e.ctrlKey) && (e.key === 'Enter' || e.key === 'Return')) {
         e.preventDefault();
+        setRunningToolCalls((current) => new Set(current).add(openId));
         addToolResult({
-          tool: '',
+          tool: openToolName,
           toolCallId: openId,
           output: TOOL_EXECUTION_APPROVAL.APPROVE,
         });
@@ -347,7 +399,7 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
     window.addEventListener('keydown', handleKeyDown);
 
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [expanded, addToolResult, isMac]);
+  }, [expanded, addToolResult, isMac, runningToolCalls]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
@@ -360,6 +412,7 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
           const toolCallId = getToolCallId(tool) as string;
           const toolName = getToolName(tool) ?? '';
           const annotation = toolCallAnnotations.find((annotation) => annotation.toolCallId === toolCallId);
+          const isRunning = runningToolCalls.has(toolCallId);
 
           return (
             <motion.li
@@ -381,6 +434,7 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                   </div>
                   <div className="flex items-center justify-end gap-2 ml-auto">
                     <button
+                      disabled={isRunning}
                       className={classNames(
                         'h-10 px-2.5 py-1.5 rounded-lg text-xs h-auto',
                         'bg-transparent',
@@ -399,21 +453,24 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                       Cancel <span className="opacity-70 text-xs ml-1">{isMac ? '⌘⌫' : 'Ctrl+Backspace'}</span>
                     </button>
                     <button
+                      disabled={isRunning}
                       className={classNames(
                         'h-10 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-normal rounded-lg transition-colors',
                         'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
                         'text-accent-500 hover:text-bolt-elements-textPrimary',
                         'disabled:opacity-50 disabled:cursor-not-allowed',
                       )}
-                      onClick={() =>
+                      onClick={() => {
+                        setRunningToolCalls((current) => new Set(current).add(toolCallId));
                         addToolResult({
                           tool: toolName,
                           toolCallId,
                           output: TOOL_EXECUTION_APPROVAL.APPROVE,
-                        })
-                      }
+                        });
+                      }}
                     >
-                      Run tool <span className="opacity-70 text-xs ml-1">{isMac ? '⌘↵' : 'Ctrl+Enter'}</span>
+                      {isRunning ? 'Running…' : 'Run tool'}{' '}
+                      {!isRunning && <span className="opacity-70 text-xs ml-1">{isMac ? '⌘↵' : 'Ctrl+Enter'}</span>}
                     </button>
                   </div>
                 </div>

@@ -9,7 +9,7 @@ import { McpTools } from './MCPTools';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { SendButton } from './SendButton.client';
 import { SupabaseConnection } from './SupabaseConnection';
-import { WebSearch } from './WebSearch.client';
+import { ToolAccessMenu } from './ToolAccessMenu';
 import { ModelSelector } from '~/components/chat/ModelSelector';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
@@ -60,7 +60,6 @@ interface ChatBoxProps {
   handleStop?: (() => void) | undefined;
   enhancingPrompt?: boolean | undefined;
   enhancePrompt?: (() => void) | undefined;
-  onWebSearchResult?: (result: string) => void;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   designScheme?: DesignScheme;
@@ -72,6 +71,8 @@ interface ChatBoxProps {
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const [isMcpToolsOpen, setIsMcpToolsOpen] = React.useState(false);
   const mcpToolsInitialized = useMCPStore((state) => state.isInitialized);
+  const mcpSettings = useMCPStore((state) => state.settings);
+  const setWebSearchEnabled = useMCPStore((state) => state.setWebSearchEnabled);
   const supabaseConnectionState = useStore(supabaseConnection);
   const supabaseConnected = !!supabaseConnectionState.isConnected;
   const githubConnected = useStore(isGitHubConnected);
@@ -297,19 +298,20 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   mcpToolsInitialized={mcpToolsInitialized}
                   supabaseConnected={supabaseConnected}
                   githubConnected={githubConnected}
+                  webSearchEnabled={mcpSettings.webSearchEnabled}
+                  onWebSearchEnabledChange={setWebSearchEnabled}
                   enhancingPrompt={props.enhancingPrompt}
                   isEnhanceDisabled={props.input.length === 0 || props.enhancingPrompt}
                 />
               )}
             </ClientOnly>
+            <ClientOnly>{() => <ToolAccessMenu />}</ClientOnly>
             {/* Hidden components for programmatic access from menu */}
             <div className="hidden">
               <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
               <SupabaseConnection />
             </div>
             <McpTools open={isMcpToolsOpen} onOpenChange={setIsMcpToolsOpen} />
-            <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
-
             <SpeechRecognitionButton
               isListening={props.isListening}
               onStart={props.startListening}
@@ -345,15 +347,15 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               disabled={!props.providerList || props.providerList.length === 0}
             >
               <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-              {props.isModelSettingsCollapsed ? <span className="text-xs">{props.model}</span> : <span />}
+              {props.isModelSettingsCollapsed ? (
+                <span className="text-xs" title={props.model}>
+                  {props.model && props.model.length > 25 ? `${props.model.slice(0, 22)}...` : props.model}
+                </span>
+              ) : (
+                <span />
+              )}
             </IconButton>
           </div>
-          {props.input.length > 3 ? (
-            <div className="text-xs text-bolt-elements-textTertiary">
-              Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd> +{' '}
-              <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd> a new line
-            </div>
-          ) : null}
           <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
         </div>
       </div>

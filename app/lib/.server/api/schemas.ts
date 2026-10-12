@@ -158,6 +158,7 @@ export const chatRequestSchema = z
     designScheme: designSchemeSchema.optional(),
     supabase: supabaseSchema.optional(),
     maxLLMSteps: z.number().int().min(1).max(REQUEST_LIMITS.MAX_LLM_STEPS).optional(),
+    webSearchEnabled: z.boolean().optional(),
   })
   .transform(({ apiKeys: _discarded, ...rest }) => rest);
 

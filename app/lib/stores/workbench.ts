@@ -54,6 +54,7 @@ export class WorkbenchStore {
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(true);
+  projectGeneration: WritableAtom<number> = import.meta.hot?.data.projectGeneration ?? atom(0);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
   userSelectedView: WritableAtom<WorkbenchViewType | undefined> =
     import.meta.hot?.data.userSelectedView ?? atom<WorkbenchViewType | undefined>(undefined);
@@ -79,6 +80,7 @@ export class WorkbenchStore {
       import.meta.hot.data.artifacts = this.artifacts;
       import.meta.hot.data.unsavedFiles = this.unsavedFiles;
       import.meta.hot.data.showWorkbench = this.showWorkbench;
+      import.meta.hot.data.projectGeneration = this.projectGeneration;
       import.meta.hot.data.currentView = this.currentView;
       import.meta.hot.data.userSelectedView = this.userSelectedView;
       import.meta.hot.data.actionAlert = this.actionAlert;
@@ -107,6 +109,17 @@ export class WorkbenchStore {
     this.#globalExecutionQueue = queuedAction;
 
     return queuedAction;
+  }
+
+  /** Serialize an awaited project mutation with model actions and project resets. */
+  queueProjectMutation<T>(callback: () => Promise<T>): Promise<T> {
+    const operation = this.#globalExecutionQueue.then(callback);
+    this.#globalExecutionQueue = operation.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    return operation;
   }
 
   waitForExecutionQueue() {
@@ -225,6 +238,7 @@ export class WorkbenchStore {
      * already in progress finish before clearing the container.
      */
     this.#actionGeneration++;
+    this.projectGeneration.set(this.projectGeneration.get() + 1);
 
     for (const pending of this.#pendingStreamActions.values()) {
       clearTimeout(pending.timer);
@@ -387,6 +401,32 @@ export class WorkbenchStore {
     newUnsavedFiles.delete(filePath);
 
     this.unsavedFiles.set(newUnsavedFiles);
+  }
+
+  /** Persist a complete UTF-8 file body while preserving FilesStore change history. */
+  async saveFileContent(filePath: string, content: string) {
+    const file = this.#filesStore.getFile(filePath);
+
+    if (!file) {
+      return this.createFile(filePath, content);
+    }
+
+    if (file.isBinary) {
+      throw new Error(`Cannot write text content to a binary file: ${filePath}`);
+    }
+
+    if (this.isFileLocked(filePath).locked) {
+      throw new Error(`Cannot write a locked file: ${filePath}`);
+    }
+
+    this.#editorStore.updateFile(filePath, content);
+    await this.#filesStore.saveFile(filePath, content);
+
+    const newUnsavedFiles = new Set(this.unsavedFiles.get());
+    newUnsavedFiles.delete(filePath);
+    this.unsavedFiles.set(newUnsavedFiles);
+
+    return true;
   }
 
   async saveCurrentDocument() {
@@ -810,6 +850,20 @@ export class WorkbenchStore {
 
       if (!doc) {
         await artifact.runner.runAction(data, isStreaming);
+
+        if (generation !== this.#actionGeneration) {
+          return;
+        }
+      }
+
+      /*
+       * The first write can happen before FilesStore's WebContainer watcher
+       * is ready. Register the file directly when that watcher has not
+       * populated the store, so imported projects do not remain invisible
+       * in the file tree and editor.
+       */
+      if (!this.#filesStore.getFile(fullPath)) {
+        await this.#filesStore.createFile(fullPath, data.action.content);
 
         if (generation !== this.#actionGeneration) {
           return;

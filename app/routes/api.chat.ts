@@ -3,7 +3,9 @@ import {
   createUIMessageStreamResponse,
   generateId,
   isStepCount,
+  jsonSchema,
   toUIMessageStream,
+  type JSONSchema7,
   type UIMessage,
 } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
@@ -25,9 +27,10 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { createMessage, getMessageText } from '~/lib/persistence/messageMigration';
+import { getProjectToolNames, projectToolDefinitions } from '~/lib/runtime/projectMcp.shared';
 import { withSecurity } from '~/lib/security';
 import { MCPService } from '~/lib/services/mcpService';
-import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
+import type { ContextAnnotation, ProgressAnnotation, ToolCallAnnotation } from '~/types/context';
 import type { IProviderSetting } from '~/types/model';
 import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
@@ -56,7 +59,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     return toApiErrorResponse(error);
   }
 
-  const { promptId, contextOptimization, supabase, chatMode, maxLLMSteps } = body;
+  const { promptId, contextOptimization, supabase, chatMode, maxLLMSteps, webSearchEnabled = true } = body;
 
   const messages = asMessages(body.messages);
   const files = asFileMap(body.files);
@@ -253,19 +256,33 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         }
 
         const mcpTools = mcpService.toolsWithoutExecute;
-        const hasMcpTools = Object.keys(mcpTools).length > 0;
+
+        const projectTools =
+          chatMode === 'build'
+            ? Object.fromEntries(
+                getProjectToolNames(webSearchEnabled).map((name) => [
+                  name,
+                  {
+                    description: projectToolDefinitions[name].description,
+                    inputSchema: jsonSchema(projectToolDefinitions[name].inputSchema as JSONSchema7),
+                  },
+                ]),
+              )
+            : {};
+
+        const collisions = Object.keys(projectTools).filter((name) => name in mcpTools);
+
+        if (collisions.length > 0) {
+          throw new Error(`Built-in MCP tool name conflict: ${collisions.join(', ')}`);
+        }
+
+        const tools = { ...mcpTools, ...projectTools };
+        const hasTools = Object.keys(tools).length > 0;
 
         const options: Omit<StreamingOptions, 'messages'> = {
           supabaseConnection: supabase,
 
-          /*
-           * With no MCP servers configured these were an empty object plus
-           * toolChoice 'auto'. Sending an empty toolset is meaningless to a
-           * provider and can nudge it into inventing tool-call syntax, which
-           * bolt cannot execute. Bolt's own file edits travel as
-           * <boltAction> text tags, so they need no tool registration.
-           */
-          ...(hasMcpTools ? { toolChoice: 'auto' as const, tools: mcpTools } : {}),
+          ...(hasTools ? { toolChoice: 'auto' as const, tools } : {}),
 
           /*
            * isStepCount(undefined) can never be true, and supplying it replaces
@@ -278,9 +295,24 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           signal: request.signal,
           telemetry: { functionId: 'bolt-chat' },
           onStepEnd: ({ toolCalls }) => {
-            // add tool call annotations for frontend processing
             toolCalls.forEach((toolCall) => {
               mcpService.processToolCall(toolCall, writer);
+
+              const toolName = toolCall.toolName;
+
+              if (toolName in projectTools) {
+                writer.write({
+                  type: 'data-toolCall',
+                  data: {
+                    type: 'toolCall',
+                    toolCallId: toolCall.toolCallId,
+                    serverName: toolName.startsWith('web_') ? 'Web MCP' : 'Project MCP',
+                    toolName,
+                    toolDescription:
+                      projectToolDefinitions[toolName as keyof typeof projectToolDefinitions].description,
+                  } satisfies ToolCallAnnotation,
+                });
+              }
             });
           },
           onEnd: async ({ text: content, finishReason, usage }) => {

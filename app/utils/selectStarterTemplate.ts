@@ -123,9 +123,14 @@ ${file.content}
 </boltAction>`,
   )
   .join('\n')}
-${createCommandActionsString(await detectProjectCommands(filesToImport.files))}
 </boltArtifact>
 `;
+
+  const commandActions = createCommandActionsString(await detectProjectCommands(filesToImport.files));
+
+  const setupMessage = commandActions
+    ? `<boltArtifact id="project-setup" title="Project Setup" type="bundled">${commandActions}\n</boltArtifact>`
+    : '';
 
   let userMessage = ``;
 
@@ -171,9 +176,7 @@ If you need to make changes to functionality, create new files instead of modify
 
   userMessage += `
 ---
-template import is done, and you can now use the imported files,
-edit only the files that need to be changed, and you can create new files as needed.
-NO NOT EDIT/WRITE ANY FILES THAT ALREADY EXIST IN THE PROJECT AND DOES NOT NEED TO BE MODIFIED
+The template files are now in the active project. Modify existing files when the requested features require it, and create new files when useful. The project_write_file tool replaces an existing file by default; set overwrite to false only when you need to protect an existing file from replacement.
 ---
 Now that the Template is imported please continue with my original request
 
@@ -182,6 +185,8 @@ The user's original prompt is authorization to complete the requested work. Star
 
   return {
     assistantMessage,
+    setupMessage,
     userMessage,
+    files: filesToImport.files,
   };
 }

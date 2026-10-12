@@ -1,11 +1,6 @@
-import {
-  convertToModelMessages,
-  pruneMessages,
-  streamText as _streamText,
-  type ModelMessage,
-  type UIMessage,
-} from 'ai';
+import { streamText as _streamText, type ModelMessage, type UIMessage } from 'ai';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel, type FileMap } from './constants';
+import { prepareModelMessages } from './model-messages';
 import { withDevelopmentCommentaryWorkstyle } from './prompt-workstyle';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
@@ -265,7 +260,7 @@ export async function streamText(props: {
         props.messageSliceId && props.messageSliceId > 0
           ? processedMessages.slice(props.messageSliceId)
           : processedMessages.slice(-1);
-      processedMessages = pruneMessages({ messages: recentMessages as ModelMessage[] });
+      processedMessages = recentMessages;
     }
   }
 
@@ -367,7 +362,7 @@ export async function streamText(props: {
     }),
     system: chatMode === 'build' ? systemPrompt : discussPrompt(),
     ...tokenParams,
-    messages: await convertToModelMessages(processedMessages as any),
+    messages: await prepareModelMessages(processedMessages as UIMessage[]),
     ...forwardedOptions,
 
     ...(onChunk ? { onChunk } : {}),

@@ -838,8 +838,7 @@ export class FilesStore {
 
         this.#modifiedFiles.set(filePath, base64Content);
       } else {
-        const contentToWrite = (content as string).length === 0 ? ' ' : content;
-        await webcontainer.fs.writeFile(relativePath, contentToWrite);
+        await webcontainer.fs.writeFile(relativePath, content as string);
 
         this.files.setKey(filePath, {
           type: 'file',

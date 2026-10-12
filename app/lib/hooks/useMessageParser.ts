@@ -66,13 +66,6 @@ export function useMessageParser() {
   }, []);
 
   const parseMessages = useCallback((messages: { id: string; role?: string }[], isLoading: boolean) => {
-    let reset = false;
-
-    if (import.meta.env.DEV && !isLoading) {
-      reset = true;
-      messageParser.reset();
-    }
-
     for (const [index, message] of messages.entries()) {
       if (message.role === 'assistant' || message.role === 'user') {
         const newParsedContent = messageParser.parse(
@@ -82,7 +75,7 @@ export function useMessageParser() {
         );
         setParsedMessages((prevParsed) => ({
           ...prevParsed,
-          [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,
+          [index]: (prevParsed[index] || '') + newParsedContent,
         }));
       }
     }

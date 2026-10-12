@@ -1,7 +1,6 @@
-import type { TextSearchOptions, TextSearchOnProgressCallback, WebContainer } from '@webcontainer/api';
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { searchWithRipgrep } from '~/lib/runtime/ripgrepClient';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { webcontainer } from '~/lib/webcontainer';
 import { WORK_DIR } from '~/utils/constants';
 import { debounce } from '~/utils/debounce';
 
@@ -11,66 +10,6 @@ interface DisplayMatch {
   previewText: string;
   matchCharStart: number;
   matchCharEnd: number;
-}
-
-async function performTextSearch(
-  instance: WebContainer,
-  query: string,
-  options: Omit<TextSearchOptions, 'folders'>,
-  onProgress: (results: DisplayMatch[]) => void,
-): Promise<void> {
-  if (!instance || typeof instance.internal?.textSearch !== 'function') {
-    console.error('WebContainer instance not available or internal searchText method is missing/not a function.');
-
-    return;
-  }
-
-  const searchOptions: TextSearchOptions = {
-    ...options,
-    folders: [WORK_DIR],
-  };
-
-  const progressCallback: TextSearchOnProgressCallback = (filePath: any, apiMatches: any[]) => {
-    const displayMatches: DisplayMatch[] = [];
-
-    apiMatches.forEach((apiMatch: { preview: { text: string; matches: string | any[] }; ranges: any[] }) => {
-      const previewLines = apiMatch.preview.text.split('\n');
-
-      apiMatch.ranges.forEach((range: { startLineNumber: number; startColumn: any; endColumn: any }) => {
-        let previewLineText = '(Preview line not found)';
-        let lineIndexInPreview = -1;
-
-        if (apiMatch.preview.matches.length > 0) {
-          const previewStartLine = apiMatch.preview.matches[0].startLineNumber;
-          lineIndexInPreview = range.startLineNumber - previewStartLine;
-        }
-
-        if (lineIndexInPreview >= 0 && lineIndexInPreview < previewLines.length) {
-          previewLineText = previewLines[lineIndexInPreview];
-        } else {
-          previewLineText = previewLines[0] ?? '(Preview unavailable)';
-        }
-
-        displayMatches.push({
-          path: filePath,
-          lineNumber: range.startLineNumber,
-          previewText: previewLineText,
-          matchCharStart: range.startColumn,
-          matchCharEnd: range.endColumn,
-        });
-      });
-    });
-
-    if (displayMatches.length > 0) {
-      onProgress(displayMatches);
-    }
-  };
-
-  try {
-    await instance.internal.textSearch(query, searchOptions, progressCallback);
-  } catch (error) {
-    console.error('Error during internal text search:', error);
-  }
 }
 
 function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatch[]> {
@@ -94,6 +33,9 @@ export function Search() {
   const [isSearching, setIsSearching] = useState(false);
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | undefined>();
+  const searchGeneration = useRef(0);
+  const activeSearch = useRef<AbortController | null>(null);
 
   const groupedResults = useMemo(() => groupResultsByFile(searchResults), [searchResults]);
 
@@ -108,11 +50,15 @@ export function Search() {
   }, [groupedResults, searchResults]);
 
   const handleSearch = useCallback(async (query: string) => {
+    const generation = ++searchGeneration.current;
+    activeSearch.current?.abort();
+
     if (!query.trim()) {
       setSearchResults([]);
       setIsSearching(false);
       setExpandedFiles({});
       setHasSearched(false);
+      setSearchError(undefined);
 
       return;
     }
@@ -121,35 +67,46 @@ export function Search() {
     setSearchResults([]);
     setExpandedFiles({});
     setHasSearched(true);
+    setSearchError(undefined);
 
     const minLoaderTime = 300; // ms
     const start = Date.now();
+    const controller = new AbortController();
+    activeSearch.current = controller;
 
     try {
-      const instance = await webcontainer;
+      const result = await searchWithRipgrep(
+        { query, files: workbenchStore.files.get(), projectRoot: WORK_DIR, limit: 500, caseInsensitive: true },
+        controller.signal,
+      );
 
-      const options: Omit<TextSearchOptions, 'folders'> = {
-        homeDir: WORK_DIR, // Adjust this path as needed
-        includes: ['**/*.*'],
-        excludes: ['**/node_modules/**', '**/package-lock.json', '**/.git/**', '**/dist/**', '**/*.lock'],
-        gitignore: true,
-        requireGit: false,
-        globalIgnoreFiles: true,
-        ignoreSymlinks: false,
-        resultLimit: 500,
-        isRegex: false,
-        caseSensitive: false,
-        isWordMatch: false,
-      };
+      if (generation !== searchGeneration.current) {
+        return;
+      }
 
-      const progressHandler = (batchResults: DisplayMatch[]) => {
-        setSearchResults((prevResults) => [...prevResults, ...batchResults]);
-      };
-
-      await performTextSearch(instance, query, options, progressHandler);
+      setSearchResults(
+        result.matches.map((match) => ({
+          path: `${WORK_DIR}/${match.path}`,
+          lineNumber: match.line ?? 1,
+          previewText: match.text ?? '',
+          matchCharStart: match.matchCharStart ?? 0,
+          matchCharEnd: match.matchCharEnd ?? 0,
+        })),
+      );
     } catch (error) {
-      console.error('Failed to initiate search:', error);
+      if (!controller.signal.aborted) {
+        console.error('Failed to initiate ripgrep search:', error);
+        setSearchError(error instanceof Error ? error.message : String(error));
+      }
     } finally {
+      if (activeSearch.current === controller) {
+        activeSearch.current = null;
+      }
+
+      if (generation !== searchGeneration.current) {
+        return;
+      }
+
       const elapsed = Date.now() - start;
 
       if (elapsed < minLoaderTime) {
@@ -163,8 +120,11 @@ export function Search() {
   const debouncedSearch = useCallback(debounce(handleSearch, 300), [handleSearch]);
 
   useEffect(() => {
+    activeSearch.current?.abort();
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch]);
+
+  useEffect(() => () => activeSearch.current?.abort(), []);
 
   const handleResultClick = (filePath: string, line?: number) => {
     workbenchStore.setSelectedFile(filePath);
@@ -201,7 +161,9 @@ export function Search() {
           </div>
         )}
         {!isSearching && hasSearched && searchResults.length === 0 && searchQuery.trim() !== '' && (
-          <div className="flex items-center justify-center h-32 text-gray-500">No results found.</div>
+          <div className="flex items-center justify-center h-32 text-gray-500">
+            {searchError ? `Search failed: ${searchError}` : 'No results found.'}
+          </div>
         )}
         {!isSearching &&
           Object.keys(groupedResults).map((file) => (

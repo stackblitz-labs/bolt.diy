@@ -11,6 +11,8 @@ interface AttachmentMenuProps {
   mcpToolsInitialized: boolean;
   supabaseConnected: boolean;
   githubConnected: boolean;
+  webSearchEnabled: boolean;
+  onWebSearchEnabledChange: (enabled: boolean) => void;
   enhancingPrompt?: boolean;
   isEnhanceDisabled?: boolean;
 }
@@ -25,6 +27,8 @@ export function AttachmentMenu({
   mcpToolsInitialized,
   supabaseConnected,
   githubConnected,
+  webSearchEnabled,
+  onWebSearchEnabledChange,
   enhancingPrompt = false,
   isEnhanceDisabled = false,
 }: AttachmentMenuProps) {
@@ -183,6 +187,27 @@ export function AttachmentMenu({
                     className={classNames(
                       'ml-auto h-2 w-2 rounded-full',
                       supabaseConnected ? 'bg-green-500' : 'bg-red-500',
+                    )}
+                  />
+                </DropdownMenu.Item>
+
+                <DropdownMenu.Item
+                  onSelect={() => onWebSearchEnabledChange(!webSearchEnabled)}
+                  className={classNames(
+                    'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
+                    'justify-between',
+                    'text-bolt-elements-textPrimary',
+                    'hover:bg-bolt-elements-background-depth-3',
+                    'outline-none transition-colors',
+                  )}
+                >
+                  <div className="i-ph:magnifying-glass text-lg" />
+                  <span>Web Search</span>
+                  <span
+                    aria-label={webSearchEnabled ? 'Enabled' : 'Disabled'}
+                    className={classNames(
+                      'ml-auto h-2 w-2 rounded-full',
+                      webSearchEnabled ? 'bg-green-500' : 'bg-red-500',
                     )}
                   />
                 </DropdownMenu.Item>

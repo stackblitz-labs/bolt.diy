@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
 import { db } from '~/lib/persistence';
-import { createChatFromMessages } from '~/lib/persistence/db';
+import { createChatFromMessages, getMessagesByUrlIdRaw, setSnapshot } from '~/lib/persistence/db';
 import { createMessage } from '~/lib/persistence/messageMigration';
-import { STARTER_TEMPLATES } from '~/utils/constants';
+import type { FileMap } from '~/lib/stores/files';
+import { STARTER_TEMPLATES, WORK_DIR } from '~/utils/constants';
 import { getTemplates } from '~/utils/selectStarterTemplate';
 
 export function StarterTemplateImport() {
@@ -52,13 +53,52 @@ export function StarterTemplateImport() {
          * Persist the files and setup actions before navigating; the chat replays
          * them to initialize the project without needing an AI response.
          */
-        const id = await createChatFromMessages(db, `${template.label} starter`, [
-          createMessage({ role: 'user', text: `Start a blank ${template.label} app.` }) as UIMessage,
-          createMessage({ role: 'assistant', text: result.assistantMessage }) as UIMessage,
-        ]);
+
+        const userMessage = createMessage({ role: 'user', text: `Start a blank ${template.label} app.` });
+        const assistantMessage = createMessage({ role: 'assistant', text: result.assistantMessage });
+
+        const setupMessage = result.setupMessage
+          ? createMessage({ role: 'assistant', text: result.setupMessage })
+          : undefined;
+
+        const starterMessages = [userMessage, assistantMessage, ...(setupMessage ? [setupMessage] : [])];
+
+        const urlId = await createChatFromMessages(db, `${template.label} starter`, starterMessages as UIMessage[]);
+
+        const chat = await getMessagesByUrlIdRaw(db, urlId);
+
+        if (!chat) {
+          throw new Error('The starter project was created but could not be loaded. Please try again.');
+        }
+
+        /*
+         * Starter files are the initial state of this project. Persisting them
+         * as a snapshot ensures they are restored after chat navigation resets
+         * the WebContainer, even if the parser's initial file events race its
+         * lifecycle.
+         */
+        const snapshotFiles: FileMap = {};
+
+        for (const file of result.files) {
+          const filePath = `${WORK_DIR}/${file.path}`;
+          const pathParts = filePath.split('/');
+
+          for (let index = 2; index < pathParts.length - 1; index++) {
+            const folderPath = pathParts.slice(0, index + 1).join('/');
+            snapshotFiles[folderPath] = { type: 'folder' };
+          }
+
+          snapshotFiles[filePath] = { type: 'file', content: file.content, isBinary: false };
+        }
+
+        await setSnapshot(db, chat.id, {
+          chatIndex: assistantMessage.id!,
+          files: snapshotFiles,
+          preserveMessagesOnRestore: true,
+        });
 
         if (!cancelled) {
-          navigate(`/chat/${id}`, { replace: true });
+          navigate(`/chat/${urlId}`, { replace: true });
         }
       } catch (cause) {
         if (!cancelled) {
