@@ -3,7 +3,12 @@ import React, { useState } from 'react';
 import GitLabConnection from './components/GitLabConnection';
 import { RepositoryList } from './components/RepositoryList';
 import { StatsDisplay } from './components/StatsDisplay';
+import {
+  ConnectorActionPermissions,
+  getConnectorPermissionKey,
+} from '~/components/@settings/shared/ConnectorActionPermissions';
 import { useGitLabConnection } from '~/lib/hooks';
+import { useMCPStore } from '~/lib/stores/mcp';
 
 // GitLab logo SVG component
 const GitLabLogo = () => (
@@ -22,6 +27,12 @@ interface ConnectionTestResult {
 }
 
 export default function GitLabTab() {
+  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
+  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
+
+  const canReadProjects =
+    permissionsInitialized && toolEnabled[getConnectorPermissionKey('gitlab', 'read_projects')] !== false;
+
   const { connection, isConnected, isLoading, error, testConnection, refreshStats } = useGitLabConnection();
   const [connectionTest, setConnectionTest] = useState<ConnectionTestResult | null>(null);
   const [isRefreshingStats, setIsRefreshingStats] = useState(false);
@@ -111,7 +122,21 @@ export default function GitLabTab() {
           Connect your GitLab account to enable advanced repository management features, statistics, and seamless
           integration.
         </p>
-        <GitLabConnection connectionTest={connectionTest} onTestConnection={handleTestConnection} />
+        <GitLabConnection
+          connectionTest={connectionTest}
+          onTestConnection={handleTestConnection}
+          fetchStatsOnConnect={canReadProjects}
+        />
+        <ConnectorActionPermissions
+          connector="gitlab"
+          actions={[
+            {
+              id: 'read_projects',
+              name: 'Read projects and statistics',
+              description: 'Fetch GitLab projects and account statistics.',
+            },
+          ]}
+        />
       </div>
     );
   }
@@ -146,6 +171,17 @@ export default function GitLabTab() {
       <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
         Manage your GitLab integration with advanced repository features and comprehensive statistics
       </p>
+
+      <ConnectorActionPermissions
+        connector="gitlab"
+        actions={[
+          {
+            id: 'read_projects',
+            name: 'Read projects and statistics',
+            description: 'Fetch GitLab projects and account statistics.',
+          },
+        ]}
+      />
 
       {/* Connection Test Results */}
       {connectionTest && (
@@ -192,7 +228,11 @@ export default function GitLabTab() {
       )}
 
       {/* GitLab Connection Component */}
-      <GitLabConnection connectionTest={connectionTest} onTestConnection={handleTestConnection} />
+      <GitLabConnection
+        connectionTest={connectionTest}
+        onTestConnection={handleTestConnection}
+        fetchStatsOnConnect={canReadProjects}
+      />
 
       {/* User Profile Section */}
       {connection?.user && (
@@ -249,7 +289,7 @@ export default function GitLabTab() {
       )}
 
       {/* GitLab Stats Section */}
-      {connection?.stats && (
+      {canReadProjects && connection?.stats && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -276,7 +316,7 @@ export default function GitLabTab() {
       )}
 
       {/* GitLab Repositories Section */}
-      {connection?.stats?.projects && (
+      {canReadProjects && connection?.stats?.projects && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

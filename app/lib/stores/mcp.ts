@@ -13,6 +13,7 @@ type MCPSettings = {
   connectorEnabled: {
     [connector in ConnectorId]: boolean;
   };
+  toolEnabled: Record<string, boolean>;
 };
 
 const defaultSettings = {
@@ -29,6 +30,7 @@ const defaultSettings = {
   mcpConfig: {
     mcpServers: {},
   },
+  toolEnabled: {},
 } satisfies MCPSettings;
 
 type Store = {
@@ -44,6 +46,7 @@ type Actions = {
   updateSettings: (settings: MCPSettings) => Promise<void>;
   setWebSearchEnabled: (enabled: boolean) => void;
   setConnectorEnabled: (connector: keyof MCPSettings['connectorEnabled'], enabled: boolean) => void;
+  setToolEnabled: (toolName: string, enabled: boolean) => void;
   checkServersAvailabilities: () => Promise<void>;
 };
 
@@ -69,6 +72,7 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
             ...defaultSettings,
             ...savedSettings,
             connectorEnabled: { ...defaultSettings.connectorEnabled, ...savedSettings.connectorEnabled },
+            toolEnabled: { ...defaultSettings.toolEnabled, ...savedSettings.toolEnabled },
           };
 
           const serverTools = await updateServerConfig(settings.mcpConfig);
@@ -120,6 +124,18 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
     const settings = {
       ...get().settings,
       connectorEnabled: { ...get().settings.connectorEnabled, [connector]: enabled },
+    };
+
+    if (isBrowser) {
+      localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    set({ settings });
+  },
+  setToolEnabled: (toolName, enabled) => {
+    const settings = {
+      ...get().settings,
+      toolEnabled: { ...get().settings.toolEnabled, [toolName]: enabled },
     };
 
     if (isBrowser) {

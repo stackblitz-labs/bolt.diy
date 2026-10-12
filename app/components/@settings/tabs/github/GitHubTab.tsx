@@ -8,9 +8,14 @@ import { GitHubProgressiveLoader } from './components/GitHubProgressiveLoader';
 import { GitHubStats } from './components/GitHubStats';
 import { GitHubUserProfile } from './components/GitHubUserProfile';
 import { LoadingState, ErrorState, ConnectionTestIndicator, RepositoryCard } from './components/shared';
+import {
+  ConnectorActionPermissions,
+  getConnectorPermissionKey,
+} from '~/components/@settings/shared/ConnectorActionPermissions';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
+import { useMCPStore } from '~/lib/stores/mcp';
 import { classNames } from '~/utils/classNames';
 
 interface ConnectionTestResult {
@@ -30,6 +35,14 @@ const GithubLogo = () => (
 );
 
 export default function GitHubTab() {
+  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
+  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
+
+  const canReadAccount =
+    permissionsInitialized && toolEnabled[getConnectorPermissionKey('github', 'read_account')] !== false;
+  const canReadRepositories =
+    permissionsInitialized && toolEnabled[getConnectorPermissionKey('github', 'read_repositories')] !== false;
+
   const { connection, isConnected, isLoading, error, testConnection } = useGitHubConnection();
 
   const {
@@ -39,7 +52,7 @@ export default function GitHubTab() {
   } = useGitHubStats(
     connection,
     {
-      autoFetch: true,
+      autoFetch: canReadRepositories,
       cacheTimeout: 30 * 60 * 1000, // 30 minutes
     },
     isConnected && connection ? !connection.token : false,
@@ -133,6 +146,17 @@ export default function GitHubTab() {
           integration.
         </p>
         <GitHubConnection connectionTest={connectionTest} onTestConnection={handleTestConnection} />
+        <ConnectorActionPermissions
+          connector="github"
+          actions={[
+            {
+              id: 'read_account',
+              name: 'Read account profile',
+              description: 'Show the connected GitHub account profile.',
+            },
+            { id: 'read_repositories', name: 'Read repositories', description: 'Fetch repository and activity data.' },
+          ]}
+        />
       </div>
     );
   }
@@ -180,13 +204,27 @@ export default function GitHubTab() {
         <GitHubConnection connectionTest={connectionTest} onTestConnection={handleTestConnection} />
 
         {/* User Profile */}
-        {connection.user && <GitHubUserProfile user={connection.user} />}
+        <ConnectorActionPermissions
+          connector="github"
+          actions={[
+            {
+              id: 'read_account',
+              name: 'Read account profile',
+              description: 'Show the connected GitHub account profile.',
+            },
+            { id: 'read_repositories', name: 'Read repositories', description: 'Fetch repository and activity data.' },
+          ]}
+        />
+
+        {canReadAccount && connection.user && <GitHubUserProfile user={connection.user} />}
 
         {/* Stats Section */}
-        <GitHubStats connection={connection} isExpanded={isStatsExpanded} onToggleExpanded={setIsStatsExpanded} />
+        {canReadRepositories && (
+          <GitHubStats connection={connection} isExpanded={isStatsExpanded} onToggleExpanded={setIsStatsExpanded} />
+        )}
 
         {/* Repositories Section */}
-        {stats?.repos && stats.repos.length > 0 && (
+        {canReadRepositories && stats?.repos && stats.repos.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

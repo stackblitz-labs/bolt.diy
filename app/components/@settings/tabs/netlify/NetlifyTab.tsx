@@ -3,9 +3,14 @@ import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import {
+  ConnectorActionPermissions,
+  getConnectorPermissionKey,
+} from '~/components/@settings/shared/ConnectorActionPermissions';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { useMCPStore } from '~/lib/stores/mcp';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
 import { classNames } from '~/utils/classNames';
@@ -18,6 +23,7 @@ interface ConnectionTestResult {
 
 interface SiteAction {
   name: string;
+  permissionId: string;
   icon: string;
   action: (siteId: string) => Promise<void>;
   requiresConfirmation?: boolean;
@@ -35,6 +41,8 @@ const NetlifyLogo = () => (
 );
 
 export default function NetlifyTab() {
+  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
+  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
   const connection = useStore(netlifyConnection);
   const [tokenInput, setTokenInput] = useState('');
   const [fetchingStats, setFetchingStats] = useState(false);
@@ -100,6 +108,7 @@ export default function NetlifyTab() {
   const siteActions: SiteAction[] = [
     {
       name: 'Clear Cache',
+      permissionId: 'clear_cache',
       icon: 'i-ph:arrows-clockwise',
       action: async (siteId: string) => {
         try {
@@ -186,6 +195,7 @@ export default function NetlifyTab() {
     },
     {
       name: 'Manage Environment',
+      permissionId: 'manage_environment',
       icon: 'i-ph:gear',
       action: async (siteId: string) => {
         try {
@@ -235,6 +245,7 @@ export default function NetlifyTab() {
     },
     {
       name: 'Trigger Build',
+      permissionId: 'trigger_build',
       icon: 'i-ph:rocket-launch',
       action: async (siteId: string) => {
         try {
@@ -264,6 +275,7 @@ export default function NetlifyTab() {
     },
     {
       name: 'View Functions',
+      permissionId: 'view_functions',
       icon: 'i-ph:code',
       action: async (siteId: string) => {
         try {
@@ -312,6 +324,7 @@ export default function NetlifyTab() {
     },
     {
       name: 'Site Analytics',
+      permissionId: 'site_analytics',
       icon: 'i-ph:chart-bar',
       action: async (siteId: string) => {
         try {
@@ -370,6 +383,7 @@ export default function NetlifyTab() {
     },
     {
       name: 'Delete Site',
+      permissionId: 'delete_site',
       icon: 'i-ph:trash',
       action: async (siteId: string) => {
         try {
@@ -398,6 +412,10 @@ export default function NetlifyTab() {
 
   // Deploy management functions
   const handleDeploy = async (siteId: string, deployId: string, action: 'lock' | 'unlock' | 'publish') => {
+    if (!permissionsInitialized || toolEnabled[getConnectorPermissionKey('netlify', `deploy_${action}`)] === false) {
+      return;
+    }
+
     try {
       setIsActionLoading(true);
 
@@ -968,33 +986,40 @@ export default function NetlifyTab() {
                             <>
                               <div className="mt-4 pt-3 border-t border-bolt-elements-borderColor">
                                 <div className="flex items-center gap-2">
-                                  {siteActions.map((action) => (
-                                    <Button
-                                      key={action.name}
-                                      variant={action.variant || 'outline'}
-                                      size="sm"
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
+                                  {siteActions
+                                    .filter(
+                                      (action) =>
+                                        permissionsInitialized &&
+                                        toolEnabled[getConnectorPermissionKey('netlify', action.permissionId)] !==
+                                          false,
+                                    )
+                                    .map((action) => (
+                                      <Button
+                                        key={action.name}
+                                        variant={action.variant || 'outline'}
+                                        size="sm"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
 
-                                        if (action.requiresConfirmation) {
-                                          if (!confirm(`Are you sure you want to ${action.name.toLowerCase()}?`)) {
-                                            return;
+                                          if (action.requiresConfirmation) {
+                                            if (!confirm(`Are you sure you want to ${action.name.toLowerCase()}?`)) {
+                                              return;
+                                            }
                                           }
-                                        }
 
-                                        setIsActionLoading(true);
-                                        await action.action(site.id);
-                                        setIsActionLoading(false);
-                                      }}
-                                      disabled={isActionLoading}
-                                      className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
-                                    >
-                                      <div
-                                        className={`${action.icon} w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent`}
-                                      />
-                                      {action.name}
-                                    </Button>
-                                  ))}
+                                          setIsActionLoading(true);
+                                          await action.action(site.id);
+                                          setIsActionLoading(false);
+                                        }}
+                                        disabled={isActionLoading}
+                                        className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                                      >
+                                        <div
+                                          className={`${action.icon} w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent`}
+                                        />
+                                        {action.name}
+                                      </Button>
+                                    ))}
                                 </div>
                               </div>
                               {site.published_deploy && (
@@ -1106,7 +1131,11 @@ export default function NetlifyTab() {
                                     handleDeploy(siteForDeploy.id, deploy.id, 'publish');
                                   }
                                 }}
-                                disabled={isActionLoading}
+                                disabled={
+                                  isActionLoading ||
+                                  !permissionsInitialized ||
+                                  toolEnabled[getConnectorPermissionKey('netlify', 'deploy_publish')] === false
+                                }
                                 className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                               >
                                 <div className="i-ph:buildings w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
@@ -1123,7 +1152,11 @@ export default function NetlifyTab() {
                                       handleDeploy(siteForDeploy.id, deploy.id, 'lock');
                                     }
                                   }}
-                                  disabled={isActionLoading}
+                                  disabled={
+                                    isActionLoading ||
+                                    !permissionsInitialized ||
+                                    toolEnabled[getConnectorPermissionKey('netlify', 'deploy_lock')] === false
+                                  }
                                   className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                                 >
                                   <div className="i-ph:lock w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
@@ -1140,7 +1173,11 @@ export default function NetlifyTab() {
                                       handleDeploy(siteForDeploy.id, deploy.id, 'unlock');
                                     }
                                   }}
-                                  disabled={isActionLoading}
+                                  disabled={
+                                    isActionLoading ||
+                                    !permissionsInitialized ||
+                                    toolEnabled[getConnectorPermissionKey('netlify', 'deploy_unlock')] === false
+                                  }
                                   className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                                 >
                                   <div className="i-ph:lock-open w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
@@ -1248,6 +1285,25 @@ export default function NetlifyTab() {
           )}
         </div>
       </motion.div>
+
+      <ConnectorActionPermissions
+        connector="netlify"
+        actions={[
+          {
+            id: 'clear_cache',
+            name: 'Clear cache',
+            description: 'Clear the site cache or trigger a cache-clearing build.',
+          },
+          { id: 'manage_environment', name: 'Manage environment', description: 'Read site environment variables.' },
+          { id: 'trigger_build', name: 'Trigger build', description: 'Start a new site build.' },
+          { id: 'view_functions', name: 'View functions', description: 'Read deployed serverless functions.' },
+          { id: 'site_analytics', name: 'Site analytics', description: 'Read site traffic analytics.' },
+          { id: 'delete_site', name: 'Delete site', description: 'Permanently delete a site.' },
+          { id: 'deploy_publish', name: 'Publish deploy', description: 'Publish a deploy to its site.' },
+          { id: 'deploy_lock', name: 'Lock deploy', description: 'Prevent changes to a deploy.' },
+          { id: 'deploy_unlock', name: 'Unlock deploy', description: 'Allow changes to a deploy.' },
+        ]}
+      />
 
       <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
         Connect and manage your Netlify sites with advanced deployment controls and site management

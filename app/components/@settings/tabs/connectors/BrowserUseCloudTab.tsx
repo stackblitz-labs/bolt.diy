@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { Button } from '~/components/ui/Button';
+import { Switch } from '~/components/ui/Switch';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { classNames } from '~/utils/classNames';
 
@@ -9,6 +11,7 @@ const API_KEY_HEADER = 'X-Browser-Use-API-Key';
 
 export default function BrowserUseCloudTab() {
   const settings = useMCPStore((state) => state.settings);
+  const setToolEnabled = useMCPStore((state) => state.setToolEnabled);
   const isInitialized = useMCPStore((state) => state.isInitialized);
   const serverTools = useMCPStore((state) => state.serverTools);
   const isUpdatingConfig = useMCPStore((state) => state.isUpdatingConfig);
@@ -172,35 +175,72 @@ export default function BrowserUseCloudTab() {
         )}
 
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
             type="button"
             onClick={connect}
             disabled={!isInitialized || isUpdatingConfig || !apiKey.trim()}
-            className="rounded-lg bg-bolt-elements-item-backgroundAccent px-4 py-2 text-sm font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundActive"
           >
             {isUpdatingConfig ? 'Connecting…' : connected ? 'Save and reconnect' : 'Connect'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={checkConnection}
             disabled={!isInitialized || isChecking || !configuredServer}
-            className="flex items-center gap-2 rounded-lg border border-bolt-elements-borderColor px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+            variant="outline"
+            className="flex items-center gap-2"
           >
             {isChecking && <div className="i-svg-spinners:90-ring-with-bg h-3 w-3 animate-spin" />}
             Check connection
-          </button>
+          </Button>
           {configuredServer && (
-            <button
+            <Button
               type="button"
               onClick={disconnect}
               disabled={!isInitialized || isUpdatingConfig}
-              className="rounded-lg border border-bolt-elements-borderColor px-4 py-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-icon-error disabled:opacity-50"
+              variant="outline"
+              className="hover:text-bolt-elements-icon-error"
             >
               Disconnect
-            </button>
+            </Button>
           )}
         </div>
       </div>
+
+      {connected && (
+        <div className="rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Action permissions</h3>
+            <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+              Choose which Browser Use actions Bolt can access. Enabled actions still ask before each run.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {Object.entries(serverStatus.tools).map(([toolName, tool]) => {
+              const enabled = settings.toolEnabled[toolName] ?? true;
+              const description = typeof tool.description === 'string' ? tool.description : 'No description available';
+
+              return (
+                <div
+                  key={toolName}
+                  className="flex items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-bolt-elements-textPrimary">{toolName}</p>
+                    <p className="text-xs text-bolt-elements-textSecondary">{description}</p>
+                  </div>
+                  <Switch
+                    checked={enabled}
+                    aria-label={`${enabled ? 'Disable' : 'Enable'} ${toolName}`}
+                    onCheckedChange={(checked) => setToolEnabled(toolName, checked)}
+                    className="shrink-0"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5">
         <h3 className="mb-2 text-sm font-semibold text-bolt-elements-textPrimary">Using the connector</h3>

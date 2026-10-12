@@ -169,6 +169,7 @@ export const chatRequestSchema = z
         browserUseCloud: z.boolean().optional(),
       })
       .optional(),
+    toolEnabled: z.record(z.string().max(256), z.boolean()).optional(),
   })
   .transform(({ apiKeys: _discarded, ...rest }) => rest);
 

@@ -2,8 +2,13 @@ import { useStore } from '@nanostores/react';
 import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import {
+  ConnectorActionPermissions,
+  getConnectorPermissionKey,
+} from '~/components/@settings/shared/ConnectorActionPermissions';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { useMCPStore } from '~/lib/stores/mcp';
 import {
   supabaseConnection,
   isConnecting,
@@ -25,6 +30,7 @@ interface ConnectionTestResult {
 
 interface ProjectAction {
   name: string;
+  permissionId: string;
   icon: string;
   action: (projectId: string) => Promise<void>;
   requiresConfirmation?: boolean;
@@ -51,6 +57,8 @@ const SupabaseLogo = () => (
 );
 
 export default function SupabaseTab() {
+  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
+  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
   const connection = useStore(supabaseConnection);
   const connecting = useStore(isConnecting);
   const fetchingStats = useStore(isFetchingStats);
@@ -105,6 +113,7 @@ export default function SupabaseTab() {
   const projectActions: ProjectAction[] = [
     {
       name: 'Get API Keys',
+      permissionId: 'get_api_keys',
       icon: 'i-ph:key',
       action: async (projectId: string) => {
         try {
@@ -118,6 +127,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View Dashboard',
+      permissionId: 'view_dashboard',
       icon: 'i-ph:layout',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}`, '_blank');
@@ -125,6 +135,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View Database',
+      permissionId: 'view_database',
       icon: 'i-ph:database',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}/editor`, '_blank');
@@ -132,6 +143,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View Auth',
+      permissionId: 'view_auth',
       icon: 'i-ph:user-circle',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}/auth/users`, '_blank');
@@ -139,6 +151,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View Storage',
+      permissionId: 'view_storage',
       icon: 'i-ph:folder',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}/storage/buckets`, '_blank');
@@ -146,6 +159,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View Functions',
+      permissionId: 'view_functions',
       icon: 'i-ph:code',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}/functions`, '_blank');
@@ -153,6 +167,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View Logs',
+      permissionId: 'view_logs',
       icon: 'i-ph:scroll',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}/logs`, '_blank');
@@ -160,6 +175,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View Settings',
+      permissionId: 'view_settings',
       icon: 'i-ph:gear',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}/settings`, '_blank');
@@ -167,6 +183,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View API Docs',
+      permissionId: 'view_api_docs',
       icon: 'i-ph:book',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}/api`, '_blank');
@@ -174,6 +191,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View Realtime',
+      permissionId: 'view_realtime',
       icon: 'i-ph:radio',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}/realtime`, '_blank');
@@ -181,6 +199,7 @@ export default function SupabaseTab() {
     },
     {
       name: 'View Edge Functions',
+      permissionId: 'view_edge_functions',
       icon: 'i-ph:terminal',
       action: async (projectId: string) => {
         window.open(`https://supabase.com/dashboard/project/${projectId}/functions`, '_blank');
@@ -448,22 +467,28 @@ export default function SupabaseTab() {
                     {selectedProjectId === project.id && (
                       <div className="space-y-4 mt-4 pt-4 border-t border-bolt-elements-borderColor">
                         <div className="flex flex-wrap items-center gap-1">
-                          {projectActions.map((action) => (
-                            <Button
-                              key={action.name}
-                              variant={action.variant || 'outline'}
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleProjectAction(project.id, action);
-                              }}
-                              disabled={isProjectActionLoading || (action.name === 'Get API Keys' && fetchingApiKeys)}
-                              className="flex items-center gap-1 text-xs px-2 py-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
-                            >
-                              <div className={`${action.icon} w-2.5 h-2.5`} />
-                              {action.name === 'Get API Keys' && fetchingApiKeys ? 'Fetching...' : action.name}
-                            </Button>
-                          ))}
+                          {projectActions
+                            .filter(
+                              (action) =>
+                                permissionsInitialized &&
+                                toolEnabled[getConnectorPermissionKey('supabase', action.permissionId)] !== false,
+                            )
+                            .map((action) => (
+                              <Button
+                                key={action.name}
+                                variant={action.variant || 'outline'}
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleProjectAction(project.id, action);
+                                }}
+                                disabled={isProjectActionLoading || (action.name === 'Get API Keys' && fetchingApiKeys)}
+                                className="flex items-center gap-1 text-xs px-2 py-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                              >
+                                <div className={`${action.icon} w-2.5 h-2.5`} />
+                                {action.name === 'Get API Keys' && fetchingApiKeys ? 'Fetching...' : action.name}
+                              </Button>
+                            ))}
                         </div>
 
                         {/* Project Details */}
@@ -651,6 +676,23 @@ export default function SupabaseTab() {
       <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
         Connect and manage your Supabase projects with database access, authentication, and storage controls
       </p>
+
+      <ConnectorActionPermissions
+        connector="supabase"
+        actions={[
+          { id: 'get_api_keys', name: 'Get API keys', description: 'Read project API keys into this settings view.' },
+          { id: 'view_dashboard', name: 'View dashboard', description: 'Open the project dashboard.' },
+          { id: 'view_database', name: 'View database', description: 'Open the database editor.' },
+          { id: 'view_auth', name: 'View auth', description: 'Open authentication users.' },
+          { id: 'view_storage', name: 'View storage', description: 'Open storage buckets.' },
+          { id: 'view_functions', name: 'View functions', description: 'Open project functions.' },
+          { id: 'view_logs', name: 'View logs', description: 'Open project logs.' },
+          { id: 'view_settings', name: 'View settings', description: 'Open project settings.' },
+          { id: 'view_api_docs', name: 'View API docs', description: 'Open the generated API documentation.' },
+          { id: 'view_realtime', name: 'View realtime', description: 'Open realtime settings.' },
+          { id: 'view_edge_functions', name: 'View edge functions', description: 'Open edge functions.' },
+        ]}
+      />
 
       {/* Connection Test Results */}
       {connectionTest && (

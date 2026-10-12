@@ -3,11 +3,16 @@ import { motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import {
+  ConnectorActionPermissions,
+  getConnectorPermissionKey,
+} from '~/components/@settings/shared/ConnectorActionPermissions';
 import { ServiceHeader, ConnectionTestIndicator } from '~/components/@settings/shared/service-integration';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { useConnectionTest } from '~/lib/hooks';
 import { logStore } from '~/lib/stores/logs';
+import { useMCPStore } from '~/lib/stores/mcp';
 import {
   vercelConnection,
   isConnecting,
@@ -22,6 +27,7 @@ import { classNames } from '~/utils/classNames';
 
 interface ProjectAction {
   name: string;
+  permissionId: string;
   icon: string;
   action: (projectId: string) => Promise<void>;
   requiresConfirmation?: boolean;
@@ -36,6 +42,8 @@ const VercelLogo = () => (
 );
 
 export default function VercelTab() {
+  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
+  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
   const connection = useStore(vercelConnection);
   const connecting = useStore(isConnecting);
   const fetchingStats = useStore(isFetchingStats);
@@ -59,6 +67,7 @@ export default function VercelTab() {
     () => [
       {
         name: 'Redeploy',
+        permissionId: 'redeploy',
         icon: 'i-ph:arrows-clockwise',
         action: async (projectId: string) => {
           try {
@@ -88,6 +97,7 @@ export default function VercelTab() {
       },
       {
         name: 'View Dashboard',
+        permissionId: 'view_dashboard',
         icon: 'i-ph:layout',
         action: async (projectId: string) => {
           window.open(`https://vercel.com/dashboard/${projectId}`, '_blank');
@@ -95,6 +105,7 @@ export default function VercelTab() {
       },
       {
         name: 'View Deployments',
+        permissionId: 'view_deployments',
         icon: 'i-ph:rocket',
         action: async (projectId: string) => {
           window.open(`https://vercel.com/dashboard/${projectId}/deployments`, '_blank');
@@ -102,6 +113,7 @@ export default function VercelTab() {
       },
       {
         name: 'View Functions',
+        permissionId: 'view_functions',
         icon: 'i-ph:code',
         action: async (projectId: string) => {
           window.open(`https://vercel.com/dashboard/${projectId}/functions`, '_blank');
@@ -109,6 +121,7 @@ export default function VercelTab() {
       },
       {
         name: 'View Analytics',
+        permissionId: 'view_analytics',
         icon: 'i-ph:chart-bar',
         action: async (projectId: string) => {
           const project = connection.stats?.projects.find((p) => p.id === projectId);
@@ -120,6 +133,7 @@ export default function VercelTab() {
       },
       {
         name: 'View Domains',
+        permissionId: 'view_domains',
         icon: 'i-ph:globe',
         action: async (projectId: string) => {
           window.open(`https://vercel.com/dashboard/${projectId}/domains`, '_blank');
@@ -127,6 +141,7 @@ export default function VercelTab() {
       },
       {
         name: 'View Settings',
+        permissionId: 'view_settings',
         icon: 'i-ph:gear',
         action: async (projectId: string) => {
           window.open(`https://vercel.com/dashboard/${projectId}/settings`, '_blank');
@@ -134,6 +149,7 @@ export default function VercelTab() {
       },
       {
         name: 'View Logs',
+        permissionId: 'view_logs',
         icon: 'i-ph:scroll',
         action: async (projectId: string) => {
           window.open(`https://vercel.com/dashboard/${projectId}/logs`, '_blank');
@@ -141,6 +157,7 @@ export default function VercelTab() {
       },
       {
         name: 'Delete Project',
+        permissionId: 'delete_project',
         icon: 'i-ph:trash',
         action: async (projectId: string) => {
           try {
@@ -667,6 +684,10 @@ export default function VercelTab() {
                           variant="outline"
                           size="sm"
                           onClick={() => window.open(`https://vercel.com/dashboard/${project.id}`, '_blank')}
+                          disabled={
+                            !permissionsInitialized ||
+                            toolEnabled[getConnectorPermissionKey('vercel', 'view_dashboard')] === false
+                          }
                           className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                         >
                           <div className="i-ph:arrow-square-out w-3 h-3" />
@@ -676,19 +697,25 @@ export default function VercelTab() {
                     </div>
 
                     <div className="flex items-center flex-wrap gap-1 mt-3 pt-3 border-t border-bolt-elements-borderColor">
-                      {projectActions.map((action) => (
-                        <Button
-                          key={action.name}
-                          variant={action.variant || 'outline'}
-                          size="sm"
-                          onClick={() => handleProjectAction(project.id, action)}
-                          disabled={isProjectActionLoading}
-                          className="flex items-center gap-1 text-xs px-2 py-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
-                        >
-                          <div className={`${action.icon} w-2.5 h-2.5`} />
-                          {action.name}
-                        </Button>
-                      ))}
+                      {projectActions
+                        .filter(
+                          (action) =>
+                            permissionsInitialized &&
+                            toolEnabled[getConnectorPermissionKey('vercel', action.permissionId)] !== false,
+                        )
+                        .map((action) => (
+                          <Button
+                            key={action.name}
+                            variant={action.variant || 'outline'}
+                            size="sm"
+                            onClick={() => handleProjectAction(project.id, action)}
+                            disabled={isProjectActionLoading}
+                            className="flex items-center gap-1 text-xs px-2 py-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
+                          >
+                            <div className={`${action.icon} w-2.5 h-2.5`} />
+                            {action.name}
+                          </Button>
+                        ))}
                     </div>
                   </div>
                 ))}
@@ -722,6 +749,21 @@ export default function VercelTab() {
         description="Connect and manage your Vercel projects with advanced deployment controls and analytics"
         onTestConnection={connection.user ? () => testConnection() : undefined}
         isTestingConnection={isTestingConnection}
+      />
+
+      <ConnectorActionPermissions
+        connector="vercel"
+        actions={[
+          { id: 'redeploy', name: 'Redeploy', description: 'Start a new production deployment.' },
+          { id: 'view_dashboard', name: 'View dashboard', description: 'Open the project dashboard.' },
+          { id: 'view_deployments', name: 'View deployments', description: 'Open deployment history.' },
+          { id: 'view_functions', name: 'View functions', description: 'Open serverless functions.' },
+          { id: 'view_analytics', name: 'View analytics', description: 'Open project analytics.' },
+          { id: 'view_domains', name: 'View domains', description: 'Open project domains.' },
+          { id: 'view_settings', name: 'View settings', description: 'Open project settings.' },
+          { id: 'view_logs', name: 'View logs', description: 'Open project logs.' },
+          { id: 'delete_project', name: 'Delete project', description: 'Permanently delete a project.' },
+        ]}
       />
 
       <ConnectionTestIndicator testResult={connectionTest} />
