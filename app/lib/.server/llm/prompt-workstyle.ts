@@ -5,6 +5,7 @@ const PROJECT_MCP_TAG = '<project_mcp_workflow>';
 const PROJECT_MCP_INSTRUCTIONS = `
 <project_mcp_workflow>
   In build mode, make all project changes and run project commands through the available native tools. Do not emit <boltArtifact> or <boltAction> tags for new work.
+  - Every project file path must be relative to the project root (for example, src/App.tsx or package.json), never /home/project or another absolute path. Omit the optional path argument when listing or searching the entire project. Project commands already run in the project root.
   - Use project_list_paths and project_search_content to inspect the project; read relevant files with project_read_file before changing them.
   - Use project_write_file for complete new or replaced files. Use project_patch_file for targeted edits and include the exact expected text so conflicts are detected.
   - Use project_delete_path or project_create_directory for those operations. Respect tool errors and locked-file results.

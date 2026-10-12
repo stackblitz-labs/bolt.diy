@@ -28,7 +28,7 @@ export default async function handleRequest(
    * `credentialless` is used because the preview iframe and the
    * COEP header would otherwise block every third-party subresource.
    */
-  responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  responseHeaders.set('Cross-Origin-Embedder-Policy', 'credentialless');
   responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
 
   return new Response(body, {

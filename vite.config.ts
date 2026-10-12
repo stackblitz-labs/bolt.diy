@@ -1,14 +1,15 @@
 import { cloudflare } from '@cloudflare/vite-plugin';
 import { reactRouter } from '@react-router/dev/vite';
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import * as dotenv from 'dotenv';
 import UnoCSS from 'unocss/vite';
 import { defineConfig, type ViteDevServer } from 'vite';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
-import * as dotenv from 'dotenv';
+import { browserPolyfills } from './scripts/vite/browser-polyfills';
 
-// Prevent miniflare from making an external network request to workers.cloudflare.com
-// for Request.cf during local dev, which causes 3-second TimeoutError warnings.
+/*
+ * Prevent miniflare from making an external network request to workers.cloudflare.com
+ * for Request.cf during local dev, which causes 3-second TimeoutError warnings.
+ */
 process.env.CLOUDFLARE_CF_FETCH_ENABLED ??= 'false';
 
 // Load environment variables without duplicate loading or console noise
@@ -18,6 +19,7 @@ export default defineConfig((config) => {
   return {
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+
       // Ensure process.cwd is defined as a function for path-browserify compatibility
       'process.cwd': '() => "/"',
     },
@@ -35,6 +37,7 @@ export default defineConfig((config) => {
         'react-dom',
         'react-dom/client',
         'react-router',
+        'react-router/dom',
         'remix-utils/client-only',
         '@nanostores/react',
         'nanostores',
@@ -50,7 +53,11 @@ export default defineConfig((config) => {
         '@ai-sdk/fireworks',
         '@ai-sdk/google',
         '@ai-sdk/mistral',
-        '@ai-sdk/mcp',        // AI SDK 7 MCP integration
+        '@ai-sdk/mcp', // AI SDK 7 MCP integration
+        '@modelcontextprotocol/sdk/client/index.js',
+        '@modelcontextprotocol/sdk/inMemory.js',
+        '@modelcontextprotocol/sdk/server/mcp.js',
+        'zod',
         '@ai-sdk/openai',
         '@openrouter/ai-sdk-provider',
         'ollama-ai-provider-v2',
@@ -68,10 +75,12 @@ export default defineConfig((config) => {
         'react-toastify',
         '@bjorn3/browser_wasi_shim',
 
-        // These imports are added by Vite/React Router transforms, so the
-        // dependency scanner cannot reliably see them before the browser does.
-        // Pre-bundle them up front to avoid invalidating optimized URLs on the
-        // first page load (504 "Outdated Optimize Dep").
+        /*
+         * These imports are added by Vite/React Router transforms, so the
+         * dependency scanner cannot reliably see them before the browser does.
+         * Pre-bundle them up front to avoid invalidating optimized URLs on the
+         * first page load (504 "Outdated Optimize Dep").
+         */
         '@octokit/rest',
         'vite-plugin-node-polyfills/shims/buffer',
         'vite-plugin-node-polyfills/shims/process',
@@ -123,6 +132,12 @@ export default defineConfig((config) => {
         'ignore',
         'chalk',
         'lucide-react',
+        'jspdf',
+        'react-icons/bi',
+        'react-icons/bs',
+        'react-icons/fa',
+        'react-icons/si',
+        'react-icons/tb',
       ],
     },
     environments: {
@@ -170,6 +185,7 @@ export default defineConfig((config) => {
       'LMSTUDIO_API_BASE_URL',
       'TOGETHER_API_BASE_URL',
     ],
+
     /*
      * Test configuration lives in vitest.config.ts.
      *
@@ -183,77 +199,6 @@ export default defineConfig((config) => {
      */
   };
 });
-
-/**
- * `vite-plugin-node-polyfills` injects CommonJS shims that reference `module`.
- *
- * Under `@cloudflare/vite-plugin` the `ssr` environment is evaluated inside
- * workerd (the Cloudflare runner Durable Object), where modules are ESM and there
- * is no `module` binding — applying the plugin there fails the dev server with
- * `ReferenceError: module is not defined`. Remix v2 never hit this because its
- * (now removed) Cloudflare dev proxy ran the SSR environment in Node.
- *
- * The browser bundle still needs the shims, and the worker gets the real Node
- * builtins from the `nodejs_compat` compatibility flag in wrangler.jsonc, so the
- * plugin is restricted to the client environment.
- */
-function browserPolyfills() {
-  const shims = 'vite-plugin-node-polyfills/shims';
-  const prelude = [
-    `import { Buffer as __boltBuffer } from '${shims}/buffer';`,
-    `import __boltProcess from '${shims}/process';`,
-    `globalThis.Buffer ??= __boltBuffer;`,
-    `globalThis.process ??= __boltProcess;`,
-    `globalThis.global ??= globalThis;`,
-  ].join('\n');
-
-  /* Only touch modules that actually reference one of the globals. */
-  const needsPolyfill = /(^|[^\w.$])(Buffer|process|global)([^\w$]|$)/;
-
-  /*
-   * Vite externalizes Node builtins for the browser before `resolve.alias` is
-   * applied ("Module 'buffer' has been externalized for browser compatibility"),
-   * so the mapping has to happen in `resolveId`. The replacement has to be an
-   * absolute path: returning a bare specifier makes the dev server request
-   * `/@id/vite-plugin-node-polyfills/shims/buffer`, which 404s.
-   */
-  const require = createRequire(import.meta.url);
-  const polyfillsRoot = dirname(dirname(require.resolve('vite-plugin-node-polyfills')));
-  const builtinAliases: Record<string, string> = {
-    'node:buffer': join(polyfillsRoot, 'shims', 'buffer', 'dist', 'index.js'),
-    buffer: join(polyfillsRoot, 'shims', 'buffer', 'dist', 'index.js'),
-    'node:process': join(polyfillsRoot, 'shims', 'process', 'dist', 'index.js'),
-    process: join(polyfillsRoot, 'shims', 'process', 'dist', 'index.js'),
-  };
-
-  return {
-    name: 'bolt-browser-polyfills',
-    enforce: 'pre',
-    applyToEnvironment(environment: { name: string }) {
-      return environment.name === 'client';
-    },
-    resolveId(source: string) {
-      return builtinAliases[source] ?? null;
-    },
-    transform(code: string, id: string) {
-      // Skip node_modules except for specific ones that need polyfills
-      if (id.includes('node_modules')) {
-        // Only inject polyfills for path-browserify and other packages that need them
-        if (!id.includes('path-browserify')) {
-          return null;
-        }
-      } else if (!/\.[cm]?[jt]sx?$/.test(id.split('?')[0])) {
-        return null;
-      }
-
-      if (!needsPolyfill.test(code)) {
-        return null;
-      }
-
-      return { code: `${prelude}\n${code}`, map: null };
-    },
-  };
-}
 
 function chrome129IssuePlugin() {
   return {
