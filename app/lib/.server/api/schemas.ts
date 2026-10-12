@@ -170,6 +170,19 @@ export const chatRequestSchema = z
       })
       .optional(),
     toolEnabled: z.record(z.string().max(256), z.boolean()).optional(),
+    plugins: z
+      .array(
+        z.object({
+          id: z.string().regex(/^[a-z0-9-]{1,49}\.[a-z0-9-]{1,49}$/),
+          adapter: z.literal('text-utils'),
+          tools: z
+            .array(z.enum(['count', 'transform']))
+            .min(1)
+            .max(2),
+        }),
+      )
+      .max(20)
+      .optional(),
   })
   .transform(({ apiKeys: _discarded, ...rest }) => rest);
 

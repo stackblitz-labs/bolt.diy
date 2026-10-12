@@ -28,6 +28,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { createMessage, getMessageText } from '~/lib/persistence/messageMigration';
+import { getPluginToolDescriptions, getPluginTools } from '~/lib/plugins/adapters';
 import { getProjectToolNames, projectToolDefinitions } from '~/lib/runtime/projectMcp.shared';
 import { withSecurity } from '~/lib/security';
 import { MCPService } from '~/lib/services/mcpService';
@@ -265,6 +266,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             .map(([toolName]) => toolName),
         });
 
+        const enabledPlugins = body.plugins ?? [];
+
+        const pluginTools = getPluginTools(
+          enabledPlugins,
+          Object.entries(body.toolEnabled ?? {})
+            .filter(([, enabled]) => !enabled)
+            .map(([toolName]) => toolName),
+        );
+
         const browserUseToolNames = Object.keys(mcpTools).filter(
           (toolName) => mcpService.getToolServerName(toolName) === 'browser-use-cloud',
         );
@@ -282,13 +292,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               )
             : {};
 
-        const collisions = Object.keys(projectTools).filter((name) => name in mcpTools);
+        const pluginAndProjectToolNames = [...Object.keys(projectTools), ...Object.keys(pluginTools)];
+
+        const collisions = pluginAndProjectToolNames.filter(
+          (name, index) => name in mcpTools || pluginAndProjectToolNames.indexOf(name) !== index,
+        );
 
         if (collisions.length > 0) {
           throw new Error(`Built-in MCP tool name conflict: ${collisions.join(', ')}`);
         }
 
-        const tools = { ...mcpTools, ...projectTools };
+        const tools = { ...mcpTools, ...projectTools, ...pluginTools };
+        const pluginToolDescriptions = getPluginToolDescriptions(enabledPlugins);
         const hasTools = Object.keys(tools).length > 0;
 
         const options: Omit<StreamingOptions, 'messages'> = {
@@ -328,6 +343,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     toolName,
                     toolDescription:
                       projectToolDefinitions[toolName as keyof typeof projectToolDefinitions].description,
+                  } satisfies ToolCallAnnotation,
+                });
+              } else if (toolName in pluginToolDescriptions) {
+                const pluginTool = pluginToolDescriptions[toolName];
+                writer.write({
+                  type: 'data-toolCall',
+                  data: {
+                    type: 'toolCall',
+                    toolCallId: toolCall.toolCallId,
+                    serverName: pluginTool.pluginId,
+                    toolName,
+                    toolDescription: pluginTool.description,
                   } satisfies ToolCallAnnotation,
                 });
               }

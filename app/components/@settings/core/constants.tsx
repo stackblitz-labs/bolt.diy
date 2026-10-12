@@ -1,4 +1,17 @@
-import { User, Settings, Bell, Star, Database, Cloud, Laptop, GitBranch, Wrench, List, Plug } from 'lucide-react';
+import {
+  User,
+  Settings,
+  Bell,
+  Star,
+  Database,
+  Cloud,
+  Laptop,
+  GitBranch,
+  Wrench,
+  List,
+  Plug,
+  Blocks,
+} from 'lucide-react';
 import type { TabType } from './types';
 
 // GitLab icon component
@@ -54,6 +67,7 @@ export const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string
   supabase: () => <SupabaseIcon />,
   'event-logs': List,
   mcp: Wrench,
+  plugins: Blocks,
 };
 
 export const TAB_LABELS: Record<TabType, string> = {
@@ -72,6 +86,7 @@ export const TAB_LABELS: Record<TabType, string> = {
   supabase: 'Supabase',
   'event-logs': 'Event Logs',
   mcp: 'MCP Servers',
+  plugins: 'Plugins',
 };
 
 export const TAB_DESCRIPTIONS: Record<TabType, string> = {
@@ -90,6 +105,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   supabase: 'Setup Supabase database connection',
   'event-logs': 'View system events and logs',
   mcp: 'Configure MCP (Model Context Protocol) servers',
+  plugins: 'Discover, install, and manage plugins',
 };
 
 export const DEFAULT_TAB_CONFIG = [
@@ -102,6 +118,7 @@ export const DEFAULT_TAB_CONFIG = [
   { id: 'notifications', visible: true, window: 'user' as const, order: 5 },
   { id: 'event-logs', visible: true, window: 'user' as const, order: 6 },
   { id: 'mcp', visible: true, window: 'user' as const, order: 7 },
+  { id: 'plugins', visible: true, window: 'user' as const, order: 8 },
 
   // Legacy individual connector tabs (hidden by default, kept for backward compatibility)
   { id: 'github', visible: false, window: 'user' as const, order: 8 },

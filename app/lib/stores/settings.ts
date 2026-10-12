@@ -352,9 +352,14 @@ const getInitialTabConfiguration = (): TabWindowConfig => {
     }
 
     // Ensure proper typing of loaded configuration
-    return {
-      userTabs: parsed.userTabs.filter((tab: TabVisibilityConfig): tab is UserTabConfig => tab.window === 'user'),
-    };
+    const savedTabs = parsed.userTabs.filter(
+      (tab: TabVisibilityConfig): tab is UserTabConfig => tab.window === 'user' && Boolean(tab.id),
+    );
+
+    const savedIds = new Set(savedTabs.map((tab: UserTabConfig) => tab.id));
+    const missingDefaults = defaultConfig.userTabs.filter((tab) => !savedIds.has(tab.id));
+
+    return { userTabs: [...savedTabs, ...missingDefaults] };
   } catch (error) {
     console.warn('Failed to parse tab configuration:', error);
     return defaultConfig;
