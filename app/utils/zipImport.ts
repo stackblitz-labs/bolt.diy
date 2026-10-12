@@ -170,9 +170,9 @@ export const createChatFromZip = async (zipFile: File): Promise<ZipImportResult>
   /*
    * createMessage writes both `content` (v4) and `parts` (v5+), so these
    * messages are readable by every consumer regardless of which version the
-   * caller was compiled against. Hand-rolling `{ role, content, id, createdAt }`
-   * left `parts` empty, and getMessageText() returns '' for a message whose
-   * parts array exists but is empty, so the whole import reached the model blank.
+   * caller was compiled against. A hand-rolled v4 message with only `content`
+   * remains readable through getMessageText()'s fallback, but would not carry
+   * the `parts` shape needed by v5 consumers.
    */
   const filesMessage = createMessage({
     role: 'assistant',

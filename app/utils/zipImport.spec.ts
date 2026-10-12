@@ -31,10 +31,10 @@ describe('createChatFromZip', () => {
     expect(filesMessage.role).toBe('assistant');
 
     /*
-     * The regression: these objects used to be hand-rolled as
-     * `{ role, content, id, createdAt }`. getMessageText prefers `parts` whenever
-     * the array is present, so a message carrying only `content` read back as an
-     * empty string and the entire ZIP import reached the model blank.
+     * Confirm the imported text is readable through the shared accessor. The
+     * separate shape test below ensures ZIP messages carry both v4 `content`
+     * and v5 `parts`; a v4-only message is still readable via the accessor's
+     * content fallback.
      */
     expect(getMessageText(userMessage)).toBe('Import the "demo" project from ZIP');
     expect(getMessageText(filesMessage)).toContain('<boltArtifact id="imported-files"');
