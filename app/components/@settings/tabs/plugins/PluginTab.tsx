@@ -708,7 +708,7 @@ function PluginDetails({
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-1 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+        className="inline-flex appearance-none items-center gap-1 rounded-md border-0 bg-transparent px-2 py-1 text-sm font-medium text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <ChevronLeft className="h-4 w-4" /> {installed ? 'Installed Plugins' : 'Marketplace'}
       </button>
@@ -744,7 +744,10 @@ function PluginDetails({
           </div>
         )}
       </header>
-      <nav aria-label="Plugin details" className="flex gap-1 overflow-x-auto border-b border-bolt-elements-borderColor">
+      <nav
+        aria-label="Plugin details"
+        className="flex gap-2 overflow-x-auto border-b border-bolt-elements-borderColor pb-2"
+      >
         {(['overview', 'settings', 'permissions', 'logs'] as const).map((tab) => (
           <button
             type="button"
@@ -752,10 +755,10 @@ function PluginDetails({
             onClick={() => setDetailTab(tab)}
             aria-current={detailTab === tab ? 'page' : undefined}
             className={classNames(
-              'border-b-2 px-4 py-2 text-sm capitalize',
+              'appearance-none rounded-lg border px-3 py-1.5 text-sm font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500',
               detailTab === tab
-                ? 'border-purple-500 text-purple-400'
-                : 'border-transparent text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                ? 'border-bolt-elements-borderColorActive bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                : 'border-bolt-elements-borderColor bg-transparent text-bolt-elements-textSecondary hover:border-bolt-elements-borderColorActive hover:text-bolt-elements-textPrimary',
             )}
           >
             {tab}
