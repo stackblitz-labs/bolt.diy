@@ -1,4 +1,4 @@
-import { asSchema, type Tool } from 'ai';
+import type { Tool } from 'ai';
 
 type ParameterProperty = {
   type?: string;
@@ -16,12 +16,13 @@ export default function McpServerListItem({ toolName, toolSchema }: McpToolProps
   }
 
   /*
-   * v5 renamed `parameters` to `inputSchema` and dropped the local ToolParameters
-   * shim in favour of asSchema, which normalises FlexibleSchema. The schema may
-   * be async, hence the local widening at the use site below.
+   * MCP tools arrive over JSON. SDK schema functions and symbols do not survive
+   * serialization, so read the serialized JSON Schema instead of calling asSchema.
    */
-  const { jsonSchema } = asSchema((toolSchema as { inputSchema: never }).inputSchema);
-  const resolved = jsonSchema as { properties?: Record<string, ParameterProperty>; required?: string[] } | undefined;
+  type ParameterSchema = { properties?: Record<string, ParameterProperty>; required?: string[] };
+
+  const inputSchema = toolSchema.inputSchema as ParameterSchema & { jsonSchema?: ParameterSchema };
+  const resolved = inputSchema?.jsonSchema ?? inputSchema;
   const parameters = resolved?.properties || {};
   const requiredParams = resolved?.required || [];
 

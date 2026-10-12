@@ -34,6 +34,19 @@ describe('getTemplates', () => {
 describe('selectStarterTemplate', () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it.each(['Find food near 26003', 'Find food near 26003 using browser use', 'Explain how React hooks work'])(
+    'does not initialize a project for the information request %s',
+    async (message) => {
+      expect((await selectStarterTemplate({ message })).template).toBe('blank');
+    },
+  );
+
+  it('keeps a starter when research is part of a build request', async () => {
+    expect(
+      (await selectStarterTemplate({ message: 'Research local restaurants and build a React food finder' })).template,
+    ).toBe('Vite React');
+  });
+
   it.each([
     ['Make a React kanban board', 'Vite React'],
     ['Make a hello world blog using Astro', 'Basic Astro'],

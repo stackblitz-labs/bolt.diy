@@ -1,5 +1,4 @@
 import {
-  createUIMessageStream,
   createUIMessageStreamResponse,
   generateId,
   isStepCount,
@@ -9,6 +8,7 @@ import {
   type UIMessage,
 } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
+import { createChatUIMessageStream } from '~/lib/.server/api/chat-stream';
 import { toApiErrorResponse, toMissingCredentialError, toSafeStreamErrorMessage } from '~/lib/.server/api/errors';
 import { readJsonBody } from '~/lib/.server/api/read-body';
 import {
@@ -21,6 +21,7 @@ import {
 } from '~/lib/.server/api/schemas';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
+import { getWebResearchInstructions } from '~/lib/.server/llm/prompt-web-tools';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { streamText, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
@@ -96,8 +97,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const totalMessageContent = messages.reduce((acc, message) => acc + getMessageText(message), '');
     logger.debug(`Total message length: ${totalMessageContent.split(' ').length}, words`);
 
-    const responseMessageId = generateId();
-
     /*
      * Counts model responses, including the initial response. This used to read SwitchableStream.switches,
      * which is only incremented by switchSource() and is never called, so the
@@ -119,17 +118,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       }
     };
 
-    const uiStream = createUIMessageStream({
+    const uiStream = createChatUIMessageStream(messages, {
       async execute({ writer }) {
-        /*
-         * createUIMessageStream does not emit a start chunk, and
-         * toUIMessageStream only attaches a server-chosen messageId when
-         * originalMessages is supplied. Bolt writes data-* parts before the
-         * model stream is merged, so the id has to be established first or those
-         * parts attach to a client-generated id that later gets renamed.
-         */
-        writer.write({ type: 'start', messageId: responseMessageId });
-
         const filePaths = getFilePaths(files || {});
 
         let filteredFiles: FileMap | undefined = undefined;
@@ -275,6 +265,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             .map(([toolName]) => toolName),
         });
 
+        const browserUseToolNames = Object.keys(mcpTools).filter(
+          (toolName) => mcpService.getToolServerName(toolName) === 'browser-use-cloud',
+        );
+
         const projectTools =
           chatMode === 'build'
             ? Object.fromEntries(
@@ -299,6 +293,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const options: Omit<StreamingOptions, 'messages'> = {
           supabaseConnection: supabase,
+          system: getWebResearchInstructions({
+            browserUseToolNames,
+            webToolNames: Object.keys(projectTools).filter(
+              (toolName) => toolName === 'web_search' || toolName === 'web_fetch',
+            ),
+          }),
 
           ...(hasTools ? { toolChoice: 'auto' as const, tools } : {}),
 

@@ -290,6 +290,11 @@ export const ChatImpl = memo(
               file?.type === 'file' ? [{ path, content: file.content }] : [],
             );
 
+            // A research-only conversation has no project to install or start.
+            if (projectFiles.length === 0) {
+              return;
+            }
+
             const commands = await detectProjectCommands(projectFiles);
             const setupMessage = createCommandsMessage(commands);
 

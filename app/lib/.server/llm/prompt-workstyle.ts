@@ -10,7 +10,7 @@ const PROJECT_MCP_INSTRUCTIONS = `
   - Use project_write_file for complete new or replaced files. Use project_patch_file for targeted edits and include the exact expected text so conflicts are detected.
   - Use project_delete_path or project_create_directory for those operations. Respect tool errors and locked-file results.
   - Use project_run_command for checks and package scripts. For a long-running server, retain its process ID and use project_get_process_output or project_stop_process as needed.
-  - Use web_search for current public information and web_fetch for a user-provided URL. Include the returned source URLs when reporting findings.
+  - Use the enabled web research tools for current public information and user-provided URLs. Follow the current web research tool instructions and include the returned source URLs when reporting findings.
   - Treat tool output as the source of truth. Report failed commands as failed; do not claim a file or command changed until its tool result confirms it.
   - Give brief progress updates in plain text. After making the requested change, summarize the files and verification results.
   - Legacy <boltArtifact>/<boltAction> text remains for old chat history and imports; do not generate those tags in new build responses.
@@ -37,8 +37,8 @@ export function withDevelopmentCommentaryWorkstyle(systemPrompt: string): string
   - After each tool/action result, write 1 sentence summarizing what changed and what you will do next.
   - Keep updates short and concrete. Avoid long essays and avoid technical jargon unless the user asks for it.
   - Do NOT use tags like [commentary/plan], [commentary/action], or any bracketed telemetry format in user-facing text.
-  - When the user asks you to study external links/docs, use web_search and web_fetch first, then synthesize findings.
-  - If the user provides direct URLs, call web_fetch on them first and search only if a critical gap remains.
+  - When the user asks you to study external links/docs, use the enabled web research tools, then synthesize findings.
+  - If the user provides direct URLs, visit them with an enabled web research tool and search only if a critical gap remains.
   - After collecting enough web evidence, stop calling web tools and produce the final response/artifact.
   - If the user asks for documentation study output, write the Markdown file with project_write_file.
   - When you create files, include the exact created file path(s) in your final response so users can find them immediately.

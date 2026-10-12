@@ -134,6 +134,35 @@ describe('MCPService.processToolInvocations', () => {
     });
   });
 
+  it('executes an approved SDK dynamic connector call and preserves its identity', async () => {
+    const execute = vi.fn().mockResolvedValue({ session_id: 'browser-session', status: 'running' });
+    const service = serviceWithTools({ run_session: { execute } });
+    const writer = createWriter();
+
+    const part = {
+      type: 'dynamic-tool',
+      toolName: 'run_session',
+      toolCallId: 'call-browser',
+      input: { task: 'Find food near 26003' },
+      state: 'output-available',
+      output: TOOL_EXECUTION_APPROVAL.APPROVE,
+    };
+
+    const result = await service.processToolInvocations(messageWithParts([part]), writer);
+
+    expect(execute).toHaveBeenCalledWith(part.input, expect.anything());
+    expect(result[0].parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolName: 'run_session',
+      output: { session_id: 'browser-session', status: 'running' },
+    });
+    expect(writer.write).toHaveBeenCalledWith({
+      type: 'tool-output-available',
+      toolCallId: 'call-browser',
+      output: { session_id: 'browser-session', status: 'running' },
+    });
+  });
+
   it('reports a tool error instead of throwing when execution fails', async () => {
     const service = serviceWithTools({ search: { execute: vi.fn().mockRejectedValue(new Error('boom')) } });
     const writer = createWriter();
@@ -145,6 +174,35 @@ describe('MCPService.processToolInvocations', () => {
 
     expect(resultOf(result)).toBe('Error: An error occured while calling tool');
     expect(writer.write).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports Browser Use balance failures safely so the model can stop retrying', async () => {
+    const execute = vi.fn().mockRejectedValue(new Error('Insufficient balance. Diagnostic secret: private-key'));
+    const service = serviceWithTools({ run_session: { execute } });
+    (service as unknown as { _toolNamesToServerNames: Map<string, string> })._toolNamesToServerNames.set(
+      'run_session',
+      'browser-use-cloud',
+    );
+
+    const part = {
+      type: 'dynamic-tool',
+      toolName: 'run_session',
+      toolCallId: 'browser-call',
+      input: { task: 'Find food near 26003' },
+      state: 'output-available',
+      output: TOOL_EXECUTION_APPROVAL.APPROVE,
+    };
+
+    const result = await service.processToolInvocations(messageWithParts([part]), createWriter(), {
+      browserUseCloudEnabled: true,
+    });
+
+    expect(resultOf(result)).toEqual({
+      isError: true,
+      error:
+        'Browser Use has insufficient balance to start a new task. Add funds at https://cloud.browser-use.com/billing before retrying.',
+    });
+    expect(JSON.stringify(result)).not.toContain('private-key');
   });
 
   it('reports a missing execute function', async () => {

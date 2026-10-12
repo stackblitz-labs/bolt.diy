@@ -384,6 +384,10 @@ export class MCPService {
     }
   }
 
+  getToolServerName(toolName: string): string | undefined {
+    return this._toolNamesToServerNames.get(toolName);
+  }
+
   getToolsWithoutExecute(options: { disabledServers?: string[]; disabledTools?: string[] } = {}): ToolSet {
     const disabledServers = new Set(options.disabledServers || []);
     const disabledTools = new Set(options.disabledTools || []);
@@ -458,7 +462,17 @@ export class MCPService {
               );
             } catch (error) {
               logger.error(`error while calling tool "${toolName}":`, error);
-              result = TOOL_EXECUTION_ERROR;
+
+              const message = error instanceof Error ? error.message : '';
+              result =
+                this._toolNamesToServerNames.get(toolName) === 'browser-use-cloud' &&
+                /insufficient balance/i.test(message)
+                  ? {
+                      isError: true,
+                      error:
+                        'Browser Use has insufficient balance to start a new task. Add funds at https://cloud.browser-use.com/billing before retrying.',
+                    }
+                  : TOOL_EXECUTION_ERROR;
             }
           } else {
             result = TOOL_NO_EXECUTE_FUNCTION;
