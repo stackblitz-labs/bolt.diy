@@ -169,47 +169,17 @@ export default defineConfig((config) => {
       'LMSTUDIO_API_BASE_URL',
       'TOGETHER_API_BASE_URL',
     ],
-    test: {
-      globals: true,
-      environment: 'jsdom',
-      setupFiles: ['./tests/setup.ts'],
-      exclude: [
-        '**/node_modules/**',
-        '**/dist/**',
-        '**/cypress/**',
-        '**/.{idea,git,cache,output,temp}/**',
-        '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
-        '**/tests/preview/**', // Exclude preview tests that require Playwright
-        '**/tests/e2e/**', // Exclude e2e tests that require Playwright
-        'app/components/chat/Markdown.spec.ts', // Exclude - imports cause issues with import.meta.hot
-        'app/lib/stores/workbench.spec.ts', // Exclude - imports cause issues with import.meta.hot
-      ],
-      include: [
-        '**/*.{test,spec}.{ts,tsx,js,jsx}',
-        '**/tests/unit/**/*.{test,spec}.{ts,tsx,js,jsx}',
-        '**/tests/integration/**/*.{test,spec}.{ts,tsx,js,jsx}',
-        '**/tests/performance/**/*.perf.test.{ts,tsx,js,jsx}',
-      ],
-      benchmark: {
-        include: ['**/*.bench.{ts,tsx,js,jsx}', '**/tests/performance/**/*.bench.{ts,tsx,js,jsx}'],
-        exclude: ['**/node_modules/**', '**/dist/**'],
-      },
-      coverage: {
-        provider: 'v8',
-        reporter: ['text', 'json', 'html'],
-        exclude: [
-          'node_modules/',
-          'tests/',
-          '**/*.test.{ts,tsx}',
-          '**/*.spec.{ts,tsx}',
-          '**/types.ts',
-          '**/*.d.ts',
-        ],
-      },
-      define: {
-        'import.meta.hot': 'undefined',
-      },
-    },
+    /*
+     * Test configuration lives in vitest.config.ts.
+     *
+     * It used to live here, which meant the test runner loaded this file and
+     * therefore the whole application build - the Cloudflare plugin, the React
+     * Router plugin, UnoCSS and the browser-polyfill transform. Those are
+     * individually guarded by `config.mode !== 'test'`, but keeping them in one
+     * file couples the test environment to the build graph: a plugin added for
+     * the app can change how tests behave. Split apart, the runner never reads
+     * this file at all.
+     */
   };
 });
 
