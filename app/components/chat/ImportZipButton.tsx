@@ -1,14 +1,14 @@
+import type { UIMessage } from 'ai';
 import React, { useRef, useState } from 'react';
-import type { Message } from 'ai';
 import { toast } from 'react-toastify';
-import { createChatFromZip } from '~/utils/zipImport';
-import { logStore } from '~/lib/stores/logs';
 import { Button } from '~/components/ui/Button';
+import { logStore } from '~/lib/stores/logs';
 import { classNames } from '~/utils/classNames';
+import { createChatFromZip } from '~/utils/zipImport';
 
 interface ImportZipButtonProps {
   className?: string;
-  importChat?: (description: string, messages: Message[]) => Promise<void>;
+  importChat?: (description: string, messages: UIMessage[]) => Promise<void>;
 }
 
 export const ImportZipButton: React.FC<ImportZipButtonProps> = ({ className, importChat }) => {
@@ -37,25 +37,25 @@ export const ImportZipButton: React.FC<ImportZipButtonProps> = ({ className, imp
         toast.info(`Skipping ${result.skippedBinary} binary file${result.skippedBinary === 1 ? '' : 's'}`);
       }
 
-      /*
-       * Set flag before navigation so the new chat picks it up on mount.
-       * importChat does a full window.location.href redirect, so append()
-       * would be gone by the time it resolves.
-       */
-      if (result.hasExpoConfig) {
-        /*
-         * Expo/React Native — WebContainer can't run native code.
-         * Ask bolt to review the code instead of trying to boot the project.
-         */
-        localStorage.setItem(
-          'bolt_zip_autorun',
-          'This is an Expo/React Native project. Review the code structure and give me a summary of what the app does and how it is organized. Do not run any install or dev server commands — I will run this locally with Expo CLI.',
-        );
-      } else if (result.hasPackageJson) {
-        localStorage.setItem('bolt_zip_autorun', 'Install the dependencies and start the development server.');
-      }
-
       if (importChat) {
+        /*
+         * Set the follow-up prompt before navigation so the new chat can pick it
+         * up on mount. Do not leave a stale prompt when this button is rendered
+         * without an import handler, such as in a ClientOnly fallback.
+         */
+        if (result.hasExpoConfig) {
+          /*
+           * Expo/React Native - WebContainer can't run native code.
+           * Ask bolt to review the code instead of trying to boot the project.
+           */
+          localStorage.setItem(
+            'bolt_zip_autorun',
+            'This is an Expo/React Native project. Review the code structure and give me a summary of what the app does and how it is organized. Do not run any install or dev server commands - I will run this locally with Expo CLI.',
+          );
+        } else if (result.hasPackageJson) {
+          localStorage.setItem('bolt_zip_autorun', 'Install the dependencies and start the development server.');
+        }
+
         await importChat(file.name.replace(/\.zip$/i, ''), result.messages);
       }
 

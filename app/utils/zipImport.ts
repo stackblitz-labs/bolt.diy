@@ -1,7 +1,8 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import JSZip from 'jszip';
 import { generateId, shouldIncludeFile } from './fileUtils';
 import { escapeBoltTags } from './projectCommands';
+import { createMessage } from '~/lib/persistence/messageMigration';
 
 /**
  * Checks whether a Uint8Array looks like a binary file.
@@ -47,7 +48,7 @@ function detectRootPrefix(paths: string[]): string {
 }
 
 export interface ZipImportResult {
-  messages: Message[];
+  messages: UIMessage[];
   skippedBinary: number;
   skippedIgnored: number;
   totalFiles: number;
@@ -79,6 +80,7 @@ export const createChatFromZip = async (zipFile: File): Promise<ZipImportResult>
   // Process every entry: resolve path, filter, read bytes
   const fileArtifacts: Array<{ path: string; content: string }> = [];
   const binaryFilePaths: string[] = [];
+
   let skippedIgnored = 0;
 
   for (const [rawPath, zipEntry] of allEntries) {
@@ -165,9 +167,17 @@ export const createChatFromZip = async (zipFile: File): Promise<ZipImportResult>
       ? `\n\nSkipped ${binaryFilePaths.length} binary file${binaryFilePaths.length === 1 ? '' : 's'}:\n${binaryFilePaths.map((f) => `- ${f}`).join('\n')}`
       : '';
 
-  const filesMessage: Message = {
+  /*
+   * createMessage writes both `content` (v4) and `parts` (v5+), so these
+   * messages are readable by every consumer regardless of which version the
+   * caller was compiled against. A hand-rolled v4 message with only `content`
+   * remains readable through getMessageText()'s fallback, but would not carry
+   * the `parts` shape needed by v5 consumers.
+   */
+  const filesMessage = createMessage({
     role: 'assistant',
-    content: `I've imported the contents of the "${folderName}" ZIP archive.${binaryFilesMessage}
+    id: generateId(),
+    text: `I've imported the contents of the "${folderName}" ZIP archive.${binaryFilesMessage}
 
 <boltArtifact id="imported-files" title="Imported Files" type="bundled">
 ${fileArtifacts
@@ -178,18 +188,15 @@ ${escapeBoltTags(file.content)}
   )
   .join('\n\n')}
 </boltArtifact>`,
-    id: generateId(),
-    createdAt: new Date(),
-  };
+  }) as UIMessage;
 
-  const userMessage: Message = {
+  const userMessage = createMessage({
     role: 'user',
     id: generateId(),
-    content: `Import the "${folderName}" project from ZIP`,
-    createdAt: new Date(),
-  };
+    text: `Import the "${folderName}" project from ZIP`,
+  }) as UIMessage;
 
-  const messages: Message[] = [userMessage, filesMessage];
+  const messages: UIMessage[] = [userMessage, filesMessage];
 
   return {
     messages,
