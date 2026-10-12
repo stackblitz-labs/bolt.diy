@@ -313,7 +313,37 @@ export async function webSearch(query: string, limit = 8): Promise<WebSearchResu
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, { headers: FETCH_HEADERS, signal: controller.signal, redirect: 'error' });
+    let current = url;
+    let response: Response | undefined;
+
+    for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
+      response = await fetch(current, { headers: FETCH_HEADERS, signal: controller.signal, redirect: 'manual' });
+
+      if (![301, 302, 303, 307, 308].includes(response.status)) {
+        break;
+      }
+
+      const location = response.headers.get('location');
+
+      if (!location || redirects === MAX_REDIRECTS) {
+        await response.body?.cancel();
+        throw new Error('DuckDuckGo redirected too many times or returned an invalid redirect');
+      }
+
+      await response.body?.cancel();
+      current = validatePublicHttpUrl(new URL(location, current).href);
+
+      if (
+        current.protocol !== 'https:' ||
+        !(current.hostname === 'duckduckgo.com' || current.hostname.endsWith('.duckduckgo.com'))
+      ) {
+        throw new Error('DuckDuckGo redirected to an unsupported search host');
+      }
+    }
+
+    if (!response) {
+      throw new Error('DuckDuckGo search failed to return a response');
+    }
 
     if (response.status === 429) {
       throw new Error('DuckDuckGo rate limited web search. Try again later.');
