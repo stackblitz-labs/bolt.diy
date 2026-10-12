@@ -24,6 +24,7 @@
  */
 
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Tests that need a DOM.
@@ -98,7 +99,7 @@ const SHARED = {
   },
 };
 
-const ALIAS = { '~': new URL('./app', import.meta.url).pathname };
+const ALIAS = { '~': fileURLToPath(new URL('./app', import.meta.url)) };
 
 export const NODE_PROJECT = {
   ...SHARED,
