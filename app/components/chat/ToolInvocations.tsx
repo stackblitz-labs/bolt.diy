@@ -1,17 +1,19 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useState, useEffect } from 'react';
+import { memo, useMemo, useState, useEffect, useRef } from 'react';
 import { createHighlighter, type Highlighter } from 'shiki';
 import {
   getToolCallId,
   getToolInput,
   getToolName,
   getToolOutput,
+  getToolState,
   isToolCallPart,
   isToolResultPart,
   type AnyPart,
 } from '~/lib/persistence/messageMigration';
 import { themeStore, type Theme } from '~/lib/stores/theme';
+import { useToolAccessStore } from '~/lib/stores/toolAccess';
 import type { ToolCallAnnotation } from '~/types/context';
 import { getThemeMode } from '~/types/theme';
 import { classNames } from '~/utils/classNames';
@@ -293,6 +295,8 @@ interface ToolCallsListProps {
 const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolCallsListProps) => {
   const [expanded, setExpanded] = useState<{ [id: string]: boolean }>({});
   const [runningToolCalls, setRunningToolCalls] = useState<Set<string>>(new Set());
+  const fullAccess = useToolAccessStore((state) => state.mode === 'full-access');
+  const autoApprovedCalls = useRef(new Set<string>());
 
   // OS detection for shortcut display
   const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -306,6 +310,29 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
     });
     setExpanded(expandedState);
   }, [toolInvocations]);
+
+  useEffect(() => {
+    if (!fullAccess) {
+      return;
+    }
+
+    for (const invocation of toolInvocations) {
+      if (!isToolCallPart(invocation) || getToolState(invocation) !== 'input-available') {
+        continue;
+      }
+
+      const toolCallId = getToolCallId(invocation);
+      const toolName = getToolName(invocation);
+
+      if (!toolCallId || !toolName || autoApprovedCalls.current.has(toolCallId)) {
+        continue;
+      }
+
+      autoApprovedCalls.current.add(toolCallId);
+      setRunningToolCalls((current) => new Set(current).add(toolCallId));
+      addToolResult({ tool: toolName, toolCallId, output: TOOL_EXECUTION_APPROVAL.APPROVE });
+    }
+  }, [addToolResult, fullAccess, toolInvocations]);
 
   useEffect(() => {
     const pendingIds = new Set(

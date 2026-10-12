@@ -9,6 +9,7 @@ import { McpTools } from './MCPTools';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { SendButton } from './SendButton.client';
 import { SupabaseConnection } from './SupabaseConnection';
+import { ToolAccessMenu } from './ToolAccessMenu';
 import { WebSearch } from './WebSearch.client';
 import { ModelSelector } from '~/components/chat/ModelSelector';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
@@ -302,6 +303,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 />
               )}
             </ClientOnly>
+            <ClientOnly>{() => <ToolAccessMenu />}</ClientOnly>
             {/* Hidden components for programmatic access from menu */}
             <div className="hidden">
               <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
