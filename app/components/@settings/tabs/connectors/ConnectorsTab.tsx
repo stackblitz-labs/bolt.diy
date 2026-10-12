@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import BrowserUseCloudTab from '~/components/@settings/tabs/connectors/BrowserUseCloudTab';
 import GitHubTab from '~/components/@settings/tabs/github/GitHubTab';
 import GitLabTab from '~/components/@settings/tabs/gitlab/GitLabTab';
 import NetlifyTab from '~/components/@settings/tabs/netlify/NetlifyTab';
@@ -7,14 +8,14 @@ import SupabaseTab from '~/components/@settings/tabs/supabase/SupabaseTab';
 import VercelTab from '~/components/@settings/tabs/vercel/VercelTab';
 import { classNames } from '~/utils/classNames';
 
-type ConnectorType = 'github' | 'gitlab' | 'vercel' | 'netlify' | 'supabase';
+type ConnectorType = 'github' | 'gitlab' | 'vercel' | 'netlify' | 'supabase' | 'browser-use-cloud';
 
 interface Connector {
   id: ConnectorType;
   name: string;
   description: string;
   icon: React.ReactNode;
-  category: 'source-control' | 'deployment' | 'database';
+  category: 'source-control' | 'deployment' | 'database' | 'browser-automation';
 }
 
 // GitHub icon
@@ -109,12 +110,20 @@ const CONNECTORS: Connector[] = [
     icon: <SupabaseIcon />,
     category: 'database',
   },
+  {
+    id: 'browser-use-cloud',
+    name: 'Browser Use Cloud',
+    description: 'Run hosted browser tasks and inspect websites from your chat',
+    icon: <div className="i-ph:globe-hemisphere-west w-5 h-5" />,
+    category: 'browser-automation',
+  },
 ];
 
 const CATEGORY_LABELS = {
   'source-control': 'Source Control',
   deployment: 'Deployment',
   database: 'Database & Backend',
+  'browser-automation': 'Browser Automation',
 };
 
 export default function ConnectorsTab() {
@@ -151,6 +160,8 @@ export default function ConnectorsTab() {
         return <NetlifyTab />;
       case 'supabase':
         return <SupabaseTab />;
+      case 'browser-use-cloud':
+        return <BrowserUseCloudTab />;
       default:
         return null;
     }
