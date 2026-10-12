@@ -7,10 +7,20 @@ import {
   type UIMessage,
 } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
+import { toApiErrorResponse, toMissingCredentialError, toSafeStreamErrorMessage } from '~/lib/.server/api/errors';
+import { readJsonBody } from '~/lib/.server/api/read-body';
+import {
+  REQUEST_LIMITS,
+  asDesignScheme,
+  asFileMap,
+  asMessages,
+  chatRequestSchema,
+  parseBody,
+} from '~/lib/.server/api/schemas';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
-import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
+import { streamText, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
@@ -18,74 +28,9 @@ import { createMessage, getMessageText } from '~/lib/persistence/messageMigratio
 import { withSecurity } from '~/lib/security';
 import { MCPService } from '~/lib/services/mcpService';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
-import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
-
-/**
- * Turns a provider/transport error into a message that is safe to show a user.
- *
- * The AI SDK defaults its `onError` hooks to `() => 'An error occurred.'` so
- * server-side details are not leaked to the client. The chunk the browser actually
- * receives is produced by the `toUIMessageStream` wrapping the model stream, so
- * that is the hook this must be passed to — see the call site below. Without it
- * every failure showed the generic string, hiding things like an expired key or an
- * exhausted credit balance.
- */
-function toClientErrorMessage(error: unknown): string {
-  const providerMessage = error instanceof Error ? error.message : String(error);
-
-  /*
-   * Pick a short, plain-language hint for the failure class.
-   *
-   * The hint never replaces the provider's own text: OpenRouter, for example,
-   * answers an exhausted credit balance with a 429, so the "rate limit" branch
-   * matched and used to hide the only actionable part — the
-   * `openrouter.ai/settings/integrations` link telling the user to add credits.
-   * Keyword matching is a guess; the provider text is the ground truth, so it is
-   * always carried through alongside the hint.
-   */
-  const hint = matchErrorHint(providerMessage);
-
-  if (!hint || hint === providerMessage) {
-    return `Custom error: ${providerMessage}`;
-  }
-
-  return `${hint} (provider reported: ${providerMessage})`;
-}
-
-function matchErrorHint(errorMessage: string): string | undefined {
-  if (errorMessage.includes('model') && errorMessage.includes('not found')) {
-    return 'Custom error: Invalid model selected. Please check that the model name is correct and available.';
-  }
-
-  if (errorMessage.includes('Invalid JSON response')) {
-    return 'Custom error: The AI service returned an invalid response. This may be due to an invalid model name, API rate limiting, or server issues. Try selecting a different model or check your API key.';
-  }
-
-  if (
-    errorMessage.includes('API key') ||
-    errorMessage.includes('unauthorized') ||
-    errorMessage.includes('authentication')
-  ) {
-    return 'Custom error: Invalid or missing API key. Please check your API key configuration.';
-  }
-
-  if (errorMessage.includes('token') && errorMessage.includes('limit')) {
-    return 'Custom error: Token limit exceeded. The conversation is too long for the selected model. Try using a model with larger context window or start a new conversation.';
-  }
-
-  if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
-    return 'Custom error: API rate limit exceeded, or the provider rejected the request for account reasons. Check the provider details below.';
-  }
-
-  if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
-    return 'Custom error: Network error. Please check your internet connection and try again.';
-  }
-
-  return undefined;
-}
 
 const logger = createScopedLogger('api.chat');
 
@@ -94,24 +39,28 @@ export const action = withSecurity(chatAction, {
 });
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
-    await request.json<{
-      messages: Messages;
-      files: any;
-      promptId?: string;
-      contextOptimization: boolean;
-      chatMode: 'discuss' | 'build';
-      designScheme?: DesignScheme;
-      supabase?: {
-        isConnected: boolean;
-        hasSelectedProject: boolean;
-        credentials?: {
-          anonKey?: string;
-          supabaseUrl?: string;
-        };
-      };
-      maxLLMSteps: number;
-    }>();
+  /*
+   * Validation happens before any provider work, not inside the try block below.
+   * `request.json<T>()` only asserts a TypeScript type — at runtime a crafted
+   * body with `maxLLMSteps: 100000` or an unbounded `files` map sailed straight
+   * into streamText. This reads the body under a byte budget, then checks it
+   * against a schema, so malformed input costs one parse and no model calls.
+   */
+  const rawBody = await readJsonBody(request, { maxBytes: REQUEST_LIMITS.MAX_CHAT_BODY_BYTES });
+
+  let body;
+
+  try {
+    body = parseBody(chatRequestSchema, rawBody, 'chat');
+  } catch (error) {
+    return toApiErrorResponse(error);
+  }
+
+  const { promptId, contextOptimization, supabase, chatMode, maxLLMSteps } = body;
+
+  const messages = asMessages(body.messages);
+  const files = asFileMap(body.files);
+  const designScheme = asDesignScheme(body.designScheme);
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
@@ -152,10 +101,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * onChunk rather than by iterating the stream alongside the UI merge.
      */
     const observeChunk = ({ chunk }: { chunk: unknown }) => {
-      const part = chunk as { type?: string; error?: unknown };
+      const part = chunk as { type?: string };
 
       if (part.type === 'error') {
-        logger.error('Streaming error:', part.error);
+        logger.error('Streaming provider error');
       }
     };
 
@@ -255,7 +204,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             messages: [...processedMessages],
             env: context.cloudflare?.env,
             apiKeys,
-            files,
+            files: files ?? {},
             providerSettings,
             promptId,
             contextOptimization,
@@ -464,7 +413,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * mapper only to the outer `createUIMessageStream` (or to `streamText`)
              * left every failure showing the generic string.
              */
-            onError: toClientErrorMessage,
+            onError: toSafeStreamErrorMessage,
           }),
         );
       },
@@ -478,7 +427,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         // no-op: stream is managed by merged consumer
       },
       onError: (error: any) => {
-        return toClientErrorMessage(error);
+        return toSafeStreamErrorMessage(error);
       },
     });
 
@@ -492,37 +441,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       stream: uiStream,
       keepAliveMs: 15_000,
     });
-  } catch (error: any) {
-    logger.error(error);
+  } catch (error: unknown) {
+    logger.error('Chat route error');
 
-    const errorResponse = {
-      error: true,
-      message: error.message || 'An unexpected error occurred',
-      statusCode: error.statusCode || 500,
-      isRetryable: error.isRetryable !== false, // Default to retryable unless explicitly false
-      provider: error.provider || 'unknown',
-    };
+    /*
+     * Same credential check as before, but as a typed error so the status,
+     * retryability and provider survive into the response body. The client reads
+     * those fields to pick its alert type, so they are part of the contract.
+     */
+    const message = error instanceof Error ? error.message : String(error);
 
-    if (error.message?.includes('API key')) {
-      return new Response(
-        JSON.stringify({
-          ...errorResponse,
-          message: 'Invalid or missing API key',
-          statusCode: 401,
-          isRetryable: false,
-        }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-          statusText: 'Unauthorized',
-        },
-      );
+    if (message.includes('API key')) {
+      return toApiErrorResponse(toMissingCredentialError('unknown', message));
     }
 
-    return new Response(JSON.stringify(errorResponse), {
-      status: errorResponse.statusCode,
-      headers: { 'Content-Type': 'application/json' },
-      statusText: 'Error',
-    });
+    return toApiErrorResponse(error);
   }
 }
