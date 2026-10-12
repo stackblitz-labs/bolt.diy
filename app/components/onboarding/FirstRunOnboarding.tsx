@@ -142,7 +142,9 @@ export function FirstRunOnboarding() {
         }
 
         setSaving(true);
-        await updateMcpSettings({ mcpConfig: config, maxLLMSteps: useMCPStore.getState().settings.maxLLMSteps });
+
+        const currentSettings = useMCPStore.getState().settings;
+        await updateMcpSettings({ ...currentSettings, mcpConfig: config });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not save MCP configuration.');
         setSaving(false);

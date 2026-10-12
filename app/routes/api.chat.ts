@@ -27,7 +27,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { createMessage, getMessageText } from '~/lib/persistence/messageMigration';
-import { PROJECT_TOOL_NAMES, projectToolDefinitions } from '~/lib/runtime/projectMcp.shared';
+import { getProjectToolNames, projectToolDefinitions } from '~/lib/runtime/projectMcp.shared';
 import { withSecurity } from '~/lib/security';
 import { MCPService } from '~/lib/services/mcpService';
 import type { ContextAnnotation, ProgressAnnotation, ToolCallAnnotation } from '~/types/context';
@@ -59,7 +59,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     return toApiErrorResponse(error);
   }
 
-  const { promptId, contextOptimization, supabase, chatMode, maxLLMSteps } = body;
+  const { promptId, contextOptimization, supabase, chatMode, maxLLMSteps, webSearchEnabled = true } = body;
 
   const messages = asMessages(body.messages);
   const files = asFileMap(body.files);
@@ -260,7 +260,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const projectTools =
           chatMode === 'build'
             ? Object.fromEntries(
-                PROJECT_TOOL_NAMES.map((name) => [
+                getProjectToolNames(webSearchEnabled).map((name) => [
                   name,
                   {
                     description: projectToolDefinitions[name].description,

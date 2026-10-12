@@ -230,7 +230,7 @@ export async function createProjectMcpBridge() {
             throw new Error('The target path is a directory.');
           }
 
-          if (current && !overwrite) {
+          if (current && overwrite === false) {
             throw new Error('File already exists. Set overwrite to true to replace it.');
           }
 

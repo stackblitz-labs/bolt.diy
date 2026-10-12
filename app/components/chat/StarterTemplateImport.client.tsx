@@ -57,10 +57,13 @@ export function StarterTemplateImport() {
         const userMessage = createMessage({ role: 'user', text: `Start a blank ${template.label} app.` });
         const assistantMessage = createMessage({ role: 'assistant', text: result.assistantMessage });
 
-        const urlId = await createChatFromMessages(db, `${template.label} starter`, [
-          userMessage as UIMessage,
-          assistantMessage as UIMessage,
-        ]);
+        const setupMessage = result.setupMessage
+          ? createMessage({ role: 'assistant', text: result.setupMessage })
+          : undefined;
+
+        const starterMessages = [userMessage, assistantMessage, ...(setupMessage ? [setupMessage] : [])];
+
+        const urlId = await createChatFromMessages(db, `${template.label} starter`, starterMessages as UIMessage[]);
 
         const chat = await getMessagesByUrlIdRaw(db, urlId);
 

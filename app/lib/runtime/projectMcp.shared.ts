@@ -16,6 +16,10 @@ export const PROJECT_TOOL_NAMES = [
   'web_fetch',
 ] as const;
 
+export function getProjectToolNames(webSearchEnabled = true) {
+  return PROJECT_TOOL_NAMES.filter((name) => webSearchEnabled || (name !== 'web_search' && name !== 'web_fetch'));
+}
+
 type ProjectToolName = (typeof PROJECT_TOOL_NAMES)[number];
 type JsonSchema = Record<string, unknown>;
 
@@ -33,7 +37,8 @@ export const projectToolDefinitions: Record<ProjectToolName, { description: stri
     inputSchema: objectSchema({ path: { type: 'string', minLength: 1 } }, ['path']),
   },
   project_write_file: {
-    description: 'Create or replace a UTF-8 text file in the active project.',
+    description:
+      'Create or replace a UTF-8 text file in the active project. Existing files are replaced by default; set overwrite to false to require a new path.',
     inputSchema: objectSchema(
       { path: { type: 'string', minLength: 1 }, content: { type: 'string' }, overwrite: { type: 'boolean' } },
       ['path', 'content'],

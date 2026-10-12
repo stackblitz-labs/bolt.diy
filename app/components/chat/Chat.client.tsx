@@ -45,6 +45,7 @@ import { debounce } from '~/utils/debounce';
 import { cubicEasingFn } from '~/utils/easings';
 import { filesToArtifacts } from '~/utils/fileUtils';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
+import { resolveProjectCallContext } from '~/utils/projectCallContext';
 import { createCommandsMessage, detectProjectCommands } from '~/utils/projectCommands';
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
@@ -161,6 +162,7 @@ export const ChatImpl = memo(
      */
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const pendingTemplateContinuationRef = useRef<UIMessage | null>(null);
+    const parsedStarterSetupMessagesRef = useRef(new Set<string>());
 
     const pendingTemplateParserRef = useRef<(messages: { id: string; role?: string }[], isLoading: boolean) => void>(
       () => undefined,
@@ -182,6 +184,7 @@ export const ChatImpl = memo(
         },
       },
       maxLLMSteps: mcpSettings.maxLLMSteps,
+      webSearchEnabled: mcpSettings.webSearchEnabled,
     });
 
     bodyRef.current = {
@@ -200,6 +203,7 @@ export const ChatImpl = memo(
         },
       },
       maxLLMSteps: mcpSettings.maxLLMSteps,
+      webSearchEnabled: mcpSettings.webSearchEnabled,
     };
 
     const {
@@ -407,10 +411,13 @@ export const ChatImpl = memo(
 
         const origin = projectCallGenerationsRef.current.get(toolCallId);
 
-        if (
-          origin &&
-          (origin.generation !== workbenchStore.projectGeneration.get() || origin.chatId !== chatId.get())
-        ) {
+        const executionContext = resolveProjectCallContext(
+          origin,
+          { generation: workbenchStore.projectGeneration.get(), chatId: chatId.get() },
+          chatChanged,
+        );
+
+        if (origin && !executionContext) {
           addToolOutput({
             tool,
             toolCallId,
@@ -423,8 +430,8 @@ export const ChatImpl = memo(
         projectToolControllersRef.current.set(toolCallId, abortController);
         void callProjectMcpTool(tool, input as Record<string, unknown>, {
           signal: abortController.signal,
-          generation: origin?.generation,
-          chatId: origin?.chatId,
+          generation: executionContext?.generation,
+          chatId: executionContext?.chatId,
         })
           .then((result) => {
             if (abortController.signal.aborted) {
@@ -461,7 +468,7 @@ export const ChatImpl = memo(
             projectToolControllersRef.current.delete(toolCallId);
           });
       },
-      [addToolOutput],
+      [addToolOutput, chatChanged],
     );
 
     useEffect(() => {
@@ -568,6 +575,33 @@ export const ChatImpl = memo(
         hasAppliedInitialMessagesRef.current = true;
       }
     }, [initialMessages, chatChanged]);
+
+    useEffect(() => {
+      const starterSetupMessage = initialMessages.find((message) =>
+        getMessageText(message).includes('<boltArtifact id="project-setup"'),
+      );
+
+      if (
+        !starterSetupMessage?.id ||
+        parsedStarterSetupMessagesRef.current.has(starterSetupMessage.id) ||
+        !initialMessages.some((message) => getMessageText(message).includes('<boltArtifact id="imported-files"'))
+      ) {
+        return undefined;
+      }
+
+      let cancelled = false;
+
+      void workbenchStore.waitForFileActions().then(() => {
+        if (!cancelled && !parsedStarterSetupMessagesRef.current.has(starterSetupMessage.id!)) {
+          parsedStarterSetupMessagesRef.current.add(starterSetupMessage.id!);
+          parseMessages(initialMessages, false);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [initialMessages, parseMessages]);
 
     /*
      * Pre-fill the textarea with the follow-up prompt set by ImportZipButton before the
@@ -971,16 +1005,6 @@ export const ChatImpl = memo(
       Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
     };
 
-    const handleWebSearchResult = useCallback(
-      (result: string) => {
-        const currentInput = input || '';
-        const newInput = currentInput.length > 0 ? `${result}\n\n${currentInput}` : result;
-
-        setInput(newInput);
-      },
-      [input],
-    );
-
     return (
       <BaseChat
         ref={animationScope}
@@ -1054,7 +1078,6 @@ export const ChatImpl = memo(
         selectedElement={selectedElement}
         setSelectedElement={setSelectedElement}
         addToolOutput={handleToolOutput}
-        onWebSearchResult={handleWebSearchResult}
       />
     );
   },

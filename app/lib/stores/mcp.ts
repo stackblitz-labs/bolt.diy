@@ -7,10 +7,12 @@ const isBrowser = typeof window !== 'undefined';
 type MCPSettings = {
   mcpConfig: MCPConfig;
   maxLLMSteps: number;
+  webSearchEnabled: boolean;
 };
 
 const defaultSettings = {
   maxLLMSteps: 5,
+  webSearchEnabled: true,
   mcpConfig: {
     mcpServers: {},
   },
@@ -27,6 +29,7 @@ type Store = {
 type Actions = {
   initialize: () => Promise<void>;
   updateSettings: (settings: MCPSettings) => Promise<void>;
+  setWebSearchEnabled: (enabled: boolean) => void;
   checkServersAvailabilities: () => Promise<void>;
 };
 
@@ -46,7 +49,7 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
 
       if (savedConfig) {
         try {
-          const settings = JSON.parse(savedConfig) as MCPSettings;
+          const settings = { ...defaultSettings, ...(JSON.parse(savedConfig) as Partial<MCPSettings>) };
           const serverTools = await updateServerConfig(settings.mcpConfig);
           set(() => ({ settings, serverTools }));
         } catch (error) {
@@ -82,6 +85,15 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
     } finally {
       set(() => ({ isUpdatingConfig: false }));
     }
+  },
+  setWebSearchEnabled: (enabled: boolean) => {
+    const settings = { ...get().settings, webSearchEnabled: enabled };
+
+    if (isBrowser) {
+      localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    set({ settings });
   },
   checkServersAvailabilities: async () => {
     const response = await fetch('/api/mcp-check', {
