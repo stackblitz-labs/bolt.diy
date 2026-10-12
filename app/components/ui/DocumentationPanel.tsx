@@ -1,5 +1,5 @@
-import * as Dialog from '@radix-ui/react-dialog';
 import { useStore } from '@nanostores/react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { ExternalLink, X } from 'lucide-react';
 import { themeStore } from '~/lib/stores/theme';
 import { getThemeMode } from '~/types/theme';

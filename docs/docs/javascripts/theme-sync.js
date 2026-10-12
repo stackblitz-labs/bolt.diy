@@ -1,9 +1,30 @@
-// The app embeds these docs in a cross-origin iframe, so pass only the
-// light/dark preference in the URL and let Material apply its own palette.
+/*
+ * The app embeds these docs in a cross-origin iframe, so pass only the
+ * light/dark preference in the URL and let Material apply its own palette.
+ */
 (() => {
-  const theme = new URLSearchParams(window.location.search).get('theme');
+  const requestedTheme = new URLSearchParams(window.location.search).get('theme');
 
-  if (theme === 'light' || theme === 'dark') {
+  const isAllowedTheme = (theme) => theme === 'light' || theme === 'dark';
+
+  let theme;
+
+  if (isAllowedTheme(requestedTheme)) {
+    theme = requestedTheme;
+    document.documentElement.setAttribute('data-md-color-scheme', theme === 'dark' ? 'slate' : 'default');
+
+    try {
+      localStorage.setItem('bolt-theme', theme);
+    } catch {}
+
+    return;
+  }
+
+  try {
+    theme = localStorage.getItem('bolt-theme');
+  } catch {}
+
+  if (isAllowedTheme(theme)) {
     document.documentElement.setAttribute('data-md-color-scheme', theme === 'dark' ? 'slate' : 'default');
   }
 })();
