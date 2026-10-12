@@ -293,6 +293,49 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
         headers: responseHeaders,
       });
     } catch (error) {
+      /*
+       * `throw new Response(...)` is React Router's control-flow idiom for
+       * "stop here with this response". Several routes use it for 400s, and this
+       * catch used to swallow every one of them into a 500 — the route's chosen
+       * status was silently discarded.
+       *
+       * Checked FIRST, before the ApiError shape test. A Response also carries a
+       * numeric `status` and an object `body`, so it matches that shape too, and
+       * serializing its body would turn the response into a stream of `{}`.
+       */
+      if (error instanceof Response) {
+        const responseHeaders = new Headers(error.headers);
+
+        Object.entries(createSecurityHeaders()).forEach(([key, value]) => {
+          responseHeaders.set(key, value);
+        });
+
+        return new Response(error.body, {
+          status: error.status,
+          statusText: error.statusText,
+          headers: responseHeaders,
+        });
+      }
+
+      /*
+       * A route that rejected the request on purpose carries its own status,
+       * retryability and message. Collapsing those into 500 is how a malformed
+       * request ends up presented to the user as a server fault, and it is what
+       * made the client fall back to its generic "Request Failed" alert.
+       *
+       * Checked structurally rather than by importing ApiError, so this module
+       * stays dependency-free for the routes that use it as a rate limiter.
+       */
+      if (isTypedApiError(error)) {
+        return new Response(JSON.stringify(error.body), {
+          status: error.status,
+          headers: {
+            ...createSecurityHeaders(),
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+
       console.error('Security-wrapped handler error:', error);
 
       const errorMessage = sanitizeErrorMessage(error, process.env.NODE_ENV === 'development');
@@ -312,4 +355,29 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
       );
     }
   };
+}
+
+/**
+ * Structural check for an ApiError.
+ *
+ * Deliberately avoids importing the class: security.ts is imported by routes
+ * that have no business pulling in the model-facing error module, and this keeps
+ * the check cheap and cycle-free.
+ *
+ * Note this tests the *shape*, not `name`. Subclasses set their own name
+ * (`ValidationError`, `PayloadTooLargeError`, `RequestTimeoutError`), so a
+ * `name === 'ApiError'` test would reject exactly the errors carrying the most
+ * precise status — the ones it exists to preserve. `body` + numeric `status` is
+ * what actually distinguishes them, since a plain Error has neither.
+ */
+function isTypedApiError(error: unknown): error is { status: number; body: unknown } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'body' in error &&
+    'status' in error &&
+    typeof (error as { status?: unknown }).status === 'number' &&
+    typeof (error as { body?: unknown }).body === 'object' &&
+    (error as { body?: unknown }).body !== null
+  );
 }

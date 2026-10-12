@@ -1,5 +1,8 @@
 import { generateText, type UIMessage } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
+import { ApiError, toApiErrorResponse, toMissingCredentialError } from '~/lib/.server/api/errors';
+import { readJsonBody } from '~/lib/.server/api/read-body';
+import { REQUEST_LIMITS, asProviderInfo, llmCallRequestSchema, parseBody } from '~/lib/.server/api/schemas';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel } from '~/lib/.server/llm/constants';
 import { toLlmCallResponse } from '~/lib/.server/llm/llmcall-response';
 import { streamText } from '~/lib/.server/llm/stream-text';
@@ -8,7 +11,7 @@ import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { createMessage } from '~/lib/persistence/messageMigration';
 import { withSecurity } from '~/lib/security';
-import type { IProviderSetting, ProviderInfo } from '~/types/model';
+import type { IProviderSetting } from '~/types/model';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -68,30 +71,26 @@ function validateTokenLimits(modelDetails: ModelInfo, requestedTokens: number): 
 }
 
 async function llmCallAction({ context, request }: ActionFunctionArgs) {
-  const { system, message, model, provider, streamOutput } = await request.json<{
-    system: string;
-    message: string;
-    model: string;
-    provider: ProviderInfo;
-    streamOutput?: boolean;
-  }>();
+  /*
+   * Bounded read + schema check before any provider call. The previous
+   * `request.json<T>()` was a compile-time assertion only: `message` and
+   * `system` were unbounded strings and `provider` was destructured before any
+   * validation, so `{ provider: {} }` threw a TypeError on `.name` deep inside
+   * the handler and surfaced as a 500.
+   */
+  let body;
 
+  try {
+    const rawBody = await readJsonBody(request, { maxBytes: REQUEST_LIMITS.MAX_LLMCALL_BODY_BYTES });
+
+    body = parseBody(llmCallRequestSchema, rawBody, 'llmcall');
+  } catch (error) {
+    return toApiErrorResponse(error);
+  }
+
+  const { system, message, model, streamOutput } = body;
+  const provider = asProviderInfo(body.provider);
   const { name: providerName } = provider;
-
-  // validate 'model' and 'provider' fields
-  if (!model || typeof model !== 'string') {
-    throw new Response('Invalid or missing model', {
-      status: 400,
-      statusText: 'Bad Request',
-    });
-  }
-
-  if (!providerName || typeof providerName !== 'string') {
-    throw new Response('Invalid or missing provider', {
-      status: 400,
-      statusText: 'Bad Request',
-    });
-  }
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
@@ -125,36 +124,11 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         },
       });
     } catch (error: unknown) {
-      console.log(error);
-
       if (error instanceof Error && error.message?.includes('API key')) {
-        throw new Response('Invalid or missing API key', {
-          status: 401,
-          statusText: 'Unauthorized',
-        });
+        return toApiErrorResponse(toMissingCredentialError(providerName, error.message));
       }
 
-      // Handle token limit errors with helpful messages
-      if (
-        error instanceof Error &&
-        (error.message?.includes('max_tokens') ||
-          error.message?.includes('token') ||
-          error.message?.includes('exceeds') ||
-          error.message?.includes('maximum'))
-      ) {
-        throw new Response(
-          `Token limit error: ${error.message}. Try reducing your request size or using a model with higher token limits.`,
-          {
-            status: 400,
-            statusText: 'Token Limit Exceeded',
-          },
-        );
-      }
-
-      throw new Response(null, {
-        status: 500,
-        statusText: 'Internal Server Error',
-      });
+      return toApiErrorResponse(error, providerName);
     }
   } else {
     try {
@@ -162,7 +136,12 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
       const modelDetails = models.find((m: ModelInfo) => m.name === model);
 
       if (!modelDetails) {
-        throw new Error('Model not found');
+        throw new ApiError(`Model "${model}" is not available for this provider.`, {
+          status: 400,
+          code: 'unknown_model',
+          isRetryable: false,
+          provider: providerName,
+        });
       }
 
       const dynamicMaxTokens = modelDetails ? getCompletionTokenLimit(modelDetails) : Math.min(MAX_TOKENS, 16384);
@@ -171,16 +150,23 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
       const validation = validateTokenLimits(modelDetails, dynamicMaxTokens);
 
       if (!validation.valid) {
-        throw new Response(validation.error, {
+        throw new ApiError(validation.error!, {
           status: 400,
-          statusText: 'Token Limit Exceeded',
+          code: 'token_limit_exceeded',
+          isRetryable: false,
+          provider: providerName,
         });
       }
 
       const providerInfo = PROVIDER_LIST.find((p) => p.name === provider.name);
 
       if (!providerInfo) {
-        throw new Error('Provider not found');
+        throw new ApiError(`Provider "${provider.name}" is not a supported provider.`, {
+          status: 400,
+          code: 'unknown_provider',
+          isRetryable: false,
+          provider: providerName,
+        });
       }
 
       logger.info(`Generating response Provider: ${provider.name}, Model: ${modelDetails.name}`);
@@ -248,60 +234,37 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         },
       });
     } catch (error: unknown) {
-      console.log(error);
-
-      const errorResponse = {
-        error: true,
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
-        statusCode: (error as any).statusCode || 500,
-        isRetryable: (error as any).isRetryable !== false,
-        provider: (error as any).provider || 'unknown',
-      };
-
-      if (error instanceof Error && error.message?.includes('API key')) {
-        return new Response(
-          JSON.stringify({
-            ...errorResponse,
-            message: 'Invalid or missing API key',
-            statusCode: 401,
-            isRetryable: false,
-          }),
-          {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-            statusText: 'Unauthorized',
-          },
-        );
-      }
-
-      // Handle token limit errors with helpful messages
+      /*
+       * Token-limit failures are the user's call to make, not a server fault, so
+       * they get an actionable 400 rather than falling through to a 500 whose
+       * message says only "An unexpected error occurred".
+       */
       if (
         error instanceof Error &&
-        (error.message?.includes('max_tokens') ||
-          error.message?.includes('token') ||
-          error.message?.includes('exceeds') ||
-          error.message?.includes('maximum'))
+        !isTypedFailure(error) &&
+        (error.message.includes('max_tokens') ||
+          error.message.includes('token') ||
+          error.message.includes('exceeds') ||
+          error.message.includes('maximum'))
       ) {
-        return new Response(
-          JSON.stringify({
-            ...errorResponse,
-            message: `Token limit error: ${error.message}. Try reducing your request size or using a model with higher token limits.`,
-            statusCode: 400,
-            isRetryable: false,
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-            statusText: 'Token Limit Exceeded',
-          },
+        return toApiErrorResponse(
+          new ApiError(
+            `Token limit error: ${error.message}. Try reducing your request size or using a model with higher token limits.`,
+            { status: 400, code: 'token_limit_exceeded', isRetryable: false, provider: providerName },
+          ),
         );
       }
 
-      return new Response(JSON.stringify(errorResponse), {
-        status: errorResponse.statusCode,
-        headers: { 'Content-Type': 'application/json' },
-        statusText: 'Error',
-      });
+      if (error instanceof Error && error.message.includes('API key')) {
+        return toApiErrorResponse(toMissingCredentialError(providerName, error.message));
+      }
+
+      return toApiErrorResponse(error, providerName);
     }
   }
+}
+
+/** True for an error that already carries a deliberate status. */
+function isTypedFailure(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && 'status' in error;
 }

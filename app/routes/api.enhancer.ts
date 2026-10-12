@@ -1,9 +1,11 @@
 import type { UIMessage } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
+import { toApiErrorResponse, toMissingCredentialError } from '~/lib/.server/api/errors';
+import { readJsonBody } from '~/lib/.server/api/read-body';
+import { REQUEST_LIMITS, enhancerRequestSchema, parseBody } from '~/lib/.server/api/schemas';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { createMessage } from '~/lib/persistence/messageMigration';
-import type { ProviderInfo } from '~/types/model';
 import { stripIndents } from '~/utils/stripIndent';
 
 export async function action(args: ActionFunctionArgs) {
@@ -11,29 +13,22 @@ export async function action(args: ActionFunctionArgs) {
 }
 
 async function enhancerAction({ context, request }: ActionFunctionArgs) {
-  const { message, model, provider } = await request.json<{
-    message: string;
-    model: string;
-    provider: ProviderInfo;
-    apiKeys?: Record<string, string>;
-  }>();
+  /*
+   * `provider` used to be destructured from an unvalidated body, so `{ provider: {} }`
+   * threw a TypeError reading `.name` and surfaced as a 500. Validated up front now.
+   */
+  let body;
 
-  const { name: providerName } = provider;
+  try {
+    const rawBody = await readJsonBody(request, { maxBytes: REQUEST_LIMITS.MAX_LLMCALL_BODY_BYTES });
 
-  // validate 'model' and 'provider' fields
-  if (!model || typeof model !== 'string') {
-    throw new Response('Invalid or missing model', {
-      status: 400,
-      statusText: 'Bad Request',
-    });
+    body = parseBody(enhancerRequestSchema, rawBody, 'enhancer');
+  } catch (error) {
+    return toApiErrorResponse(error);
   }
 
-  if (!providerName || typeof providerName !== 'string') {
-    throw new Response('Invalid or missing provider', {
-      status: 400,
-      statusText: 'Bad Request',
-    });
-  }
+  const { message, model } = body;
+  const providerName = body.provider.name;
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
@@ -104,18 +99,10 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
       },
     });
   } catch (error: unknown) {
-    console.log(error);
-
     if (error instanceof Error && error.message?.includes('API key')) {
-      throw new Response('Invalid or missing API key', {
-        status: 401,
-        statusText: 'Unauthorized',
-      });
+      return toApiErrorResponse(toMissingCredentialError(providerName, error.message));
     }
 
-    throw new Response(null, {
-      status: 500,
-      statusText: 'Internal Server Error',
-    });
+    return toApiErrorResponse(error, providerName);
   }
 }

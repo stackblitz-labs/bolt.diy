@@ -7,10 +7,20 @@ import {
   type UIMessage,
 } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
+import { toApiErrorResponse, toMissingCredentialError } from '~/lib/.server/api/errors';
+import { readJsonBody } from '~/lib/.server/api/read-body';
+import {
+  REQUEST_LIMITS,
+  asDesignScheme,
+  asFileMap,
+  asMessages,
+  chatRequestSchema,
+  parseBody,
+} from '~/lib/.server/api/schemas';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
-import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
+import { streamText, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
@@ -18,7 +28,6 @@ import { createMessage, getMessageText } from '~/lib/persistence/messageMigratio
 import { withSecurity } from '~/lib/security';
 import { MCPService } from '~/lib/services/mcpService';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
-import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
@@ -94,24 +103,28 @@ export const action = withSecurity(chatAction, {
 });
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
-    await request.json<{
-      messages: Messages;
-      files: any;
-      promptId?: string;
-      contextOptimization: boolean;
-      chatMode: 'discuss' | 'build';
-      designScheme?: DesignScheme;
-      supabase?: {
-        isConnected: boolean;
-        hasSelectedProject: boolean;
-        credentials?: {
-          anonKey?: string;
-          supabaseUrl?: string;
-        };
-      };
-      maxLLMSteps: number;
-    }>();
+  /*
+   * Validation happens before any provider work, not inside the try block below.
+   * `request.json<T>()` only asserts a TypeScript type — at runtime a crafted
+   * body with `maxLLMSteps: 100000` or an unbounded `files` map sailed straight
+   * into streamText. This reads the body under a byte budget, then checks it
+   * against a schema, so malformed input costs one parse and no model calls.
+   */
+  const rawBody = await readJsonBody(request, { maxBytes: REQUEST_LIMITS.MAX_CHAT_BODY_BYTES });
+
+  let body;
+
+  try {
+    body = parseBody(chatRequestSchema, rawBody, 'chat');
+  } catch (error) {
+    return toApiErrorResponse(error);
+  }
+
+  const { promptId, contextOptimization, supabase, chatMode, maxLLMSteps } = body;
+
+  const messages = asMessages(body.messages);
+  const files = asFileMap(body.files);
+  const designScheme = asDesignScheme(body.designScheme);
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
@@ -255,7 +268,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             messages: [...processedMessages],
             env: context.cloudflare?.env,
             apiKeys,
-            files,
+            files: files ?? {},
             providerSettings,
             promptId,
             contextOptimization,
@@ -492,37 +505,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       stream: uiStream,
       keepAliveMs: 15_000,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(error);
 
-    const errorResponse = {
-      error: true,
-      message: error.message || 'An unexpected error occurred',
-      statusCode: error.statusCode || 500,
-      isRetryable: error.isRetryable !== false, // Default to retryable unless explicitly false
-      provider: error.provider || 'unknown',
-    };
+    /*
+     * Same credential check as before, but as a typed error so the status,
+     * retryability and provider survive into the response body. The client reads
+     * those fields to pick its alert type, so they are part of the contract.
+     */
+    const message = error instanceof Error ? error.message : String(error);
 
-    if (error.message?.includes('API key')) {
-      return new Response(
-        JSON.stringify({
-          ...errorResponse,
-          message: 'Invalid or missing API key',
-          statusCode: 401,
-          isRetryable: false,
-        }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-          statusText: 'Unauthorized',
-        },
-      );
+    if (message.includes('API key')) {
+      return toApiErrorResponse(toMissingCredentialError('unknown', message));
     }
 
-    return new Response(JSON.stringify(errorResponse), {
-      status: errorResponse.statusCode,
-      headers: { 'Content-Type': 'application/json' },
-      statusText: 'Error',
-    });
+    return toApiErrorResponse(error);
   }
 }
