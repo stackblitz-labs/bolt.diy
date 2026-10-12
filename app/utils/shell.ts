@@ -101,6 +101,8 @@ export class BoltShell {
     { sessionId: string; active: boolean; executionPrms?: Promise<any>; abort?: () => void } | undefined
   >();
   #outputStream: ReadableStreamDefaultReader<string> | undefined;
+  #outputBuffer = '';
+  #commandPreparationQueue: Promise<void> = Promise.resolve();
   #shellInputStream: WritableStreamDefaultWriter<string> | undefined;
 
   constructor() {
@@ -219,37 +221,79 @@ export class BoltShell {
     return this.#process;
   }
 
-  async executeCommand(sessionId: string, command: string, abort?: () => void): Promise<ExecutionResult> {
+  async stop(expectedSessionId?: string) {
+    const state = this.executionState.get();
+
+    if (!state?.active || (expectedSessionId !== undefined && state.sessionId !== expectedSessionId)) {
+      return;
+    }
+
+    state.abort?.();
+    this.terminal?.input('\x03');
+
+    /*
+     * The command reader owns the output stream. Wait for its exit signal
+     * before a chat reset removes files still watched by the dev server.
+     */
+    await state.executionPrms;
+  }
+
+  async executeCommand(
+    sessionId: string,
+    command: string,
+    abort?: () => void,
+    abortSignal?: AbortSignal,
+  ): Promise<ExecutionResult> {
     if (!this.process || !this.terminal) {
       return undefined;
     }
 
-    const state = this.executionState.get();
+    const prepared = this.#commandPreparationQueue.then(async () => {
+      if (abortSignal?.aborted) {
+        return { executionPromise: Promise.resolve(undefined) };
+      }
 
-    if (state?.active && state.abort) {
-      state.abort();
-    }
+      const state = this.executionState.get();
 
-    /*
-     * interrupt the current execution
-     *  this.#shellInputStream?.write('\x03');
-     */
-    this.terminal.input('\x03');
-    await this.waitTillOscCode('prompt');
+      if (state?.active) {
+        /*
+         * The outgoing reader consumes exit before the incoming reader consumes
+         * prompt. Both signals can arrive in the same WebContainer output chunk.
+         */
+        await this.stop(state.sessionId);
+      } else {
+        this.terminal!.input('\x03');
+      }
 
-    if (state && state.executionPrms) {
-      await state.executionPrms;
-    }
+      await this.waitTillOscCode('prompt');
 
-    //start a new execution
-    this.terminal.input(command.trim() + '\n');
+      if (abortSignal?.aborted) {
+        return { executionPromise: Promise.resolve(undefined) };
+      }
 
-    //wait for the execution to finish
-    const executionPromise = this.getCurrentExecutionResult();
-    this.executionState.set({ sessionId, active: true, executionPrms: executionPromise, abort });
+      this.terminal!.input(command.trim() + '\n');
+
+      const executionPromise = this.getCurrentExecutionResult();
+      this.executionState.set({ sessionId, active: true, executionPrms: executionPromise, abort });
+
+      /*
+       * Release preparation once the command starts; a dev server can run until
+       * the next command interrupts it without blocking the preparation queue.
+       */
+      return { executionPromise };
+    });
+    this.#commandPreparationQueue = prepared.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    const { executionPromise } = await prepared;
 
     const resp = await executionPromise;
-    this.executionState.set({ sessionId, active: false });
+
+    if (this.executionState.get()?.executionPrms === executionPromise) {
+      this.executionState.set({ sessionId, active: false });
+    }
 
     if (resp) {
       try {
@@ -272,7 +316,6 @@ export class BoltShell {
   async waitTillOscCode(waitCode: string) {
     let fullOutput = '';
     let exitCode: number = 0;
-    let buffer = ''; // <-- Add a buffer to accumulate output
 
     if (!this.#outputStream) {
       return { output: fullOutput, exitCode };
@@ -280,44 +323,34 @@ export class BoltShell {
 
     const tappedStream = this.#outputStream;
 
-    // Regex for Expo URL
-    const expoUrlRegex = /(exp:\/\/[^\s]+)/;
-
     while (true) {
+      const oscPattern = /\x1b\]654;([^\x07=]+)=?((-?\d+):(\d+))?\x07/g;
+
+      let match: RegExpExecArray | null;
+
+      while ((match = oscPattern.exec(this.#outputBuffer))) {
+        if (match[1] === 'exit') {
+          exitCode = parseInt(match[4], 10);
+        }
+
+        if (match[1] === waitCode) {
+          const end = match.index + match[0].length;
+          fullOutput += this.#outputBuffer.slice(0, end);
+          this.#outputBuffer = this.#outputBuffer.slice(end);
+
+          return { output: fullOutput, exitCode };
+        }
+      }
+
       const { value, done } = await tappedStream.read();
 
       if (done) {
+        fullOutput += this.#outputBuffer;
+        this.#outputBuffer = '';
         break;
       }
 
-      const text = value || '';
-      fullOutput += text;
-      buffer += text; // <-- Accumulate in buffer
-
-      // Extract Expo URL from buffer and set store
-      const expoUrlMatch = buffer.match(expoUrlRegex);
-
-      if (expoUrlMatch) {
-        // Remove any trailing ANSI escape codes or non-printable characters
-        const cleanUrl = expoUrlMatch[1]
-          .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
-          .replace(/[^\x20-\x7E]+$/g, '');
-        expoUrlAtom.set(cleanUrl);
-
-        // Remove everything up to and including the URL from the buffer to avoid duplicate matches
-        buffer = buffer.slice(buffer.indexOf(expoUrlMatch[1]) + expoUrlMatch[1].length);
-      }
-
-      // Check if command completion signal with exit code
-      const [, osc, , , code] = text.match(/\x1b\]654;([^\x07=]+)=?((-?\d+):(\d+))?\x07/) || [];
-
-      if (osc === 'exit') {
-        exitCode = parseInt(code, 10);
-      }
-
-      if (osc === waitCode) {
-        break;
-      }
+      this.#outputBuffer += value || '';
     }
 
     return { output: fullOutput, exitCode };

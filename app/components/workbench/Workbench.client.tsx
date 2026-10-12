@@ -20,7 +20,6 @@ import {
 import { IconButton } from '~/components/ui/IconButton';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
 import useViewport from '~/lib/hooks';
-import { useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
 import { usePreviewStore } from '~/lib/stores/previews';
 import { streamingState } from '~/lib/stores/streaming';
@@ -44,6 +43,7 @@ interface WorkspaceProps {
   };
   updateChatMestaData?: (metadata: any) => void;
   setSelectedElement?: (element: ElementInfo | null) => void;
+  exportChat?: () => void;
 }
 
 const viewTransition = { ease: cubicEasingFn };
@@ -297,6 +297,7 @@ export const Workbench = memo(
     metadata: _metadata,
     updateChatMestaData: _updateChatMestaData,
     setSelectedElement,
+    exportChat,
   }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
@@ -318,7 +319,6 @@ export const Workbench = memo(
 
     const isSmallViewport = useViewport(1024);
     const streaming = useStore(streamingState);
-    const { exportChat } = useChatHistory();
     const [isSyncing, setIsSyncing] = useState(false);
     const [loadedViews, setLoadedViews] = useState<Set<WorkbenchViewType>>(() => new Set(['code']));
     const previousHasPreviewRef = useRef(hasPreview);

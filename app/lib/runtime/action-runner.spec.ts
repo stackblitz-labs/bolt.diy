@@ -54,3 +54,44 @@ describe('ActionRunner file actions', () => {
     expect(webcontainer.fs.writeFile).toHaveBeenCalledWith('src/App.tsx', 'export default function App() {}');
   });
 });
+
+describe('ActionRunner cancellation', () => {
+  it('does not start an outgoing server after cancellation while its shell was initializing', async () => {
+    vi.useFakeTimers();
+
+    try {
+      let ready!: () => void;
+
+      const shellReady = new Promise<void>((resolve) => {
+        ready = resolve;
+      });
+
+      const executeCommand = vi.fn();
+
+      const runner = new ActionRunner(
+        Promise.resolve({} as WebContainer),
+        () => ({ ready: () => shellReady, executeCommand, terminal: {}, process: {} }) as unknown as BoltShell,
+      );
+      const action = {
+        artifactId: 'old-project',
+        messageId: 'old-message',
+        actionId: 'old-server',
+        action: { type: 'start' as const, content: 'npm run dev' },
+      };
+
+      runner.addAction(action);
+
+      const running = runner.runAction(action);
+      await Promise.resolve();
+      runner.abortAllActions();
+      ready();
+      await vi.advanceTimersByTimeAsync(2000);
+      await running;
+
+      expect(executeCommand).not.toHaveBeenCalled();
+      expect(runner.actions.get()['old-server'].status).toBe('aborted');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

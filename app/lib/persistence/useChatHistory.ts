@@ -53,7 +53,7 @@ function serializeFilesystemTransition<T>(operation: () => Promise<T>): Promise<
   return transition;
 }
 
-export function useChatHistory() {
+export function useChatHistory({ loadHistory = true }: { loadHistory?: boolean } = {}) {
   const navigate = useNavigate();
   const { id: paramId } = useParams<{ id?: string }>();
   const loaderData = useLoaderData<{ id?: string }>() as { id?: string } | undefined;
@@ -95,8 +95,26 @@ export function useChatHistory() {
   }, [mixedId]);
 
   useEffect(() => {
+    let cleanup: () => void = () => undefined;
+
+    /*
+     * Export/duplicate consumers do not own the chat or its filesystem.
+     * Only Chat loads history and manages workbench transitions.
+     */
+    if (!loadHistory) {
+      setReady(true);
+
+      return cleanup;
+    }
+
     const generation = ++loadGenerationRef.current;
     const isCurrentLoad = () => loadGenerationRef.current === generation;
+
+    cleanup = () => {
+      if (isCurrentLoad()) {
+        loadGenerationRef.current++;
+      }
+    };
 
     if (!db) {
       setReady(true);
@@ -107,11 +125,7 @@ export function useChatHistory() {
         toast.error('Chat persistence is unavailable');
       }
 
-      return () => {
-        if (isCurrentLoad()) {
-          loadGenerationRef.current++;
-        }
-      };
+      return cleanup;
     }
 
     if (mixedId) {
@@ -156,7 +170,11 @@ export function useChatHistory() {
              * chats.
              */
             if (switchedChat) {
-              await serializeFilesystemTransition(() => workbenchStore.resetWorkbench());
+              await serializeFilesystemTransition(async () => {
+                if (isCurrentLoad()) {
+                  await workbenchStore.resetWorkbench(isCurrentLoad);
+                }
+              });
 
               if (!isCurrentLoad()) {
                 return;
@@ -334,7 +352,7 @@ ${value.content}
           try {
             await serializeFilesystemTransition(async () => {
               if (isCurrentLoad()) {
-                await workbenchStore.resetWorkbench();
+                await workbenchStore.resetWorkbench(isCurrentLoad);
               }
             });
           } catch (resetError) {
@@ -357,29 +375,44 @@ ${value.content}
           setReady(true);
         });
     } else {
+      /*
+       * Persistence claims a chat before its first response finishes, while
+       * navigation remains deferred on `/`. A home query refresh is still
+       * that live chat and must not cancel its generation or clear its files.
+       */
+      if (pendingChatNavigationRef.current?.id === loadedChatIdRef.current && loadedChatIdRef.current) {
+        setChatChanged(false);
+        setReady(true);
+
+        return cleanup;
+      }
+
       // Clean reset when switching to a fresh chat (e.g., /)
       const leftChat = loadedChatIdRef.current !== undefined;
 
       if (leftChat) {
         loadedChatIdRef.current = undefined;
-        setReady(false);
-
-        void serializeFilesystemTransition(() => workbenchStore.resetWorkbench())
-          .then(() => {
-            if (isCurrentLoad()) {
-              setReady(true);
-            }
-          })
-          .catch((error) => {
-            logStore.logError('Failed to empty the workbench', error);
-
-            if (isCurrentLoad()) {
-              setReady(true);
-            }
-          });
-      } else {
-        setReady(true);
       }
+
+      setReady(false);
+
+      void serializeFilesystemTransition(async () => {
+        if (leftChat && isCurrentLoad()) {
+          await workbenchStore.resetWorkbench(isCurrentLoad);
+        }
+      })
+        .then(() => {
+          if (isCurrentLoad()) {
+            setReady(true);
+          }
+        })
+        .catch((error) => {
+          logStore.logError('Failed to empty the workbench', error);
+
+          if (isCurrentLoad()) {
+            setReady(true);
+          }
+        });
 
       setChatChanged(leftChat);
       setArchivedMessages([]);
@@ -390,12 +423,8 @@ ${value.content}
       chatMetadata.set(undefined);
     }
 
-    return () => {
-      if (isCurrentLoad()) {
-        loadGenerationRef.current++;
-      }
-    };
-  }, [mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
+    return cleanup;
+  }, [loadHistory, mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
 
   const takeSnapshot = useCallback(
     async (chatRecordId: string, chatIdx: string, files: FileMap, chatSummary?: string) => {
@@ -696,7 +725,7 @@ ${value.content}
         }
       }
     },
-    exportChat: async (id = urlId) => {
+    exportChat: async (id = urlId ?? mixedId ?? chatId.get()) => {
       if (!db || !id) {
         return;
       }

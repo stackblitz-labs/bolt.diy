@@ -80,4 +80,48 @@ describe('Artifact', () => {
 
     expect(container).toBeEmptyDOMElement();
   });
+
+  it.each([
+    ['empty', [], 'Project Setup Incomplete', 'No setup actions were generated.'],
+    ['failed', [{ type: 'shell', status: 'failed' }], 'Project Setup Failed', 'One or more setup actions failed.'],
+    ['aborted', [{ type: 'file', status: 'aborted' }], 'Project Setup Incomplete', 'Project setup was interrupted.'],
+  ])(
+    'shows a terminal setup status for %s artifacts instead of an endless spinner',
+    (_name, actions, title, detail) => {
+      artifacts.set({
+        setup: {
+          id: 'setup',
+          title: 'Create initial files',
+          type: 'bundled',
+          closed: true,
+          runner: { actions: map(Object.fromEntries(actions.map((action, index) => [String(index), action]))) },
+        },
+      });
+
+      const { container } = render(<Artifact messageId="message" artifactId="setup" />);
+
+      expect(container).toHaveTextContent(title);
+      expect(container).toHaveTextContent(detail);
+      expect(container).not.toHaveTextContent('Creating Project...');
+      expect(container.getElementsByClassName('i-svg-spinners:90-ring-with-bg')).toHaveLength(0);
+    },
+  );
+
+  it('keeps queued setup actions loading until they finish, including a running dev server', () => {
+    const actions = map<Record<string, unknown>>({ install: { type: 'shell', status: 'pending' } });
+    artifacts.set({
+      setup: { id: 'setup', title: 'Setup', type: 'bundled', closed: true, runner: { actions } },
+    });
+
+    const { container } = render(<Artifact messageId="message" artifactId="setup" />);
+    expect(container).toHaveTextContent('Creating Project...');
+
+    act(() => {
+      actions.set({ install: { type: 'shell', status: 'complete' }, server: { type: 'start', status: 'running' } });
+    });
+
+    expect(container).toHaveTextContent('Project Created');
+    expect(container).toHaveTextContent('Initial files created');
+    expect(container.getElementsByClassName('i-svg-spinners:90-ring-with-bg')).toHaveLength(0);
+  });
 });

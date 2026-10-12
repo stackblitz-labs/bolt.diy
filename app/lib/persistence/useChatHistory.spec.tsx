@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCachedSnapshot, invalidateChatCache } from './chatCache';
 
 const { resetWorkbench, waitForExecutionQueue, setMessages, setSnapshot } = vi.hoisted(() => ({
-  resetWorkbench: vi.fn(async () => undefined),
+  resetWorkbench: vi.fn(async (): Promise<void> => undefined),
   waitForExecutionQueue: vi.fn(async () => undefined),
   setMessages: vi.fn(async () => undefined),
   setSnapshot: vi.fn(async () => undefined),
@@ -255,6 +255,59 @@ describe('useChatHistory chat switching', () => {
     expect(result.current.initialMessages).toEqual([]);
   });
 
+  it('does not let an extra export consumer reset the live home chat at its persisted route handoff', async () => {
+    const useChatHistory = await importHook();
+    routeId = undefined;
+
+    const { rerender, result } = renderHook(() => {
+      const chat = useChatHistory();
+      const sidebar = useChatHistory({ loadHistory: false });
+
+      return { chat, sidebar };
+    });
+    await waitFor(() => expect(result.current.chat.ready).toBe(true));
+
+    const messages = [
+      { id: 'live-home-chat', role: 'assistant', parts: [{ type: 'text', text: 'building' }] } as UIMessage,
+    ];
+    await act(async () => {
+      await result.current.chat.storeMessageHistory(messages, true);
+    });
+
+    routeSearch = 'view=preview';
+    rerender();
+    await waitFor(() => expect(result.current.chat.ready).toBe(true));
+    expect(resetWorkbench).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.chat.storeMessageHistory(messages, false);
+    });
+
+    routeId = '3';
+    rerender();
+    await waitFor(() => expect(result.current.chat.ready).toBe(true));
+
+    expect(resetWorkbench).not.toHaveBeenCalled();
+    expect(result.current.chat.chatChanged).toBe(false);
+    expect(result.current.chat.initialMessages).toEqual([]);
+    expect(result.current.sidebar.initialMessages).toEqual([]);
+  });
+
+  it('loads and resets a selected chat only once when an export consumer is also mounted', async () => {
+    const useChatHistory = await importHook();
+
+    const { result } = renderHook(() => {
+      const chat = useChatHistory();
+      useChatHistory({ loadHistory: false });
+
+      return chat;
+    });
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(resetWorkbench).toHaveBeenCalledTimes(1);
+    expect(result.current.initialMessages[0].id).toBe('chat-a-user');
+  });
+
   it('should defer the new chat route handoff until the initial response finishes', async () => {
     const useChatHistory = await importHook();
     routeId = undefined;
@@ -302,6 +355,66 @@ describe('useChatHistory chat switching', () => {
     );
     expect(navigate).toHaveBeenCalledWith('/chat/3', { replace: true });
     expect(window.location.pathname).toBe('/chat/3');
+  });
+
+  it('preserves an incoming generation when the home query changes before its route handoff', async () => {
+    const useChatHistory = await importHook();
+    routeId = undefined;
+
+    const { rerender, result } = renderHook(() => useChatHistory());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const messages = [
+      { id: 'live-response', role: 'assistant', parts: [{ type: 'text', text: 'building' }] } as UIMessage,
+    ];
+
+    await act(async () => {
+      await result.current.storeMessageHistory(messages, true);
+    });
+
+    routeSearch = 'view=preview';
+    window.history.replaceState(window.history.state, '', '/?view=preview');
+    rerender();
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(resetWorkbench).not.toHaveBeenCalled();
+    expect(result.current.chatChanged).toBe(false);
+    expect(result.current.initialMessages).toEqual([]);
+
+    await act(async () => {
+      await result.current.storeMessageHistory(messages, false);
+    });
+    expect(navigate).toHaveBeenCalledWith('/chat/3?view=preview', { replace: true });
+  });
+
+  it('skips a stale chat reset queued behind an earlier filesystem transition', async () => {
+    const useChatHistory = await importHook();
+
+    let finishReset!: () => void;
+
+    const resetting = new Promise<void>((resolve) => {
+      finishReset = resolve;
+    });
+    resetWorkbench.mockImplementationOnce(() => resetting);
+
+    const { rerender, result } = renderHook(() => useChatHistory());
+    await waitFor(() => expect(resetWorkbench).toHaveBeenCalledTimes(1));
+
+    routeId = 'chat-b';
+    rerender();
+    await waitFor(() => expect(getCachedSnapshot).toHaveBeenCalledWith({}, '2'));
+
+    routeId = '3';
+    rerender();
+    await waitFor(() => expect(getCachedSnapshot).toHaveBeenCalledWith({}, '3'));
+
+    await act(async () => {
+      finishReset();
+    });
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(resetWorkbench).toHaveBeenCalledTimes(2);
+    expect(result.current.initialMessages[0].id).toBe('3-user');
   });
 
   it('should drop queued saves from a chat as soon as the route changes', async () => {

@@ -163,6 +163,10 @@ export class ActionRunner {
   async #executeAction(actionId: string, isStreaming: boolean = false) {
     const action = this.actions.get()[actionId];
 
+    if (action.abortSignal.aborted) {
+      return;
+    }
+
     this.#updateAction(actionId, { status: 'running' });
 
     try {
@@ -201,7 +205,11 @@ export class ActionRunner {
           // making the start app non blocking
 
           this.#runStartAction(action)
-            .then(() => this.#updateAction(actionId, { status: 'complete' }))
+            .then(() => {
+              if (!action.abortSignal.aborted) {
+                this.#updateAction(actionId, { status: 'complete' });
+              }
+            })
             .catch((err: Error) => {
               if (action.abortSignal.aborted) {
                 return;
@@ -279,10 +287,19 @@ export class ActionRunner {
       action.content = validationResult.modifiedCommand;
     }
 
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
-      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
-      action.abort();
-    });
+    if (action.abortSignal.aborted) {
+      return;
+    }
+
+    const resp = await shell.executeCommand(
+      this.runnerId.get(),
+      action.content,
+      () => {
+        logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
+        action.abort();
+      },
+      action.abortSignal,
+    );
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
     if (resp?.exitCode != 0) {
@@ -303,14 +320,23 @@ export class ActionRunner {
     const shell = this.#shellTerminal();
     await shell.ready();
 
+    if (action.abortSignal.aborted) {
+      return undefined;
+    }
+
     if (!shell || !shell.terminal || !shell.process) {
       unreachable('Shell terminal not found');
     }
 
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
-      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
-      action.abort();
-    });
+    const resp = await shell.executeCommand(
+      this.runnerId.get(),
+      action.content,
+      () => {
+        logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
+        action.abort();
+      },
+      action.abortSignal,
+    );
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
     if (resp?.exitCode != 0) {
