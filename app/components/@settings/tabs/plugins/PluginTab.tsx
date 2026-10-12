@@ -45,9 +45,9 @@ const MARKETPLACE_URL = 'https://github.com/dustinwloring1988/bolt-marketplace';
 const CATEGORIES = pluginCategorySchema.options;
 
 const buttonClass =
-  'inline-flex items-center justify-center gap-2 rounded-lg border border-bolt-elements-borderColor px-3 py-2 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex appearance-none items-center justify-center gap-2 rounded-lg border border-bolt-elements-borderColor bg-transparent px-3 py-2 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50';
 const primaryButtonClass =
-  'inline-flex items-center justify-center gap-2 rounded-lg border border-purple-500 bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex appearance-none items-center justify-center gap-2 rounded-lg border border-purple-500 bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50';
 const inputClass =
   'w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20';
 
@@ -85,7 +85,7 @@ function PluginCard({
       <button
         type="button"
         onClick={onOpen}
-        className="flex flex-1 items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        className="flex flex-1 appearance-none items-start gap-3 border-0 bg-transparent text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-400">
           <Blocks className="h-5 w-5" />
@@ -416,10 +416,10 @@ export default function PluginTab() {
                 onClick={() => setView(id)}
                 aria-current={view === id ? 'page' : undefined}
                 className={classNames(
-                  'border-b-2 px-4 py-2.5 text-sm transition-colors',
+                  'appearance-none rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
                   view === id
-                    ? 'border-purple-500 text-purple-400'
-                    : 'border-transparent text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                    ? 'border-bolt-elements-borderColorActive bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                    : 'border-bolt-elements-borderColor bg-transparent text-bolt-elements-textSecondary hover:border-bolt-elements-borderColorActive hover:text-bolt-elements-textPrimary',
                 )}
               >
                 {label}
