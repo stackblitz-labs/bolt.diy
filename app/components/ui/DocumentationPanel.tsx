@@ -1,5 +1,8 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { useStore } from '@nanostores/react';
 import { ExternalLink, X } from 'lucide-react';
+import { themeStore } from '~/lib/stores/theme';
+import { getThemeMode } from '~/types/theme';
 
 const credentiallessIframeAttributes = { credentialless: 'true' };
 
@@ -11,6 +14,9 @@ interface DocumentationPanelProps {
 }
 
 export function DocumentationPanel({ open, onClose }: DocumentationPanelProps) {
+  const theme = useStore(themeStore);
+  const documentationUrl = `${DOCUMENTATION_URL}?theme=${getThemeMode(theme)}`;
+
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <Dialog.Portal>
@@ -31,7 +37,7 @@ export function DocumentationPanel({ open, onClose }: DocumentationPanelProps) {
 
             <div className="flex shrink-0 items-center gap-2">
               <a
-                href={DOCUMENTATION_URL}
+                href={documentationUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg border border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
@@ -54,8 +60,8 @@ export function DocumentationPanel({ open, onClose }: DocumentationPanelProps) {
           <iframe
             {...credentiallessIframeAttributes}
             title="bolt.diy documentation"
-            src={open ? DOCUMENTATION_URL : 'about:blank'}
-            className="min-h-0 w-full flex-1 border-0 bg-white"
+            src={open ? documentationUrl : 'about:blank'}
+            className="min-h-0 w-full flex-1 border-0 bg-bolt-elements-background-depth-1"
             referrerPolicy="strict-origin-when-cross-origin"
           />
         </Dialog.Content>
