@@ -189,6 +189,12 @@ describe('chatRequestSchema', () => {
       expect(chatRequestSchema.safeParse({ messages: [{}] }).success).toBe(false);
     });
 
+    it('rejects messages without a supported role before model conversion', () => {
+      expect(chatRequestSchema.safeParse({ messages: [{ parts: [{ type: 'text', text: 'hello' }] }] }).success).toBe(
+        false,
+      );
+    });
+
     it('bounds oversized text parts', () => {
       const result = chatRequestSchema.safeParse({
         messages: [

@@ -218,6 +218,28 @@ export function toTokenLimitError(provider: string): ApiError {
   );
 }
 
+/** Identifies provider token-limit diagnostics without forwarding their text. */
+export function isTokenLimitFailure(error: unknown): error is Error {
+  if (!(error instanceof Error) || isTypedFailure(error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  return (
+    /\bmax[_ -]?tokens?\b/.test(message) ||
+    /\btoken\s+limit\s+(?:exceeded|exceeds|reached)\b/.test(message) ||
+    /\b(?:maximum|max)\s+context\s+length\b/.test(message) ||
+    /\bcontext\s+length\b.{0,40}\b(?:exceed(?:ed|s)?|maximum|limit)\b/.test(message) ||
+    /\btoo\s+many\s+tokens\b/.test(message) ||
+    /\brequested\s+tokens\b.{0,40}\b(?:exceed(?:ed|s)?|maximum|limit)\b/.test(message)
+  );
+}
+
+function isTypedFailure(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && 'status' in error;
+}
+
 /**
  * Builds the failure response for a caught error.
  *

@@ -80,7 +80,7 @@ const uiMessagePartSchema = z
 const uiMessageSchema = z
   .looseObject({
     id: z.string().max(REQUEST_LIMITS.MAX_ID_CHARS).optional(),
-    role: z.enum(['system', 'user', 'assistant']).optional(),
+    role: z.enum(['system', 'user', 'assistant']),
     parts: z.array(uiMessagePartSchema).max(REQUEST_LIMITS.MAX_PARTS_PER_MESSAGE).optional(),
     content: z.union([z.string(), z.array(z.unknown())]).optional(),
     experimental_attachments: z.array(z.unknown()).max(REQUEST_LIMITS.MAX_ATTACHMENTS_PER_MESSAGE).optional(),

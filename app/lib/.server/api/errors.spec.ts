@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   toApiErrorResponse,
+  ApiError,
+  isTokenLimitFailure,
   toMissingCredentialError,
   toSafeStreamErrorMessage,
   toSafeTextStream,
@@ -90,5 +92,14 @@ describe('toTokenLimitError', () => {
       provider: 'Example',
     });
     expect(JSON.stringify(body)).not.toContain('https://provider.example');
+  });
+
+  it('recognizes provider token diagnostics but leaves typed failures alone', () => {
+    expect(isTokenLimitFailure(new Error('max_tokens exceeded at https://provider.example?key=secret'))).toBe(true);
+    expect(isTokenLimitFailure(new Error('max_tokens exceeded'))).toBe(true);
+    expect(isTokenLimitFailure(new Error('maximum context length is 4097 tokens'))).toBe(true);
+    expect(isTokenLimitFailure(new Error('Access token expired'))).toBe(false);
+    expect(isTokenLimitFailure(new Error('Invalid API token'))).toBe(false);
+    expect(isTokenLimitFailure(new ApiError('Typed token failure', { status: 400, code: 'token_limit' }))).toBe(false);
   });
 });

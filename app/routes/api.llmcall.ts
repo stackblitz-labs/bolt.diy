@@ -2,6 +2,7 @@ import { generateText, type UIMessage } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
 import {
   ApiError,
+  isTokenLimitFailure,
   toApiErrorResponse,
   toMissingCredentialError,
   toSafeTextStream,
@@ -130,6 +131,10 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         },
       });
     } catch (error: unknown) {
+      if (isTokenLimitFailure(error)) {
+        return toApiErrorResponse(toTokenLimitError(providerName));
+      }
+
       if (error instanceof Error && error.message?.includes('API key')) {
         return toApiErrorResponse(toMissingCredentialError(providerName, error.message));
       }
@@ -245,14 +250,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
        * they get an actionable 400 rather than falling through to a 500 whose
        * message says only "An unexpected error occurred".
        */
-      if (
-        error instanceof Error &&
-        !isTypedFailure(error) &&
-        (error.message.includes('max_tokens') ||
-          error.message.includes('token') ||
-          error.message.includes('exceeds') ||
-          error.message.includes('maximum'))
-      ) {
+      if (isTokenLimitFailure(error)) {
         return toApiErrorResponse(toTokenLimitError(providerName));
       }
 
@@ -263,9 +261,4 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
       return toApiErrorResponse(error, providerName);
     }
   }
-}
-
-/** True for an error that already carries a deliberate status. */
-function isTypedFailure(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && 'code' in error && 'status' in error;
 }
