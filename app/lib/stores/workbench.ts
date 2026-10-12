@@ -215,7 +215,11 @@ export class WorkbenchStore {
    * a switch has to clear them together. Awaited by the caller so the incoming
    * chat only starts writing once the outgoing project is gone.
    */
-  async resetWorkbench() {
+  async resetWorkbench(isCurrent: () => boolean = () => true) {
+    if (!isCurrent()) {
+      return;
+    }
+
     /*
      * Invalidate streamed callbacks immediately, then let any filesystem work
      * already in progress finish before clearing the container.
@@ -228,7 +232,26 @@ export class WorkbenchStore {
 
     this.#pendingStreamActions.clear();
 
-    await this.waitForExecutionQueue();
+    const outgoingArtifacts = Object.values(this.artifacts.get());
+    const outgoingExecution = this.boltTerminal.executionState.get();
+
+    for (const artifact of outgoingArtifacts) {
+      artifact.runner.abortAllActions();
+    }
+
+    /*
+     * Capture and interrupt the outgoing command before awaiting the queue.
+     * A later command must never be stopped by a delayed reset.
+     */
+    const stopped = outgoingExecution?.active ? this.boltTerminal.stop(outgoingExecution.sessionId) : Promise.resolve();
+
+    await Promise.all([this.waitForExecutionQueue(), stopped]);
+
+    if (!isCurrent()) {
+      return;
+    }
+
+    this.#previewsStore.reset();
 
     this.artifacts.set({});
     this.artifactIdList = [];
@@ -779,7 +802,7 @@ export class WorkbenchStore {
         this.setSelectedFile(fullPath);
       }
 
-      if (this.currentView.value !== 'code') {
+      if (this.currentView.value !== 'code' && this.userSelectedView.get() === undefined) {
         this.currentView.set('code');
       }
 

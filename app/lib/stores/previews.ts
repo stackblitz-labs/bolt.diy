@@ -182,7 +182,7 @@ export class PreviewsStore {
     webcontainer.on('port', (port, type, url) => {
       let previewInfo = this.#availablePreviews.get(port);
 
-      if (type === 'close' && previewInfo) {
+      if (type === 'close') {
         this.#availablePreviews.delete(port);
         this.previews.set(this.previews.get().filter((preview) => preview.port !== port));
 
@@ -294,6 +294,17 @@ export class PreviewsStore {
         this.broadcastFileChange(previewId);
       }
     }
+  }
+
+  reset() {
+    for (const timeout of this.#refreshTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+
+    this.#refreshTimeouts.clear();
+    this.#availablePreviews.clear();
+    this.#lastUpdate.clear();
+    this.previews.set([]);
   }
 }
 

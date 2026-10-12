@@ -35,7 +35,6 @@ const EMPTY_ACTIONS_STORE = map<Record<string, ActionState>>({});
 export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const userToggledActions = useRef(false);
   const [showActions, setShowActions] = useState(false);
-  const [allActionFinished, setAllActionFinished] = useState(false);
 
   const artifacts = useStore(workbenchStore.artifacts);
   const artifact = artifacts[artifactId];
@@ -67,33 +66,50 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
     if (actions.length && !showActions && !userToggledActions.current) {
       setShowActions(true);
     }
-
-    if (actions.length !== 0 && artifact?.type === 'bundled') {
-      const finished = !actions.find(
-        (action) => action.status !== 'complete' && !(action.type === 'start' && action.status === 'running'),
-      );
-
-      if (allActionFinished !== finished) {
-        setAllActionFinished(finished);
-      }
-    }
-  }, [actions, artifact?.type, allActionFinished]);
+  }, [actions, artifact?.type, showActions]);
 
   if (!artifact) {
     return null;
   }
 
-  // Determine the dynamic title based on state for bundled artifacts
-  const dynamicTitle =
-    artifact.type === 'bundled'
-      ? allActionFinished
-        ? artifact.id === 'restored-project-setup'
-          ? 'Project Restored' // Title when restore is complete
-          : 'Project Created' // Title when initial creation is complete
-        : artifact.id === 'restored-project-setup'
-          ? 'Restoring Project...' // Title during restore
-          : 'Creating Project...' // Title during initial creation
-      : artifact.title; // Fallback to original title for non-bundled
+  const failed = actions.some((action) => action.status === 'failed');
+  const interrupted = actions.some((action) => action.status === 'aborted');
+  const emptySetup = artifact.closed && actions.length === 0;
+
+  const allActionFinished =
+    actions.length > 0 &&
+    actions.every((action) => action.status === 'complete' || (action.type === 'start' && action.status === 'running'));
+  const setupStatus = failed
+    ? 'failed'
+    : interrupted || emptySetup
+      ? 'aborted'
+      : allActionFinished
+        ? 'complete'
+        : 'running';
+
+  const restored = artifact.id === 'restored-project-setup';
+
+  // Render terminal states for empty, failed, and cancelled setup artifacts.
+  const setupTitles = {
+    failed: restored ? 'Project Restore Failed' : 'Project Setup Failed',
+    aborted: restored ? 'Project Restore Incomplete' : 'Project Setup Incomplete',
+    complete: restored ? 'Project Restored' : 'Project Created',
+    running: restored ? 'Restoring Project...' : 'Creating Project...',
+  };
+
+  const dynamicTitle = artifact.type === 'bundled' ? setupTitles[setupStatus] : artifact.title;
+
+  const setupDescription = failed
+    ? 'One or more setup actions failed.'
+    : interrupted
+      ? 'Project setup was interrupted.'
+      : emptySetup
+        ? 'No setup actions were generated.'
+        : allActionFinished
+          ? restored
+            ? 'Restore files from snapshot'
+            : 'Initial files created'
+          : 'Creating initial files';
 
   return (
     <>
@@ -136,21 +152,16 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
         </div>
         {artifact.type === 'bundled' && (
           <div className="flex items-center gap-1.5 p-5 bg-bolt-elements-actions-background border-t border-bolt-elements-artifacts-borderColor">
-            <div className={classNames('text-lg', getIconColor(allActionFinished ? 'complete' : 'running'))}>
-              {allActionFinished ? (
+            <div className={classNames('text-lg', getIconColor(setupStatus))}>
+              {setupStatus === 'complete' ? (
                 <div className="i-ph:check"></div>
+              ) : setupStatus !== 'running' ? (
+                <div className="i-ph:warning-circle"></div>
               ) : (
                 <div className="i-svg-spinners:90-ring-with-bg"></div>
               )}
             </div>
-            <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">
-              {/* This status text remains the same */}
-              {allActionFinished
-                ? artifact.id === 'restored-project-setup'
-                  ? 'Restore files from snapshot'
-                  : 'Initial files created'
-                : 'Creating initial files'}
-            </div>
+            <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">{setupDescription}</div>
           </div>
         )}
         <AnimatePresence>
