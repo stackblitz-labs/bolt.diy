@@ -7,7 +7,7 @@ import {
   type UIMessage,
 } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
-import { toApiErrorResponse, toMissingCredentialError } from '~/lib/.server/api/errors';
+import { toApiErrorResponse, toMissingCredentialError, toSafeStreamErrorMessage } from '~/lib/.server/api/errors';
 import { readJsonBody } from '~/lib/.server/api/read-body';
 import {
   REQUEST_LIMITS,
@@ -31,70 +31,6 @@ import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
 import type { IProviderSetting } from '~/types/model';
 import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
-
-/**
- * Turns a provider/transport error into a message that is safe to show a user.
- *
- * The AI SDK defaults its `onError` hooks to `() => 'An error occurred.'` so
- * server-side details are not leaked to the client. The chunk the browser actually
- * receives is produced by the `toUIMessageStream` wrapping the model stream, so
- * that is the hook this must be passed to — see the call site below. Without it
- * every failure showed the generic string, hiding things like an expired key or an
- * exhausted credit balance.
- */
-function toClientErrorMessage(error: unknown): string {
-  const providerMessage = error instanceof Error ? error.message : String(error);
-
-  /*
-   * Pick a short, plain-language hint for the failure class.
-   *
-   * The hint never replaces the provider's own text: OpenRouter, for example,
-   * answers an exhausted credit balance with a 429, so the "rate limit" branch
-   * matched and used to hide the only actionable part — the
-   * `openrouter.ai/settings/integrations` link telling the user to add credits.
-   * Keyword matching is a guess; the provider text is the ground truth, so it is
-   * always carried through alongside the hint.
-   */
-  const hint = matchErrorHint(providerMessage);
-
-  if (!hint || hint === providerMessage) {
-    return `Custom error: ${providerMessage}`;
-  }
-
-  return `${hint} (provider reported: ${providerMessage})`;
-}
-
-function matchErrorHint(errorMessage: string): string | undefined {
-  if (errorMessage.includes('model') && errorMessage.includes('not found')) {
-    return 'Custom error: Invalid model selected. Please check that the model name is correct and available.';
-  }
-
-  if (errorMessage.includes('Invalid JSON response')) {
-    return 'Custom error: The AI service returned an invalid response. This may be due to an invalid model name, API rate limiting, or server issues. Try selecting a different model or check your API key.';
-  }
-
-  if (
-    errorMessage.includes('API key') ||
-    errorMessage.includes('unauthorized') ||
-    errorMessage.includes('authentication')
-  ) {
-    return 'Custom error: Invalid or missing API key. Please check your API key configuration.';
-  }
-
-  if (errorMessage.includes('token') && errorMessage.includes('limit')) {
-    return 'Custom error: Token limit exceeded. The conversation is too long for the selected model. Try using a model with larger context window or start a new conversation.';
-  }
-
-  if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
-    return 'Custom error: API rate limit exceeded, or the provider rejected the request for account reasons. Check the provider details below.';
-  }
-
-  if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
-    return 'Custom error: Network error. Please check your internet connection and try again.';
-  }
-
-  return undefined;
-}
 
 const logger = createScopedLogger('api.chat');
 
@@ -165,10 +101,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * onChunk rather than by iterating the stream alongside the UI merge.
      */
     const observeChunk = ({ chunk }: { chunk: unknown }) => {
-      const part = chunk as { type?: string; error?: unknown };
+      const part = chunk as { type?: string };
 
       if (part.type === 'error') {
-        logger.error('Streaming error:', part.error);
+        logger.error('Streaming provider error');
       }
     };
 
@@ -477,7 +413,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * mapper only to the outer `createUIMessageStream` (or to `streamText`)
              * left every failure showing the generic string.
              */
-            onError: toClientErrorMessage,
+            onError: toSafeStreamErrorMessage,
           }),
         );
       },
@@ -491,7 +427,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         // no-op: stream is managed by merged consumer
       },
       onError: (error: any) => {
-        return toClientErrorMessage(error);
+        return toSafeStreamErrorMessage(error);
       },
     });
 
@@ -506,7 +442,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       keepAliveMs: 15_000,
     });
   } catch (error: unknown) {
-    logger.error(error);
+    logger.error('Chat route error');
 
     /*
      * Same credential check as before, but as a typed error so the status,

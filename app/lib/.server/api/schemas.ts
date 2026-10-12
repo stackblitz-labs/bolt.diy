@@ -17,6 +17,9 @@ import type { ProviderInfo } from '~/types/model';
 export const REQUEST_LIMITS = {
   /** Whole-body ceiling. Generous because `files` carries project contents. */
   MAX_CHAT_BODY_BYTES: 16 * 1024 * 1024,
+
+  /** Inline data URLs may use most of the chat body budget; JSON overhead still counts. */
+  MAX_ATTACHMENT_URL_CHARS: 16 * 1024 * 1024,
   MAX_LLMCALL_BODY_BYTES: 1 * 1024 * 1024,
   MAX_MESSAGES: 500,
   MAX_PARTS_PER_MESSAGE: 1000,
@@ -53,12 +56,19 @@ const uiMessagePartSchema = z
   .looseObject({
     type: z.string().max(128),
     text: z.string().max(REQUEST_LIMITS.MAX_TEXT_PART_CHARS).optional(),
-    url: z.string().max(REQUEST_LIMITS.MAX_URL_CHARS).optional(),
+    url: z.string().optional(),
     mediaType: z.string().max(255).optional(),
     filename: z.string().max(REQUEST_LIMITS.MAX_PATH_CHARS).optional(),
     mimeType: z.string().max(255).optional(),
   })
-  .refine((part) => part.type !== 'file' || typeof part.url === 'string', { message: 'file parts must carry a url' });
+  .refine((part) => part.type !== 'file' || typeof part.url === 'string', { message: 'file parts must carry a url' })
+  .refine(
+    (part) =>
+      part.url === undefined ||
+      part.url.length <=
+        (part.url.startsWith('data:') ? REQUEST_LIMITS.MAX_ATTACHMENT_URL_CHARS : REQUEST_LIMITS.MAX_URL_CHARS),
+    { message: 'url is too long' },
+  );
 
 /**
  * A UIMessage.
@@ -67,12 +77,24 @@ const uiMessagePartSchema = z
  * carry it, and `migrateLegacyMessages` / `getMessageText` read it as a
  * fallback. Rejecting it would break resuming an older conversation.
  */
-const uiMessageSchema = z.looseObject({
-  id: z.string().max(REQUEST_LIMITS.MAX_ID_CHARS).optional(),
-  role: z.enum(['system', 'user', 'assistant']).optional(),
-  parts: z.array(uiMessagePartSchema).max(REQUEST_LIMITS.MAX_PARTS_PER_MESSAGE).optional(),
-  content: z.union([z.string(), z.array(z.unknown())]).optional(),
-});
+const uiMessageSchema = z
+  .looseObject({
+    id: z.string().max(REQUEST_LIMITS.MAX_ID_CHARS).optional(),
+    role: z.enum(['system', 'user', 'assistant']).optional(),
+    parts: z.array(uiMessagePartSchema).max(REQUEST_LIMITS.MAX_PARTS_PER_MESSAGE).optional(),
+    content: z.union([z.string(), z.array(z.unknown())]).optional(),
+    experimental_attachments: z.array(z.unknown()).max(REQUEST_LIMITS.MAX_ATTACHMENTS_PER_MESSAGE).optional(),
+  })
+  .refine(
+    (message) =>
+      (message.parts?.filter((part) => part.type === 'file').length ?? 0) +
+        (message.experimental_attachments?.length ?? 0) <=
+      REQUEST_LIMITS.MAX_ATTACHMENTS_PER_MESSAGE,
+    { message: `at most ${REQUEST_LIMITS.MAX_ATTACHMENTS_PER_MESSAGE} attachments per message` },
+  )
+  .refine((message) => Array.isArray(message.parts) || message.content !== undefined, {
+    message: 'message must include parts or legacy content',
+  });
 
 const fileEntrySchema = z
   .looseObject({

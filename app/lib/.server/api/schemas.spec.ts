@@ -106,6 +106,89 @@ describe('chatRequestSchema', () => {
       expect(result.success).toBe(false);
     });
 
+    it('caps file attachments per message', () => {
+      const attachment = { type: 'file', mediaType: 'image/png', url: 'https://example.com/image.png' };
+
+      expect(
+        chatRequestSchema.safeParse({
+          messages: [
+            {
+              id: 'm1',
+              role: 'user',
+              parts: Array.from({ length: REQUEST_LIMITS.MAX_ATTACHMENTS_PER_MESSAGE }, () => attachment),
+            },
+          ],
+        }).success,
+      ).toBe(true);
+      expect(
+        chatRequestSchema.safeParse({
+          messages: [
+            {
+              id: 'legacy-at-limit',
+              role: 'user',
+              content: 'look at these',
+              experimental_attachments: Array.from({ length: REQUEST_LIMITS.MAX_ATTACHMENTS_PER_MESSAGE }, () => ({})),
+            },
+          ],
+        }).success,
+      ).toBe(true);
+      expect(
+        chatRequestSchema.safeParse({
+          messages: [
+            {
+              id: 'm1',
+              role: 'user',
+              parts: Array.from({ length: REQUEST_LIMITS.MAX_ATTACHMENTS_PER_MESSAGE + 1 }, () => attachment),
+            },
+          ],
+        }).success,
+      ).toBe(false);
+
+      expect(
+        chatRequestSchema.safeParse({
+          messages: [
+            {
+              id: 'legacy',
+              role: 'user',
+              content: 'look at these',
+              experimental_attachments: Array.from(
+                { length: REQUEST_LIMITS.MAX_ATTACHMENTS_PER_MESSAGE + 1 },
+                () => ({}),
+              ),
+            },
+          ],
+        }).success,
+      ).toBe(false);
+    });
+
+    it('accepts realistic inline image data URLs within the chat body budget', () => {
+      const dataUrl = `data:image/png;base64,${'a'.repeat(100 * 1024)}`;
+
+      const result = chatRequestSchema.safeParse({
+        messages: [{ id: 'm1', role: 'user', parts: [{ type: 'file', mediaType: 'image/png', url: dataUrl }] }],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('keeps ordinary URLs bounded', () => {
+      const result = chatRequestSchema.safeParse({
+        messages: [
+          {
+            id: 'm1',
+            role: 'user',
+            parts: [{ type: 'file', mediaType: 'image/png', url: `https://${'a'.repeat(8192)}` }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects messages with neither current parts nor legacy content', () => {
+      expect(chatRequestSchema.safeParse({ messages: [{}] }).success).toBe(false);
+    });
+
     it('bounds oversized text parts', () => {
       const result = chatRequestSchema.safeParse({
         messages: [

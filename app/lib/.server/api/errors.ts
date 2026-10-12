@@ -110,29 +110,112 @@ export class RequestAbortedError extends ApiError {
  * Credentials problems, normalised across providers.
  *
  * Every provider phrases this differently ("Incorrect API key", "invalid x-api-key",
- * 401, 403), so the routes matched on substrings of the provider's message. The
- * user-facing hint below is the actionable part; the provider text is carried
- * alongside it because for some providers it is the only thing that says *why*
- * (expired key vs. wrong account vs. revoked).
+ * 401, 403), so the routes matched on substrings of the provider's message. Keep
+ * provider diagnostics out of the client response because they can contain
+ * request URLs or credential data.
  */
 export function toMissingCredentialError(provider: string, providerMessage?: string): ApiError {
-  const base = new ApiError('Invalid or missing API key', {
+  if (providerMessage) {
+    logger.warn('Provider credential error');
+  }
+
+  return new ApiError('Invalid or missing API key', {
     status: 401,
     code: 'missing_api_key',
     isRetryable: false,
     provider,
   });
+}
 
-  if (providerMessage) {
-    return new ApiError(`Invalid or missing API key (provider reported: ${providerMessage})`, {
-      status: 401,
-      code: 'missing_api_key',
-      isRetryable: false,
-      provider,
-    });
+/** Converts a streaming provider error to a client-safe hint without forwarding diagnostics. */
+export function toSafeStreamErrorMessage(error: unknown): string {
+  const providerMessage = error instanceof Error ? error.message : String(error);
+
+  logger.error('Streaming provider error');
+
+  if (providerMessage.includes('model') && providerMessage.includes('not found')) {
+    return 'Custom error: Invalid model selected. Please check that the model name is correct and available.';
   }
 
-  return base;
+  if (providerMessage.includes('Invalid JSON response')) {
+    return 'Custom error: The AI service returned an invalid response. This may be due to an invalid model name, API rate limiting, or server issues. Try selecting a different model or check your API key.';
+  }
+
+  if (
+    providerMessage.includes('API key') ||
+    providerMessage.includes('unauthorized') ||
+    providerMessage.includes('authentication')
+  ) {
+    return 'Custom error: Invalid or missing API key. Please check your API key configuration.';
+  }
+
+  if (providerMessage.includes('token') && providerMessage.includes('limit')) {
+    return 'Custom error: Token limit exceeded. The conversation is too long for the selected model. Try using a model with larger context window or start a new conversation.';
+  }
+
+  if (providerMessage.includes('rate limit') || providerMessage.includes('429')) {
+    return 'Custom error: API rate limit exceeded, or the provider rejected the request for account reasons. Check your provider account and try again.';
+  }
+
+  if (providerMessage.includes('network') || providerMessage.includes('timeout')) {
+    return 'Custom error: Network error. Please check your internet connection and try again.';
+  }
+
+  return 'Custom error: The AI provider request failed. Check your provider settings and try again.';
+}
+
+/** Wraps a plain-text provider stream so late failures become a safe text chunk. */
+export function toSafeTextStream(stream: ReadableStream<string>): ReadableStream<Uint8Array> {
+  const reader = stream.getReader();
+  const encoder = new TextEncoder();
+
+  let failed = false;
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (failed) {
+        controller.close();
+        return;
+      }
+
+      try {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          reader.releaseLock();
+          controller.close();
+
+          return;
+        }
+
+        controller.enqueue(encoder.encode(value));
+      } catch {
+        failed = true;
+        logger.error('Streaming provider error');
+        reader.releaseLock();
+        controller.enqueue(
+          encoder.encode('Custom error: The AI provider request failed. Check your provider settings and try again.'),
+        );
+        controller.close();
+      }
+    },
+    async cancel(reason) {
+      await reader.cancel(reason);
+    },
+  });
+}
+
+/** Returns a fixed client-safe token-limit response. */
+export function toTokenLimitError(provider: string): ApiError {
+  return new ApiError(
+    'Token limit exceeded. Try reducing your request size or using a model with higher token limits.',
+    {
+      status: 400,
+      code: 'token_limit_exceeded',
+      isRetryable: false,
+      provider,
+    },
+  );
 }
 
 /**
@@ -175,7 +258,7 @@ export function toApiErrorResponse(error: unknown, fallbackProvider = 'unknown')
     );
   }
 
-  logger.error('Unhandled route error:', error);
+  logger.error('Unhandled route error');
 
   return Response.json(
     {
