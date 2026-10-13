@@ -53,7 +53,7 @@ describe('LLMManager', () => {
     const manager = LLMManager.getInstance({});
     const names = manager.getAllProviders().map((p) => p.name);
 
-    // All 22 providers should now be registered
+    // All 23 providers should now be registered
     expect(names.sort()).toEqual([
       'AmazonBedrock',
       'Anthropic',
@@ -75,12 +75,13 @@ describe('LLMManager', () => {
       'OpenRouter',
       'Perplexity',
       'Together',
+      'WebWright',
       'Z.ai',
       'xAI',
     ]);
   });
 
-  it('registers all 22 providers including newly restored ones', () => {
+  it('registers all 23 providers including newly restored ones', () => {
     const manager = LLMManager.getInstance({});
     const names = manager.getAllProviders().map((p) => p.name);
 
@@ -91,7 +92,7 @@ describe('LLMManager', () => {
     expect(names).toContain('HuggingFace');
     expect(names).toContain('Cohere');
     expect(names).toContain('Mistral');
-    expect(names.length).toBe(22);
+    expect(names.length).toBe(23);
   });
 
   it('exposes each enabled provider via getProvider', () => {
