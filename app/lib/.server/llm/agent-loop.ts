@@ -36,13 +36,16 @@ export function createAgentLoopTools<TaskToolName extends string = never>(
     }),
     agent_complete: tool({
       description:
-        'Finish the current task only after running it and passing relevant checks after the latest edit. Report each planned criterion with real tool-call evidence. Use outcome blocked with a concrete reason if completion is impossible.',
+        'Finish the current task only after running it and passing relevant checks after the latest edit. Report every planned criterion by its exact ID. The server attaches evidence from successful project tool calls automatically; do not provide process IDs, command names, or guessed evidence IDs. Use outcome blocked with a concrete reason if completion is impossible.',
       inputSchema: z.object({
         outcome: z.enum(['complete', 'blocked']),
         summary: z.string().min(1).max(1000),
         criteria: z
           .array(
-            z.object({ id: z.string().min(1).max(40), evidence: z.array(z.string().min(1).max(256)).min(1).max(20) }),
+            z.object({
+              id: z.string().min(1).max(40),
+              evidence: z.array(z.string().min(1).max(256)).max(20).optional(),
+            }),
           )
           .max(8),
       }),
@@ -53,19 +56,28 @@ export function createAgentLoopTools<TaskToolName extends string = never>(
 
         const progress = getAgentLoopProgress(currentMessages, enabled);
         const problems = getAgentCompletionProblems(progress);
+        const plannedCriteria = progress.plan?.criteria ?? [];
+        const plannedIds = new Set(plannedCriteria.map((criterion) => criterion.id));
+        const reportedIds = new Set(input.criteria.map((criterion) => criterion.id));
 
-        for (const criterion of progress.plan?.criteria ?? []) {
-          const report = input.criteria.find((item) => item.id === criterion.id);
+        if (reportedIds.size !== input.criteria.length) {
+          problems.push('Report each planned criterion exactly once.');
+        }
 
-          if (
-            !report ||
-            report.evidence.length === 0 ||
-            !report.evidence.every((id) => progress.evidence.includes(id))
-          ) {
-            problems.push(
-              `Criterion ${criterion.id} needs successful tool-call IDs, not process IDs or command names.`,
-            );
+        for (const criterion of plannedCriteria) {
+          if (!reportedIds.has(criterion.id)) {
+            problems.push(`Report planned criterion ${criterion.id} by its exact ID.`);
           }
+        }
+
+        for (const criterion of input.criteria) {
+          if (!plannedIds.has(criterion.id)) {
+            problems.push(`Criterion ${criterion.id} is not in the recorded plan.`);
+          }
+        }
+
+        if (progress.evidence.length === 0) {
+          problems.push('Successful project tool-call evidence is missing.');
         }
 
         if (problems.length > 0) {
@@ -79,7 +91,11 @@ export function createAgentLoopTools<TaskToolName extends string = never>(
           };
         }
 
-        return { completed: true, summary: input.summary, criteria: input.criteria };
+        return {
+          completed: true,
+          summary: input.summary,
+          criteria: plannedCriteria.map((criterion) => ({ id: criterion.id, evidence: progress.evidence })),
+        };
       },
     }),
   };
