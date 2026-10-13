@@ -1,146 +1,215 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { ElementInfo } from './Inspector';
 
-interface ElementInfo {
-  tagName: string;
-  className: string;
-  id: string;
-  textContent: string;
-  styles: Record<string, string>; // Changed from CSSStyleDeclaration
-  rect: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    top: number;
-    left: number;
-  };
-}
+const editableStyles = [
+  { property: 'color', label: 'Text color', type: 'color' },
+  { property: 'background-color', label: 'Background', type: 'color' },
+  { property: 'font-size', label: 'Font size', type: 'text' },
+  { property: 'font-weight', label: 'Font weight', type: 'text' },
+  { property: 'text-align', label: 'Text alignment', type: 'select' },
+  { property: 'padding', label: 'Padding', type: 'text' },
+  { property: 'margin', label: 'Margin', type: 'text' },
+  { property: 'border-radius', label: 'Corner radius', type: 'text' },
+  { property: 'width', label: 'Width', type: 'text' },
+  { property: 'height', label: 'Height', type: 'text' },
+] as const;
+
+const toColorInputValue = (value: string) => {
+  if (/^#[\da-f]{6}$/i.test(value)) {
+    return value;
+  }
+
+  const shortHex = /^#([\da-f]{3})$/i.exec(value);
+
+  if (shortHex) {
+    return `#${shortHex[1]
+      .split('')
+      .map((digit) => digit + digit)
+      .join('')}`;
+  }
+
+  const rgbMatch = /^rgba?\(([^)]+)\)/i.exec(value);
+
+  if (!rgbMatch) {
+    return '#000000';
+  }
+
+  const channels = rgbMatch[1]
+    .split(/[,/\s]+/)
+    .filter(Boolean)
+    .slice(0, 3);
+
+  if (channels.length !== 3) {
+    return '#000000';
+  }
+
+  return `#${channels
+    .map((channel) => {
+      const parsed = channel.endsWith('%') ? (Number.parseFloat(channel) * 255) / 100 : Number.parseFloat(channel);
+      return Math.max(0, Math.min(255, Math.round(parsed)))
+        .toString(16)
+        .padStart(2, '0');
+    })
+    .join('')}`;
+};
 
 interface InspectorPanelProps {
   selectedElement: ElementInfo | null;
-  isVisible: boolean;
+  onStyleChange: (property: string, value: string) => void;
+  onTextChange: (value: string) => void;
+  onUndo: () => void;
+  onReset: () => void;
+  canUndo: boolean;
   onClose: () => void;
 }
 
-export const InspectorPanel = ({ selectedElement, isVisible, onClose }: InspectorPanelProps) => {
-  const [activeTab, setActiveTab] = useState<'styles' | 'computed' | 'box'>('styles');
+export const InspectorPanel = ({
+  selectedElement,
+  onStyleChange,
+  onTextChange,
+  onUndo,
+  onReset,
+  canUndo,
+  onClose,
+}: InspectorPanelProps) => {
+  const [textValue, setTextValue] = useState('');
 
-  if (!isVisible || !selectedElement) {
+  useEffect(() => {
+    setTextValue(selectedElement?.textContent ?? '');
+  }, [selectedElement?.displayText, selectedElement?.textContent]);
+
+  if (!selectedElement) {
     return null;
   }
 
-  const getRelevantStyles = (styles: Record<string, string>) => {
-    const relevantProps = [
-      'display',
-      'position',
-      'width',
-      'height',
-      'margin',
-      'padding',
-      'border',
-      'background',
-      'color',
-      'font-size',
-      'font-family',
-      'text-align',
-      'flex-direction',
-      'justify-content',
-      'align-items',
-    ];
-
-    return relevantProps.reduce(
-      (acc, prop) => {
-        const value = styles[prop];
-
-        if (value) {
-          acc[prop] = value;
-        }
-
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
-  };
+  const currentValue = (property: string) =>
+    selectedElement.visualEdits?.find((edit) => edit.property === property)?.value ??
+    selectedElement.styles[property] ??
+    '';
 
   return (
-    <div className="fixed right-4 top-20 w-80 bg-bolt-elements-bg-depth-1 border border-bolt-elements-borderColor rounded-lg shadow-lg z-40 max-h-[calc(100vh-6rem)] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-bolt-elements-borderColor">
-        <h3 className="font-medium text-bolt-elements-textPrimary">Element Inspector</h3>
-        <button onClick={onClose} className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary">
-          ✕
-        </button>
-      </div>
-
-      {/* Element Info */}
-      <div className="p-3 border-b border-bolt-elements-borderColor">
-        <div className="text-sm">
-          <div className="font-mono text-blue-500">
+    <aside className="absolute right-3 top-14 z-30 flex max-h-[calc(100%-4.25rem)] w-72 flex-col overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-2xl">
+      <header className="flex items-center justify-between border-b border-bolt-elements-borderColor px-3 py-2.5">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Visual edits</h3>
+          <p className="truncate font-mono text-xs text-bolt-elements-textTertiary">
             {selectedElement.tagName.toLowerCase()}
-            {selectedElement.id && <span className="text-green-500">#{selectedElement.id}</span>}
-            {selectedElement.className && (
-              <span className="text-yellow-500">.{selectedElement.className.split(' ')[0]}</span>
-            )}
-          </div>
-          {selectedElement.textContent && (
-            <div className="mt-1 text-bolt-elements-textSecondary text-xs truncate">
-              "{selectedElement.textContent}"
-            </div>
-          )}
+            {selectedElement.id
+              ? `#${selectedElement.id}`
+              : selectedElement.className
+                ? `.${selectedElement.className.split(' ')[0]}`
+                : ''}
+          </p>
         </div>
-      </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close visual edits"
+          className="rounded bg-bolt-elements-background-depth-1 p-1 text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          ×
+        </button>
+      </header>
 
-      {/* Tabs */}
-      <div className="flex border-b border-bolt-elements-borderColor">
-        {(['styles', 'computed', 'box'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-3 py-2 text-sm capitalize ${
-              activeTab === tab
-                ? 'border-b-2 border-blue-500 text-blue-500'
-                : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      <div className="overflow-y-auto p-3">
+        <label className="mb-3 block text-xs font-medium text-bolt-elements-textSecondary">
+          Text content
+          <input
+            value={textValue}
+            disabled={selectedElement.hasChildElements}
+            onChange={(event) => {
+              setTextValue(event.target.value);
+              onTextChange(event.target.value);
+            }}
+            className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 text-sm text-bolt-elements-textPrimary outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Element text content"
+          />
+          {selectedElement.hasChildElements && (
+            <span className="mt-1 block text-[10px] text-bolt-elements-textTertiary">
+              Text editing is disabled for elements with nested markup.
+            </span>
+          )}
+        </label>
 
-      {/* Content */}
-      <div className="p-3 overflow-y-auto max-h-96">
-        {activeTab === 'styles' && (
-          <div className="space-y-2">
-            {Object.entries(getRelevantStyles(selectedElement.styles)).map(([prop, value]) => (
-              <div key={prop} className="flex justify-between text-sm">
-                <span className="text-bolt-elements-textSecondary">{prop}:</span>
-                <span className="text-bolt-elements-textPrimary font-mono">{value}</span>
-              </div>
-            ))}
-          </div>
+        <div className="space-y-2.5">
+          {editableStyles.map(({ property, label, type }) => {
+            const value = currentValue(property);
+
+            return (
+              <label
+                key={property}
+                className="flex items-center justify-between gap-3 text-xs text-bolt-elements-textSecondary"
+              >
+                <span>{label}</span>
+                {type === 'select' ? (
+                  <select
+                    value={value}
+                    onChange={(event) => onStyleChange(property, event.target.value)}
+                    className="w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 text-xs text-bolt-elements-textPrimary"
+                    aria-label={label}
+                  >
+                    <option value="">Default</option>
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                    <option value="justify">Justify</option>
+                  </select>
+                ) : type === 'color' ? (
+                  <div className="flex w-32 items-center gap-1.5">
+                    <input
+                      type="color"
+                      value={toColorInputValue(value)}
+                      onChange={(event) => onStyleChange(property, event.target.value)}
+                      aria-label={label}
+                      className="h-7 w-8 cursor-pointer rounded border border-bolt-elements-borderColor bg-transparent p-0.5"
+                    />
+                    <span className="truncate font-mono text-[10px]" title={value}>
+                      {value || '—'}
+                    </span>
+                  </div>
+                ) : (
+                  <input
+                    value={value}
+                    onChange={(event) => onStyleChange(property, event.target.value)}
+                    aria-label={label}
+                    className="w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 font-mono text-xs text-bolt-elements-textPrimary outline-none focus:border-blue-500"
+                  />
+                )}
+              </label>
+            );
+          })}
+        </div>
+
+        {selectedElement.visualEdits?.length ? (
+          <p className="mt-3 text-[11px] text-amber-500">
+            {selectedElement.visualEdits.length} pending {selectedElement.visualEdits.length === 1 ? 'edit' : 'edits'} —
+            send a prompt to apply them to project files.
+          </p>
+        ) : (
+          <p className="mt-3 text-[11px] text-bolt-elements-textTertiary">
+            Changes are live in this preview. Send a prompt with this selection to keep them in your code.
+          </p>
         )}
-
-        {activeTab === 'box' && (
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-bolt-elements-textSecondary">Width:</span>
-              <span className="text-bolt-elements-textPrimary">{Math.round(selectedElement.rect.width)}px</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-bolt-elements-textSecondary">Height:</span>
-              <span className="text-bolt-elements-textPrimary">{Math.round(selectedElement.rect.height)}px</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-bolt-elements-textSecondary">Top:</span>
-              <span className="text-bolt-elements-textPrimary">{Math.round(selectedElement.rect.top)}px</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-bolt-elements-textSecondary">Left:</span>
-              <span className="text-bolt-elements-textPrimary">{Math.round(selectedElement.rect.left)}px</span>
-            </div>
-          </div>
-        )}
       </div>
-    </div>
+
+      <footer className="flex gap-2 border-t border-bolt-elements-borderColor p-2.5">
+        <button
+          type="button"
+          onClick={onUndo}
+          disabled={!canUndo}
+          className="flex-1 appearance-none rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:text-bolt-elements-textSecondary disabled:opacity-100"
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          onClick={onReset}
+          disabled={!selectedElement.visualEdits?.length}
+          className="flex-1 appearance-none rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:text-bolt-elements-textSecondary disabled:opacity-100"
+        >
+          Reset preview
+        </button>
+      </footer>
+    </aside>
   );
 };
