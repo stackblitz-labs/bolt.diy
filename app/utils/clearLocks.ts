@@ -11,9 +11,19 @@ const logger = createScopedLogger('ClearLocks');
 /**
  * Clear all file locks for the current chat
  * Can be called from browser console: window.clearAllLocks()
+ *
+ * @throws Will log error to console if workbench store is not initialized
  */
 export function clearAllLocks(): void {
   try {
+    // Verify workbench store is initialized
+    if (!workbenchStore || typeof workbenchStore.clearAllLocks !== 'function') {
+      logger.error('Workbench store not initialized or clearAllLocks method not available');
+      console.error('❌ Cannot clear locks: Workbench store not ready. Please wait for the app to fully load.');
+
+      return;
+    }
+
     workbenchStore.clearAllLocks();
     logger.info('Successfully cleared all file locks');
     console.log('✅ All file locks have been cleared. You can now edit files.');

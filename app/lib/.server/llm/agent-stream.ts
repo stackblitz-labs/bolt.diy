@@ -7,6 +7,8 @@ import {
 } from 'ai';
 
 const DEFAULT_ATTEMPT_LIMITS = { firstMs: 120_000, idleMs: 120_000, attemptMs: 300_000 };
+const MAX_RECOVERY_ATTEMPTS = 2;
+const MAX_RECOVERED_CALLS = 8;
 
 /** Recover complete JSON calls to available tools or retry once. Effects still use normal validation and approvals. */
 export function withAgentToolCallRecovery(model: LanguageModel, onRetry: () => void) {
@@ -42,7 +44,7 @@ export function withAgentToolCallRecovery(model: LanguageModel, onRetry: () => v
         stream: new ReadableStream<Part>({
           async start(controller) {
             try {
-              for (let attempt = 0; attempt < 2 && !cancelled; attempt++) {
+              for (let attempt = 0; attempt < MAX_RECOVERY_ATTEMPTS && !cancelled; attempt++) {
                 const correction =
                   'Your previous response did not call a required tool. Use the supplied native tools interface now. Do not print JSON or function calls as text. Follow the tool schema exactly.';
                 const retryPrompt =
@@ -175,6 +177,18 @@ export function withAgentToolCallRecovery(model: LanguageModel, onRetry: () => v
   };
 }
 
+/**
+ * Attempts to recover tool calls from JSON text when the AI prints JSON instead of calling tools.
+ *
+ * @param text - The text response from the AI that may contain JSON tool calls
+ * @param tools - Available tool definitions to validate against
+ * @param choice - The tool choice constraint (required or specific tool)
+ * @returns Array of recovered tool calls with name and input, or empty array if recovery fails
+ *
+ * @example
+ * // Input text: '[{"name": "project_read_file", "parameters": {"path": "src/App.tsx"}}]'
+ * // Returns: [{ name: "project_read_file", input: { path: "src/App.tsx" } }]
+ */
 function recoverJsonToolCalls(
   text: string,
   tools: Parameters<Exclude<LanguageModel, string>['doStream']>[0]['tools'],
@@ -196,7 +210,7 @@ function recoverJsonToolCalls(
     const candidates = Array.isArray(parsed) ? parsed : [parsed];
     const available = new Set(tools?.filter((tool) => tool.type === 'function').map((tool) => tool.name));
 
-    if (!candidates.length || candidates.length > 8) {
+    if (!candidates.length || candidates.length > MAX_RECOVERED_CALLS) {
       return [];
     }
 

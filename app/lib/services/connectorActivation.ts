@@ -4,12 +4,23 @@ import { useMCPStore } from '~/lib/stores/mcp';
 import { netlifyConnection, updateNetlifyConnection } from '~/lib/stores/netlify';
 import { supabaseConnection, updateSupabaseConnection } from '~/lib/stores/supabase';
 import { updateVercelConnection, vercelConnection } from '~/lib/stores/vercel';
+import type { NetlifyUser } from '~/types/netlify';
+import type { SupabaseStats, SupabaseUser } from '~/types/supabase';
+import type { VercelUser, VercelUserResponse } from '~/types/vercel';
 
 export type ConnectorActivationId = 'github' | 'gitlab' | 'vercel' | 'netlify' | 'supabase' | 'browserUseCloud';
 
+// Browser Use Cloud MCP server configuration
 const BROWSER_USE_SERVER = 'browser-use-cloud';
 const BROWSER_USE_URL = 'https://api.browser-use.com/v3/mcp';
 const BROWSER_USE_KEY_HEADER = 'X-Browser-Use-API-Key';
+const BROWSER_USE_KEY_PREFIX = 'bu_';
+
+interface SupabaseConnectionResponse {
+  error?: string;
+  user?: SupabaseUser;
+  stats?: SupabaseStats;
+}
 
 async function ensureServerCredential(endpoint: string) {
   const response = await fetch(endpoint);
@@ -70,8 +81,20 @@ export async function activateConnector(connector: ConnectorActivationId, entere
         throw new Error(`Vercel rejected this token (${response.status}). Check it and try again.`);
       }
 
-      const data = (await response.json()) as { user?: unknown };
-      updateVercelConnection({ user: data.user ?? data, token } as any);
+      const data = (await response.json()) as VercelUserResponse;
+
+      // Normalize the response - Vercel API can return user nested or at root level
+      const user: VercelUser = data.user
+        ? data.user
+        : {
+            id: data.id!,
+            username: data.username!,
+            email: data.email!,
+            name: data.name!,
+            avatar: data.avatar,
+          };
+
+      updateVercelConnection({ user, token });
 
       return;
     }
@@ -93,8 +116,8 @@ export async function activateConnector(connector: ConnectorActivationId, entere
         throw new Error(`Netlify rejected this token (${response.status}). Check it and try again.`);
       }
 
-      const user = await response.json();
-      updateNetlifyConnection({ user, token } as any);
+      const user = (await response.json()) as NetlifyUser;
+      updateNetlifyConnection({ user, token });
 
       return;
     }
@@ -114,13 +137,13 @@ export async function activateConnector(connector: ConnectorActivationId, entere
         body: JSON.stringify({ token }),
       });
 
-      const data = (await response.json()) as { error?: string; user?: unknown; stats?: unknown };
+      const data = (await response.json()) as SupabaseConnectionResponse;
 
       if (!response.ok) {
         throw new Error(data.error || 'Supabase rejected this token. Check it and try again.');
       }
 
-      updateSupabaseConnection({ user: data.user as any, stats: data.stats as any, token });
+      updateSupabaseConnection({ user: data.user, stats: data.stats, token });
 
       return;
     }
@@ -138,8 +161,8 @@ export async function activateConnector(connector: ConnectorActivationId, entere
         throw new Error('Enter a Browser Use API key to enable this connector.');
       }
 
-      if (!key.startsWith('bu_')) {
-        throw new Error('Browser Use API keys start with “bu_”.');
+      if (!key.startsWith(BROWSER_USE_KEY_PREFIX)) {
+        throw new Error(`Browser Use API keys start with "${BROWSER_USE_KEY_PREFIX}".`);
       }
 
       const updatedSettings = {
