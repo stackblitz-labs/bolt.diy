@@ -1,6 +1,8 @@
 import { useStore } from '@nanostores/react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
 import type { ElementInfo } from './Inspector';
+import { InspectorPanel } from './InspectorPanel';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { IconButton } from '~/components/ui/IconButton';
@@ -11,6 +13,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 type ResizeSide = 'left' | 'right' | null;
 
 interface PreviewProps {
+  selectedElement?: ElementInfo | null;
   setSelectedElement?: (element: ElementInfo | null) => void;
 }
 
@@ -52,7 +55,7 @@ const WINDOW_SIZES: WindowSize[] = [
   { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
 ];
 
-export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
+export const Preview = memo(({ selectedElement, setSelectedElement }: PreviewProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +69,10 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isInspectorMode, setIsInspectorMode] = useState(false);
+  const [selectedInspectorElement, setSelectedInspectorElement] = useState<ElementInfo | null>(null);
+  const [inspectorEdits, setInspectorEdits] = useState<Record<string, string>>({});
+  const [inspectorUndoStack, setInspectorUndoStack] = useState<Array<{ property: string; value: string }>>([]);
+  const inspectorOriginalRef = useRef<{ styles: Record<string, string>; textContent: string } | null>(null);
   const [isPreviewPaused, setIsPreviewPaused] = useState(false);
   const [isDeviceModeOn, setIsDeviceModeOn] = useState(false);
   const [widthPercent, setWidthPercent] = useState<number>(37.5);
@@ -623,6 +630,10 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      if (!iframeRef.current?.contentWindow || event.source !== iframeRef.current.contentWindow) {
+        return;
+      }
+
       if (event.data.type === 'INSPECTOR_READY') {
         if (iframeRef.current?.contentWindow) {
           iframeRef.current.contentWindow.postMessage(
@@ -635,17 +646,171 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
         }
       } else if (event.data.type === 'INSPECTOR_CLICK') {
         const element = event.data.elementInfo;
-
-        navigator.clipboard.writeText(element.displayText).then(() => {
-          setSelectedElement?.(element);
-        });
+        inspectorOriginalRef.current = { styles: { ...element.styles }, textContent: element.textContent };
+        setSelectedInspectorElement({ ...element, visualEdits: [] });
+        setInspectorEdits({});
+        setInspectorUndoStack([]);
+        setSelectedElement?.({ ...element, visualEdits: [] });
+      } else if (event.data.type === 'INSPECTOR_PENDING_CHANGES') {
+        toast.info('Send the current visual edits or reset them before selecting another element.');
       }
     };
 
     window.addEventListener('message', handleMessage);
 
     return () => window.removeEventListener('message', handleMessage);
-  }, [isInspectorMode]);
+  }, [isInspectorMode, setSelectedElement]);
+
+  useEffect(() => {
+    if (selectedElement !== null || !selectedInspectorElement) {
+      return;
+    }
+
+    iframeRef.current?.contentWindow?.postMessage({ type: 'INSPECTOR_DESELECT' }, '*');
+    setSelectedInspectorElement(null);
+    setInspectorEdits({});
+    setInspectorUndoStack([]);
+    inspectorOriginalRef.current = null;
+  }, [selectedElement, selectedInspectorElement]);
+
+  const sendInspectorEdit = (message: Record<string, string>) => {
+    iframeRef.current?.contentWindow?.postMessage(message, '*');
+  };
+
+  const getVisualEdits = (edits: Record<string, string>) =>
+    Object.entries(edits).map(([property, value]) => ({ property, value }));
+
+  const updateInspectorEdit = (property: string, value: string) => {
+    if (!selectedInspectorElement) {
+      return;
+    }
+
+    const originalValue =
+      property === 'textContent'
+        ? (inspectorOriginalRef.current?.textContent ?? '')
+        : (inspectorOriginalRef.current?.styles[property] ?? '');
+
+    const currentValue = inspectorEdits[property] ?? originalValue;
+    const nextEdits = { ...inspectorEdits };
+
+    if (value === originalValue) {
+      setInspectorUndoStack((stack) => stack.filter((edit) => edit.property !== property));
+    } else {
+      setInspectorUndoStack((stack) => [...stack, { property, value: currentValue }]);
+    }
+
+    if (value === originalValue) {
+      delete nextEdits[property];
+    } else {
+      nextEdits[property] = value;
+    }
+
+    setInspectorEdits(nextEdits);
+
+    if (property === 'textContent') {
+      sendInspectorEdit({
+        type: 'INSPECTOR_EDIT_TEXT',
+        value,
+        originalText: inspectorOriginalRef.current?.textContent ?? '',
+      });
+      setSelectedInspectorElement((element) =>
+        element ? { ...element, textContent: value, visualEdits: getVisualEdits(nextEdits) } : element,
+      );
+      setSelectedElement?.({ ...selectedInspectorElement, textContent: value, visualEdits: getVisualEdits(nextEdits) });
+    } else {
+      sendInspectorEdit({
+        type: 'INSPECTOR_EDIT_STYLE',
+        property,
+        value,
+        originalComputedValue: inspectorOriginalRef.current?.styles[property] ?? '',
+      });
+
+      const updatedStyles = { ...selectedInspectorElement.styles, [property]: value };
+      setSelectedInspectorElement((element) =>
+        element ? { ...element, styles: updatedStyles, visualEdits: getVisualEdits(nextEdits) } : element,
+      );
+      setSelectedElement?.({
+        ...selectedInspectorElement,
+        styles: updatedStyles,
+        visualEdits: getVisualEdits(nextEdits),
+      });
+    }
+  };
+
+  const undoInspectorEdit = () => {
+    const lastEdit = inspectorUndoStack[inspectorUndoStack.length - 1];
+
+    if (!lastEdit || !selectedInspectorElement) {
+      return;
+    }
+
+    sendInspectorEdit({ type: 'INSPECTOR_UNDO' });
+    setInspectorUndoStack((stack) => stack.slice(0, -1));
+
+    const originalValue =
+      lastEdit.property === 'textContent'
+        ? (inspectorOriginalRef.current?.textContent ?? '')
+        : (inspectorOriginalRef.current?.styles[lastEdit.property] ?? '');
+
+    const nextEdits = { ...inspectorEdits };
+
+    if (lastEdit.value === originalValue) {
+      delete nextEdits[lastEdit.property];
+    } else {
+      nextEdits[lastEdit.property] = lastEdit.value;
+    }
+
+    setInspectorEdits(nextEdits);
+
+    if (lastEdit.property === 'textContent') {
+      setSelectedInspectorElement((element) =>
+        element ? { ...element, textContent: lastEdit.value, visualEdits: getVisualEdits(nextEdits) } : element,
+      );
+      setSelectedElement?.({
+        ...selectedInspectorElement,
+        textContent: lastEdit.value,
+        visualEdits: getVisualEdits(nextEdits),
+      });
+    } else {
+      const updatedStyles = { ...selectedInspectorElement.styles, [lastEdit.property]: lastEdit.value };
+      setSelectedInspectorElement((element) =>
+        element ? { ...element, styles: updatedStyles, visualEdits: getVisualEdits(nextEdits) } : element,
+      );
+      setSelectedElement?.({
+        ...selectedInspectorElement,
+        styles: updatedStyles,
+        visualEdits: getVisualEdits(nextEdits),
+      });
+    }
+  };
+
+  const resetInspectorEdits = () => {
+    if (!selectedInspectorElement || !inspectorOriginalRef.current) {
+      return;
+    }
+
+    sendInspectorEdit({ type: 'INSPECTOR_RESET' });
+    setInspectorEdits({});
+    setInspectorUndoStack([]);
+
+    const resetElement = {
+      ...selectedInspectorElement,
+      styles: inspectorOriginalRef.current.styles,
+      textContent: inspectorOriginalRef.current.textContent,
+      visualEdits: [],
+    };
+    setSelectedInspectorElement(resetElement);
+    setSelectedElement?.(resetElement);
+  };
+
+  const closeInspectorPanel = () => {
+    sendInspectorEdit({ type: 'INSPECTOR_DESELECT' });
+    setSelectedInspectorElement(null);
+    setSelectedElement?.(null);
+    setInspectorEdits({});
+    setInspectorUndoStack([]);
+    inspectorOriginalRef.current = null;
+  };
 
   const toggleInspectorMode = () => {
     const newInspectorMode = !isInspectorMode;
@@ -1057,6 +1222,15 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
           )}
         </div>
       </div>
+      <InspectorPanel
+        selectedElement={selectedInspectorElement}
+        onStyleChange={updateInspectorEdit}
+        onTextChange={(value) => updateInspectorEdit('textContent', value)}
+        onUndo={undoInspectorEdit}
+        onReset={resetInspectorEdits}
+        canUndo={inspectorUndoStack.length > 0}
+        onClose={closeInspectorPanel}
+      />
     </div>
   );
 });

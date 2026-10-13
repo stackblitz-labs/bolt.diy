@@ -187,7 +187,11 @@ export const Markdown = memo(
               try {
                 elementData = JSON.parse(elementDataAttr);
               } catch (e) {
-                console.error('Failed to parse element data:', e);
+                try {
+                  elementData = JSON.parse(decodeURIComponent(elementDataAttr));
+                } catch {
+                  console.error('Failed to parse element data:', e);
+                }
               }
             }
 

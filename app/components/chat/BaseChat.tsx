@@ -478,6 +478,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <LazyWorkbench
                   chatStarted={chatStarted}
                   isStreaming={isStreaming}
+                  selectedElement={selectedElement}
                   setSelectedElement={setSelectedElement}
                   exportChat={exportChat}
                 />

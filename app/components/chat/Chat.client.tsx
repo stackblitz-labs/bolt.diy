@@ -925,10 +925,15 @@ export const ChatImpl = memo(
       let finalMessageContent = messageContent;
 
       if (selectedElement) {
-        console.log('Selected Element:', selectedElement);
+        const encodedElement = encodeURIComponent(JSON.stringify(selectedElement)).replace(/'/g, '%27');
+        const elementInfo = `<div class=\"__boltSelectedElement__\" data-element=\"${encodedElement}\"></div>`;
 
-        const elementInfo = `<div class=\"__boltSelectedElement__\" data-element='${JSON.stringify(selectedElement)}'>${JSON.stringify(`${selectedElement.displayText}`)}</div>`;
-        finalMessageContent = messageContent + elementInfo;
+        const visualEditPrompt = selectedElement.visualEdits?.length
+          ? `\nPlease apply these visual edits to the selected element in the project source: ${selectedElement.visualEdits
+              .map(({ property, value }) => `${property} = ${JSON.stringify(value)}`)
+              .join(', ')}.`
+          : '';
+        finalMessageContent = `${messageContent}${visualEditPrompt}${elementInfo}`;
       }
 
       runAnimation();

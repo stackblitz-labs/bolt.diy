@@ -42,6 +42,7 @@ interface WorkspaceProps {
     gitUrl?: string;
   };
   updateChatMestaData?: (metadata: any) => void;
+  selectedElement?: ElementInfo | null;
   setSelectedElement?: (element: ElementInfo | null) => void;
   exportChat?: () => void;
 }
@@ -296,6 +297,7 @@ export const Workbench = memo(
     isStreaming,
     metadata: _metadata,
     updateChatMestaData: _updateChatMestaData,
+    selectedElement,
     setSelectedElement,
     exportChat,
   }: WorkspaceProps) => {
@@ -553,7 +555,7 @@ export const Workbench = memo(
                               </div>
                             }
                           >
-                            <Preview setSelectedElement={setSelectedElement} />
+                            <Preview selectedElement={selectedElement} setSelectedElement={setSelectedElement} />
                           </Suspense>
                         </View>
                       ) : null}
