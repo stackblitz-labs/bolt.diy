@@ -360,7 +360,7 @@ export default function ConnectorsTab() {
                       <button
                         type="button"
                         onClick={() => setSelectedConnector(connector.id)}
-                        className="flex items-center gap-2 text-sm font-medium text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                        className="flex items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-1.5 text-sm font-medium text-bolt-elements-textSecondary transition-colors hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                       >
                         Configure <span aria-hidden="true">→</span>
                       </button>
