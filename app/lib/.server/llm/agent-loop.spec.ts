@@ -67,11 +67,7 @@ describe('agent plan and completion tools', () => {
       true,
       ['project_read_file', 'project_run_command'],
     );
-    expect(loop.prepareStep({ steps: [] }).activeTools).toEqual([
-      'project_read_file',
-      'project_run_command',
-      'agent_plan',
-    ]);
+    expect(loop.prepareStep({ steps: [] }).activeTools).toEqual(['project_read_file', 'agent_plan', 'agent_complete']);
   });
 
   it('rejects completion without actual run and test evidence', async () => {

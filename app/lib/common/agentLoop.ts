@@ -218,7 +218,18 @@ export function getAgentLoopProgress(messages: AnyMessage[], enabled: boolean) {
           ? 'limited'
           : 'pending';
 
-  return { status, plan, edited: lastEdit >= 0, ran, previewReady, tested, steps, evidence, pendingProjectCalls };
+  return {
+    status,
+    plan,
+    edited: lastEdit >= 0,
+    needsRepair: lastFailure > lastEdit,
+    ran,
+    previewReady,
+    tested,
+    steps,
+    evidence,
+    pendingProjectCalls,
+  };
 }
 
 export function getAgentCompletionProblems(progress: ReturnType<typeof getAgentLoopProgress>) {
@@ -270,6 +281,20 @@ export function getAgentLoopInstructions(progress: ReturnType<typeof getAgentLoo
     return 'The completion gate accepted this task. Summarize the relevant changed files, passing checks, and fulfilled criteria. Do not start unrelated work.';
   }
 
-  return `Follow Plan -> edit -> run -> test -> repair. Record a short plan and observable completion criteria with agent_plan. Inspect relevant files, then use small exact patches. Run the app/program with purpose run; use an existing live server for follow-up UI edits. Run the smallest relevant available checks with purpose test and wait for exit code 0. If a check fails, inspect its output, patch the cause, and rerun the check. Any edit after a passing check requires fresh verification. Call agent_complete alone with evidence for every criterion before finishing. A plan or started process alone is not completion. If no automated test script exists, use an available typecheck, lint, focused runtime assertion, or smoke check and explain its limits; do not invent passing tests. If work cannot proceed, report outcome blocked with a concrete reason. Remaining task steps: ${MAX_AGENT_STEPS - progress.steps}. Confirmed: plan=${Boolean(progress.plan)}, edits=${progress.edited}, run=${progress.ran}, passing check after latest changes=${progress.tested}, preview=${progress.previewReady}.
+  const nextAction = progress.needsRepair
+    ? 'Repair the latest failed project tool action. Use its exact error, reread the file if needed, and retry only after correcting the cause. Do not run or complete yet.'
+    : !progress.edited
+      ? 'Use project_patch_file or project_write_file now to implement the requested change. Do not answer in prose or call agent_complete yet.'
+      : !progress.ran
+        ? 'Run the changed app or program now with project_run_command and purpose="run". Inspect its output.'
+        : !progress.tested
+          ? 'Run the smallest relevant check now with project_run_command and purpose="test". Wait for exit code 0; repair failures before continuing.'
+          : progress.plan?.requiresPreview && !progress.previewReady
+            ? 'Start or inspect the app preview now. Confirm it is running before completing.'
+            : 'Call agent_complete alone with evidence IDs from successful tool calls.';
+
+  return `Follow Plan -> edit -> run -> test -> repair. Record a short plan and observable completion criteria with agent_plan. Inspect relevant files, then use small exact patches. Run the app/program with purpose run; use an existing live server for follow-up UI edits. Run the smallest relevant available checks with purpose test and wait for exit code 0. If a check fails, inspect its output, patch the cause, and rerun the check. Any edit after a passing check requires fresh verification. Call agent_complete alone with evidence for every criterion before finishing. A plan or started process alone is not completion. If no automated test script exists, use an available typecheck, lint, focused runtime assertion, or smoke check and explain its limits; do not invent passing tests. If work cannot proceed, report outcome blocked with a concrete reason.
+NEXT REQUIRED ACTION: ${nextAction}
+Do not send a prose response while this action is pending. Remaining task steps: ${MAX_AGENT_STEPS - progress.steps}. Confirmed: plan=${Boolean(progress.plan)}, edits=${progress.edited}, run=${progress.ran}, passing check after latest changes=${progress.tested}, preview=${progress.previewReady}.
 Recorded criteria: ${JSON.stringify(progress.plan?.criteria ?? [])}. Available successful tool-call evidence IDs: ${JSON.stringify(progress.evidence)}.`;
 }
