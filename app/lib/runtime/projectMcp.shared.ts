@@ -34,7 +34,7 @@ const objectSchema = (properties: JsonSchema, required: string[]): JsonSchema =>
 export const projectToolDefinitions: Record<ProjectToolName, { description: string; inputSchema: JsonSchema }> = {
   project_read_file: {
     description:
-      'Read a UTF-8 text file from the active project. Returns content and revision; copy revision into expectedRevision when patching.',
+      'Read a UTF-8 text file from the active project. Returns content and revision; the latest read revision is checked automatically if expectedRevision is omitted when patching.',
     inputSchema: objectSchema({ path: { type: 'string', minLength: 1 } }, ['path']),
   },
   project_write_file: {
@@ -52,7 +52,7 @@ export const projectToolDefinitions: Record<ProjectToolName, { description: stri
   },
   project_patch_file: {
     description:
-      'Replace one exact unique oldText in a file. Read the file first and copy its revision into expectedRevision; do not copy the whole file. On a conflict, read again before retrying. Preserve actual line breaks in newText. Invalid JS/TS syntax is rejected before saving.',
+      'Replace one exact unique oldText in a file. Read the file first; its latest revision is checked automatically when expectedRevision is omitted. Include expectedRevision when available. Do not copy the whole file. On a conflict, read again before retrying. Preserve actual line breaks in newText. Invalid JS/TS syntax is rejected before saving.',
     inputSchema: objectSchema(
       {
         path: { type: 'string', minLength: 1 },

@@ -229,6 +229,7 @@ export async function createProjectMcpBridge() {
   };
 
   const server = new McpServer({ name: 'bolt-project', version: '1.0.0' });
+  const fileRevisionsReadByModel = new Map<string, string>();
 
   server.registerTool(
     'project_read_file',
@@ -242,7 +243,10 @@ export async function createProjectMcpBridge() {
         const content = await readText(target.relative);
         assertProjectCurrent();
 
-        return success({ path: target.relative, content, revision: await getFileRevision(content), truncated: false });
+        const revision = await getFileRevision(content);
+        fileRevisionsReadByModel.set(target.relative, revision);
+
+        return success({ path: target.relative, content, revision, truncated: false });
       } catch (error) {
         return failure(error);
       }
@@ -323,6 +327,10 @@ export async function createProjectMcpBridge() {
           }
         });
 
+        if (changed) {
+          fileRevisionsReadByModel.delete(target.relative);
+        }
+
         return success({ path: target.relative, written: true, created, changed, generation: bridgeProjectGeneration });
       } catch (error) {
         return failure(error);
@@ -357,12 +365,14 @@ export async function createProjectMcpBridge() {
           assertNotAborted(extra.signal);
           assertProjectCurrent();
 
-          if (expectedContent === undefined && expectedRevision === undefined) {
+          const revisionToCheck = expectedRevision ?? fileRevisionsReadByModel.get(target.relative);
+
+          if (expectedContent === undefined && revisionToCheck === undefined) {
             throw new Error('Read the file first, then supply its revision as expectedRevision.');
           }
 
           if (
-            (expectedRevision !== undefined && (await getFileRevision(content)) !== expectedRevision) ||
+            (revisionToCheck !== undefined && (await getFileRevision(content)) !== revisionToCheck) ||
             (expectedContent !== undefined && content !== expectedContent)
           ) {
             throw new Error(
@@ -395,6 +405,7 @@ export async function createProjectMcpBridge() {
             assertNotAborted(extra.signal);
             assertProjectCurrent();
             await workbenchStore.saveFileContent(target.absolute, updated);
+            fileRevisionsReadByModel.delete(target.relative);
           }
 
           return success({ path: target.relative, patched: true, changed, generation: bridgeProjectGeneration });

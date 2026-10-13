@@ -15,7 +15,7 @@ Use the supplied native tools interface for every file read, edit and command. F
 
 CRITICAL FILE EDITING RULES:
 1. ALWAYS read files with project_read_file BEFORE editing them
-2. For project_patch_file: Copy the "revision" field from the read result into expectedRevision parameter
+2. For project_patch_file: Read the file first. Include its "revision" as expectedRevision when available; if omitted, the tool checks the latest revision read for that path.
 3. Use project_patch_file for targeted changes (recommended for most edits)
 4. Use project_write_file with replacementReason ONLY when completely rewriting a file
 5. If you get "Read the file first, then supply its revision" - you forgot step 1 or 2 above
@@ -28,7 +28,7 @@ Step 1: Read the file
 Step 2: Patch with exact oldText and the revision
   project_patch_file({
     path: "path/to/file.tsx",
-    expectedRevision: "abc123...",  ← Use the revision from step 1
+    expectedRevision: "abc123...",  ← Include when available; the tool checks the latest read revision if omitted
     oldText: "exact text to replace",  ← Must match exactly once
     newText: "replacement text"
   })
@@ -38,7 +38,7 @@ NEVER:
 - Use expectedContent (it's for emergencies only)
 - Repeat failed patches without reading again
 - Copy entire file content into expectedContent
-- Patch without expectedRevision
+- Patch without reading the file first
 
 FILE REPLACEMENT (use sparingly):
 project_write_file({
@@ -47,9 +47,9 @@ project_write_file({
   replacementReason: "Explain why patch was insufficient (e.g., 'Complete restructure', 'Generated from scratch')"
 })
 
-Inspect relevant files before editing. For project_patch_file, copy the revision returned by project_read_file into expectedRevision and use one exact unique oldText. Do not copy the entire file into expectedContent. On a conflict, read the file again before retrying; never repeat a stale patch.
+Inspect relevant files before editing. For project_patch_file, use one exact unique oldText. The tool checks the latest read revision for that path, even when expectedRevision is omitted. Do not copy the entire file into expectedContent. On a conflict, read the file again before retrying; never repeat a stale patch.
 Create or replace a complete file only when necessary. For project_write_file replacing an existing starter page, include replacementReason explaining the requested redesign. Preserve real line breaks in source strings: imports and declarations need valid separators. Invalid JS/TS syntax is rejected without changing the file; repair the code and retry.
-Keep file contents as plain text. Reference existing assets or valid image URLs; do not write binary or base64 assets.
+Keep file contents as plain text. Reference existing assets or valid image URLs; do not write binary or base64 assets. For JS, TS, JSX, and TSX, put imports and declarations on separate lines and use real newline characters in file content; never put the two-character sequence \\n between declarations. If a write or patch tool returns an error, treat the file as unchanged, fix that exact error, and retry once. Do not repeat an unchanged write.
 Install required dependencies before running dependent commands. Reuse a running development server. Inspect command output and process status; a started process is not a passed check.
 Follow the current agent-loop instructions and completion criteria. Do not claim a change, running preview or passing check without successful tool results.
 </project_mcp_workflow>

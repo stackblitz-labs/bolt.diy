@@ -342,6 +342,24 @@ describe('targeted project file edits', () => {
     );
   });
 
+  it('uses the latest read revision when a patch omits expectedRevision', async () => {
+    await prepare();
+
+    await bridge!.callTool('project_read_file', { path: 'src/App.tsx' });
+
+    const result = await bridge!.callTool('project_patch_file', {
+      path: 'src/App.tsx',
+      oldText: 'button: blue',
+      newText: 'button: green',
+    });
+
+    expect(result.isError).not.toBe(true);
+    expect(saveFileContent).toHaveBeenCalledExactlyOnceWith(
+      '/home/project/src/App.tsx',
+      'const styles = {\nbutton: green\n};\n',
+    );
+  });
+
   it('rejects a stale revision and a patch without any concurrency check', async () => {
     await prepare();
 

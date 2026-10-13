@@ -43,7 +43,7 @@ const verified: AnyMessage[] = [
 const completion = {
   outcome: 'complete' as const,
   summary: 'Button updated and checks pass.',
-  criteria: [{ id: 'button', evidence: ['edit', 'check'] }],
+  criteria: [{ id: 'button' }],
 };
 
 const executeOptions = { toolCallId: 'complete', messages: [], context: {} };
@@ -67,11 +67,7 @@ describe('agent plan and completion tools', () => {
       true,
       ['project_read_file', 'project_run_command'],
     );
-    expect(loop.prepareStep({ steps: [] }).activeTools).toEqual([
-      'project_read_file',
-      'project_run_command',
-      'agent_plan',
-    ]);
+    expect(loop.prepareStep({ steps: [] }).activeTools).toEqual(['project_read_file', 'agent_plan', 'agent_complete']);
   });
 
   it('rejects completion without actual run and test evidence', async () => {
@@ -93,19 +89,31 @@ describe('agent plan and completion tools', () => {
     });
   });
 
-  it('requires valid evidence for every criterion and excludes failed tool calls', async () => {
+  it('requires every planned criterion and attaches successful tool-call evidence automatically', async () => {
     const loop = createAgentLoopTools(verified, true, true);
 
-    for (const criteria of [[], [{ id: 'button', evidence: ['invented'] }]]) {
+    for (const criteria of [[], [{ id: 'invented' }], [{ id: 'button' }, { id: 'button' }]]) {
       expect(await loop.tools.agent_complete.execute!({ ...completion, criteria }, executeOptions)).toMatchObject({
         isError: true,
         completed: false,
-        error: expect.stringContaining('Criterion button'),
+        error: expect.stringContaining('criterion'),
         availableEvidence: expect.arrayContaining(['edit', 'run', 'check']),
         plannedCriteria: ['button'],
       });
     }
-    expect(await loop.tools.agent_complete.execute!(completion, executeOptions)).toMatchObject({ completed: true });
+
+    const completed = await loop.tools.agent_complete.execute!(
+      {
+        ...completion,
+        criteria: [{ id: 'button', evidence: ['server-123', 'npm run build'] }],
+      },
+      executeOptions,
+    );
+
+    expect(completed).toMatchObject({
+      completed: true,
+      criteria: [{ id: 'button', evidence: ['edit', 'run', 'check'] }],
+    });
   });
 
   it('supports a concrete blocked outcome without claiming success', async () => {
