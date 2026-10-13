@@ -28,7 +28,8 @@ export interface BoltReasoningPart {
 }
 
 export interface BoltToolPart {
-  type: `tool-${string}`;
+  type: `tool-${string}` | 'dynamic-tool';
+  toolName?: string;
   toolCallId: string;
   input?: unknown;
   output?: unknown;
@@ -554,7 +555,11 @@ export function isToolPart(part: unknown): boolean {
 
   const typed = part as Record<string, unknown>;
 
-  return typed.type === 'tool-invocation' || (typeof typed.type === 'string' && typed.type.startsWith('tool-'));
+  return (
+    typed.type === 'dynamic-tool' ||
+    typed.type === 'tool-invocation' ||
+    (typeof typed.type === 'string' && typed.type.startsWith('tool-'))
+  );
 }
 
 export function isFilePart(part: unknown): boolean {

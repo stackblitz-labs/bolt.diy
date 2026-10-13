@@ -28,6 +28,19 @@ describe('toMissingCredentialError', () => {
 });
 
 describe('toSafeStreamErrorMessage', () => {
+  it('recognizes a provider 429 even when its message does not mention the status', () => {
+    const error = Object.assign(new Error('Provider returned error: secret-value'), { statusCode: 429 });
+
+    expect(toSafeStreamErrorMessage(error)).toContain('API rate limit exceeded');
+    expect(toSafeStreamErrorMessage(error)).not.toContain('secret-value');
+  });
+
+  it('recognizes capitalized rate-limit messages', () => {
+    expect(toSafeStreamErrorMessage(new Error('Rate limit exceeded: free-models-per-day'))).toContain(
+      'API rate limit exceeded',
+    );
+  });
+
   it('returns a generic message instead of an unknown provider diagnostic', () => {
     const diagnostic = 'Request https://provider.example/?api_key=secret-value failed';
     const responseMessage = toSafeStreamErrorMessage(new Error(diagnostic));

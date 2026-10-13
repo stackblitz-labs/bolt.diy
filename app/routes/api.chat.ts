@@ -1,5 +1,4 @@
 import {
-  createUIMessageStream,
   createUIMessageStreamResponse,
   generateId,
   isStepCount,
@@ -9,6 +8,7 @@ import {
   type UIMessage,
 } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
+import { createChatUIMessageStream } from '~/lib/.server/api/chat-stream';
 import { toApiErrorResponse, toMissingCredentialError, toSafeStreamErrorMessage } from '~/lib/.server/api/errors';
 import { readJsonBody } from '~/lib/.server/api/read-body';
 import {
@@ -21,12 +21,14 @@ import {
 } from '~/lib/.server/api/schemas';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
+import { getWebResearchInstructions } from '~/lib/.server/llm/prompt-web-tools';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { streamText, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { createMessage, getMessageText } from '~/lib/persistence/messageMigration';
+import { getPluginToolDescriptions, getPluginTools } from '~/lib/plugins/adapters';
 import { getProjectToolNames, projectToolDefinitions } from '~/lib/runtime/projectMcp.shared';
 import { withSecurity } from '~/lib/security';
 import { MCPService } from '~/lib/services/mcpService';
@@ -96,8 +98,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const totalMessageContent = messages.reduce((acc, message) => acc + getMessageText(message), '');
     logger.debug(`Total message length: ${totalMessageContent.split(' ').length}, words`);
 
-    const responseMessageId = generateId();
-
     /*
      * Counts model responses, including the initial response. This used to read SwitchableStream.switches,
      * which is only incremented by switchSource() and is never called, so the
@@ -119,17 +119,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       }
     };
 
-    const uiStream = createUIMessageStream({
+    const uiStream = createChatUIMessageStream(messages, {
       async execute({ writer }) {
-        /*
-         * createUIMessageStream does not emit a start chunk, and
-         * toUIMessageStream only attaches a server-chosen messageId when
-         * originalMessages is supplied. Bolt writes data-* parts before the
-         * model stream is merged, so the id has to be established first or those
-         * parts attach to a client-generated id that later gets renamed.
-         */
-        writer.write({ type: 'start', messageId: responseMessageId });
-
         const filePaths = getFilePaths(files || {});
 
         let filteredFiles: FileMap | undefined = undefined;
@@ -275,6 +266,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             .map(([toolName]) => toolName),
         });
 
+        const enabledPlugins = body.plugins ?? [];
+
+        const pluginTools = getPluginTools(
+          enabledPlugins,
+          Object.entries(body.toolEnabled ?? {})
+            .filter(([, enabled]) => !enabled)
+            .map(([toolName]) => toolName),
+        );
+
+        const browserUseToolNames = Object.keys(mcpTools).filter(
+          (toolName) => mcpService.getToolServerName(toolName) === 'browser-use-cloud',
+        );
+
         const projectTools =
           chatMode === 'build'
             ? Object.fromEntries(
@@ -288,17 +292,28 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               )
             : {};
 
-        const collisions = Object.keys(projectTools).filter((name) => name in mcpTools);
+        const pluginAndProjectToolNames = [...Object.keys(projectTools), ...Object.keys(pluginTools)];
+
+        const collisions = pluginAndProjectToolNames.filter(
+          (name, index) => name in mcpTools || pluginAndProjectToolNames.indexOf(name) !== index,
+        );
 
         if (collisions.length > 0) {
           throw new Error(`Built-in MCP tool name conflict: ${collisions.join(', ')}`);
         }
 
-        const tools = { ...mcpTools, ...projectTools };
+        const tools = { ...mcpTools, ...projectTools, ...pluginTools };
+        const pluginToolDescriptions = getPluginToolDescriptions(enabledPlugins);
         const hasTools = Object.keys(tools).length > 0;
 
         const options: Omit<StreamingOptions, 'messages'> = {
           supabaseConnection: supabase,
+          system: getWebResearchInstructions({
+            browserUseToolNames,
+            webToolNames: Object.keys(projectTools).filter(
+              (toolName) => toolName === 'web_search' || toolName === 'web_fetch',
+            ),
+          }),
 
           ...(hasTools ? { toolChoice: 'auto' as const, tools } : {}),
 
@@ -328,6 +343,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     toolName,
                     toolDescription:
                       projectToolDefinitions[toolName as keyof typeof projectToolDefinitions].description,
+                  } satisfies ToolCallAnnotation,
+                });
+              } else if (toolName in pluginToolDescriptions) {
+                const pluginTool = pluginToolDescriptions[toolName];
+                writer.write({
+                  type: 'data-toolCall',
+                  data: {
+                    type: 'toolCall',
+                    toolCallId: toolCall.toolCallId,
+                    serverName: pluginTool.pluginId,
+                    toolName,
+                    toolDescription: pluginTool.description,
                   } satisfies ToolCallAnnotation,
                 });
               }

@@ -130,6 +130,10 @@ export function toMissingCredentialError(provider: string, providerMessage?: str
 /** Converts a streaming provider error to a client-safe hint without forwarding diagnostics. */
 export function toSafeStreamErrorMessage(error: unknown): string {
   const providerMessage = error instanceof Error ? error.message : String(error);
+  const normalizedMessage = providerMessage.toLowerCase();
+
+  const statusCode =
+    typeof error === 'object' && error !== null && 'statusCode' in error ? error.statusCode : undefined;
 
   logger.error('Streaming provider error');
 
@@ -153,7 +157,7 @@ export function toSafeStreamErrorMessage(error: unknown): string {
     return 'Custom error: Token limit exceeded. The conversation is too long for the selected model. Try using a model with larger context window or start a new conversation.';
   }
 
-  if (providerMessage.includes('rate limit') || providerMessage.includes('429')) {
+  if (statusCode === 429 || normalizedMessage.includes('rate limit') || providerMessage.includes('429')) {
     return 'Custom error: API rate limit exceeded, or the provider rejected the request for account reasons. Check your provider account and try again.';
   }
 

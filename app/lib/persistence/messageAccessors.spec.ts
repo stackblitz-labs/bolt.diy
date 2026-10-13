@@ -144,11 +144,13 @@ describe('tool accessors: v4 nested and v5 flat agree', () => {
     expect(isToolResultPart({ toolInvocation: { state: 'call' } })).toBe(false);
   });
 
-  it('tolerates a dynamic-tool part', () => {
+  it('recognizes a dynamic connector tool part', () => {
     const dynamic = { type: 'dynamic-tool', toolName: 'bash', toolCallId: 'tc9', state: 'output-available' };
 
-    expect(isToolPart(dynamic)).toBe(false);
+    expect(isToolPart(dynamic)).toBe(true);
     expect(getToolName(dynamic)).toBe('bash');
+    expect(isToolResultPart(dynamic)).toBe(true);
+    expect(getToolCallId(dynamic)).toBe('tc9');
   });
 });
 

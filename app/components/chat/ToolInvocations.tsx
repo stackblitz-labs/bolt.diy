@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState, useEffect, useRef } from 'react';
 import { createHighlighter, type Highlighter } from 'shiki';
+import { Markdown } from './Markdown';
 import {
   getToolCallId,
   getToolInput,
@@ -98,109 +99,145 @@ interface ToolInvocationsProps {
   toolInvocations: AnyPart[];
   toolCallAnnotations: ToolCallAnnotation[];
   addToolResult: (options: { tool: string; toolCallId: string; output: unknown }) => void;
+  orderedParts?: AnyPart[];
 }
 
-export const ToolInvocations = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolInvocationsProps) => {
-  const theme = useStore(themeStore);
-  const [showDetails, setShowDetails] = useState(false);
+export const ToolInvocations = memo(
+  ({ toolInvocations, toolCallAnnotations, addToolResult, orderedParts }: ToolInvocationsProps) => {
+    const theme = useStore(themeStore);
+    const [showDetails, setShowDetails] = useState(false);
 
-  const toggleDetails = () => {
-    setShowDetails((prev) => !prev);
-  };
+    const toggleDetails = () => {
+      setShowDetails((prev) => !prev);
+    };
 
-  const toolCalls = useMemo(() => toolInvocations.filter((inv) => isToolCallPart(inv)), [toolInvocations]);
+    const toolCalls = useMemo(() => toolInvocations.filter((inv) => isToolCallPart(inv)), [toolInvocations]);
 
-  const toolResults = useMemo(() => toolInvocations.filter((inv) => isToolResultPart(inv)), [toolInvocations]);
+    const toolResults = useMemo(() => toolInvocations.filter((inv) => isToolResultPart(inv)), [toolInvocations]);
 
-  const hasToolCalls = toolCalls.length > 0;
-  const hasToolResults = toolResults.length > 0;
+    const hasToolCalls = toolCalls.length > 0;
+    const hasToolResults = toolResults.length > 0;
 
-  if (!hasToolCalls && !hasToolResults) {
-    return null;
-  }
+    if (!hasToolCalls && !hasToolResults) {
+      return null;
+    }
 
-  return (
-    <div className="tool-invocation border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150">
-      <div className="flex">
-        <button
-          className="flex items-stretch bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-artifacts-backgroundHover w-full overflow-hidden"
-          onClick={toggleDetails}
-          aria-label={showDetails ? 'Collapse details' : 'Expand details'}
-        >
-          <div className="p-2.5">
-            <div className="i-ph:wrench text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"></div>
-          </div>
-          <div className="p-2.5 w-full text-left">
-            <div className="w-full text-bolt-elements-textPrimary font-medium leading-5 text-sm">
-              MCP Tool Invocations{' '}
-              {hasToolResults && (
-                <span className="w-full w-full text-bolt-elements-textSecondary text-xs mt-0.5">
-                  ({toolResults.length} tool{hasToolResults ? 's' : ''} used)
-                </span>
-              )}
+    if (orderedParts) {
+      return (
+        <div className="flex w-full flex-col gap-3 py-1">
+          <ToolCallsList
+            toolInvocations={toolInvocations}
+            orderedParts={orderedParts}
+            toolCallAnnotations={toolCallAnnotations}
+            addToolResult={addToolResult}
+            theme={theme}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="tool-invocation border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150">
+        <div className="flex">
+          <button
+            className="flex items-stretch bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-artifacts-backgroundHover w-full overflow-hidden"
+            onClick={toggleDetails}
+            aria-label={showDetails ? 'Collapse details' : 'Expand details'}
+          >
+            <div className="p-2.5">
+              <div className="i-ph:wrench text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"></div>
             </div>
-          </div>
-        </button>
-        <AnimatePresence>
-          {hasToolResults && (
-            <motion.button
-              initial={{ width: 0 }}
-              animate={{ width: 'auto' }}
-              exit={{ width: 0 }}
-              transition={{ duration: 0.15, ease: cubicEasingFn }}
-              className="bg-bolt-elements-artifacts-background hover:bg-bolt-elements-artifacts-backgroundHover"
-              onClick={toggleDetails}
-            >
-              <div className="p-2">
-                <div
-                  className={`${showDetails ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'} text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors`}
-                ></div>
+            <div className="p-2.5 w-full text-left">
+              <div className="w-full text-bolt-elements-textPrimary font-medium leading-5 text-sm">
+                {activitySummary(toolInvocations)}{' '}
+                {hasToolResults && (
+                  <span className="w-full w-full text-bolt-elements-textSecondary text-xs mt-0.5">
+                    ({toolResults.length} tool{hasToolResults ? 's' : ''} used)
+                  </span>
+                )}
               </div>
-            </motion.button>
+            </div>
+          </button>
+          <AnimatePresence>
+            {hasToolResults && (
+              <motion.button
+                initial={{ width: 0 }}
+                animate={{ width: 'auto' }}
+                exit={{ width: 0 }}
+                transition={{ duration: 0.15, ease: cubicEasingFn }}
+                className="bg-bolt-elements-artifacts-background hover:bg-bolt-elements-artifacts-backgroundHover"
+                onClick={toggleDetails}
+              >
+                <div className="p-2">
+                  <div
+                    className={`${showDetails ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'} text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors`}
+                  ></div>
+                </div>
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+        <AnimatePresence>
+          {(hasToolCalls || hasToolResults) && (
+            <motion.div
+              className="details"
+              initial={{ height: 0 }}
+              animate={{ height: 'auto' }}
+              exit={{ height: '0px' }}
+              transition={{ duration: 0.15 }}
+            >
+              <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
+
+              <div className="px-3 py-3 text-left bg-bolt-elements-background-depth-2">
+                <ToolCallsList
+                  toolInvocations={toolInvocations}
+                  toolCallAnnotations={toolCallAnnotations}
+                  addToolResult={addToolResult}
+                  theme={theme}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {hasToolResults && showDetails && (
+            <motion.div
+              className="details"
+              initial={{ height: 0 }}
+              animate={{ height: 'auto' }}
+              exit={{ height: '0px' }}
+              transition={{ duration: 0.15 }}
+            >
+              <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
+
+              <div className="p-5 text-left bg-bolt-elements-actions-background">
+                <ToolResultsList
+                  toolInvocations={toolResults}
+                  toolCallAnnotations={toolCallAnnotations}
+                  theme={theme}
+                />
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
-      <AnimatePresence>
-        {hasToolCalls && (
-          <motion.div
-            className="details"
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: '0px' }}
-            transition={{ duration: 0.15 }}
-          >
-            <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
+    );
+  },
+);
 
-            <div className="px-3 py-3 text-left bg-bolt-elements-background-depth-2">
-              <ToolCallsList
-                toolInvocations={toolCalls}
-                toolCallAnnotations={toolCallAnnotations}
-                addToolResult={addToolResult}
-                theme={theme}
-              />
-            </div>
-          </motion.div>
-        )}
+function activitySummary(parts: AnyPart[]): string {
+  const names = parts.filter((part) => isToolCallPart(part) || isToolResultPart(part)).map((part) => getToolName(part));
+  const reads = names.filter((name) => name === 'project_read_file').length;
+  const lists = names.filter((name) => name === 'project_list_paths').length;
 
-        {hasToolResults && showDetails && (
-          <motion.div
-            className="details"
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: '0px' }}
-            transition={{ duration: 0.15 }}
-          >
-            <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
+  const exploration = [
+    reads ? `${reads} read${reads === 1 ? '' : 's'}` : '',
+    lists ? `${lists} list${lists === 1 ? '' : 's'}` : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
 
-            <div className="p-5 text-left bg-bolt-elements-actions-background">
-              <ToolResultsList toolInvocations={toolResults} toolCallAnnotations={toolCallAnnotations} theme={theme} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-});
+  return exploration ? `Explored ${exploration}` : `${names.length} activity ${names.length === 1 ? 'item' : 'items'}`;
+}
 
 const toolVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -287,198 +324,288 @@ const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: T
 
 interface ToolCallsListProps {
   toolInvocations: AnyPart[];
+  orderedParts?: AnyPart[];
   toolCallAnnotations: ToolCallAnnotation[];
   addToolResult: (options: { tool: string; toolCallId: string; output: unknown }) => void;
   theme: Theme;
 }
 
-const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolCallsListProps) => {
-  const [expanded, setExpanded] = useState<{ [id: string]: boolean }>({});
-  const [runningToolCalls, setRunningToolCalls] = useState<Set<string>>(new Set());
-  const fullAccess = useToolAccessStore((state) => state.mode === 'full-access');
-  const autoApprovedCalls = useRef(new Set<string>());
+const ToolCallsList = memo(
+  ({ toolInvocations, orderedParts, toolCallAnnotations, addToolResult }: ToolCallsListProps) => {
+    const [runningToolCalls, setRunningToolCalls] = useState<Set<string>>(new Set());
+    const fullAccess = useToolAccessStore((state) => state.mode === 'full-access');
+    const autoApprovedCalls = useRef(new Set<string>());
 
-  // OS detection for shortcut display
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-
-  useEffect(() => {
-    const expandedState: { [id: string]: boolean } = {};
-    toolInvocations.forEach((inv) => {
-      if (isToolCallPart(inv)) {
-        expandedState[getToolCallId(inv) as string] = true;
-      }
-    });
-    setExpanded(expandedState);
-  }, [toolInvocations]);
-
-  useEffect(() => {
-    if (!fullAccess) {
-      return;
-    }
-
-    for (const invocation of toolInvocations) {
-      if (!isToolCallPart(invocation) || getToolState(invocation) !== 'input-available') {
-        continue;
-      }
-
-      const toolCallId = getToolCallId(invocation);
-      const toolName = getToolName(invocation);
-
-      if (!toolCallId || !toolName || autoApprovedCalls.current.has(toolCallId)) {
-        continue;
-      }
-
-      autoApprovedCalls.current.add(toolCallId);
-      setRunningToolCalls((current) => new Set(current).add(toolCallId));
-      addToolResult({ tool: toolName, toolCallId, output: TOOL_EXECUTION_APPROVAL.APPROVE });
-    }
-  }, [addToolResult, fullAccess, toolInvocations]);
-
-  useEffect(() => {
-    const pendingIds = new Set(
-      toolInvocations.filter(isToolCallPart).map((invocation) => getToolCallId(invocation) as string),
-    );
-    setRunningToolCalls((current) => new Set([...current].filter((id) => pendingIds.has(id))));
-  }, [toolInvocations]);
-
-  // Keyboard shortcut logic
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if focus is in an input/textarea/contenteditable
-      const active = document.activeElement as HTMLElement | null;
-
-      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+    useEffect(() => {
+      if (!fullAccess) {
         return;
       }
 
-      if (Object.keys(expanded).length === 0) {
-        return;
+      for (const invocation of toolInvocations) {
+        if (!isToolCallPart(invocation) || getToolState(invocation) !== 'input-available') {
+          continue;
+        }
+
+        const toolCallId = getToolCallId(invocation);
+        const toolName = getToolName(invocation);
+
+        if (!toolCallId || !toolName || autoApprovedCalls.current.has(toolCallId)) {
+          continue;
+        }
+
+        autoApprovedCalls.current.add(toolCallId);
+        setRunningToolCalls((current) => new Set(current).add(toolCallId));
+        addToolResult({ tool: toolName, toolCallId, output: TOOL_EXECUTION_APPROVAL.APPROVE });
       }
+    }, [addToolResult, fullAccess, toolInvocations]);
 
-      const openId = Object.keys(expanded).find((id) => expanded[id]);
+    useEffect(() => {
+      const pendingIds = new Set(
+        toolInvocations.filter(isToolCallPart).map((invocation) => getToolCallId(invocation) as string),
+      );
+      setRunningToolCalls((current) => new Set([...current].filter((id) => pendingIds.has(id))));
+    }, [toolInvocations]);
 
-      if (!openId) {
-        return;
-      }
-
-      const openTool = toolInvocations.find(
-        (invocation) => isToolCallPart(invocation) && getToolCallId(invocation) === openId,
+    if (orderedParts) {
+      const explorationParts = orderedParts.filter(
+        (part) => (isToolCallPart(part) || isToolResultPart(part)) && isExplorationTool(getToolName(part) ?? ''),
       );
 
-      if (!openTool || !isToolCallPart(openTool)) {
-        return;
-      }
+      const firstExplorationId = getToolCallId(explorationParts[0]);
+      const explorationSummary = summarizeExploration(explorationParts);
 
-      const openToolName = getToolName(openTool) ?? '';
+      return (
+        <motion.div className="flex flex-col gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          {orderedParts.map((part, index) => {
+            if (part?.type === 'text' && typeof part.text === 'string') {
+              const text = cleanTimelineText(part.text);
+              return text.trim() ? (
+                <div key={`text-${index}`} className="text-sm leading-6 text-bolt-elements-textPrimary">
+                  <Markdown>{text}</Markdown>
+                </div>
+              ) : null;
+            }
 
-      if (runningToolCalls.has(openId)) {
-        return;
-      }
+            if (!isToolCallPart(part) && !isToolResultPart(part)) {
+              return null;
+            }
 
-      // Cancel: Cmd/Ctrl + Backspace
-      if ((isMac ? e.metaKey : e.ctrlKey) && e.key === 'Backspace') {
-        e.preventDefault();
-        addToolResult({
-          tool: openToolName,
-          toolCallId: openId,
-          output: TOOL_EXECUTION_APPROVAL.REJECT,
-        });
-      }
+            const toolName = getToolName(part) ?? '';
+            const toolCallId = getToolCallId(part);
 
-      // Run tool: Cmd/Ctrl + Enter
-      if ((isMac ? e.metaKey : e.ctrlKey) && (e.key === 'Enter' || e.key === 'Return')) {
-        e.preventDefault();
-        setRunningToolCalls((current) => new Set(current).add(openId));
-        addToolResult({
-          tool: openToolName,
-          toolCallId: openId,
-          output: TOOL_EXECUTION_APPROVAL.APPROVE,
-        });
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
+            if (isExplorationTool(toolName)) {
+              if (toolCallId !== firstExplorationId) {
+                return null;
+              }
 
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [expanded, addToolResult, isMac, runningToolCalls]);
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-      <ul className="list-none space-y-4">
-        {toolInvocations.map((tool, index) => {
-          if (!isToolCallPart(tool)) {
-            return null;
-          }
-
-          const toolCallId = getToolCallId(tool) as string;
-          const toolName = getToolName(tool) ?? '';
-          const annotation = toolCallAnnotations.find((annotation) => annotation.toolCallId === toolCallId);
-          const isRunning = runningToolCalls.has(toolCallId);
-
-          return (
-            <motion.li
-              key={index}
-              variants={toolVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.2, ease: cubicEasingFn }}
-            >
-              <div className="bg-bolt-elements-background-depth-3 rounded-lg p-2">
-                <div key={toolCallId} className="flex gap-1">
-                  <div className="flex flex-col items-center ">
-                    <span className="mr-auto font-light font-normal text-md text-bolt-elements-textPrimary rounded-md">
-                      {toolName}
-                    </span>
-                    <span className="text-xs text-bolt-elements-textSecondary font-light break-words max-w-64">
-                      {annotation?.toolDescription}
-                    </span>
+              return (
+                <details key={`exploration-${toolCallId}`} className="text-sm" open>
+                  <summary className="cursor-pointer list-none font-medium text-bolt-elements-textPrimary">
+                    <span className="mr-2 inline-block text-bolt-elements-textSecondary">⌄</span>
+                    {explorationSummary}
+                  </summary>
+                  <div className="ml-5 mt-2 flex flex-col gap-1 border-l border-bolt-elements-borderColor pl-3">
+                    {explorationParts.map((item, itemIndex) => (
+                      <ToolActivityRow
+                        key={getToolCallId(item) ?? itemIndex}
+                        tool={item}
+                        running={runningToolCalls.has(getToolCallId(item) ?? '')}
+                        fullAccess={fullAccess}
+                        annotation={toolCallAnnotations.find((entry) => entry.toolCallId === getToolCallId(item))}
+                      />
+                    ))}
                   </div>
-                  <div className="flex items-center justify-end gap-2 ml-auto">
-                    <button
-                      disabled={isRunning}
-                      className={classNames(
-                        'h-10 px-2.5 py-1.5 rounded-lg text-xs h-auto',
-                        'bg-transparent',
-                        'text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary',
-                        'transition-all duration-200',
-                        'flex items-center gap-2',
+                </details>
+              );
+            }
+
+            return (
+              <ToolActivityRow
+                key={toolCallId ?? index}
+                tool={part}
+                running={runningToolCalls.has(toolCallId ?? '')}
+                fullAccess={fullAccess}
+                annotation={toolCallAnnotations.find((entry) => entry.toolCallId === toolCallId)}
+              />
+            );
+          })}
+        </motion.div>
+      );
+    }
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+      >
+        <ul className="list-none space-y-4">
+          {toolInvocations.map((tool, index) => {
+            if (!isToolCallPart(tool) && !isToolResultPart(tool)) {
+              return null;
+            }
+
+            const toolCallId = getToolCallId(tool) as string;
+            const toolName = getToolName(tool) ?? '';
+            const annotation = toolCallAnnotations.find((annotation) => annotation.toolCallId === toolCallId);
+            const isRunning = runningToolCalls.has(toolCallId);
+            const state = getToolState(tool);
+
+            return (
+              <motion.li
+                key={index}
+                variants={toolVariants}
+                initial="hidden"
+                animate="visible"
+                transition={{ duration: 0.2, ease: cubicEasingFn }}
+              >
+                <div className="py-1">
+                  <div key={toolCallId} className="flex min-w-0 items-center gap-2 text-sm">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center text-bolt-elements-textSecondary">
+                      {state === 'output-available' ? (
+                        <span className="i-ph:check text-green-500" />
+                      ) : state === 'output-error' || state === 'output-denied' ? (
+                        <span className="i-ph:x text-red-500" />
+                      ) : isRunning || state === 'input-streaming' ? (
+                        <span className="i-svg-spinners:90-ring-with-bg" />
+                      ) : (
+                        <span className="i-ph:wrench" />
                       )}
-                      onClick={() =>
-                        addToolResult({
-                          tool: toolName,
-                          toolCallId,
-                          output: TOOL_EXECUTION_APPROVAL.REJECT,
-                        })
-                      }
+                    </span>
+                    <span
+                      className="min-w-0 flex-1 truncate text-bolt-elements-textPrimary"
+                      title={annotation?.toolDescription}
                     >
-                      Cancel <span className="opacity-70 text-xs ml-1">{isMac ? '⌘⌫' : 'Ctrl+Backspace'}</span>
-                    </button>
-                    <button
-                      disabled={isRunning}
-                      className={classNames(
-                        'h-10 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-normal rounded-lg transition-colors',
-                        'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
-                        'text-accent-500 hover:text-bolt-elements-textPrimary',
-                        'disabled:opacity-50 disabled:cursor-not-allowed',
-                      )}
-                      onClick={() => {
-                        setRunningToolCalls((current) => new Set(current).add(toolCallId));
-                        addToolResult({
-                          tool: toolName,
-                          toolCallId,
-                          output: TOOL_EXECUTION_APPROVAL.APPROVE,
-                        });
-                      }}
-                    >
-                      {isRunning ? 'Running…' : 'Run tool'}{' '}
-                      {!isRunning && <span className="opacity-70 text-xs ml-1">{isMac ? '⌘↵' : 'Ctrl+Enter'}</span>}
-                    </button>
+                      {activityLabel(toolName, getToolInput(tool), getToolOutput(tool), state)}
+                    </span>
+                    {state === 'input-available' && !fullAccess && (
+                      <span className="shrink-0 text-xs text-bolt-elements-textTertiary">Awaiting approval</span>
+                    )}
                   </div>
                 </div>
-              </div>
-            </motion.li>
-          );
-        })}
-      </ul>
-    </motion.div>
+              </motion.li>
+            );
+          })}
+        </ul>
+      </motion.div>
+    );
+  },
+);
+
+function activityLabel(toolName: string, rawInput: unknown, rawOutput?: unknown, state?: string): string {
+  const input = rawInput && typeof rawInput === 'object' ? (rawInput as Record<string, unknown>) : {};
+  const output = rawOutput && typeof rawOutput === 'object' ? (rawOutput as Record<string, unknown>) : {};
+  const path = typeof input.path === 'string' ? input.path : '';
+  const shortPath = path.replace(/^\/home\/project\/?/, '');
+
+  switch (toolName) {
+    case 'project_read_file':
+      return `Read ${shortPath || 'project file'}`;
+    case 'project_list_paths':
+      return 'Listed project files';
+    case 'project_search_content':
+      return 'Searched project files';
+    case 'project_find_related_files':
+      return `Found related files${shortPath ? ` for ${shortPath}` : ''}`;
+    case 'project_write_file':
+      return `${output.created === true ? 'Created' : output.created === false ? 'Edited' : state === 'output-available' ? 'Wrote' : 'Writing'} ${shortPath || 'project file'}`;
+    case 'project_patch_file':
+      return `${state === 'output-available' ? 'Edited' : 'Editing'} ${shortPath || 'project file'}`;
+    case 'project_create_directory':
+      return `${state === 'output-available' ? 'Created' : 'Creating'} ${shortPath || 'project directory'}`;
+    case 'project_delete_path':
+      return `${state === 'output-available' ? 'Deleted' : 'Deleting'} ${shortPath || 'project path'}`;
+    case 'project_run_command':
+      return `Running ${typeof input.command === 'string' ? input.command : 'project command'}`;
+    case 'project_get_process_output':
+      return 'Checking command output';
+    case 'project_stop_process':
+      return 'Stopping command';
+    case 'web_search':
+      return 'Searching the web';
+    case 'web_fetch':
+      return 'Opening a web page';
+    default:
+      return `Using ${toolName}`;
+  }
+}
+
+function isExplorationTool(toolName: string): boolean {
+  return ['project_read_file', 'project_list_paths', 'project_search_content', 'project_find_related_files'].includes(
+    toolName,
   );
-});
+}
+
+function summarizeExploration(parts: AnyPart[]): string {
+  const names = parts.map((part) => getToolName(part));
+  const reads = names.filter((name) => name === 'project_read_file').length;
+  const lists = names.filter((name) => name === 'project_list_paths').length;
+
+  const searches = names.filter(
+    (name) => name === 'project_search_content' || name === 'project_find_related_files',
+  ).length;
+
+  const counts = [
+    reads ? `${reads} read${reads === 1 ? '' : 's'}` : '',
+    lists ? `${lists} list${lists === 1 ? '' : 's'}` : '',
+    searches ? `${searches} search${searches === 1 ? '' : 'es'}` : '',
+  ].filter(Boolean);
+
+  return `Explored ${counts.join(', ')}`;
+}
+
+function cleanTimelineText(text: string): string {
+  return text
+    .replace(/<boltAction\b[^>]*>[\s\S]*?(?:<\/boltAction>|$)/g, '')
+    .replace(/<\/?boltArtifact\b[^>]*>/g, '')
+    .replace(/<\/?boltAction\b[^>]*>/g, '');
+}
+
+function ToolActivityRow({
+  tool,
+  running,
+  fullAccess,
+  annotation,
+}: {
+  tool: AnyPart;
+  running: boolean;
+  fullAccess: boolean;
+  annotation?: ToolCallAnnotation;
+}) {
+  const name = getToolName(tool) ?? '';
+  const state = getToolState(tool);
+
+  const icon =
+    name === 'project_read_file'
+      ? 'i-ph:eye'
+      : name === 'project_write_file' || name === 'project_create_directory'
+        ? 'i-ph:file-plus'
+        : name === 'project_patch_file'
+          ? 'i-ph:pen'
+          : name === 'project_delete_path'
+            ? 'i-ph:trash'
+            : 'i-ph:file';
+
+  return (
+    <div className="flex min-w-0 items-center gap-2 py-0.5 text-sm">
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-bolt-elements-textSecondary">
+        {state === 'output-available' ? (
+          <span className="i-ph:check-circle-fill text-green-500" />
+        ) : state === 'output-error' || state === 'output-denied' ? (
+          <span className="i-ph:x-circle-fill text-red-500" />
+        ) : running || state === 'input-streaming' ? (
+          <span className="i-svg-spinners:90-ring-with-bg" />
+        ) : (
+          <span className={icon} />
+        )}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-bolt-elements-textPrimary" title={annotation?.toolDescription}>
+        {activityLabel(name, getToolInput(tool), getToolOutput(tool), state)}
+      </span>
+      {state === 'input-available' && !fullAccess && (
+        <span className="shrink-0 text-xs text-bolt-elements-textTertiary">Approval needed</span>
+      )}
+    </div>
+  );
+}

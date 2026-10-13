@@ -214,18 +214,28 @@ export const AssistantMessage = memo(
             </div>
           </details>
         )}
-        <Markdown
-          append={append}
-          chatMode={chatMode}
-          setChatMode={setChatMode}
-          model={model}
-          provider={provider}
-          isStreaming={isStreaming}
-          html
-        >
-          {messageText}
-        </Markdown>
-        {toolInvocations && toolInvocations.length > 0 && (
+        {chatMode === 'build' && toolInvocations && toolInvocations.length > 0 && (
+          <ToolInvocations
+            toolInvocations={toolInvocations}
+            toolCallAnnotations={toolCallAnnotations}
+            addToolResult={addToolResult}
+            orderedParts={parts}
+          />
+        )}
+        {(chatMode !== 'build' || !toolInvocations || toolInvocations.length === 0) && (
+          <Markdown
+            append={append}
+            chatMode={chatMode}
+            setChatMode={setChatMode}
+            model={model}
+            provider={provider}
+            isStreaming={isStreaming}
+            html
+          >
+            {messageText}
+          </Markdown>
+        )}
+        {chatMode !== 'build' && toolInvocations && toolInvocations.length > 0 && (
           <ToolInvocations
             toolInvocations={toolInvocations}
             toolCallAnnotations={toolCallAnnotations}

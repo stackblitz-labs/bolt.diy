@@ -22,10 +22,15 @@ import {
   type AnyPart,
 } from '~/lib/persistence/messageMigration';
 import { chatId } from '~/lib/persistence/useChatHistory';
+import { executeTextUtility, getPluginToolName, isSupportedAdapter } from '~/lib/plugins/adapters';
+import { pluginDatabase } from '~/lib/plugins/database';
+import type { PluginManifest } from '~/lib/plugins/schema';
+import { pluginManifestSchema } from '~/lib/plugins/schema';
 import { callProjectMcpTool, PROJECT_TOOL_NAMES } from '~/lib/runtime/projectMcp';
 import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
+import { usePluginStore } from '~/lib/stores/plugins';
 import { streamingState } from '~/lib/stores/streaming';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -148,6 +153,12 @@ export const ChatImpl = memo(
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
+    const installedPlugins = usePluginStore((state) => state.plugins);
+    const initializePlugins = usePluginStore((state) => state.initialize);
+
+    useEffect(() => {
+      void initializePlugins();
+    }, [initializePlugins]);
 
     /*
      * v5 removed the managed input state: `input`, `setInput` and
@@ -187,6 +198,15 @@ export const ChatImpl = memo(
       webSearchEnabled: mcpSettings.webSearchEnabled,
       connectorEnabled: mcpSettings.connectorEnabled,
       toolEnabled: mcpSettings.toolEnabled,
+      plugins: installedPlugins
+        .filter((plugin) => plugin.enabled)
+        .map((plugin) => {
+          const manifest = plugin.manifest as PluginManifest;
+          const tools = manifest.tools.filter((tool) => plugin.configuration[`toolDisabled:${tool}`] !== true);
+
+          return { id: plugin.id, adapter: manifest.contribution.adapter, tools };
+        })
+        .filter((plugin) => plugin.tools.length > 0),
     });
 
     bodyRef.current = {
@@ -208,6 +228,15 @@ export const ChatImpl = memo(
       webSearchEnabled: mcpSettings.webSearchEnabled,
       connectorEnabled: mcpSettings.connectorEnabled,
       toolEnabled: mcpSettings.toolEnabled,
+      plugins: installedPlugins
+        .filter((plugin) => plugin.enabled)
+        .map((plugin) => {
+          const manifest = plugin.manifest as PluginManifest;
+          const tools = manifest.tools.filter((tool) => plugin.configuration[`toolDisabled:${tool}`] !== true);
+
+          return { id: plugin.id, adapter: manifest.contribution.adapter, tools };
+        })
+        .filter((plugin) => plugin.tools.length > 0),
     };
 
     const {
@@ -290,6 +319,11 @@ export const ChatImpl = memo(
               file?.type === 'file' ? [{ path, content: file.content }] : [],
             );
 
+            // A research-only conversation has no project to install or start.
+            if (projectFiles.length === 0) {
+              return;
+            }
+
             const commands = await detectProjectCommands(projectFiles);
             const setupMessage = createCommandsMessage(commands);
 
@@ -364,6 +398,65 @@ export const ChatImpl = memo(
     const handleToolOutput = useCallback(
       (options: { tool: string; toolCallId: string; output: unknown }) => {
         const { tool, toolCallId, output } = options;
+
+        if (tool.startsWith('plugin_')) {
+          if (output !== TOOL_EXECUTION_APPROVAL.APPROVE) {
+            addToolOutput({
+              ...options,
+              output: { isError: true, denied: true, error: 'Plugin tool execution was rejected.' },
+            });
+            return;
+          }
+
+          const call = messagesRef.current
+            .flatMap((message) => getMessageParts(message) ?? [])
+            .find((part) => isToolCallPart(part) && getToolCallId(part) === toolCallId);
+
+          const input = call ? getToolInput(call) : undefined;
+
+          void pluginDatabase
+            .getAll()
+            .then((installedPlugins) => {
+              for (const installed of installedPlugins) {
+                if (!installed.enabled) {
+                  continue;
+                }
+
+                const parsed = pluginManifestSchema.safeParse(installed.manifest);
+
+                if (!parsed.success || !isSupportedAdapter(parsed.data)) {
+                  continue;
+                }
+
+                const manifest = parsed.data;
+                const toolId = manifest.tools.find((candidate) => getPluginToolName(manifest.id, candidate) === tool);
+
+                if (!toolId || installed.configuration[`toolDisabled:${toolId}`] === true) {
+                  continue;
+                }
+
+                const result = executeTextUtility(toolId, input);
+                addToolOutput({ tool, toolCallId, output: result });
+
+                return;
+              }
+
+              addToolOutput({
+                tool,
+                toolCallId,
+                output: { isError: true, error: 'This plugin tool is no longer installed, enabled, or permitted.' },
+              });
+            })
+            .catch((error) => {
+              addToolOutput({
+                tool,
+                toolCallId,
+                output: { isError: true, error: error instanceof Error ? error.message : 'Plugin tool failed.' },
+              });
+            });
+
+          return;
+        }
 
         if (
           PROJECT_TOOL_NAMES.includes(tool as (typeof PROJECT_TOOL_NAMES)[number]) &&

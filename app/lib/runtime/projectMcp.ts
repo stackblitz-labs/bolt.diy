@@ -206,11 +206,14 @@ export async function createProjectMcpBridge() {
         }
 
         const target = projectPath(input);
+
+        let created = false;
         await queueMutation(async () => {
           assertNotAborted(extra.signal);
           assertProjectCurrent();
 
           const current = workbenchStore.files.get()[target.absolute];
+          created = current?.type !== 'file';
 
           if (!current) {
             try {
@@ -243,7 +246,7 @@ export async function createProjectMcpBridge() {
           }
         });
 
-        return success({ path: target.relative, written: true, generation: bridgeProjectGeneration });
+        return success({ path: target.relative, written: true, created, generation: bridgeProjectGeneration });
       } catch (error) {
         return failure(error);
       }

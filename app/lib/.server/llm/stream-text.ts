@@ -350,6 +350,7 @@ export async function streamText(props: {
   const {
     supabaseConnection: _supabaseConnection,
     messages: _messages,
+    system: additionalSystemInstructions,
     ...forwardedOptions
   } = filteredOptions as StreamingOptions & Record<string, unknown>;
 
@@ -360,7 +361,9 @@ export async function streamText(props: {
       apiKeys,
       providerSettings,
     }),
-    system: chatMode === 'build' ? systemPrompt : discussPrompt(),
+    system: [chatMode === 'build' ? systemPrompt : discussPrompt(), additionalSystemInstructions]
+      .filter((instruction): instruction is string => typeof instruction === 'string' && instruction.length > 0)
+      .join('\n\n'),
     ...tokenParams,
     messages: await prepareModelMessages(processedMessages as UIMessage[]),
     ...forwardedOptions,

@@ -6,6 +6,18 @@ import type { ProviderInfo } from '~/types/model';
 export const selectStarterTemplate = async (options: { message: string; model?: string; provider?: ProviderInfo }) => {
   const { message } = options;
 
+  // Information requests can use research tools in Build mode without initializing a project.
+  const informationRequest =
+    /^\s*(?:(?:please|can you|could you)\s+)*(?:find|search|look up|research|explain|tell me|what|where|when|why|how|which|who)\b/i.test(
+      message,
+    );
+
+  const buildRequest = /\b(?:build|create|implement|develop|design|code|make|add)\b/i.test(message);
+
+  if (informationRequest && !buildRequest) {
+    return { template: 'blank', title: message.trim().slice(0, 100) };
+  }
+
   const requestedFrameworks: [RegExp, string][] = [
     [/\bnext\.?js\b/i, /\bshadcn\b/i.test(message) ? 'NextJS Shadcn' : 'blank'],
     [/\bshadcn\b/i, 'Vite Shadcn'],
