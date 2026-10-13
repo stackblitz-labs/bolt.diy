@@ -2,6 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { assertValidProjectSource, getFileRevision } from './projectFileValidation';
 import { PROJECT_TOOL_NAMES, projectToolDefinitions } from './projectMcp.shared';
 export { PROJECT_TOOL_NAMES, projectToolDefinitions } from './projectMcp.shared';
 import { searchWithRipgrep } from './ripgrepClient';
@@ -54,18 +55,28 @@ function queueMutation<T>(operation: () => Promise<T>): Promise<T> {
   return workbenchStore.queueProjectMutation(operation);
 }
 
-function projectPath(input: unknown): { relative: string; absolute: string } {
+function projectPath(input: unknown, allowRoot = false): { relative: string; absolute: string } {
   if (typeof input !== 'string' || !input.trim() || input.includes('\0')) {
     throw new Error('A non-empty project-relative path is required.');
   }
 
-  const normalized = path.normalize(input.replace(/\\/g, '/'));
+  const normalized = path.normalize(input.trim().replace(/\\/g, '/'));
 
-  if (path.isAbsolute(normalized) || normalized === '.' || normalized === '..' || normalized.startsWith('../')) {
+  if (
+    (path.isAbsolute(normalized) && normalized !== WORK_DIR && !normalized.startsWith(`${WORK_DIR}/`)) ||
+    normalized === '..' ||
+    normalized.startsWith('../')
+  ) {
     throw new Error(`Path must stay inside the project: ${input}`);
   }
 
-  const relative = normalized.replace(/^\.\//, '').replace(/\/$/, '');
+  const relative = (path.isAbsolute(normalized) ? path.relative(WORK_DIR, normalized) : normalized)
+    .replace(/^\.\//, '')
+    .replace(/\/$/, '');
+
+  if (allowRoot && (!relative || relative === '.')) {
+    return { relative: '.', absolute: WORK_DIR };
+  }
 
   if (!relative || relative.split('/').some((part) => part === '..' || part === '.')) {
     throw new Error(`Invalid project path: ${input}`);
@@ -146,7 +157,7 @@ function failure(error: unknown) {
   return { isError: true, content: [{ type: 'text' as const, text: message.slice(0, 4000) }] };
 }
 
-function processResult(processId: string, record: ProcessRecord) {
+function processResult(processId: string, record: ProcessRecord, reused = false) {
   const failed = record.exitCode !== undefined && record.exitCode !== 0;
 
   const data = {
@@ -159,6 +170,7 @@ function processResult(processId: string, record: ProcessRecord) {
     outputStream: 'combined',
     truncated: record.truncated,
     previewReady: workbenchStore.previews.get().some((preview) => preview.ready),
+    ...(reused ? { reused: true } : {}),
     ...(failed ? { isError: true, error: `Command exited with code ${record.exitCode}.` } : {}),
   };
 
@@ -230,7 +242,7 @@ export async function createProjectMcpBridge() {
         const content = await readText(target.relative);
         assertProjectCurrent();
 
-        return success({ path: target.relative, content, truncated: false });
+        return success({ path: target.relative, content, revision: await getFileRevision(content), truncated: false });
       } catch (error) {
         return failure(error);
       }
@@ -296,9 +308,13 @@ export async function createProjectMcpBridge() {
 
           if (current?.type === 'file' && !replacementReason) {
             throw new Error(
-              'Use project_patch_file for targeted changes. A full replacement of an existing file requires replacementReason.',
+              'Cannot overwrite existing file without replacementReason. Either: (1) Use project_patch_file to make targeted edits by reading the file first and using expectedRevision, OR (2) Provide a replacementReason parameter explaining why a full file replacement is necessary (e.g., "Complete restructure", "Generated from scratch", "Fundamental architecture change").',
             );
           }
+
+          await assertValidProjectSource(target.relative, content);
+          assertNotAborted(extra.signal);
+          assertProjectCurrent();
 
           if (current?.type === 'file') {
             await workbenchStore.saveFileContent(target.absolute, content);
@@ -320,12 +336,16 @@ export async function createProjectMcpBridge() {
       description: projectToolDefinitions.project_patch_file.description,
       inputSchema: {
         path: z.string().min(1),
-        expectedContent: z.string(),
+        expectedContent: z.string().optional(),
+        expectedRevision: z
+          .string()
+          .regex(/^[a-f0-9]{64}$/)
+          .optional(),
         oldText: z.string().min(1),
         newText: z.string(),
       },
     },
-    async ({ path: input, expectedContent, oldText, newText }, extra) => {
+    async ({ path: input, expectedContent, expectedRevision, oldText, newText }, extra) => {
       try {
         const target = projectPath(input);
 
@@ -337,8 +357,17 @@ export async function createProjectMcpBridge() {
           assertNotAborted(extra.signal);
           assertProjectCurrent();
 
-          if (content !== expectedContent) {
-            throw new Error('Patch conflict: the file no longer matches expectedContent.');
+          if (expectedContent === undefined && expectedRevision === undefined) {
+            throw new Error('Read the file first, then supply its revision as expectedRevision.');
+          }
+
+          if (
+            (expectedRevision !== undefined && (await getFileRevision(content)) !== expectedRevision) ||
+            (expectedContent !== undefined && content !== expectedContent)
+          ) {
+            throw new Error(
+              'Patch conflict: the file changed or expectedContent was copied incorrectly. Read the file again and use its revision as expectedRevision; do not repeat the stale patch.',
+            );
           }
 
           const first = content.indexOf(oldText);
@@ -362,6 +391,9 @@ export async function createProjectMcpBridge() {
           const changed = updated !== content;
 
           if (changed) {
+            await assertValidProjectSource(target.relative, updated);
+            assertNotAborted(extra.signal);
+            assertProjectCurrent();
             await workbenchStore.saveFileContent(target.absolute, updated);
           }
 
@@ -456,7 +488,10 @@ export async function createProjectMcpBridge() {
     },
     async ({ path: prefix = '', limit = MAX_LIST_RESULTS }) => {
       try {
-        const safePrefix = prefix ? projectPath(prefix).relative : '';
+        const relative = prefix ? projectPath(prefix, true).relative : '.';
+        const safePrefix = relative === '.' ? '' : relative;
+        await workbenchStore.waitForExecutionQueue();
+        assertProjectCurrent();
 
         const entries = Object.entries(workbenchStore.files.get())
           .filter(
@@ -485,7 +520,7 @@ export async function createProjectMcpBridge() {
     },
     async ({ query, path: input = '.', limit = 50 }, extra) => {
       try {
-        const safePath = input === '.' ? '.' : projectPath(input).relative;
+        const safePath = projectPath(input, true).relative;
         await workbenchStore.waitForExecutionQueue();
         assertProjectCurrent();
 
@@ -577,9 +612,27 @@ export async function createProjectMcpBridge() {
     },
     async ({ command, purpose = 'other' }, extra) => {
       try {
+        let reused = false;
+
         const processId = await queueMutation(async () => {
           assertNotAborted(extra.signal);
           assertProjectCurrent();
+
+          if (purpose === 'run') {
+            const normalizeCommand = (value: string) =>
+              value.trim().replace(/^cd\s+(?:\/home\/project|['"]\/home\/project['"])\s*&&\s*/, '');
+            const existing = [...processes].find(
+              ([, record]) =>
+                record.purpose === 'run' &&
+                record.exitCode === undefined &&
+                normalizeCommand(record.command) === normalizeCommand(command),
+            );
+
+            if (existing) {
+              reused = true;
+              return existing[0];
+            }
+          }
 
           while (processes.size >= MAX_PROCESSES) {
             const completed = [...processes].find(([, record]) => record.exitCode !== undefined && record.outputDone);
@@ -664,7 +717,7 @@ export async function createProjectMcpBridge() {
         await waitForProcess(record, 250);
         assertProjectCurrent();
 
-        return processResult(processId, record);
+        return processResult(processId, record, reused);
       } catch (error) {
         const result = failure(error);
 

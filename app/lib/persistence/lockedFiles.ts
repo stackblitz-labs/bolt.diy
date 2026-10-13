@@ -500,6 +500,26 @@ export function batchUnlockItems(chatId: string, paths: string[]): void {
 }
 
 /**
+ * Clear all locks for a specific chat
+ * @param chatId The chat ID to clear locks for
+ */
+export function clearAllLocksForChat(chatId: string): void {
+  // Ensure cache is initialized
+  const lockedItems = getLockedItems();
+
+  // Update the in-memory map
+  lockedItemsMap.delete(chatId);
+
+  // Filter out all items for this chat
+  const filteredItems = lockedItems.filter((item) => item.chatId !== chatId);
+
+  // Save the updated list
+  saveLockedItems(filteredItems);
+
+  logger.info(`Cleared all locks for chat: ${chatId}`);
+}
+
+/**
  * Add event listener for storage events to sync cache across tabs
  * This ensures that if locks are modified in another tab, the changes are reflected here
  */

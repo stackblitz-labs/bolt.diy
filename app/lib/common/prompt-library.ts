@@ -1,8 +1,6 @@
-import { getDiligentDanPrompt } from './prompts/diligent-dan';
 import { getFineTunedPrompt } from './prompts/new-prompt';
 import optimized from './prompts/optimized';
-import { getSystemPrompt } from './prompts/prompts';
-import { getSimpleSalPrompt } from './prompts/simple-sal';
+import { getProjectToolPrompt } from './prompts/project-tools';
 import { getTinyTimPrompt } from './prompts/tiny-tim';
 import type { DesignScheme } from '~/types/design-scheme';
 
@@ -11,6 +9,7 @@ export interface PromptOptions {
   allowedHtmlElements: string[];
   modificationTagName: string;
   designScheme?: DesignScheme;
+  projectTools?: boolean;
   supabase?: {
     isConnected: boolean;
     hasSelectedProject: boolean;
@@ -32,33 +31,21 @@ export class PromptLibrary {
   > = {
     default: {
       label: 'Default Prompt',
-      description: 'An fine tuned prompt for better results and less token usage',
-      get: (options) => getFineTunedPrompt(options.cwd, options.supabase, options.designScheme),
-    },
-    'simple-sal': {
-      label: 'Simple Sal',
-      description: 'Balanced prompt with core Bolt features and no-fluff communication',
-      get: (options) => getSimpleSalPrompt(options.cwd, options.supabase, options.designScheme),
+      description: 'Optimized prompt with improved tool usage and error recovery',
+      get: (options) =>
+        options.projectTools
+          ? getProjectToolPrompt(options)
+          : getFineTunedPrompt(options.cwd, options.supabase, options.designScheme),
     },
     'tiny-tim': {
       label: 'Tiny Tim',
       description: 'Optimized for small models with terse format and modern 2026 standards',
       get: (options) => getTinyTimPrompt(options.cwd, options.supabase, options.designScheme),
     },
-    'og-prompt': {
-      label: 'OG Prompt',
-      description: 'The original battle tested default system prompt',
-      get: (options) => getSystemPrompt(options.cwd, options.supabase, options.designScheme),
-    },
     'experimental-prompt': {
       label: 'Experimental Prompt',
       description: 'Experimental version of the prompt for lower token usage',
       get: (options) => optimized(options),
-    },
-    'diligent-dan': {
-      label: 'DiligentDan',
-      description: 'Disciplined prompt with Simplified Technical English and checklist-driven workflow',
-      get: (options) => getDiligentDanPrompt(options.cwd, options.supabase, options.designScheme),
     },
   };
   static getList() {
