@@ -19,7 +19,12 @@ const planSchema = z
   );
 
 /** Plan and completion tools execute on the server; project effects remain in the browser. */
-export function createAgentLoopTools(messages: AnyMessage[], enabled: boolean, requiresPreview: boolean) {
+export function createAgentLoopTools<TaskToolName extends string = never>(
+  messages: AnyMessage[],
+  enabled: boolean,
+  requiresPreview: boolean,
+  taskToolNames?: TaskToolName[],
+) {
   let currentMessages = messages;
 
   const tools = {
@@ -57,12 +62,21 @@ export function createAgentLoopTools(messages: AnyMessage[], enabled: boolean, r
             report.evidence.length === 0 ||
             !report.evidence.every((id) => progress.evidence.includes(id))
           ) {
-            problems.push(`Criterion ${criterion.id} needs valid successful tool-call evidence.`);
+            problems.push(
+              `Criterion ${criterion.id} needs successful tool-call IDs, not process IDs or command names.`,
+            );
           }
         }
 
         if (problems.length > 0) {
-          return { isError: true, completed: false, problems, error: problems.join(' ') };
+          return {
+            isError: true,
+            completed: false,
+            problems,
+            availableEvidence: progress.evidence,
+            plannedCriteria: progress.plan?.criteria.map((criterion) => criterion.id) ?? [],
+            error: problems.join(' '),
+          };
         }
 
         return { completed: true, summary: input.summary, criteria: input.criteria };
@@ -77,11 +91,15 @@ export function createAgentLoopTools(messages: AnyMessage[], enabled: boolean, r
       initialInstructions,
     }: {
       steps: Array<{
-        toolCalls: Array<{ toolName: string; toolCallId: string; input: unknown }>;
+        toolCalls: Array<{ toolName: string; toolCallId: string; input: unknown; invalid?: boolean }>;
         toolResults: Array<{ toolCallId: string; output: unknown }>;
       }>;
       initialInstructions?: Instructions;
-    }) => {
+    }): {
+      instructions?: Instructions;
+      toolChoice: 'none' | 'auto' | 'required' | { type: 'tool'; toolName: 'agent_plan' };
+      activeTools?: Array<TaskToolName | 'agent_plan' | 'agent_complete'>;
+    } => {
       currentMessages = [
         ...messages,
         ...steps.map((step) => ({
@@ -94,7 +112,7 @@ export function createAgentLoopTools(messages: AnyMessage[], enabled: boolean, r
                 type: `tool-${call.toolName}`,
                 toolCallId: call.toolCallId,
                 input: call.input,
-                state: result ? 'output-available' : 'input-available',
+                state: result ? 'output-available' : call.invalid ? 'output-error' : 'input-available',
                 output: result?.output,
               };
             }),
@@ -103,7 +121,15 @@ export function createAgentLoopTools(messages: AnyMessage[], enabled: boolean, r
       ];
 
       const progress = getAgentLoopProgress(currentMessages, enabled);
-      const guidance = getAgentLoopInstructions(progress);
+
+      const guidance = [
+        getAgentLoopInstructions(progress),
+        progress.status === 'pending'
+          ? 'Use the supplied tools interface to make actual tool calls. Never print tool-call JSON or a promise to act in place of calling a tool. Follow each tool input schema exactly.'
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
 
       const instructions =
         initialInstructions === undefined
@@ -126,10 +152,26 @@ export function createAgentLoopTools(messages: AnyMessage[], enabled: boolean, r
         return { ...instructions, toolChoice: 'auto' as const };
       }
 
+      if (!progress.plan) {
+        return {
+          ...instructions,
+          toolChoice: { type: 'tool' as const, toolName: 'agent_plan' as const },
+          activeTools: ['agent_plan' as const],
+        };
+      }
+
       return {
         ...instructions,
         toolChoice: 'required' as const,
-        ...(!progress.plan ? { activeTools: ['agent_plan' as const] } : {}),
+        ...(taskToolNames
+          ? {
+              activeTools: [
+                ...taskToolNames,
+                'agent_plan' as const,
+                ...(getAgentCompletionProblems(progress).length === 0 ? ['agent_complete' as const] : []),
+              ],
+            }
+          : {}),
       };
     },
   };

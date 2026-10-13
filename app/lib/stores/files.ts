@@ -20,6 +20,7 @@ import {
   isPathInLockedFolder,
   migrateLegacyLocks,
   clearCache,
+  clearAllLocksForChat,
 } from '~/lib/persistence/lockedFiles';
 import { bufferWatchEvents } from '~/utils/buffer';
 import { WORK_DIR } from '~/utils/constants';
@@ -497,6 +498,47 @@ export class FilesStore {
     }
 
     return { isLocked: false };
+  }
+
+  /**
+   * Clear all locks for the current chat
+   * @param chatId Optional chat ID (defaults to current chat)
+   */
+  clearAllLocksForCurrentChat(chatId?: string): void {
+    const currentChatId = chatId || getCurrentChatId();
+    const currentFiles = this.files.get();
+    const updates: FileMap = {};
+
+    // Clear all isLocked flags in memory
+    for (const [path, dirent] of Object.entries(currentFiles)) {
+      if (dirent && 'isLocked' in dirent && dirent.isLocked) {
+        if (dirent.type === 'file') {
+          updates[path] = {
+            ...dirent,
+            isLocked: false,
+            lockedByFolder: undefined,
+          };
+        } else if (dirent.type === 'folder') {
+          updates[path] = {
+            type: dirent.type,
+            isLocked: false,
+          };
+        }
+      }
+    }
+
+    // Apply updates to the store
+    if (Object.keys(updates).length > 0) {
+      this.files.set({
+        ...currentFiles,
+        ...updates,
+      });
+    }
+
+    // Clear from localStorage
+    clearAllLocksForChat(currentChatId);
+
+    logger.info(`Cleared all locks for chat: ${currentChatId}`);
   }
 
   getFile(filePath: string) {

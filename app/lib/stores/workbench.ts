@@ -532,6 +532,13 @@ export class WorkbenchStore {
     return this.#filesStore.isFolderLocked(folderPath);
   }
 
+  /**
+   * Clear all locks for the current chat (useful when streaming errors occur)
+   */
+  clearAllLocks() {
+    return this.#filesStore.clearAllLocksForCurrentChat();
+  }
+
   async createFile(filePath: string, content: string | Uint8Array = '') {
     try {
       const success = await this.#filesStore.createFile(filePath, content);

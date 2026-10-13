@@ -33,7 +33,8 @@ const objectSchema = (properties: JsonSchema, required: string[]): JsonSchema =>
 /** JSON Schema contracts shared by the server chat route and browser MCP bridge. */
 export const projectToolDefinitions: Record<ProjectToolName, { description: string; inputSchema: JsonSchema }> = {
   project_read_file: {
-    description: 'Read a UTF-8 text file from the active project.',
+    description:
+      'Read a UTF-8 text file from the active project. Returns content and revision; copy revision into expectedRevision when patching.',
     inputSchema: objectSchema({ path: { type: 'string', minLength: 1 } }, ['path']),
   },
   project_write_file: {
@@ -50,15 +51,17 @@ export const projectToolDefinitions: Record<ProjectToolName, { description: stri
     ),
   },
   project_patch_file: {
-    description: 'Replace one exact unique text in a file after checking its expected current content.',
+    description:
+      'Replace one exact unique oldText in a file. Read the file first and copy its revision into expectedRevision; do not copy the whole file. On a conflict, read again before retrying. Preserve actual line breaks in newText. Invalid JS/TS syntax is rejected before saving.',
     inputSchema: objectSchema(
       {
         path: { type: 'string', minLength: 1 },
         expectedContent: { type: 'string' },
+        expectedRevision: { type: 'string', pattern: '^[a-f0-9]{64}$' },
         oldText: { type: 'string', minLength: 1 },
         newText: { type: 'string' },
       },
-      ['path', 'expectedContent', 'oldText', 'newText'],
+      ['path', 'oldText', 'newText'],
     ),
   },
   project_delete_path: {
@@ -70,7 +73,8 @@ export const projectToolDefinitions: Record<ProjectToolName, { description: stri
     inputSchema: objectSchema({ path: { type: 'string', minLength: 1 } }, ['path']),
   },
   project_list_paths: {
-    description: 'List active project files and folders, optionally filtered by a path prefix.',
+    description:
+      'List active project files and folders. Omit path or use "." for the project root; use "src" for a directory prefix. Paths may be relative to the project or absolute within /home/project.',
     inputSchema: objectSchema(
       { path: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: MAX_LIST_RESULTS } },
       [],

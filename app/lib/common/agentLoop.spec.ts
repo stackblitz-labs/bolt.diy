@@ -3,10 +3,22 @@ import {
   getAgentCompletionProblems,
   getAgentLoopInstructions,
   getAgentLoopProgress,
+  isServerAgentTool,
   MAX_AGENT_STEPS,
   type AgentPlan,
 } from './agentLoop';
 import type { AnyMessage } from '~/lib/persistence/messageMigration';
+
+describe('server agent tool execution', () => {
+  it('keeps plan and completion results out of client approval and dispatch', () => {
+    expect(isServerAgentTool('agent_plan')).toBe(true);
+    expect(isServerAgentTool('agent_complete')).toBe(true);
+
+    for (const name of ['project_run_command', 'project_patch_file', 'web_search', 'plugin_example', undefined]) {
+      expect(isServerAgentTool(name)).toBe(false);
+    }
+  });
+});
 
 const plan: AgentPlan = {
   goal: 'Change the button',

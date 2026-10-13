@@ -1,7 +1,7 @@
 import { isStepCount, jsonSchema, streamText, tool, toUIMessageStream, type ToolSet, type TextStreamPart } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createAgentStreamRecovery, withAgentStreamDeadlines } from './agent-stream';
+import { createAgentStreamRecovery, withAgentStreamDeadlines, withAgentToolCallRecovery } from './agent-stream';
 import { toSafeStreamErrorMessage } from '~/lib/.server/api/errors';
 
 const usage = {
@@ -32,6 +32,170 @@ const collect = async <TOOLS extends ToolSet>(
 afterEach(() => vi.useRealTimers());
 
 describe('agent provider recovery', () => {
+  it.each([
+    '[[{"name":"project_read_file","parameters":{"path":"src/index.css"}}]]',
+    '```json\n[{"name":"project_read_file","parameters":{"path":"src/index.css"}}]\n```',
+  ])('recovers complete tool JSON through the real tool validator and execution pipeline: %s', async (text) => {
+    const execute = vi.fn(async () => ({ content: 'body { margin: 0; }' }));
+
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings: [] });
+            controller.enqueue({ type: 'text-start', id: 'json' });
+            controller.enqueue({ type: 'text-delta', id: 'json', delta: text });
+            controller.enqueue({ type: 'text-end', id: 'json' });
+            finish(controller);
+          },
+        }),
+      }),
+    });
+    const result = await streamText({
+      model: withAgentToolCallRecovery(withAgentStreamDeadlines(model), vi.fn()),
+      prompt: 'Read the project stylesheet.',
+      toolChoice: 'required',
+      tools: {
+        project_read_file: tool({
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: { path: { type: 'string' } },
+            required: ['path'],
+            additionalProperties: false,
+          }),
+          execute,
+        }),
+      },
+      streamRetries: 0,
+    });
+
+    const chunks = await collect(result);
+    expect(model.doStreamCalls).toHaveLength(1);
+    expect(execute).toHaveBeenCalledOnce();
+    expect(execute).toHaveBeenCalledWith(
+      { path: 'src/index.css' },
+      expect.objectContaining({ toolCallId: expect.any(String) }),
+    );
+    expect(chunks.some((chunk) => chunk.type === 'error')).toBe(false);
+    expect(chunks.some((chunk) => chunk.type === 'text-delta')).toBe(false);
+  });
+
+  it.each([
+    '[{"name":"unavailable_tool","parameters":{}}]',
+    'Example only: [{"name":"project_read_file","parameters":{"path":"src/index.css"}}]',
+    '[{"name":"project_read_file","parameters":{},"extra":"unexpected"}]',
+  ])('does not execute unavailable tools or incidental JSON: %s', async (text) => {
+    const execute = vi.fn();
+
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings: [] });
+            controller.enqueue({ type: 'text-start', id: 'json' });
+            controller.enqueue({ type: 'text-delta', id: 'json', delta: text });
+            controller.enqueue({ type: 'text-end', id: 'json' });
+            finish(controller);
+          },
+        }),
+      }),
+    });
+    const result = await streamText({
+      model: withAgentToolCallRecovery(withAgentStreamDeadlines(model), vi.fn()),
+      prompt: 'Read a file.',
+      toolChoice: 'required',
+      tools: { project_read_file: tool({ inputSchema: jsonSchema({ type: 'object', properties: {} }), execute }) },
+      streamRetries: 0,
+    });
+
+    const chunks = await collect(result);
+    expect(execute).not.toHaveBeenCalled();
+    expect(chunks.some((chunk) => chunk.type === 'error')).toBe(true);
+  });
+
+  it('retries a text-only required-tool response and accepts the recovered real tool call once', async () => {
+    const execute = vi.fn(async () => ({ plan: 'recorded' }));
+
+    let attempts = 0;
+
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings: [] });
+
+            if (attempts++ === 0) {
+              controller.enqueue({ type: 'text-start', id: 'invalid' });
+              controller.enqueue({ type: 'text-delta', id: 'invalid', delta: '[{"name":"agent_plan"}]' });
+              controller.enqueue({ type: 'text-end', id: 'invalid' });
+              finish(controller);
+            } else {
+              controller.enqueue({ type: 'tool-call', toolCallId: 'plan', toolName: 'agent_plan', input: '{}' });
+              finish(controller, true);
+            }
+          },
+        }),
+      }),
+    });
+
+    const onRetry = vi.fn();
+    const recovery = createAgentStreamRecovery(onRetry);
+
+    const result = await streamText({
+      model: withAgentToolCallRecovery(withAgentStreamDeadlines(model), () => onRetry('tool-call')),
+      prompt: 'Build the page.',
+      toolChoice: 'required',
+      tools: { agent_plan: tool({ inputSchema: jsonSchema({ type: 'object', properties: {} }), execute }) },
+      streamRetries: 0,
+      onError: recovery.onError,
+    });
+
+    const chunks = await collect(result);
+    expect(onRetry).toHaveBeenCalledExactlyOnceWith('tool-call');
+    expect(model.doStreamCalls).toHaveLength(2);
+    expect(execute).toHaveBeenCalledOnce();
+    expect(chunks.some((chunk) => chunk.type === 'error')).toBe(false);
+    expect(chunks).toContainEqual(expect.objectContaining({ type: 'tool-output-available', toolCallId: 'plan' }));
+  });
+
+  it('stops after one unsuccessful tool-call retry and never executes printed JSON', async () => {
+    const execute = vi.fn();
+
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings: [] });
+            controller.enqueue({ type: 'text-start', id: 'invalid' });
+            controller.enqueue({ type: 'text-delta', id: 'invalid', delta: '[{"name":"agent_plan"}]' });
+            controller.enqueue({ type: 'text-end', id: 'invalid' });
+            finish(controller);
+          },
+        }),
+      }),
+    });
+
+    const onRetry = vi.fn();
+    const recovery = createAgentStreamRecovery(vi.fn());
+
+    const result = await streamText({
+      model: withAgentToolCallRecovery(withAgentStreamDeadlines(model), onRetry),
+      prompt: 'Build the page.',
+      toolChoice: 'required',
+      tools: { agent_plan: tool({ inputSchema: jsonSchema({ type: 'object', properties: {} }), execute }) },
+      streamRetries: 0,
+      onError: recovery.onError,
+    });
+
+    const chunks = await collect(result);
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(model.doStreamCalls).toHaveLength(2);
+    expect(execute).not.toHaveBeenCalled();
+    expect(chunks).toContainEqual(
+      expect.objectContaining({ type: 'error', errorText: expect.stringContaining('required tool call') }),
+    );
+  });
+
   it('waits beyond 45 seconds and retries only the stalled step, preserving the recorded plan', async () => {
     vi.useFakeTimers();
 

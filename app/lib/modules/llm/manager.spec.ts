@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BaseProvider } from './base-provider';
 import { LLMManager } from './manager';
 
@@ -12,6 +12,36 @@ class FakeProvider extends BaseProvider {
 }
 
 describe('LLMManager', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('merges cached dynamic models without duplicating static entries', async () => {
+    const manager = LLMManager.getInstance({});
+    const provider = manager.getProvider('OpenRouter')!;
+    const dynamic = { ...provider.staticModels[0], label: 'Current API label', isFree: false };
+    vi.spyOn(provider, 'getModelsFromCache').mockReturnValue([dynamic]);
+
+    const models = await manager.getModelListFromProvider(provider, {});
+    expect(models.filter((model) => model.name === dynamic.name)).toEqual([dynamic]);
+    expect(new Set(models.map((model) => model.name)).size).toBe(models.length);
+  });
+
+  it('loads dynamic and static models only for the requested active providers', async () => {
+    const manager = LLMManager.getInstance({});
+    const active = manager.getProvider('OpenRouter')!;
+    const inactive = manager.getProvider('Anthropic')!;
+    const activeCache = vi.spyOn(active, 'getModelsFromCache').mockReturnValue([]);
+    const inactiveCache = vi.spyOn(inactive, 'getModelsFromCache');
+
+    const models = await manager.updateModelList({ enabledProviderNames: ['OpenRouter'] });
+    expect(activeCache).toHaveBeenCalledOnce();
+    expect(inactiveCache).not.toHaveBeenCalled();
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.every((model) => model.provider === 'OpenRouter')).toBe(true);
+
+    expect(await manager.updateModelList({ enabledProviderNames: [] })).toEqual([]);
+    await manager.updateModelList({ enabledProviderNames: ['OpenRouter'] });
+  });
+
   it('registers providers from the registry on first getInstance', () => {
     const manager = LLMManager.getInstance({});
     const names = manager.getAllProviders().map((p) => p.name);

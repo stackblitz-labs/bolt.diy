@@ -1,5 +1,5 @@
 import { streamText as _streamText, type ModelMessage, type UIMessage } from 'ai';
-import { withAgentStreamDeadlines } from './agent-stream';
+import { withAgentStreamDeadlines, withAgentToolCallRecovery } from './agent-stream';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel, type FileMap } from './constants';
 import { prepareModelMessages } from './model-messages';
 import { withDevelopmentCommentaryWorkstyle } from './prompt-workstyle';
@@ -33,6 +33,7 @@ type DerivedStreamOptions = Omit<
 export interface StreamingOptions extends DerivedStreamOptions {
   messages: ModelMessage[];
   system?: string;
+  onToolCallRetry?: () => void;
   supabaseConnection?: {
     isConnected: boolean;
     hasSelectedProject: boolean;
@@ -220,6 +221,7 @@ export async function streamText(props: {
       allowedHtmlElements: allowedHTMLElements,
       modificationTagName: MODIFICATIONS_TAG_NAME,
       designScheme,
+      projectTools: chatMode === 'build' && Boolean(options?.prepareStep),
       supabase: {
         isConnected: options?.supabaseConnection?.isConnected || false,
         hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
@@ -232,7 +234,7 @@ export async function streamText(props: {
     systemPrompt = withDevelopmentCommentaryWorkstyle(systemPrompt);
   }
 
-  if (chatMode === 'build' && agentMode) {
+  if (chatMode === 'build' && agentMode && !options?.prepareStep) {
     systemPrompt = `${systemPrompt}
 
 <agent_mode_workflow>
@@ -367,6 +369,7 @@ export async function streamText(props: {
     supabaseConnection: _supabaseConnection,
     messages: _messages,
     system: additionalSystemInstructions,
+    onToolCallRetry,
     ...forwardedOptions
   } = filteredOptions as StreamingOptions & Record<string, unknown>;
 
@@ -390,8 +393,10 @@ export async function streamText(props: {
     apiKeys,
     providerSettings,
   });
+  const boundedModel =
+    forwardedOptions.streamRetries !== undefined ? withAgentStreamDeadlines(selectedModel) : selectedModel;
   const streamParams = {
-    model: forwardedOptions.streamRetries !== undefined ? withAgentStreamDeadlines(selectedModel) : selectedModel,
+    model: onToolCallRetry ? withAgentToolCallRecovery(boundedModel, onToolCallRetry) : boundedModel,
     system: [chatMode === 'build' ? systemPrompt : discussPrompt(), additionalSystemInstructions]
       .filter((instruction): instruction is string => typeof instruction === 'string' && instruction.length > 0)
       .join('\n\n'),

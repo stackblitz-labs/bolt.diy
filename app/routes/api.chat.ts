@@ -22,6 +22,7 @@ import {
 import { createAgentLoopTools } from '~/lib/.server/llm/agent-loop';
 import { createAgentStreamRecovery } from '~/lib/.server/llm/agent-stream';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
+import { shouldOptimizeRequestContext } from '~/lib/.server/llm/context-optimization';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getWebResearchInstructions } from '~/lib/.server/llm/prompt-web-tools';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
@@ -80,7 +81,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   const starterBuild = chatMode === 'build' ? getStarterBuildProgress(messages) : getStarterBuildProgress([]);
   const agentLoopEnabled = chatMode === 'build' && (agentMode || starterBuild.status !== 'inactive');
   const agentProgress = getAgentLoopProgress(messages, agentLoopEnabled);
-  const agentLoop = createAgentLoopTools(messages, agentLoopEnabled, starterBuild.status !== 'inactive');
   const files = asFileMap(body.files);
   const designScheme = asDesignScheme(body.designScheme);
 
@@ -153,7 +153,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           messageSliceId = processedMessages.length - 3;
         }
 
-        if (filePaths.length > 0 && contextOptimization && !isInitialTemplateRequest) {
+        if (
+          shouldOptimizeRequestContext({
+            enabled: contextOptimization,
+            agentLoopEnabled,
+            isInitialTemplateRequest,
+            hasFiles: filePaths.length > 0,
+          })
+        ) {
           logger.debug('Generating Chat Summary');
           writer.write({
             type: 'data-progress',
@@ -301,6 +308,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               )
             : {};
 
+        const agentLoop = createAgentLoopTools(
+          processedMessages,
+          agentLoopEnabled,
+          starterBuild.status !== 'inactive',
+          [...Object.keys(mcpTools), ...Object.keys(projectTools), ...Object.keys(pluginTools)],
+        );
+
         const agentTools = agentProgress.status !== 'inactive' ? agentLoop.tools : {};
 
         const pluginAndProjectToolNames = [
@@ -322,7 +336,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const hasTools = Object.keys(tools).length > 0;
         const recoveringAgent = agentProgress.status === 'pending';
 
-        const recovery = createAgentStreamRecovery(() => {
+        const notifyRetry = (reason: 'tool-call' | 'provider') => {
           writer.write({
             type: 'data-progress',
             data: {
@@ -330,10 +344,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               label: 'response',
               status: 'in-progress',
               order: progressCounter++,
-              message: 'Provider response stalled. Retrying the current step; completed work is preserved.',
+              message:
+                reason === 'tool-call'
+                  ? 'The model missed a required tool call. Retrying the current step; completed work is preserved.'
+                  : 'Provider response stalled. Retrying the current step; completed work is preserved.',
             } satisfies ProgressAnnotation,
           });
-        });
+        };
+
+        const recovery = createAgentStreamRecovery(notifyRetry);
+
         const mapStreamError = (error: unknown) =>
           toSafeStreamErrorMessage(recoveringAgent ? recovery.getError(error) : error);
 
@@ -365,7 +385,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
            */
           stopWhen: isStepCount(agentLoopEnabled ? Math.min(maxLLMSteps ?? 12, 12) : (maxLLMSteps ?? 1)),
           timeout: recoveringAgent ? { stepMs: 660_000, totalMs: 900_000 } : { chunkMs: 45_000 },
-          ...(recoveringAgent ? { streamRetries: 0, onError: recovery.onError } : {}),
+          ...(recoveringAgent
+            ? { streamRetries: 0, onError: recovery.onError, onToolCallRetry: () => notifyRetry('tool-call') }
+            : {}),
 
           abortSignal: request.signal,
           telemetry: { functionId: 'bolt-chat' },

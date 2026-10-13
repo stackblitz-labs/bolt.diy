@@ -207,7 +207,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         setIsModelLoading('all');
-        fetch('/api/models')
+
+        if (!providerList?.length) {
+          setModelList([]);
+          setIsModelLoading(undefined);
+
+          return;
+        }
+
+        const activeProviderNames = providerList.map((activeProvider) => activeProvider.name).join(',');
+
+        fetch(`/api/models?providers=${encodeURIComponent(activeProviderNames)}`)
           .then((response) => response.json())
           .then((data) => {
             const typedData = data as { modelList: ModelInfo[] };

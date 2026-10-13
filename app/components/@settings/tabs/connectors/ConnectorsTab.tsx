@@ -1,11 +1,16 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import BrowserUseCloudTab from '~/components/@settings/tabs/connectors/BrowserUseCloudTab';
 import GitHubTab from '~/components/@settings/tabs/github/GitHubTab';
 import GitLabTab from '~/components/@settings/tabs/gitlab/GitLabTab';
 import NetlifyTab from '~/components/@settings/tabs/netlify/NetlifyTab';
 import SupabaseTab from '~/components/@settings/tabs/supabase/SupabaseTab';
 import VercelTab from '~/components/@settings/tabs/vercel/VercelTab';
+import { Dialog, DialogDescription, DialogRoot, DialogTitle, DialogButton } from '~/components/ui/Dialog';
+import { Switch } from '~/components/ui/Switch';
+import { activateConnector, type ConnectorActivationId } from '~/lib/services/connectorActivation';
+import { useMCPStore, type ConnectorId } from '~/lib/stores/mcp';
 import { classNames } from '~/utils/classNames';
 
 type ConnectorType = 'github' | 'gitlab' | 'vercel' | 'netlify' | 'supabase' | 'browser-use-cloud';
@@ -129,6 +134,86 @@ const CATEGORY_LABELS = {
 export default function ConnectorsTab() {
   const [selectedConnector, setSelectedConnector] = useState<ConnectorType | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [credentialConnector, setCredentialConnector] = useState<Connector | null>(null);
+  const [apiKey, setApiKey] = useState('');
+  const [credentialError, setCredentialError] = useState('');
+  const [isActivating, setIsActivating] = useState(false);
+  const connectorEnabled = useMCPStore((state) => state.settings.connectorEnabled);
+  const isInitialized = useMCPStore((state) => state.isInitialized);
+  const initialize = useMCPStore((state) => state.initialize);
+  const setConnectorEnabled = useMCPStore((state) => state.setConnectorEnabled);
+
+  useEffect(() => {
+    if (!isInitialized) {
+      void initialize();
+    }
+  }, [initialize, isInitialized]);
+
+  const getActivationId = (connector: Connector): ConnectorActivationId =>
+    connector.id === 'browser-use-cloud' ? 'browserUseCloud' : connector.id;
+
+  const getSettingsId = (connector: Connector): ConnectorId =>
+    connector.id === 'browser-use-cloud' ? 'browserUseCloud' : connector.id;
+
+  const handleConnectorToggle = async (connector: Connector, enabled: boolean) => {
+    const settingsId = getSettingsId(connector);
+
+    if (!enabled) {
+      setConnectorEnabled(settingsId, false);
+      toast.info(`${connector.name} is off.`);
+
+      return;
+    }
+
+    setIsActivating(true);
+
+    try {
+      await activateConnector(getActivationId(connector));
+      setConnectorEnabled(settingsId, true);
+      toast.success(`${connector.name} is on. You can configure it here or open its configure page.`);
+    } catch (error) {
+      setCredentialConnector(connector);
+      setApiKey('');
+      setCredentialError(error instanceof Error ? error.message : 'Enter a valid API key to enable this connector.');
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  const handleCredentialSubmit = async () => {
+    if (!credentialConnector) {
+      return;
+    }
+
+    setIsActivating(true);
+    setCredentialError('');
+
+    try {
+      await activateConnector(getActivationId(credentialConnector), apiKey);
+      setConnectorEnabled(getSettingsId(credentialConnector), true);
+      toast.success(`${credentialConnector.name} is on. You can now configure it on its connector page.`);
+      setCredentialConnector(null);
+      setApiKey('');
+    } catch (error) {
+      setCredentialError(
+        error instanceof Error ? error.message : 'That API key could not be validated. The connector remains off.',
+      );
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  const closeCredentialDialog = () => {
+    if (!isActivating) {
+      if (credentialConnector) {
+        toast.info(`${credentialConnector.name} remains off until a valid API key is entered.`);
+      }
+
+      setCredentialConnector(null);
+      setApiKey('');
+      setCredentialError('');
+    }
+  };
 
   // Group connectors by category
   const connectorsByCategory = CONNECTORS.reduce(
@@ -241,13 +326,12 @@ export default function ConnectorsTab() {
               )}
               <div className="space-y-3">
                 {connectors.map((connector, index) => (
-                  <motion.button
+                  <motion.div
                     key={connector.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    onClick={() => setSelectedConnector(connector.id)}
-                    className="group flex w-full appearance-none items-center gap-4 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-5 py-4 text-left text-bolt-elements-textPrimary transition-colors hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-3 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="group flex w-full items-center gap-4 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-5 py-4 text-left text-bolt-elements-textPrimary transition-colors hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-3"
                   >
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary">
                       {connector.icon}
@@ -261,16 +345,70 @@ export default function ConnectorsTab() {
                       </div>
                       <p className="text-sm text-bolt-elements-textSecondary">{connector.description}</p>
                     </div>
-                    <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary">
-                      Configure <span aria-hidden="true">→</span>
-                    </span>
-                  </motion.button>
+                    <div className="flex shrink-0 items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-bolt-elements-textSecondary">
+                          {connectorEnabled[getSettingsId(connector)] ? 'On' : 'Off'}
+                        </span>
+                        <Switch
+                          checked={connectorEnabled[getSettingsId(connector)]}
+                          disabled={!isInitialized || isActivating}
+                          aria-label={`${connectorEnabled[getSettingsId(connector)] ? 'Turn off' : 'Turn on'} ${connector.name}`}
+                          onCheckedChange={(enabled) => void handleConnectorToggle(connector, enabled)}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedConnector(connector.id)}
+                        className="flex items-center gap-2 text-sm font-medium text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                      >
+                        Configure <span aria-hidden="true">→</span>
+                      </button>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
           );
         })}
       </div>
+
+      <DialogRoot open={!!credentialConnector} onOpenChange={(open) => !open && closeCredentialDialog()}>
+        {credentialConnector && (
+          <Dialog className="max-w-[min(520px,calc(100vw-2rem))] p-6" showCloseButton onClose={closeCredentialDialog}>
+            <DialogTitle>Enable {credentialConnector.name}</DialogTitle>
+            <DialogDescription>
+              Enter a valid API key to turn this connector on. If validation fails, it stays off. After it is enabled,
+              use the Configure page for its remaining settings.
+            </DialogDescription>
+            <label className="mt-5 block text-sm font-medium" htmlFor="connector-api-key">
+              {credentialConnector.name} API key
+            </label>
+            <input
+              id="connector-api-key"
+              type="password"
+              autoComplete="new-password"
+              value={apiKey}
+              onChange={(event) => setApiKey(event.target.value)}
+              placeholder="Paste your API key"
+              className="mt-2 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-borderColorActive"
+            />
+            {credentialError && (
+              <p role="alert" className="mt-2 text-sm text-bolt-elements-icon-error">
+                {credentialError}
+              </p>
+            )}
+            <div className="mt-5 flex justify-end gap-2">
+              <DialogButton type="secondary" onClick={closeCredentialDialog} disabled={isActivating}>
+                Cancel
+              </DialogButton>
+              <DialogButton type="primary" onClick={() => void handleCredentialSubmit()} disabled={isActivating}>
+                {isActivating ? 'Checking…' : 'Validate and turn on'}
+              </DialogButton>
+            </div>
+          </Dialog>
+        )}
+      </DialogRoot>
     </div>
   );
 }

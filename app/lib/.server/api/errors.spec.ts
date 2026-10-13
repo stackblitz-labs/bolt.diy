@@ -1,3 +1,4 @@
+import { InvalidToolInputError, NoSuchToolError } from 'ai';
 import { describe, expect, it } from 'vitest';
 import {
   toApiErrorResponse,
@@ -28,6 +29,24 @@ describe('toMissingCredentialError', () => {
 });
 
 describe('toSafeStreamErrorMessage', () => {
+  it('explains tool validation failures without exposing raw arguments or provider details', () => {
+    const invalid = new InvalidToolInputError({
+      toolName: 'project_list_paths',
+      toolInput: 'secret-value',
+      cause: new Error('invalid schema'),
+    });
+
+    const missing = new NoSuchToolError({ toolName: 'secret-value' });
+
+    expect(toSafeStreamErrorMessage(invalid)).toContain('invalid tool arguments');
+    expect(toSafeStreamErrorMessage(missing)).toContain('unavailable tool');
+    expect(toSafeStreamErrorMessage(invalid)).not.toContain('secret-value');
+    expect(toSafeStreamErrorMessage(missing)).not.toContain('secret-value');
+    expect(toSafeStreamErrorMessage(invalid.message)).toContain('invalid tool arguments');
+    expect(toSafeStreamErrorMessage(missing.message)).toContain('unavailable tool');
+    expect(toSafeStreamErrorMessage(missing.message)).not.toContain('secret-value');
+  });
+
   it('recognizes a provider 429 even when its message does not mention the status', () => {
     const error = Object.assign(new Error('Provider returned error: secret-value'), { statusCode: 429 });
 

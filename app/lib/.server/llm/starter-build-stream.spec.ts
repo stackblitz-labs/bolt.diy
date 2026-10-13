@@ -46,7 +46,7 @@ describe('starter response stream', () => {
     for await (const chunk of toUIMessageStream({ stream: result.stream, onError: toSafeStreamErrorMessage })) {
       chunks.push(chunk);
     }
-    expect(model.doStreamCalls[0].toolChoice).toEqual({ type: 'required' });
+    expect(model.doStreamCalls[0].toolChoice).toEqual({ type: 'tool', toolName: 'agent_plan' });
     expect(model.doStreamCalls[0].tools?.map((tool) => ('name' in tool ? tool.name : ''))).toEqual(['agent_plan']);
     expect(chunks).toContainEqual(
       expect.objectContaining({ type: 'error', errorText: expect.stringContaining('required tool call') }),

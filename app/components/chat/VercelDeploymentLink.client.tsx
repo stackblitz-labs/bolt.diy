@@ -2,17 +2,19 @@ import { useStore } from '@nanostores/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { useEffect, useState } from 'react';
 import { chatId } from '~/lib/persistence/useChatHistory';
+import { useMCPStore } from '~/lib/stores/mcp';
 import { vercelConnection } from '~/lib/stores/vercel';
 
 export function VercelDeploymentLink() {
   const connection = useStore(vercelConnection);
   const currentChatId = useStore(chatId);
+  const isConnectorEnabled = useMCPStore((state) => state.isInitialized && state.settings.connectorEnabled.vercel);
   const [deploymentUrl, setDeploymentUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     async function fetchProjectData() {
-      if (!connection.token || !currentChatId) {
+      if (!isConnectorEnabled || !connection.token || !currentChatId) {
         return;
       }
 
@@ -121,9 +123,9 @@ export function VercelDeploymentLink() {
     }
 
     fetchProjectData();
-  }, [connection.token, currentChatId]);
+  }, [isConnectorEnabled, connection.token, currentChatId]);
 
-  if (!deploymentUrl) {
+  if (!isConnectorEnabled || !deploymentUrl) {
     return null;
   }
 

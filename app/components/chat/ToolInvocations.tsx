@@ -4,7 +4,7 @@ import { memo, useMemo, useState, useEffect, useRef } from 'react';
 import { createHighlighter, type Highlighter } from 'shiki';
 import { Markdown } from './Markdown';
 import { getToolDisplayError, getToolDisplayState } from './toolActivity';
-import { isAgentPlan } from '~/lib/common/agentLoop';
+import { isAgentPlan, isServerAgentTool } from '~/lib/common/agentLoop';
 import {
   getToolCallId,
   getToolInput,
@@ -347,7 +347,7 @@ const ToolCallsList = memo(
         const toolCallId = getToolCallId(invocation);
         const toolName = getToolName(invocation);
 
-        if (!toolCallId || !toolName || autoApprovedCalls.current.has(toolCallId)) {
+        if (!toolCallId || !toolName || isServerAgentTool(toolName) || autoApprovedCalls.current.has(toolCallId)) {
           continue;
         }
 
@@ -481,7 +481,7 @@ const ToolCallsList = memo(
                     >
                       {activityLabel(toolName, getToolInput(tool), getToolOutput(tool), displayState)}
                     </span>
-                    {state === 'input-available' && !fullAccess && (
+                    {state === 'input-available' && !fullAccess && !isServerAgentTool(toolName) && (
                       <span className="shrink-0 text-xs text-bolt-elements-textTertiary">Awaiting approval</span>
                     )}
                   </div>
@@ -671,7 +671,7 @@ function ToolActivityRow({
         <span className="min-w-0 flex-1 truncate text-bolt-elements-textPrimary" title={annotation?.toolDescription}>
           {activityLabel(name, getToolInput(tool), getToolOutput(tool), displayState)}
         </span>
-        {state === 'input-available' && !fullAccess && (
+        {state === 'input-available' && !fullAccess && !isServerAgentTool(name) && (
           <span className="shrink-0 text-xs text-bolt-elements-textTertiary">Approval needed</span>
         )}
       </div>
