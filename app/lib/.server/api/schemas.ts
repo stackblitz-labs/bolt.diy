@@ -155,6 +155,7 @@ export const chatRequestSchema = z
     promptId: z.string().max(REQUEST_LIMITS.MAX_PROMPT_ID_CHARS).optional(),
     contextOptimization: z.boolean().optional(),
     chatMode: z.enum(['discuss', 'build']).optional(),
+    agentMode: z.boolean().optional(),
     designScheme: designSchemeSchema.optional(),
     supabase: supabaseSchema.optional(),
     maxLLMSteps: z.number().int().min(1).max(REQUEST_LIMITS.MAX_LLM_STEPS).optional(),

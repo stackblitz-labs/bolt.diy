@@ -1,6 +1,7 @@
 import type { UIMessage } from 'ai';
 import { memo, Fragment } from 'react';
 import { Markdown } from './Markdown';
+import { ThinkingDetails } from './Thinking';
 import { ToolInvocations } from './ToolInvocations';
 import Popover from '~/components/ui/Popover';
 import WithTooltip from '~/components/ui/Tooltip';
@@ -199,21 +200,7 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
-        {reasoningText && (
-          <details className="mb-2">
-            {/*
-             * v7 delivers reasoning as native `reasoning` parts instead of the
-             * inline <div class="__boltThought__"> the v4 stream rewriter
-             * produced, so the thought box is rendered from parts here.
-             */}
-            <summary className="i-ph:brain text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors cursor-pointer">
-              Thought for {Math.max(Math.ceil(reasoningText.length / 4), 1)} tokens
-            </summary>
-            <div className="i-ph:brain pl-2 flex flex-col gap-4 mt-2">
-              <div className="text-bolt-elements-textSecondary text-sm">{reasoningText}</div>
-            </div>
-          </details>
-        )}
+        <ThinkingDetails text={reasoningText} />
         {chatMode === 'build' && toolInvocations && toolInvocations.length > 0 && (
           <ToolInvocations
             toolInvocations={toolInvocations}

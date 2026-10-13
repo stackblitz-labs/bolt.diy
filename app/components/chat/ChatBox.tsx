@@ -65,6 +65,8 @@ interface ChatBoxProps {
   enhancePrompt?: (() => void) | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
+  agentMode?: boolean;
+  setAgentMode?: (enabled: boolean) => void;
   designScheme?: DesignScheme;
   setDesignScheme?: (scheme: DesignScheme) => void;
   selectedElement?: ElementInfo | null;
@@ -383,6 +385,23 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               <SupabaseConnection />
             </div>
             <McpTools open={isMcpToolsOpen} onOpenChange={setIsMcpToolsOpen} />
+            {props.chatMode === 'build' && (
+              <button
+                type="button"
+                title="Agent Mode plans the work, uses project tools, and runs a relevant check (up to 12 model steps)."
+                aria-pressed={props.agentMode ?? false}
+                className={classNames(
+                  'transition-all flex items-center gap-1 rounded-md px-1.5 py-1 text-xs',
+                  props.agentMode
+                    ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                    : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault hover:bg-bolt-elements-item-backgroundActive',
+                )}
+                onClick={() => props.setAgentMode?.(!props.agentMode)}
+              >
+                <div className="i-ph:robot text-lg" />
+                <span>Agent</span>
+              </button>
+            )}
             <SpeechRecognitionButton
               isListening={props.isListening}
               onStart={props.startListening}

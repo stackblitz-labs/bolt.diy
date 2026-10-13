@@ -188,11 +188,11 @@ If you need to make changes to functionality, create new files instead of modify
 
   userMessage += `
 ---
-The template files are now in the active project. Modify existing files when the requested features require it, and create new files when useful. The project_write_file tool replaces an existing file by default; set overwrite to false only when you need to protect an existing file from replacement.
+The template files are now in the active project. Inspect and patch only the relevant existing files, and create new files when needed. Use project_patch_file for targeted edits. A full replacement with project_write_file requires replacementReason explaining why a patch is insufficient.
 ---
 Now that the Template is imported please continue with my original request
 
-The user's original prompt is authorization to complete the requested work. Start implementing it now. Do not respond with a plan, ask whether to proceed, or wait for another user message. Modify the starter files as needed, install dependencies, and start the app with \`npm install && npm run dev\`. Continue until the requested app is implemented and running.
+The user's original prompt is authorization to complete the requested work. Record a brief plan with observable completion criteria, then implement it now. Do not stop after a plan, ask whether to proceed, or wait for another user message. Inspect and patch the relevant starter files, install dependencies if needed, start the app, and run relevant checks. Repair failures and continue until the requested app is implemented, verified, and running.
 `;
 
   return {

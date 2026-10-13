@@ -1,4 +1,5 @@
 import { streamText as _streamText, type ModelMessage, type UIMessage } from 'ai';
+import { withAgentStreamDeadlines } from './agent-stream';
 import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel, type FileMap } from './constants';
 import { prepareModelMessages } from './model-messages';
 import { withDevelopmentCommentaryWorkstyle } from './prompt-workstyle';
@@ -89,6 +90,7 @@ export async function streamText(props: {
   summary?: string;
   messageSliceId?: number;
   chatMode?: 'discuss' | 'build';
+  agentMode?: boolean;
   designScheme?: DesignScheme;
 
   /*
@@ -110,6 +112,7 @@ export async function streamText(props: {
     contextFiles,
     summary,
     chatMode,
+    agentMode,
     designScheme,
     onChunk,
   } = props;
@@ -227,6 +230,19 @@ export async function streamText(props: {
   // Inject workstyle commentary guidance for build mode
   if (chatMode === 'build') {
     systemPrompt = withDevelopmentCommentaryWorkstyle(systemPrompt);
+  }
+
+  if (chatMode === 'build' && agentMode) {
+    systemPrompt = `${systemPrompt}
+
+<agent_mode_workflow>
+  The user enabled Agent Mode for this build request. Work autonomously through the available project tools, within the request's tool-step limit.
+  - Follow Plan -> edit -> run -> test -> repair. Record a short plan and explicit observable completion criteria with agent_plan, and explain it briefly to the user.
+  - Inspect the relevant project files before editing. For follow-ups, use small exact patches to relevant files and preserve unrelated code; replace entire files only with a concrete reason.
+  - Run the requested app/program, then the smallest relevant available checks. Inspect actual outputs and exit codes. If a check fails, patch its cause and rerun it; edits invalidate earlier passing checks.
+  - Call agent_complete with successful tool evidence for every planned criterion. If blocked or the task limit is reached, clearly state unmet criteria and failed or missing checks.
+  - Do not claim a task or check is complete without tool evidence. Keep the plan focused on the user's request and do not invent extra work.
+</agent_mode_workflow>`;
   }
 
   if (chatMode === 'build' && contextFiles && contextOptimization) {
@@ -354,13 +370,28 @@ export async function streamText(props: {
     ...forwardedOptions
   } = filteredOptions as StreamingOptions & Record<string, unknown>;
 
+  if (provider.name === 'OpenRouter' && forwardedOptions.tools && Object.keys(forwardedOptions.tools).length > 0) {
+    const routing = forwardedOptions.providerOptions?.openrouter?.provider;
+    forwardedOptions.providerOptions = {
+      ...forwardedOptions.providerOptions,
+      openrouter: {
+        ...forwardedOptions.providerOptions?.openrouter,
+        provider: {
+          ...(routing && typeof routing === 'object' && !Array.isArray(routing) ? routing : {}),
+          require_parameters: true,
+        },
+      },
+    };
+  }
+
+  const selectedModel = provider.getModelInstance({
+    model: modelDetails.name,
+    serverEnv,
+    apiKeys,
+    providerSettings,
+  });
   const streamParams = {
-    model: provider.getModelInstance({
-      model: modelDetails.name,
-      serverEnv,
-      apiKeys,
-      providerSettings,
-    }),
+    model: forwardedOptions.streamRetries !== undefined ? withAgentStreamDeadlines(selectedModel) : selectedModel,
     system: [chatMode === 'build' ? systemPrompt : discussPrompt(), additionalSystemInstructions]
       .filter((instruction): instruction is string => typeof instruction === 'string' && instruction.length > 0)
       .join('\n\n'),
