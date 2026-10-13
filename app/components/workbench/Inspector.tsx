@@ -13,6 +13,12 @@ export interface ElementInfo {
   id: string;
   textContent: string;
   styles: Record<string, string>; // Changed from CSSStyleDeclaration
+  inlineStyles?: Record<string, string>;
+  inlineStylePriorities?: Record<string, string>;
+  hasChildElements?: boolean;
+  selector?: string;
+  elementPath?: string;
+  visualEdits?: Array<{ property: string; value: string }>;
   rect: {
     x: number;
     y: number;
