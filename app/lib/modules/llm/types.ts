@@ -5,6 +5,7 @@ export interface ModelInfo {
   name: string;
   label: string;
   provider: string;
+  isFree?: boolean;
 
   /** Maximum context window size (input tokens) - how many tokens the model can process */
   maxTokenAllowed: number;

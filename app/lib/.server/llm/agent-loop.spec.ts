@@ -51,10 +51,27 @@ const executeOptions = { toolCallId: 'complete', messages: [], context: {} };
 describe('agent plan and completion tools', () => {
   it('requires the plan tool first and enforces preview criteria for starter builds', async () => {
     const loop = createAgentLoopTools([user], true, true);
-    expect(loop.prepareStep({ steps: [] })).toEqual({ toolChoice: 'required', activeTools: ['agent_plan'] });
+    expect(loop.prepareStep({ steps: [] })).toEqual({
+      toolChoice: { type: 'tool', toolName: 'agent_plan' },
+      activeTools: ['agent_plan'],
+    });
     expect(await loop.tools.agent_plan.execute!({ ...plan, requiresPreview: false }, executeOptions)).toMatchObject({
       plan: { requiresPreview: true },
     });
+  });
+
+  it('withholds completion until run and test evidence exist', () => {
+    const loop = createAgentLoopTools(
+      [user, { role: 'assistant', parts: [part('agent_plan', { plan })] }],
+      true,
+      true,
+      ['project_read_file', 'project_run_command'],
+    );
+    expect(loop.prepareStep({ steps: [] }).activeTools).toEqual([
+      'project_read_file',
+      'project_run_command',
+      'agent_plan',
+    ]);
   });
 
   it('rejects completion without actual run and test evidence', async () => {
@@ -84,6 +101,8 @@ describe('agent plan and completion tools', () => {
         isError: true,
         completed: false,
         error: expect.stringContaining('Criterion button'),
+        availableEvidence: expect.arrayContaining(['edit', 'run', 'check']),
+        plannedCriteria: ['button'],
       });
     }
     expect(await loop.tools.agent_complete.execute!(completion, executeOptions)).toMatchObject({ completed: true });

@@ -45,4 +45,26 @@ describe('prepareModelMessages', () => {
 
     expect(result).toEqual([{ role: 'user', content: [{ type: 'text', text: 'Start the preview' }] }]);
   });
+
+  it('drops interrupted tool calls so a later user request does not require missing tool results', async () => {
+    const result = await prepareModelMessages([
+      { id: 'user', role: 'user', parts: [{ type: 'text', text: 'Start the preview' }] },
+      {
+        id: 'interrupted',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-project_run_command',
+            toolCallId: 'unfinished',
+            state: 'input-available',
+            input: { command: 'npm run dev', purpose: 'run' },
+          },
+        ],
+      },
+      { id: 'retry', role: 'user', parts: [{ type: 'text', text: 'Continue the preview' }] },
+    ]);
+
+    expect(result.map((message) => message.role)).toEqual(['user', 'user']);
+    expect(JSON.stringify(result)).not.toContain('unfinished');
+  });
 });

@@ -50,6 +50,7 @@ export async function loader({
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
   const providerSettings = getProviderSettingsFromCookie(cookieHeader);
+  const enabledProviderNames = new URL(request.url).searchParams.get('providers')?.split(',').filter(Boolean);
 
   const { providers, defaultProvider } = getProviderInfo(llmManager);
 
@@ -72,6 +73,7 @@ export async function loader({
       apiKeys,
       providerSettings,
       serverEnv: context.cloudflare?.env,
+      enabledProviderNames,
     });
   }
 

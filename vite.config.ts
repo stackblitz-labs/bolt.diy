@@ -4,7 +4,7 @@ import * as dotenv from 'dotenv';
 import UnoCSS from 'unocss/vite';
 import { defineConfig, type ViteDevServer } from 'vite';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
-import { browserPolyfills } from './scripts/vite/browser-polyfills';
+import { browserPolyfills } from './scripts/vite/browser-polyfills.ts';
 
 /*
  * Prevent miniflare from making an external network request to workers.cloudflare.com

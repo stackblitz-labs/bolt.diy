@@ -8,9 +8,10 @@ interface OpenRouterModel {
   name: string;
   id: string;
   context_length: number;
+  architecture?: { output_modalities?: string[] };
   pricing: {
-    prompt: number;
-    completion: number;
+    prompt: number | string;
+    completion: number | string;
   };
 }
 
@@ -60,9 +61,16 @@ export default class OpenRouterProvider extends BaseProvider {
         },
       });
 
+      if (!response.ok) {
+        throw new Error(`OpenRouter model list request failed (${response.status}).`);
+      }
+
       const data = (await response.json()) as OpenRouterModelsResponse;
 
       return data.data
+        .filter(
+          (model) => !model.architecture?.output_modalities || model.architecture.output_modalities.includes('text'),
+        )
         .sort((a, b) => a.name.localeCompare(b.name))
         .map((m) => {
           // Get accurate context window from OpenRouter API
@@ -74,8 +82,9 @@ export default class OpenRouterProvider extends BaseProvider {
 
           return {
             name: m.id,
-            label: `${m.name} - in:$${(m.pricing.prompt * 1_000_000).toFixed(2)} out:$${(m.pricing.completion * 1_000_000).toFixed(2)} - context ${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'}`,
+            label: `${m.name} - in:$${(Number(m.pricing.prompt) * 1_000_000).toFixed(2)} out:$${(Number(m.pricing.completion) * 1_000_000).toFixed(2)} - context ${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'}`,
             provider: this.name,
+            isFree: Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0,
             maxTokenAllowed: finalContext,
           };
         });

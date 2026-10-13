@@ -199,7 +199,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           {() => (
             <div className={props.isModelSettingsCollapsed ? 'hidden' : ''}>
               <ModelSelector
-                key={props.provider?.name + ':' + props.modelList.length}
+                key={props.provider?.name}
                 model={props.model}
                 setModel={props.setModel}
                 modelList={props.modelList}

@@ -93,9 +93,8 @@ interface ModelSelectorProps {
 
 // Helper function to determine if a model is likely free
 const isModelLikelyFree = (model: ModelInfo, providerName?: string): boolean => {
-  // OpenRouter models with zero pricing in the label
-  if (providerName === 'OpenRouter' && model.label.includes('in:$0.00') && model.label.includes('out:$0.00')) {
-    return true;
+  if (providerName === 'OpenRouter') {
+    return model.isFree ?? (model.name.endsWith(':free') || model.name === 'openrouter/free');
   }
 
   // Models with "free" in the name or label
@@ -686,6 +685,7 @@ export const ModelSelector = ({
                       e.stopPropagation();
                       setShowFreeModelsOnly(!showFreeModelsOnly);
                     }}
+                    aria-pressed={showFreeModelsOnly}
                     className={classNames(
                       'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all',
                       'hover:bg-bolt-elements-background-depth-3',

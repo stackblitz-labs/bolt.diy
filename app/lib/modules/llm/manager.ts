@@ -118,13 +118,18 @@ export class LLMManager {
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
     serverEnv?: Record<string, string>;
+    enabledProviderNames?: string[];
   }): Promise<ModelInfo[]> {
-    const { apiKeys, providerSettings, serverEnv } = options;
+    const { apiKeys, providerSettings, serverEnv, enabledProviderNames } = options;
 
     let enabledProviders = Array.from(this._providers.values()).map((p) => p.name);
 
-    if (providerSettings && Object.keys(providerSettings).length > 0) {
-      enabledProviders = enabledProviders.filter((p) => providerSettings[p].enabled);
+    if (enabledProviderNames) {
+      enabledProviders = enabledProviders.filter((name) => enabledProviderNames.includes(name));
+    }
+
+    if (!enabledProviderNames && providerSettings && Object.keys(providerSettings).length > 0) {
+      enabledProviders = enabledProviders.filter((name) => providerSettings[name]?.enabled);
     }
 
     // Get dynamic models from all providers that support them
@@ -166,7 +171,10 @@ export class LLMManager {
         }),
     );
 
-    const staticModels = Array.from(this._providers.values()).flatMap((p) => p.staticModels || []);
+    const staticModels = Array.from(this._providers.values())
+      .filter((provider) => enabledProviders.includes(provider.name))
+      .flatMap((provider) => provider.staticModels || []);
+
     const dynamicModelsFlat = dynamicModels.flat();
     const dynamicModelKeys = dynamicModelsFlat.map((d) => `${d.name}-${d.provider}`);
     const filteredStaticModels = staticModels.filter((m) => !dynamicModelKeys.includes(`${m.name}-${m.provider}`));
@@ -211,7 +219,10 @@ export class LLMManager {
 
     if (cachedModels) {
       logger.info(`Found ${cachedModels.length} cached models for ${provider.name}`);
-      return [...cachedModels, ...staticModels];
+
+      const cachedModelNames = new Set(cachedModels.map((model) => model.name));
+
+      return [...cachedModels, ...staticModels.filter((model) => !cachedModelNames.has(model.name))];
     }
 
     logger.info(`Getting dynamic models for ${provider.name}`);

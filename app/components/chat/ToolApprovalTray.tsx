@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState } from 'react';
+import { isServerAgentTool } from '~/lib/common/agentLoop';
 import {
   getMessageParts,
   getToolCallId,
@@ -29,7 +30,10 @@ export function ToolApprovalTray({
     () =>
       messages.flatMap((message) =>
         (getMessageParts(message) ?? [])
-          .filter((part) => isToolCallPart(part) && getToolState(part) === 'input-available')
+          .filter(
+            (part) =>
+              isToolCallPart(part) && getToolState(part) === 'input-available' && !isServerAgentTool(getToolName(part)),
+          )
           .map((part) => ({ id: getToolCallId(part), name: getToolName(part), input: getToolInput(part) }))
           .filter((tool): tool is { id: string; name: string; input: unknown } => Boolean(tool.id && tool.name)),
       ),

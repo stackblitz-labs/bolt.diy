@@ -1,4 +1,4 @@
-import { ToolChoiceViolationError } from 'ai';
+import { InvalidToolInputError, NoSuchToolError, ToolChoiceViolationError } from 'ai';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.errors');
@@ -136,7 +136,7 @@ export function toSafeStreamErrorMessage(error: unknown): string {
   const statusCode =
     typeof error === 'object' && error !== null && 'statusCode' in error ? error.statusCode : undefined;
 
-  logger.error('Streaming provider error');
+  logger.error(`Streaming provider error (${error instanceof Error ? error.name : 'UnknownError'})`);
 
   if ((error instanceof Error && error.name === 'TimeoutError') || /timeout|timed\s*out/.test(normalizedMessage)) {
     return 'Custom error: The AI provider stopped responding before the next step completed. Completed file changes and tool results are preserved. Retry to continue, or select a different model.';
@@ -144,6 +144,14 @@ export function toSafeStreamErrorMessage(error: unknown): string {
 
   if (ToolChoiceViolationError.isInstance(error)) {
     return 'Custom error: The selected model returned text instead of the required tool call, so the build could not continue. Retry or select a model that reliably supports tool calling.';
+  }
+
+  if (InvalidToolInputError.isInstance(error) || normalizedMessage.startsWith('invalid input for tool ')) {
+    return 'Custom error: The model supplied invalid tool arguments. Retry the tool call using its declared input schema.';
+  }
+
+  if (NoSuchToolError.isInstance(error) || normalizedMessage.startsWith('model tried to call unavailable tool ')) {
+    return 'Custom error: The model requested an unavailable tool. Use one of the supplied tools instead.';
   }
 
   if (providerMessage.includes('model') && providerMessage.includes('not found')) {

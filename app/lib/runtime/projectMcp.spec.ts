@@ -24,6 +24,7 @@ vi.mock('~/lib/stores/workbench', () => ({
     isFolderLocked: () => ({ isLocked: false }),
     isFileLocked: () => ({ locked: false }),
     queueProjectMutation: (operation: () => Promise<unknown>) => operation(),
+    waitForExecutionQueue: async () => undefined,
     toggleTerminal,
     writeToBoltTerminal,
   },
@@ -38,6 +39,7 @@ let bridge: Awaited<ReturnType<typeof createProjectMcpBridge>> | undefined;
 afterEach(async () => {
   await bridge?.close();
   bridge = undefined;
+  workbenchStore.projectGeneration.set(workbenchStore.projectGeneration.get() + 1);
   workbenchStore.previews.set([]);
   workbenchStore.files.set({});
 });
@@ -56,6 +58,33 @@ function processWithOutput(output: string, exitCode: number | Promise<number>) {
 }
 
 describe('project command tools', () => {
+  it('reuses the same running dev command instead of spawning another preview server', async () => {
+    let finish!: (code: number) => void;
+
+    const process = processWithOutput(
+      'server ready\n',
+      new Promise<number>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    process.kill.mockImplementation(() => finish(143));
+    spawn.mockClear();
+    spawn.mockResolvedValueOnce(process);
+    bridge = await createProjectMcpBridge();
+
+    const first = await bridge.callTool('project_run_command', { command: 'npm run dev', purpose: 'run' });
+
+    const second = await bridge.callTool('project_run_command', {
+      command: 'cd /home/project && npm run dev',
+      purpose: 'run',
+    });
+    expect(spawn).toHaveBeenCalledOnce();
+    expect(second.structuredContent).toMatchObject({
+      processId: (first.structuredContent as { processId: string }).processId,
+      status: 'running',
+      reused: true,
+    });
+  });
   it('executes in the default project directory and forwards real output to Bolt Terminal', async () => {
     spawn.mockResolvedValueOnce(processWithOutput('command-marker\n', 0));
     bridge = await createProjectMcpBridge();
@@ -176,8 +205,47 @@ describe('project command tools', () => {
   });
 });
 
+describe('project paths', () => {
+  it('lists the project root and accepts absolute paths inside the project', async () => {
+    workbenchStore.files.set({
+      '/home/project/src/App.tsx': { type: 'file', content: 'page', isBinary: false },
+      '/home/project/package.json': { type: 'file', content: '{}', isBinary: false },
+    });
+    readFile.mockResolvedValue(new TextEncoder().encode('page'));
+    bridge = await createProjectMcpBridge();
+
+    for (const prefix of ['', '.', '/home/project', '/home/project/']) {
+      const result = await bridge.callTool('project_list_paths', { path: prefix });
+      expect(result.isError).not.toBe(true);
+      expect(result.structuredContent).toMatchObject({ entries: [{ path: 'src/App.tsx' }, { path: 'package.json' }] });
+    }
+
+    const listing = await bridge.callTool('project_list_paths', { path: '/home/project/src' });
+    expect(listing.structuredContent).toMatchObject({ entries: [{ path: 'src/App.tsx' }] });
+
+    const read = await bridge.callTool('project_read_file', { path: '/home/project/src/App.tsx' });
+    expect(read.isError).not.toBe(true);
+    expect(read.structuredContent).toMatchObject({ path: 'src/App.tsx', content: 'page' });
+    expect(readFile).toHaveBeenLastCalledWith('src/App.tsx');
+  });
+
+  it('rejects traversal, sibling roots, and deleting the project root', async () => {
+    bridge = await createProjectMcpBridge();
+
+    for (const outside of ['../private', '/home/project/../private', '/home/project-other/src', '/etc/passwd']) {
+      const result = await bridge.callTool('project_list_paths', { path: outside });
+      expect(result.isError).toBe(true);
+    }
+
+    for (const root of ['.', '/home/project']) {
+      const result = await bridge.callTool('project_delete_path', { path: root, recursive: true });
+      expect(result.isError).toBe(true);
+    }
+  });
+});
+
 describe('targeted project file edits', () => {
-  const original = 'header\nbutton: blue\nfooter\n';
+  const original = 'const styles = {\nbutton: blue\n};\n';
 
   const prepare = async () => {
     workbenchStore.files.set({ '/home/project/src/App.tsx': { type: 'file', content: original, isBinary: false } });
@@ -208,7 +276,7 @@ describe('targeted project file edits', () => {
     expect(result.structuredContent).toMatchObject({ patched: true, changed: true });
     expect(saveFileContent).toHaveBeenCalledExactlyOnceWith(
       '/home/project/src/App.tsx',
-      'header\nbutton: green\nfooter\n',
+      'const styles = {\nbutton: green\n};\n',
     );
     expect(createFile).not.toHaveBeenCalled();
   });
@@ -244,10 +312,95 @@ describe('targeted project file edits', () => {
 
     const replaced = await bridge!.callTool('project_write_file', {
       path: 'src/App.tsx',
-      content: 'new layout',
+      content: 'export const layout = "new";\n',
       replacementReason: 'The user requested replacing this entire starter page.',
     });
     expect(replaced.structuredContent).toMatchObject({ written: true, created: false, changed: true });
-    expect(saveFileContent).toHaveBeenCalledExactlyOnceWith('/home/project/src/App.tsx', 'new layout');
+    expect(saveFileContent).toHaveBeenCalledExactlyOnceWith(
+      '/home/project/src/App.tsx',
+      'export const layout = "new";\n',
+    );
+  });
+
+  it('patches with a read revision without reproducing the entire expected file', async () => {
+    await prepare();
+
+    const read = await bridge!.callTool('project_read_file', { path: 'src/App.tsx' });
+    const revision = (read.structuredContent as { revision: string }).revision;
+    expect(revision).toMatch(/^[a-f0-9]{64}$/);
+
+    const result = await bridge!.callTool('project_patch_file', {
+      path: 'src/App.tsx',
+      expectedRevision: revision,
+      oldText: 'button: blue',
+      newText: 'button: green',
+    });
+    expect(result.isError).not.toBe(true);
+    expect(saveFileContent).toHaveBeenCalledExactlyOnceWith(
+      '/home/project/src/App.tsx',
+      'const styles = {\nbutton: green\n};\n',
+    );
+  });
+
+  it('rejects a stale revision and a patch without any concurrency check', async () => {
+    await prepare();
+
+    const read = await bridge!.callTool('project_read_file', { path: 'src/App.tsx' });
+    readFile.mockResolvedValue(new TextEncoder().encode(`${original}// user edit\n`));
+
+    const stale = await bridge!.callTool('project_patch_file', {
+      path: 'src/App.tsx',
+      expectedRevision: (read.structuredContent as { revision: string }).revision,
+      oldText: 'button: blue',
+      newText: 'button: green',
+    });
+    expect(stale.isError).toBe(true);
+    expect(stale.content).toEqual([{ type: 'text', text: expect.stringContaining('Read the file again') }]);
+
+    const unchecked = await bridge!.callTool('project_patch_file', {
+      path: 'src/App.tsx',
+      oldText: 'button: blue',
+      newText: 'button: green',
+    });
+    expect(unchecked.isError).toBe(true);
+    expect(saveFileContent).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid patches and flattened source replacements before saving', async () => {
+    await prepare();
+
+    const patch = await bridge!.callTool('project_patch_file', {
+      path: 'src/App.tsx',
+      expectedContent: original,
+      oldText: 'button: blue',
+      newText: 'button: <',
+    });
+    const replacement = await bridge!.callTool('project_write_file', {
+      path: 'src/App.tsx',
+      replacementReason: 'Replace the starter with the requested page.',
+      content:
+        "import { ArrowRight } from 'lucide-react' function App() { return <main>Hello</main>; } export default App;",
+    });
+
+    for (const result of [patch, replacement]) {
+      expect(result.isError).toBe(true);
+      expect(result.content).toEqual([{ type: 'text', text: expect.stringContaining('File was not saved') }]);
+    }
+    expect(saveFileContent).not.toHaveBeenCalled();
+    expect(workbenchStore.files.get()['/home/project/src/App.tsx']).toMatchObject({ content: original });
+  });
+
+  it('rejects malformed new source files before creating them', async () => {
+    await prepare();
+    readFile.mockRejectedValueOnce({ code: 'ENOENT' });
+
+    const result = await bridge!.callTool('project_write_file', {
+      path: 'src/Broken.tsx',
+      content: 'export const Broken = () => <main>',
+      overwrite: false,
+    });
+    expect(result.isError).toBe(true);
+    expect(createFile).not.toHaveBeenCalled();
+    expect(saveFileContent).not.toHaveBeenCalled();
   });
 });

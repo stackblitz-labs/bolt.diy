@@ -11,6 +11,11 @@ import {
 
 export const MAX_AGENT_STEPS = 32;
 
+/** These tools execute on the server and must never receive a client approval result. */
+export function isServerAgentTool(name: string | undefined): boolean {
+  return name === 'agent_plan' || name === 'agent_complete';
+}
+
 export interface AgentPlan {
   goal: string;
   steps: string[];

@@ -2,21 +2,23 @@ import { useStore } from '@nanostores/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { useEffect } from 'react';
 import { chatId } from '~/lib/persistence/useChatHistory';
+import { useMCPStore } from '~/lib/stores/mcp';
 import { netlifyConnection, fetchNetlifyStats } from '~/lib/stores/netlify';
 
 export function NetlifyDeploymentLink() {
   const connection = useStore(netlifyConnection);
   const currentChatId = useStore(chatId);
+  const isConnectorEnabled = useMCPStore((state) => state.isInitialized && state.settings.connectorEnabled.netlify);
 
   useEffect(() => {
-    if (connection.token && currentChatId) {
+    if (isConnectorEnabled && connection.token && currentChatId) {
       fetchNetlifyStats(connection.token);
     }
-  }, [connection.token, currentChatId]);
+  }, [isConnectorEnabled, connection.token, currentChatId]);
 
   const deployedSite = connection.stats?.sites?.find((site) => site.name.includes(`bolt-diy-${currentChatId}`));
 
-  if (!deployedSite) {
+  if (!isConnectorEnabled || !deployedSite) {
     return null;
   }
 

@@ -3,10 +3,14 @@ import { useEffect } from 'react';
 import { Dialog, DialogRoot, DialogClose, DialogTitle, DialogButton } from '~/components/ui/Dialog';
 import { useSupabaseConnection } from '~/lib/hooks/useSupabaseConnection';
 import { chatId } from '~/lib/persistence/useChatHistory';
+import { useMCPStore } from '~/lib/stores/mcp';
 import { fetchSupabaseStats } from '~/lib/stores/supabase';
 import { classNames } from '~/utils/classNames';
 
 export function SupabaseConnection() {
+  const isSupabaseConnectorEnabled = useMCPStore(
+    (state) => state.isInitialized && state.settings.connectorEnabled.supabase,
+  );
   const {
     connection: supabaseConn,
     connecting,
@@ -22,7 +26,7 @@ export function SupabaseConnection() {
     updateToken,
     isConnected,
     fetchProjectApiKeys,
-  } = useSupabaseConnection();
+  } = useSupabaseConnection({ enabled: isSupabaseConnectorEnabled });
 
   const currentChatId = useStore(chatId);
 
@@ -39,7 +43,7 @@ export function SupabaseConnection() {
   }, [setIsDialogOpen]);
 
   useEffect(() => {
-    if (isConnected && currentChatId) {
+    if (isSupabaseConnectorEnabled && isConnected && currentChatId) {
       const savedProjectId = localStorage.getItem(`supabase-project-${currentChatId}`);
 
       /*
@@ -53,27 +57,39 @@ export function SupabaseConnection() {
         selectProject(savedProjectId);
       }
     }
-  }, [isConnected, currentChatId]);
+  }, [isSupabaseConnectorEnabled, isConnected, currentChatId]);
 
   useEffect(() => {
-    if (currentChatId && supabaseConn.selectedProjectId) {
+    if (isSupabaseConnectorEnabled && currentChatId && supabaseConn.selectedProjectId) {
       localStorage.setItem(`supabase-project-${currentChatId}`, supabaseConn.selectedProjectId);
-    } else if (currentChatId && !supabaseConn.selectedProjectId) {
+    } else if (isSupabaseConnectorEnabled && currentChatId && !supabaseConn.selectedProjectId) {
       localStorage.removeItem(`supabase-project-${currentChatId}`);
     }
-  }, [currentChatId, supabaseConn.selectedProjectId]);
+  }, [isSupabaseConnectorEnabled, currentChatId, supabaseConn.selectedProjectId]);
 
   useEffect(() => {
-    if (isConnected && supabaseConn.token) {
+    if (isSupabaseConnectorEnabled && isConnected && supabaseConn.token) {
       fetchSupabaseStats(supabaseConn.token).catch(console.error);
     }
-  }, [isConnected, supabaseConn.token]);
+  }, [isSupabaseConnectorEnabled, isConnected, supabaseConn.token]);
 
   useEffect(() => {
-    if (isConnected && supabaseConn.selectedProjectId && supabaseConn.token && !supabaseConn.credentials) {
+    if (
+      isSupabaseConnectorEnabled &&
+      isConnected &&
+      supabaseConn.selectedProjectId &&
+      supabaseConn.token &&
+      !supabaseConn.credentials
+    ) {
       fetchProjectApiKeys(supabaseConn.selectedProjectId).catch(console.error);
     }
-  }, [isConnected, supabaseConn.selectedProjectId, supabaseConn.token, supabaseConn.credentials]);
+  }, [
+    isSupabaseConnectorEnabled,
+    isConnected,
+    supabaseConn.selectedProjectId,
+    supabaseConn.token,
+    supabaseConn.credentials,
+  ]);
 
   return (
     <div className="relative">
