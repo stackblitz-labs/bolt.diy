@@ -19,6 +19,8 @@ import {
   chatRequestSchema,
   parseBody,
 } from '~/lib/.server/api/schemas';
+import { createAgentLoopTools } from '~/lib/.server/llm/agent-loop';
+import { createAgentStreamRecovery } from '~/lib/.server/llm/agent-stream';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getWebResearchInstructions } from '~/lib/.server/llm/prompt-web-tools';
@@ -26,7 +28,9 @@ import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { streamText, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
+import { getAgentLoopInstructions, getAgentLoopProgress } from '~/lib/common/agentLoop';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
+import { getStarterBuildProgress } from '~/lib/common/starterBuild';
 import { createMessage, getMessageText } from '~/lib/persistence/messageMigration';
 import { getPluginToolDescriptions, getPluginTools } from '~/lib/plugins/adapters';
 import { getProjectToolNames, projectToolDefinitions } from '~/lib/runtime/projectMcp.shared';
@@ -66,12 +70,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     contextOptimization,
     supabase,
     chatMode,
+    agentMode,
     maxLLMSteps,
     webSearchEnabled = true,
     connectorEnabled,
   } = body;
 
   const messages = asMessages(body.messages);
+  const starterBuild = chatMode === 'build' ? getStarterBuildProgress(messages) : getStarterBuildProgress([]);
+  const agentLoopEnabled = chatMode === 'build' && (agentMode || starterBuild.status !== 'inactive');
+  const agentProgress = getAgentLoopProgress(messages, agentLoopEnabled);
+  const agentLoop = createAgentLoopTools(messages, agentLoopEnabled, starterBuild.status !== 'inactive');
   const files = asFileMap(body.files);
   const designScheme = asDesignScheme(body.designScheme);
 
@@ -292,7 +301,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               )
             : {};
 
-        const pluginAndProjectToolNames = [...Object.keys(projectTools), ...Object.keys(pluginTools)];
+        const agentTools = agentProgress.status !== 'inactive' ? agentLoop.tools : {};
+
+        const pluginAndProjectToolNames = [
+          ...Object.keys(projectTools),
+          ...Object.keys(pluginTools),
+          ...Object.keys(agentTools),
+        ];
 
         const collisions = pluginAndProjectToolNames.filter(
           (name, index) => name in mcpTools || pluginAndProjectToolNames.indexOf(name) !== index,
@@ -302,32 +317,63 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           throw new Error(`Built-in MCP tool name conflict: ${collisions.join(', ')}`);
         }
 
-        const tools = { ...mcpTools, ...projectTools, ...pluginTools };
+        const tools = { ...mcpTools, ...projectTools, ...pluginTools, ...agentTools };
         const pluginToolDescriptions = getPluginToolDescriptions(enabledPlugins);
         const hasTools = Object.keys(tools).length > 0;
+        const recoveringAgent = agentProgress.status === 'pending';
+
+        const recovery = createAgentStreamRecovery(() => {
+          writer.write({
+            type: 'data-progress',
+            data: {
+              type: 'progress',
+              label: 'response',
+              status: 'in-progress',
+              order: progressCounter++,
+              message: 'Provider response stalled. Retrying the current step; completed work is preserved.',
+            } satisfies ProgressAnnotation,
+          });
+        });
+        const mapStreamError = (error: unknown) =>
+          toSafeStreamErrorMessage(recoveringAgent ? recovery.getError(error) : error);
 
         const options: Omit<StreamingOptions, 'messages'> = {
           supabaseConnection: supabase,
-          system: getWebResearchInstructions({
-            browserUseToolNames,
-            webToolNames: Object.keys(projectTools).filter(
-              (toolName) => toolName === 'web_search' || toolName === 'web_fetch',
-            ),
-          }),
+          system: [
+            getWebResearchInstructions({
+              browserUseToolNames,
+              webToolNames: Object.keys(projectTools).filter(
+                (toolName) => toolName === 'web_search' || toolName === 'web_fetch',
+              ),
+            }),
+            getAgentLoopInstructions(agentProgress),
+          ]
+            .filter(Boolean)
+            .join('\n\n'),
 
-          ...(hasTools ? { toolChoice: 'auto' as const, tools } : {}),
+          ...(hasTools
+            ? { tools, ...(agentProgress.status !== 'inactive' ? { prepareStep: agentLoop.prepareStep } : {}) }
+            : {}),
 
           /*
            * isStepCount(undefined) can never be true, and supplying it replaces
            * v7's own default of isStepCount(1), so the step cap would be dead.
            */
-          stopWhen: isStepCount(maxLLMSteps ?? 1),
-          timeout: { chunkMs: 45_000 },
+          /*
+           * Agent mode can take several inspect/edit/check cycles, but keeps a
+           * hard per-request ceiling even if the user's general step setting is higher.
+           */
+          stopWhen: isStepCount(agentLoopEnabled ? Math.min(maxLLMSteps ?? 12, 12) : (maxLLMSteps ?? 1)),
+          timeout: recoveringAgent ? { stepMs: 660_000, totalMs: 900_000 } : { chunkMs: 45_000 },
+          ...(recoveringAgent ? { streamRetries: 0, onError: recovery.onError } : {}),
 
-          // @ts-ignore - abortSignal not in type definition but supported at runtime
-          signal: request.signal,
+          abortSignal: request.signal,
           telemetry: { functionId: 'bolt-chat' },
-          onStepEnd: ({ toolCalls }) => {
+          onStepEnd: ({ toolCalls, finishReason }) => {
+            if (finishReason !== 'error') {
+              recovery.stepSucceeded();
+            }
+
             toolCalls.forEach((toolCall) => {
               mcpService.processToolCall(toolCall, writer);
 
@@ -343,6 +389,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     toolName,
                     toolDescription:
                       projectToolDefinitions[toolName as keyof typeof projectToolDefinitions].description,
+                  } satisfies ToolCallAnnotation,
+                });
+              } else if (toolName in agentTools) {
+                writer.write({
+                  type: 'data-toolCall',
+                  data: {
+                    type: 'toolCall',
+                    toolCallId: toolCall.toolCallId,
+                    serverName: 'Agent',
+                    toolName,
+                    toolDescription: String(agentLoop.tools[toolName as keyof typeof agentLoop.tools].description),
                   } satisfies ToolCallAnnotation,
                 });
               } else if (toolName in pluginToolDescriptions) {
@@ -367,6 +424,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               cumulativeUsage.completionTokens += usage.outputTokens || 0;
               cumulativeUsage.promptTokens += usage.inputTokens || 0;
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
+            }
+
+            if (finishReason === 'error') {
+              return;
             }
 
             if (finishReason !== 'length') {
@@ -425,6 +486,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               contextOptimization,
               contextFiles: filteredFiles,
               chatMode,
+              agentMode,
               designScheme,
               summary,
               messageSliceId,
@@ -437,7 +499,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               onChunk: observeChunk,
             });
 
-            writer.merge(toUIMessageStream({ stream: result.stream, sendStart: false, sendFinish: false }));
+            writer.merge(
+              toUIMessageStream({
+                stream: result.stream,
+                sendStart: false,
+                sendFinish: false,
+                onError: mapStreamError,
+              }),
+            );
 
             /*
              * The old code iterated result.fullStream here in parallel with the
@@ -471,6 +540,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           contextOptimization,
           contextFiles: filteredFiles,
           chatMode,
+          agentMode,
           designScheme,
           summary,
           messageSliceId,
@@ -490,7 +560,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * mapper only to the outer `createUIMessageStream` (or to `streamText`)
              * left every failure showing the generic string.
              */
-            onError: toSafeStreamErrorMessage,
+            onError: mapStreamError,
           }),
         );
       },

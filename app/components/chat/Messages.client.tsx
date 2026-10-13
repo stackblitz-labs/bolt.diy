@@ -5,6 +5,7 @@ import type { ForwardedRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
+import { isModelThinking, ThinkingIndicator } from './Thinking';
 import { UserMessage } from './UserMessage';
 import { forkChat } from '~/lib/persistence/db';
 import { getMessageText, hasMessageFlag } from '~/lib/persistence/messageMigration';
@@ -108,9 +109,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               );
             })
           : null}
-        {isStreaming && (
-          <div className="text-center w-full  text-bolt-elements-item-contentAccent i-svg-spinners:3-dots-fade text-4xl mt-4"></div>
-        )}
+        {isModelThinking(messages, isStreaming) && <ThinkingIndicator />}
       </div>
     );
   },

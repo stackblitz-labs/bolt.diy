@@ -38,9 +38,14 @@ export const projectToolDefinitions: Record<ProjectToolName, { description: stri
   },
   project_write_file: {
     description:
-      'Create or replace a UTF-8 text file in the active project. Existing files are replaced by default; set overwrite to false to require a new path.',
+      'Create a UTF-8 text file. For changes to existing files prefer project_patch_file. Replacing an existing file requires replacementReason explaining why a full replacement is necessary. Set overwrite to false to require a new path.',
     inputSchema: objectSchema(
-      { path: { type: 'string', minLength: 1 }, content: { type: 'string' }, overwrite: { type: 'boolean' } },
+      {
+        path: { type: 'string', minLength: 1 },
+        content: { type: 'string' },
+        overwrite: { type: 'boolean' },
+        replacementReason: { type: 'string', minLength: 1, maxLength: 500 },
+      },
       ['path', 'content'],
     ),
   },
@@ -90,11 +95,19 @@ export const projectToolDefinitions: Record<ProjectToolName, { description: stri
     ),
   },
   project_run_command: {
-    description: 'Run a shell command in the active WebContainer project. Commands require user approval.',
-    inputSchema: objectSchema({ command: { type: 'string', minLength: 1, maxLength: 4000 } }, ['command']),
+    description:
+      'Run a shell command in the active WebContainer project and stream its output to Bolt Terminal. Set purpose to run, test, install, or other. A test passes only when it exits with code 0; poll project_get_process_output for running commands before dependent work. Returns process ID, command, purpose, output, exit status, and previewReady. Commands require user approval.',
+    inputSchema: objectSchema(
+      {
+        command: { type: 'string', minLength: 1, maxLength: 4000 },
+        purpose: { type: 'string', enum: ['run', 'test', 'install', 'other'] },
+      },
+      ['command', 'purpose'],
+    ),
   },
   project_get_process_output: {
-    description: 'Get current or final combined output and exit status for a project command.',
+    description:
+      'Get current or final combined output, exit status, and previewReady for a project command. Poll a running installation before starting dependent commands, and poll a dev server until previewReady is true.',
     inputSchema: objectSchema({ processId: { type: 'string', minLength: 1 } }, ['processId']),
   },
   project_stop_process: {

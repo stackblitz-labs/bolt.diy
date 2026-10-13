@@ -74,6 +74,8 @@ interface BaseChatProps {
   progressAnnotations?: ProgressAnnotation[];
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
+  agentMode?: boolean;
+  setAgentMode?: (enabled: boolean) => void;
   append?: (message: UIMessage) => void;
   designScheme?: DesignScheme;
   setDesignScheme?: (scheme: DesignScheme) => void;
@@ -119,6 +121,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       progressAnnotations: incomingProgressAnnotations,
       chatMode,
       setChatMode,
+      agentMode,
+      setAgentMode,
       append,
       designScheme,
       setDesignScheme,
@@ -444,6 +448,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   handleFileUpload={handleFileUpload}
                   chatMode={chatMode}
                   setChatMode={setChatMode}
+                  agentMode={agentMode}
+                  setAgentMode={setAgentMode}
                   designScheme={designScheme}
                   setDesignScheme={setDesignScheme}
                   selectedElement={selectedElement}

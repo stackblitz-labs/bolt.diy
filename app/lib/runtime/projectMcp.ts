@@ -16,6 +16,8 @@ const MAX_LIST_RESULTS = 500;
 const MAX_OUTPUT_CHARS = 32_000;
 
 interface ProcessRecord {
+  command: string;
+  purpose: 'run' | 'test' | 'install' | 'other';
   process: Awaited<ReturnType<Awaited<typeof webcontainer>['spawn']>>;
   output: string;
   exitCode?: number;
@@ -137,8 +139,50 @@ function success(data: unknown) {
 }
 
 function failure(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
+  const message =
+    error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+      ? error.message
+      : String(error);
   return { isError: true, content: [{ type: 'text' as const, text: message.slice(0, 4000) }] };
+}
+
+function processResult(processId: string, record: ProcessRecord) {
+  const failed = record.exitCode !== undefined && record.exitCode !== 0;
+
+  const data = {
+    processId,
+    command: record.command,
+    purpose: record.purpose,
+    output: record.output,
+    status: record.exitCode === undefined ? 'running' : 'exited',
+    exitCode: record.exitCode,
+    outputStream: 'combined',
+    truncated: record.truncated,
+    previewReady: workbenchStore.previews.get().some((preview) => preview.ready),
+    ...(failed ? { isError: true, error: `Command exited with code ${record.exitCode}.` } : {}),
+  };
+
+  return { ...success(data), ...(failed ? { isError: true } : {}) };
+}
+
+async function waitForProcess(record: ProcessRecord, timeoutMs: number) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    await Promise.race([
+      record.process.exit
+        .then((exitCode) => {
+          record.exitCode = exitCode;
+          return record.done;
+        })
+        .catch(() => record.done),
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function assertNotAborted(signal?: AbortSignal) {
@@ -197,9 +241,14 @@ export async function createProjectMcpBridge() {
     'project_write_file',
     {
       description: projectToolDefinitions.project_write_file.description,
-      inputSchema: { path: z.string().min(1), content: z.string(), overwrite: z.boolean().optional() },
+      inputSchema: {
+        path: z.string().min(1),
+        content: z.string(),
+        overwrite: z.boolean().optional(),
+        replacementReason: z.string().trim().min(1).max(500).optional(),
+      },
     },
-    async ({ path: input, content, overwrite }, extra) => {
+    async ({ path: input, content, overwrite, replacementReason }, extra) => {
       try {
         if (new TextEncoder().encode(content).byteLength > MAX_TEXT_BYTES) {
           throw new Error('Content exceeds the text file size limit.');
@@ -208,6 +257,7 @@ export async function createProjectMcpBridge() {
         const target = projectPath(input);
 
         let created = false;
+        let changed = false;
         await queueMutation(async () => {
           assertNotAborted(extra.signal);
           assertProjectCurrent();
@@ -238,6 +288,17 @@ export async function createProjectMcpBridge() {
           }
 
           assertUnlocked(target.absolute);
+          changed = current?.type !== 'file' || current.content !== content;
+
+          if (!changed) {
+            return;
+          }
+
+          if (current?.type === 'file' && !replacementReason) {
+            throw new Error(
+              'Use project_patch_file for targeted changes. A full replacement of an existing file requires replacementReason.',
+            );
+          }
 
           if (current?.type === 'file') {
             await workbenchStore.saveFileContent(target.absolute, content);
@@ -246,7 +307,7 @@ export async function createProjectMcpBridge() {
           }
         });
 
-        return success({ path: target.relative, written: true, created, generation: bridgeProjectGeneration });
+        return success({ path: target.relative, written: true, created, changed, generation: bridgeProjectGeneration });
       } catch (error) {
         return failure(error);
       }
@@ -297,9 +358,14 @@ export async function createProjectMcpBridge() {
           }
 
           assertProjectCurrent();
-          await workbenchStore.saveFileContent(target.absolute, updated);
 
-          return success({ path: target.relative, patched: true, generation: bridgeProjectGeneration });
+          const changed = updated !== content;
+
+          if (changed) {
+            await workbenchStore.saveFileContent(target.absolute, updated);
+          }
+
+          return success({ path: target.relative, patched: true, changed, generation: bridgeProjectGeneration });
         });
       } catch (error) {
         return failure(error);
@@ -504,9 +570,12 @@ export async function createProjectMcpBridge() {
     'project_run_command',
     {
       description: projectToolDefinitions.project_run_command.description,
-      inputSchema: { command: z.string().min(1).max(4000) },
+      inputSchema: {
+        command: z.string().min(1).max(4000),
+        purpose: z.enum(['run', 'test', 'install', 'other']).optional(),
+      },
     },
-    async ({ command }, extra) => {
+    async ({ command, purpose = 'other' }, extra) => {
       try {
         const processId = await queueMutation(async () => {
           assertNotAborted(extra.signal);
@@ -526,7 +595,11 @@ export async function createProjectMcpBridge() {
           assertNotAborted(extra.signal);
           assertProjectCurrent();
 
-          const process = await wc.spawn('/bin/jsh', ['-c', command], { cwd: wc.workdir });
+          /*
+           * spawn's cwd is relative to the WebContainer project root. Passing
+           * wc.workdir as an absolute cwd fails with ENOENT; the default is the project.
+           */
+          const process = await wc.spawn('/bin/jsh', ['-c', command]);
 
           try {
             assertNotAborted(extra.signal);
@@ -537,8 +610,12 @@ export async function createProjectMcpBridge() {
           }
 
           const processId = crypto.randomUUID();
+          workbenchStore.toggleTerminal(true);
+          workbenchStore.writeToBoltTerminal(`\r\n$ ${command}\r\n`);
 
           const record: ProcessRecord = {
+            command,
+            purpose,
             process,
             output: '',
             done: Promise.resolve(),
@@ -550,6 +627,13 @@ export async function createProjectMcpBridge() {
               new WritableStream({
                 write(chunk) {
                   appendOutput(record, chunk);
+
+                  if (
+                    workbenchStore.projectGeneration.get() === bridgeProjectGeneration &&
+                    chatId.get() === bridgeChatId
+                  ) {
+                    workbenchStore.writeToBoltTerminal(chunk);
+                  }
                 },
               }),
             )
@@ -561,8 +645,13 @@ export async function createProjectMcpBridge() {
             });
           processes.set(processId, record);
           void process.exit
-            .then((exitCode) => {
+            .then(async (exitCode) => {
               record.exitCode = exitCode;
+              await record.done;
+
+              if (workbenchStore.projectGeneration.get() === bridgeProjectGeneration && chatId.get() === bridgeChatId) {
+                workbenchStore.writeToBoltTerminal(`\r\n[Command exited with code ${exitCode}]\r\n`);
+              }
             })
             .catch(() => {
               record.exitCode = -1;
@@ -571,9 +660,19 @@ export async function createProjectMcpBridge() {
           return processId;
         });
 
-        return success({ processId, status: 'running', outputStream: 'combined' });
+        const record = processes.get(processId)!;
+        await waitForProcess(record, 250);
+        assertProjectCurrent();
+
+        return processResult(processId, record);
       } catch (error) {
-        return failure(error);
+        const result = failure(error);
+
+        if (workbenchStore.projectGeneration.get() === bridgeProjectGeneration && chatId.get() === bridgeChatId) {
+          workbenchStore.writeToBoltTerminal(`\r\n[Command failed: ${result.content[0].text}]\r\n`);
+        }
+
+        return result;
       }
     },
   );
@@ -591,24 +690,10 @@ export async function createProjectMcpBridge() {
         return failure(new Error(`Unknown process: ${processId}`));
       }
 
-      await Promise.race([
-        record.process.exit
-          .then((exitCode) => {
-            record.exitCode = exitCode;
-            return record.done;
-          })
-          .catch(() => record.done),
-        new Promise((resolve) => setTimeout(resolve, 100)),
-      ]);
+      await waitForProcess(record, 1000);
+      assertProjectCurrent();
 
-      return success({
-        processId,
-        output: record.output,
-        status: record.exitCode === undefined ? 'running' : 'exited',
-        exitCode: record.exitCode,
-        outputStream: 'combined',
-        truncated: record.truncated,
-      });
+      return processResult(processId, record);
     },
   );
 
@@ -638,7 +723,7 @@ export async function createProjectMcpBridge() {
         new Promise((resolve) => setTimeout(resolve, 1500)),
       ]);
 
-      return success({ processId, stopped: true });
+      return success({ processId, stopped: true, command: record.command, purpose: record.purpose });
     },
   );
 

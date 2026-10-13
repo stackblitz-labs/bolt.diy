@@ -20,9 +20,9 @@ describe('getTemplates', () => {
 
     const result = await getTemplates('Vite React', 'Kanban board');
 
-    expect(result?.userMessage).toContain('Do not respond with a plan');
+    expect(result?.userMessage).toContain('Do not stop after a plan');
     expect(result?.userMessage).toContain('ask whether to proceed');
-    expect(result?.userMessage).toContain('install dependencies, and start the app with');
+    expect(result?.userMessage).toContain('install dependencies if needed, start the app, and run relevant checks');
     expect(result?.userMessage).toContain('Keep the starter structure.');
     expect(result?.assistantMessage).toContain('<boltArtifact id="imported-files"');
     expect(result?.setupMessage).toContain('<boltArtifact id="project-setup"');
