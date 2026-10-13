@@ -15,7 +15,8 @@ import ProgressCompilation from './ProgressCompilation';
 import StarterTemplates from './StarterTemplates';
 import { ToolApprovalTray } from './ToolApprovalTray';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
-import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
+import { ImportFolderButton } from '~/components/chat/ImportFolderButton';
+import { ImportZipButton } from '~/components/chat/ImportZipButton';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
 import { Menu } from '~/components/sidebar/Menu.client';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -497,7 +498,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <div className="flex flex-col justify-center">
               {!chatStarted && (
                 <div className="flex justify-center gap-2">
-                  {ImportButtons(importChat)}
+                  <ImportFolderButton
+                    importChat={importChat}
+                    className={classNames(
+                      'gap-2 bg-bolt-elements-background-depth-1',
+                      'text-bolt-elements-textPrimary',
+                      'hover:bg-bolt-elements-background-depth-2',
+                      'border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.08)]',
+                      'h-10 px-4 py-2 min-w-[120px] justify-center',
+                      'transition-all duration-200 ease-in-out rounded-lg',
+                    )}
+                  />
+                  <ImportZipButton
+                    importChat={importChat}
+                    className={classNames(
+                      'gap-2 bg-bolt-elements-background-depth-1',
+                      'text-bolt-elements-textPrimary',
+                      'hover:bg-bolt-elements-background-depth-2',
+                      'border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.08)]',
+                      'h-10 px-4 py-2 min-w-[120px] justify-center',
+                      'transition-all duration-200 ease-in-out rounded-lg',
+                    )}
+                  />
                   <GitCloneButton importChat={importChat} />
                 </div>
               )}

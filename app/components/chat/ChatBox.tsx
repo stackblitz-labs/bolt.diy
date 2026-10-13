@@ -1,4 +1,5 @@
 import { useStore } from '@nanostores/react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import React from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { APIKeyManager } from './APIKeyManager';
@@ -385,46 +386,93 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               <SupabaseConnection />
             </div>
             <McpTools open={isMcpToolsOpen} onOpenChange={setIsMcpToolsOpen} />
-            {props.chatMode === 'build' && (
-              <button
-                type="button"
-                title="Agent Mode plans the work, uses project tools, and runs a relevant check (up to 12 model steps)."
-                aria-pressed={props.agentMode ?? false}
-                className={classNames(
-                  'transition-all flex items-center gap-1 rounded-md px-1.5 py-1 text-xs',
-                  props.agentMode
-                    ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
-                    : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault hover:bg-bolt-elements-item-backgroundActive',
-                )}
-                onClick={() => props.setAgentMode?.(!props.agentMode)}
-              >
-                <div className="i-ph:robot text-lg" />
-                <span>Agent</span>
-              </button>
-            )}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  type="button"
+                  title={props.chatMode === 'discuss' ? 'Discuss Mode' : 'Agent Mode'}
+                  className={classNames(
+                    'transition-all flex items-center gap-1 rounded-md px-1.5 py-1 text-xs',
+                    props.chatMode === 'discuss'
+                      ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                      : props.agentMode
+                        ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+                        : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault hover:bg-bolt-elements-item-backgroundActive',
+                  )}
+                >
+                  {props.chatMode === 'discuss' ? (
+                    <>
+                      <div className="i-ph:chats text-lg" />
+                      <span>Discuss</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="i-ph:robot text-lg" />
+                      <span>Agent</span>
+                    </>
+                  )}
+                  <div className="i-ph:caret-down text-sm" />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  className={classNames(
+                    'min-w-[160px] rounded-lg p-1',
+                    'bg-bolt-elements-background-depth-2',
+                    'border border-bolt-elements-borderColor',
+                    'shadow-lg',
+                    'z-50',
+                  )}
+                  sideOffset={5}
+                  align="start"
+                >
+                  <DropdownMenu.Item
+                    className={classNames(
+                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
+                      'text-bolt-elements-textPrimary',
+                      'hover:bg-bolt-elements-item-backgroundActive',
+                      'focus:outline-none',
+                      props.chatMode === 'build' && props.agentMode && 'bg-bolt-elements-item-backgroundAccent',
+                    )}
+                    onSelect={() => {
+                      props.setChatMode?.('build');
+                      props.setAgentMode?.(true);
+                    }}
+                  >
+                    <div className="i-ph:robot text-lg" />
+                    <div className="flex flex-col">
+                      <span>Agent</span>
+                      <span className="text-xs text-bolt-elements-textSecondary">Plans & uses tools</span>
+                    </div>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className={classNames(
+                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
+                      'text-bolt-elements-textPrimary',
+                      'hover:bg-bolt-elements-item-backgroundActive',
+                      'focus:outline-none',
+                      props.chatMode === 'discuss' && 'bg-bolt-elements-item-backgroundAccent',
+                    )}
+                    onSelect={() => {
+                      props.setChatMode?.('discuss');
+                      props.setAgentMode?.(false);
+                    }}
+                  >
+                    <div className="i-ph:chats text-lg" />
+                    <div className="flex flex-col">
+                      <span>Discuss</span>
+                      <span className="text-xs text-bolt-elements-textSecondary">Chat without tools</span>
+                    </div>
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
             <SpeechRecognitionButton
               isListening={props.isListening}
               onStart={props.startListening}
               onStop={props.stopListening}
               disabled={props.isStreaming}
             />
-            {props.chatStarted && (
-              <IconButton
-                title="Discuss"
-                className={classNames(
-                  'transition-all flex items-center gap-1 px-1.5',
-                  props.chatMode === 'discuss'
-                    ? '!bg-bolt-elements-item-backgroundAccent !text-bolt-elements-item-contentAccent'
-                    : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
-                )}
-                onClick={() => {
-                  props.setChatMode?.(props.chatMode === 'discuss' ? 'build' : 'discuss');
-                }}
-              >
-                <div className={`i-ph:chats text-xl`} />
-                {props.chatMode === 'discuss' ? <span>Discuss</span> : <span />}
-              </IconButton>
-            )}
             <IconButton
               title="Model Settings"
               className={classNames('transition-all flex items-center gap-1', {

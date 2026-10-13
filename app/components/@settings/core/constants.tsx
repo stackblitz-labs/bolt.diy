@@ -72,7 +72,7 @@ export const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string
 
 export const TAB_LABELS: Record<TabType, string> = {
   profile: 'Profile',
-  settings: 'Settings',
+  settings: 'Preferences',
   notifications: 'Notifications',
   features: 'Features',
   data: 'Data Management',
@@ -91,7 +91,7 @@ export const TAB_LABELS: Record<TabType, string> = {
 
 export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   profile: 'Manage your profile and account settings',
-  settings: 'Configure application preferences',
+  settings: 'Customize application settings and preferences',
   notifications: 'View and manage your notifications',
   features: 'Explore new and upcoming features',
   data: 'Manage your data and storage',
@@ -110,22 +110,23 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
 
 export const DEFAULT_TAB_CONFIG = [
   // User Window Tabs (Always visible by default)
-  { id: 'features', visible: true, window: 'user' as const, order: 0 },
-  { id: 'data', visible: true, window: 'user' as const, order: 1 },
-  { id: 'cloud-providers', visible: true, window: 'user' as const, order: 2 },
-  { id: 'local-providers', visible: true, window: 'user' as const, order: 3 },
-  { id: 'connectors', visible: true, window: 'user' as const, order: 4 },
-  { id: 'notifications', visible: true, window: 'user' as const, order: 5 },
-  { id: 'event-logs', visible: true, window: 'user' as const, order: 6 },
-  { id: 'mcp', visible: true, window: 'user' as const, order: 7 },
-  { id: 'plugins', visible: true, window: 'user' as const, order: 8 },
+  { id: 'settings', visible: true, window: 'user' as const, order: 0 },
+  { id: 'features', visible: true, window: 'user' as const, order: 1 },
+  { id: 'data', visible: true, window: 'user' as const, order: 2 },
+  { id: 'cloud-providers', visible: true, window: 'user' as const, order: 3 },
+  { id: 'local-providers', visible: true, window: 'user' as const, order: 4 },
+  { id: 'connectors', visible: true, window: 'user' as const, order: 5 },
+  { id: 'notifications', visible: true, window: 'user' as const, order: 6 },
+  { id: 'event-logs', visible: true, window: 'user' as const, order: 7 },
+  { id: 'mcp', visible: true, window: 'user' as const, order: 8 },
+  { id: 'plugins', visible: true, window: 'user' as const, order: 9 },
 
   // Legacy individual connector tabs (hidden by default, kept for backward compatibility)
-  { id: 'github', visible: false, window: 'user' as const, order: 8 },
-  { id: 'gitlab', visible: false, window: 'user' as const, order: 9 },
-  { id: 'netlify', visible: false, window: 'user' as const, order: 10 },
-  { id: 'vercel', visible: false, window: 'user' as const, order: 11 },
-  { id: 'supabase', visible: false, window: 'user' as const, order: 12 },
+  { id: 'github', visible: false, window: 'user' as const, order: 10 },
+  { id: 'gitlab', visible: false, window: 'user' as const, order: 11 },
+  { id: 'netlify', visible: false, window: 'user' as const, order: 12 },
+  { id: 'vercel', visible: false, window: 'user' as const, order: 13 },
+  { id: 'supabase', visible: false, window: 'user' as const, order: 14 },
 
   // User Window Tabs (In dropdown, initially hidden)
 ];
