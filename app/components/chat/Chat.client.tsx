@@ -8,6 +8,7 @@ import { useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
+import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
 import { STARTER_BUILD_FLAG } from '~/lib/common/starterBuild';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
@@ -1104,6 +1105,15 @@ export const ChatImpl = memo(
       if (storedApiKeys) {
         setApiKeys(JSON.parse(storedApiKeys));
       }
+
+      const handleApiKeysUpdated = (event: Event) => {
+        const { apiKeys } = (event as CustomEvent<ApiKeysUpdatedDetail>).detail;
+        setApiKeys(apiKeys);
+      };
+
+      window.addEventListener(API_KEYS_UPDATED_EVENT, handleApiKeysUpdated);
+
+      return () => window.removeEventListener(API_KEYS_UPDATED_EVENT, handleApiKeysUpdated);
     }, []);
 
     const handleModelChange = (newModel: string) => {

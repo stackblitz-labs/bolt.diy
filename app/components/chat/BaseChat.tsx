@@ -20,6 +20,7 @@ import DeployChatAlert from '~/components/deploy/DeployAlert';
 import { Menu } from '~/components/sidebar/Menu.client';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { WorkbenchReopenButton } from '~/components/workbench/WorkbenchReopenButton';
+import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
 
 const LazyWorkbench = lazy(() =>
   import('~/components/workbench/Workbench.client').then((m) => ({ default: m.Workbench })),
@@ -245,6 +246,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       });
       setIsModelLoading(undefined);
     };
+
+    useEffect(() => {
+      const handleApiKeysUpdated = (event: Event) => {
+        const { apiKeys, providerName } = (event as CustomEvent<ApiKeysUpdatedDetail>).detail;
+        setApiKeys(apiKeys);
+        setIsModelLoading(providerName);
+
+        fetch(`/api/models/${encodeURIComponent(providerName)}`)
+          .then((response) => response.json())
+          .then((data) => {
+            const providerModels = (data as { modelList: ModelInfo[] }).modelList;
+            setModelList((currentModels) => [
+              ...currentModels.filter((model) => model.provider !== providerName),
+              ...providerModels,
+            ]);
+          })
+          .catch((error) => {
+            console.error('Error loading dynamic models for:', providerName, error);
+          })
+          .finally(() => setIsModelLoading(undefined));
+      };
+
+      window.addEventListener(API_KEYS_UPDATED_EVENT, handleApiKeysUpdated);
+
+      return () => window.removeEventListener(API_KEYS_UPDATED_EVENT, handleApiKeysUpdated);
+    }, []);
 
     const startListening = () => {
       if (recognition) {
