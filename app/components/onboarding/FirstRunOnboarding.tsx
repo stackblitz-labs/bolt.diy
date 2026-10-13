@@ -1,6 +1,7 @@
 import Cookies from 'js-cookie';
 import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
 import { getAll, openDatabase } from '~/lib/persistence/db';
 import type { MCPConfig } from '~/lib/services/mcpService';
 import { useMCPStore } from '~/lib/stores/mcp';
@@ -116,7 +117,11 @@ export function FirstRunOnboarding() {
     }
 
     if (providerName && apiKey.trim()) {
-      Cookies.set('apiKeys', JSON.stringify({ ...keys, [providerName]: apiKey.trim() }), { expires: 365 });
+      const apiKeys = { ...keys, [providerName]: apiKey.trim() };
+      Cookies.set('apiKeys', JSON.stringify(apiKeys), { expires: 365 });
+      window.dispatchEvent(
+        new CustomEvent<ApiKeysUpdatedDetail>(API_KEYS_UPDATED_EVENT, { detail: { apiKeys, providerName } }),
+      );
     }
   };
 
