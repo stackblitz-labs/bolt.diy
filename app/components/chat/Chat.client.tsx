@@ -8,6 +8,7 @@ import { useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
+import { STARTER_BUILD_FLAG } from '~/lib/common/starterBuild';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { description, useChatHistory } from '~/lib/persistence';
@@ -151,6 +152,7 @@ export const ChatImpl = memo(
     const [animationScope, animate] = useAnimate();
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
+    const [agentMode, setAgentMode] = useState(() => Cookies.get('agentMode') === 'true');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
     const installedPlugins = usePluginStore((state) => state.plugins);
@@ -185,6 +187,7 @@ export const ChatImpl = memo(
       promptId,
       contextOptimization: contextOptimizationEnabled,
       chatMode,
+      agentMode,
       designScheme,
       supabase: {
         isConnected: mcpSettings.connectorEnabled.supabase && supabaseConn.isConnected,
@@ -215,6 +218,7 @@ export const ChatImpl = memo(
       promptId,
       contextOptimization: contextOptimizationEnabled,
       chatMode,
+      agentMode,
       designScheme,
       supabase: {
         isConnected: mcpSettings.connectorEnabled.supabase && supabaseConn.isConnected,
@@ -305,6 +309,7 @@ export const ChatImpl = memo(
 
         if (
           userMessages.length === 1 &&
+          !agentMode &&
           !hasNativeProjectTools &&
           !/<boltAction\s+type=["'](?:shell|start)["']/.test(getMessageText(message))
         ) {
@@ -545,7 +550,11 @@ export const ChatImpl = memo(
               .map((block) => block.text)
               .join('\n');
             const toolOutput = mcpResult.isError
-              ? { isError: true, error: resultText || 'Project MCP tool failed.' }
+              ? {
+                  ...mcpResult.structuredContent,
+                  isError: true,
+                  error: mcpResult.structuredContent?.error ?? (resultText || 'Project MCP tool failed.'),
+                }
               : (mcpResult.structuredContent ?? { content: mcpResult.content ?? [] });
             addToolOutput({ tool, toolCallId, output: toolOutput });
           })
@@ -965,8 +974,8 @@ export const ChatImpl = memo(
 
               pendingTemplateContinuationRef.current = createMessage({
                 role: 'user',
-                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
-                flags: ['hidden'],
+                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}\n\nOriginal request:\n${finalMessageContent}`,
+                flags: ['hidden', STARTER_BUILD_FLAG],
               }) as unknown as UIMessage;
 
               setMessages([
@@ -1175,6 +1184,11 @@ export const ChatImpl = memo(
         progressAnnotations={progressAnnotations}
         chatMode={chatMode}
         setChatMode={setChatMode}
+        agentMode={agentMode}
+        setAgentMode={(enabled) => {
+          setAgentMode(enabled);
+          Cookies.set('agentMode', String(enabled), { expires: 30 });
+        }}
         designScheme={designScheme}
         setDesignScheme={setDesignScheme}
         selectedElement={selectedElement}

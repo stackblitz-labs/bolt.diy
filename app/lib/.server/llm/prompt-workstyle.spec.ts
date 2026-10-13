@@ -22,4 +22,13 @@ describe('withDevelopmentCommentaryWorkstyle', () => {
     expect(enhanced).toContain('<project_mcp_workflow>');
     expect(withDevelopmentCommentaryWorkstyle(enhanced)).toBe(enhanced);
   });
+
+  it('instructs follow-ups to preserve unrelated files and use exact patches', () => {
+    const prompt = withDevelopmentCommentaryWorkstyle('Build the requested app.');
+    expect(prompt).toContain('Follow-up requests must preserve the existing project');
+    expect(prompt).toContain('Edit only files needed for the request');
+    expect(prompt).toContain('supplying exact oldText and expectedContent');
+    expect(prompt).toContain('replacementReason explaining why a targeted patch is insufficient');
+    expect(prompt).toContain('Reuse a live preview server on follow-ups');
+  });
 });

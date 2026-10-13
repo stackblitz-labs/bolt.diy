@@ -61,6 +61,13 @@ describe('toSafeStreamErrorMessage', () => {
     expect(responseMessage).not.toContain('provider.example');
     expect(responseMessage).not.toContain('secret-value');
   });
+
+  it('identifies SDK chunk timeouts as an unfinished provider step, preserving safe recovery guidance', () => {
+    const hint = toSafeStreamErrorMessage(new DOMException('Chunk timeout of 45000ms exceeded', 'TimeoutError'));
+    expect(hint).toContain('provider stopped responding');
+    expect(hint).toContain('tool results are preserved');
+    expect(hint).not.toContain('internet connection');
+  });
 });
 
 describe('toSafeTextStream', () => {

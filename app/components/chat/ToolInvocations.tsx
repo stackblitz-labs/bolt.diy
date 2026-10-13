@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState, useEffect, useRef } from 'react';
 import { createHighlighter, type Highlighter } from 'shiki';
 import { Markdown } from './Markdown';
+import { getToolDisplayError, getToolDisplayState } from './toolActivity';
+import { isAgentPlan } from '~/lib/common/agentLoop';
 import {
   getToolCallId,
   getToolInput,
@@ -18,12 +20,7 @@ import { useToolAccessStore } from '~/lib/stores/toolAccess';
 import type { ToolCallAnnotation } from '~/types/context';
 import { getThemeMode } from '~/types/theme';
 import { classNames } from '~/utils/classNames';
-import {
-  TOOL_EXECUTION_APPROVAL,
-  TOOL_EXECUTION_DENIED,
-  TOOL_EXECUTION_ERROR,
-  TOOL_NO_EXECUTE_FUNCTION,
-} from '~/utils/constants';
+import { TOOL_EXECUTION_APPROVAL } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
 
@@ -266,11 +263,8 @@ const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: T
             return annotation.toolCallId === toolCallId;
           });
 
-          const output = getToolOutput(tool);
-
-          const isErrorResult =
-            [TOOL_NO_EXECUTE_FUNCTION, TOOL_EXECUTION_DENIED, TOOL_EXECUTION_ERROR].includes(output as any) ||
-            (typeof output === 'object' && output !== null && 'isError' in output && output.isError === true);
+          const displayState = getToolDisplayState(tool);
+          const isErrorResult = displayState === 'output-error';
 
           return (
             <motion.li
@@ -287,6 +281,10 @@ const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: T
                 {isErrorResult ? (
                   <div className="text-lg text-bolt-elements-icon-error">
                     <div className="i-ph:x"></div>
+                  </div>
+                ) : displayState === 'process-running' ? (
+                  <div className="text-lg text-blue-500">
+                    <div className="i-ph:play"></div>
                   </div>
                 ) : (
                   <div className="text-lg text-bolt-elements-icon-success">
@@ -451,6 +449,8 @@ const ToolCallsList = memo(
             const annotation = toolCallAnnotations.find((annotation) => annotation.toolCallId === toolCallId);
             const isRunning = runningToolCalls.has(toolCallId);
             const state = getToolState(tool);
+            const displayState = getToolDisplayState(tool);
+            const error = getToolDisplayError(tool);
 
             return (
               <motion.li
@@ -463,10 +463,12 @@ const ToolCallsList = memo(
                 <div className="py-1">
                   <div key={toolCallId} className="flex min-w-0 items-center gap-2 text-sm">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center text-bolt-elements-textSecondary">
-                      {state === 'output-available' ? (
+                      {displayState === 'output-available' ? (
                         <span className="i-ph:check text-green-500" />
-                      ) : state === 'output-error' || state === 'output-denied' ? (
+                      ) : displayState === 'output-error' ? (
                         <span className="i-ph:x text-red-500" />
+                      ) : displayState === 'process-running' ? (
+                        <span className="i-ph:play text-blue-500" />
                       ) : isRunning || state === 'input-streaming' ? (
                         <span className="i-svg-spinners:90-ring-with-bg" />
                       ) : (
@@ -477,12 +479,14 @@ const ToolCallsList = memo(
                       className="min-w-0 flex-1 truncate text-bolt-elements-textPrimary"
                       title={annotation?.toolDescription}
                     >
-                      {activityLabel(toolName, getToolInput(tool), getToolOutput(tool), state)}
+                      {activityLabel(toolName, getToolInput(tool), getToolOutput(tool), displayState)}
                     </span>
                     {state === 'input-available' && !fullAccess && (
                       <span className="shrink-0 text-xs text-bolt-elements-textTertiary">Awaiting approval</span>
                     )}
                   </div>
+                  {error && <p className="ml-7 mt-1 break-words text-xs text-red-500">{error}</p>}
+                  <AgentPlanDetails tool={tool} />
                 </div>
               </motion.li>
             );
@@ -499,7 +503,31 @@ function activityLabel(toolName: string, rawInput: unknown, rawOutput?: unknown,
   const path = typeof input.path === 'string' ? input.path : '';
   const shortPath = path.replace(/^\/home\/project\/?/, '');
 
+  if (state === 'output-error') {
+    if (toolName === 'agent_complete') {
+      return output.blocked === true ? 'Task blocked' : 'Completion criteria not met';
+    }
+
+    return `Failed: ${typeof input.command === 'string' ? input.command : shortPath || toolName}`;
+  }
+
+  if (
+    state === 'output-available' &&
+    output.changed === false &&
+    ['project_write_file', 'project_patch_file'].includes(toolName)
+  ) {
+    return `Unchanged ${shortPath || 'project file'}`;
+  }
+
   switch (toolName) {
+    case 'agent_plan':
+      return 'Plan and completion criteria recorded';
+    case 'agent_complete':
+      return output.blocked === true
+        ? 'Task blocked'
+        : output.completed === true
+          ? 'Completion criteria checked'
+          : 'Checking completion criteria';
     case 'project_read_file':
       return `Read ${shortPath || 'project file'}`;
     case 'project_list_paths':
@@ -517,9 +545,13 @@ function activityLabel(toolName: string, rawInput: unknown, rawOutput?: unknown,
     case 'project_delete_path':
       return `${state === 'output-available' ? 'Deleted' : 'Deleting'} ${shortPath || 'project path'}`;
     case 'project_run_command':
-      return `Running ${typeof input.command === 'string' ? input.command : 'project command'}`;
+      return `${state === 'process-running' ? 'Started' : state === 'output-available' ? 'Finished' : 'Running'} ${typeof input.command === 'string' ? input.command : 'project command'}`;
     case 'project_get_process_output':
-      return 'Checking command output';
+      return state === 'process-running'
+        ? 'Command is still running'
+        : state === 'output-available'
+          ? 'Command finished'
+          : 'Checking command output';
     case 'project_stop_process':
       return 'Stopping command';
     case 'web_search':
@@ -534,6 +566,38 @@ function activityLabel(toolName: string, rawInput: unknown, rawOutput?: unknown,
 function isExplorationTool(toolName: string): boolean {
   return ['project_read_file', 'project_list_paths', 'project_search_content', 'project_find_related_files'].includes(
     toolName,
+  );
+}
+
+function AgentPlanDetails({ tool }: { tool: AnyPart }) {
+  if (getToolName(tool) !== 'agent_plan') {
+    return null;
+  }
+
+  const output = getToolOutput(tool) as { plan?: unknown } | undefined;
+
+  if (!isAgentPlan(output?.plan)) {
+    return null;
+  }
+
+  const plan = output.plan;
+
+  return (
+    <details className="ml-7 mt-1 text-xs text-bolt-elements-textSecondary">
+      <summary className="cursor-pointer">View plan and completion criteria</summary>
+      <p className="mt-2">{plan.goal}</p>
+      <ol className="mt-2 list-decimal space-y-1 pl-4">
+        {plan.steps.map((step, index) => (
+          <li key={index}>{step}</li>
+        ))}
+      </ol>
+      <p className="mt-2 font-medium">Completion criteria</p>
+      <ul className="mt-1 list-disc space-y-1 pl-4">
+        {plan.criteria.map((criterion) => (
+          <li key={criterion.id}>{criterion.description}</li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -575,6 +639,7 @@ function ToolActivityRow({
 }) {
   const name = getToolName(tool) ?? '';
   const state = getToolState(tool);
+  const displayState = getToolDisplayState(tool);
 
   const icon =
     name === 'project_read_file'
@@ -588,24 +653,32 @@ function ToolActivityRow({
             : 'i-ph:file';
 
   return (
-    <div className="flex min-w-0 items-center gap-2 py-0.5 text-sm">
-      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-bolt-elements-textSecondary">
-        {state === 'output-available' ? (
-          <span className="i-ph:check-circle-fill text-green-500" />
-        ) : state === 'output-error' || state === 'output-denied' ? (
-          <span className="i-ph:x-circle-fill text-red-500" />
-        ) : running || state === 'input-streaming' ? (
-          <span className="i-svg-spinners:90-ring-with-bg" />
-        ) : (
-          <span className={icon} />
+    <div>
+      <div className="flex min-w-0 items-center gap-2 py-0.5 text-sm">
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-bolt-elements-textSecondary">
+          {displayState === 'output-available' ? (
+            <span className="i-ph:check-circle-fill text-green-500" />
+          ) : displayState === 'output-error' ? (
+            <span className="i-ph:x-circle-fill text-red-500" />
+          ) : displayState === 'process-running' ? (
+            <span className="i-ph:play text-blue-500" />
+          ) : running || state === 'input-streaming' ? (
+            <span className="i-svg-spinners:90-ring-with-bg" />
+          ) : (
+            <span className={icon} />
+          )}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-bolt-elements-textPrimary" title={annotation?.toolDescription}>
+          {activityLabel(name, getToolInput(tool), getToolOutput(tool), displayState)}
+        </span>
+        {state === 'input-available' && !fullAccess && (
+          <span className="shrink-0 text-xs text-bolt-elements-textTertiary">Approval needed</span>
         )}
-      </span>
-      <span className="min-w-0 flex-1 truncate text-bolt-elements-textPrimary" title={annotation?.toolDescription}>
-        {activityLabel(name, getToolInput(tool), getToolOutput(tool), state)}
-      </span>
-      {state === 'input-available' && !fullAccess && (
-        <span className="shrink-0 text-xs text-bolt-elements-textTertiary">Approval needed</span>
+      </div>
+      {getToolDisplayError(tool) && (
+        <p className="ml-7 mt-1 break-words text-xs text-red-500">{getToolDisplayError(tool)}</p>
       )}
+      <AgentPlanDetails tool={tool} />
     </div>
   );
 }

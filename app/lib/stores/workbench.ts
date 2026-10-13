@@ -286,6 +286,10 @@ export class WorkbenchStore {
     this.#terminalStore.toggleTerminal(value);
   }
 
+  writeToBoltTerminal(data: string) {
+    this.#terminalStore.writeToBoltTerminal(data);
+  }
+
   attachTerminal(terminal: ITerminal) {
     this.#terminalStore.attachTerminal(terminal);
   }
