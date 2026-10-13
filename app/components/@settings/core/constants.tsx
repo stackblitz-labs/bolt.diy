@@ -72,7 +72,7 @@ export const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string
 
 export const TAB_LABELS: Record<TabType, string> = {
   profile: 'Profile',
-  settings: 'Settings',
+  settings: 'Preferences',
   notifications: 'Notifications',
   features: 'Features',
   data: 'Data Management',
@@ -91,7 +91,7 @@ export const TAB_LABELS: Record<TabType, string> = {
 
 export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   profile: 'Manage your profile and account settings',
-  settings: 'Configure application preferences',
+  settings: 'Customize application settings and preferences',
   notifications: 'View and manage your notifications',
   features: 'Explore new and upcoming features',
   data: 'Manage your data and storage',
