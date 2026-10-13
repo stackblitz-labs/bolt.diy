@@ -105,7 +105,7 @@ export const InspectorPanel = ({
           type="button"
           onClick={onClose}
           aria-label="Close visual edits"
-          className="rounded p-1 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2"
+          className="rounded bg-bolt-elements-background-depth-1 p-1 text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           ×
         </button>
