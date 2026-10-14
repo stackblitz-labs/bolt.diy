@@ -34,6 +34,7 @@ const defaultSettings = {
 } satisfies MCPSettings;
 
 type Store = {
+  adminToken: string;
   isInitialized: boolean;
   settings: MCPSettings;
   serverTools: MCPServerTools;
@@ -42,6 +43,7 @@ type Store = {
 };
 
 type Actions = {
+  setAdminToken: (token: string) => void;
   initialize: () => Promise<void>;
   updateSettings: (settings: MCPSettings) => Promise<void>;
   setWebSearchEnabled: (enabled: boolean) => void;
@@ -51,6 +53,8 @@ type Actions = {
 };
 
 export const useMCPStore = create<Store & Actions>((set, get) => ({
+  adminToken: '',
+  setAdminToken: (adminToken) => set({ adminToken }),
   isInitialized: false,
   settings: defaultSettings,
   serverTools: {},
@@ -75,8 +79,12 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
             toolEnabled: { ...defaultSettings.toolEnabled, ...savedSettings.toolEnabled },
           };
 
-          const serverTools = await updateServerConfig(settings.mcpConfig);
-          set(() => ({ settings, serverTools }));
+          set(() => ({ settings }));
+
+          if (get().adminToken.trim()) {
+            const serverTools = await updateServerConfig(settings.mcpConfig, get().adminToken);
+            set(() => ({ serverTools }));
+          }
         } catch (error) {
           console.error('Error parsing saved mcp config:', error);
           set(() => ({
@@ -98,7 +106,7 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
     try {
       set(() => ({ isUpdatingConfig: true }));
 
-      const serverTools = await updateServerConfig(newSettings.mcpConfig);
+      const serverTools = await updateServerConfig(newSettings.mcpConfig, get().adminToken);
 
       if (isBrowser) {
         localStorage.setItem(MCP_SETTINGS_KEY, JSON.stringify(newSettings));
@@ -145,13 +153,9 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
     set({ settings });
   },
   checkServersAvailabilities: async () => {
-    const response = await fetch('/api/mcp-check', {
+    const response = await requestMCP('/api/mcp-check', get().adminToken, {
       method: 'GET',
     });
-
-    if (!response.ok) {
-      throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
-    }
 
     const serverTools = (await response.json()) as MCPServerTools;
 
@@ -159,18 +163,39 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
   },
 }));
 
-async function updateServerConfig(config: MCPConfig) {
-  const response = await fetch('/api/mcp-update-config', {
+async function updateServerConfig(config: MCPConfig, token: string) {
+  const response = await requestMCP('/api/mcp-update-config', token, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),
   });
 
-  if (!response.ok) {
-    throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
-  }
-
   const data = (await response.json()) as MCPServerTools;
 
   return data;
+}
+
+async function requestMCP(path: string, token: string, options: RequestInit) {
+  if (!token.trim()) {
+    throw new Error('Enter the MCP administration token before connecting servers.');
+  }
+
+  const headers = new Headers(options.headers);
+  headers.set('Authorization', 'Bearer ' + token.trim());
+
+  const response = await fetch(path, { ...options, headers, cache: 'no-store' });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: unknown; message?: unknown };
+
+    const message =
+      typeof body.error === 'string'
+        ? body.error
+        : typeof body.message === 'string'
+          ? body.message
+          : 'MCP request failed.';
+    throw new Error(message);
+  }
+
+  return response;
 }

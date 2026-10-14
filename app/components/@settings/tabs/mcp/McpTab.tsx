@@ -27,6 +27,8 @@ const EXAMPLE_MCP_CONFIG: MCPConfig = {
 };
 
 export default function McpTab() {
+  const adminToken = useMCPStore((state) => state.adminToken);
+  const setAdminToken = useMCPStore((state) => state.setAdminToken);
   const settings = useMCPStore((state) => state.settings);
   const isInitialized = useMCPStore((state) => state.isInitialized);
   const serverTools = useMCPStore((state) => state.serverTools);
@@ -126,12 +128,33 @@ export default function McpTab() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <section aria-labelledby="mcp-admin-heading">
+        <h2 id="mcp-admin-heading" className="text-base font-medium text-bolt-elements-textPrimary mb-3">
+          MCP administration
+        </h2>
+        <label htmlFor="mcp-admin-token" className="block text-sm text-bolt-elements-textSecondary mb-2">
+          Administration token
+        </label>
+        <input
+          id="mcp-admin-token"
+          type="password"
+          autoComplete="off"
+          value={adminToken}
+          onChange={(event) => setAdminToken(event.target.value)}
+          aria-describedby="mcp-admin-help"
+          className="w-full px-3 py-2 text-bolt-elements-textPrimary text-sm rounded-lg bg-white dark:bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor"
+        />
+        <p id="mcp-admin-help" className="mt-2 text-sm text-bolt-elements-textSecondary">
+          Enter the token configured by your server operator to save or connect MCP servers. It stays in memory for this
+          page session. Then select Save Configuration to connect your saved servers.
+        </p>
+      </section>
       <section aria-labelledby="server-status-heading">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-base font-medium text-bolt-elements-textPrimary">MCP Servers Configured</h2>{' '}
           <button
             onClick={checkServerAvailability}
-            disabled={isCheckingServers || !parsedConfig || serverEntries.length === 0}
+            disabled={isCheckingServers || !parsedConfig || !adminToken.trim() || serverEntries.length === 0}
             className={classNames(
               'px-3 py-1.5 rounded-lg text-sm',
               'bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4',
@@ -223,8 +246,8 @@ export default function McpTab() {
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            disabled={isSaving || !parsedConfig}
-            aria-disabled={isSaving || !parsedConfig}
+            disabled={isSaving || !parsedConfig || !adminToken.trim()}
+            aria-disabled={isSaving || !parsedConfig || !adminToken.trim()}
             className={classNames(
               'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
               'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent',
