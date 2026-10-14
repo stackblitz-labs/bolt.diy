@@ -164,7 +164,7 @@ export class MCPService {
   }
 
   async updateConfig(config: MCPConfig) {
-    logger.debug('updating config', JSON.stringify(config));
+    logger.debug('updating config for servers', Object.keys(config.mcpServers));
     this._config = config;
     await this._createClients();
 
@@ -175,7 +175,7 @@ export class MCPService {
     serverName: string,
     config: StreamableHTTPServerConfig,
   ): Promise<MCPClient> {
-    logger.debug(`Creating Streamable-HTTP client for ${serverName} with URL: ${config.url}`);
+    logger.debug(`Creating Streamable-HTTP client for ${serverName}`);
 
     const client = await createMCPClient({
       transport: new StreamableHTTPClientTransport(new URL(config.url), {
@@ -189,7 +189,7 @@ export class MCPService {
   }
 
   private async _createSSEClient(serverName: string, config: SSEServerConfig): Promise<MCPClient> {
-    logger.debug(`Creating SSE client for ${serverName} with URL: ${config.url}`);
+    logger.debug(`Creating SSE client for ${serverName}`);
 
     const client = await createMCPClient({
       transport: config,
@@ -199,9 +199,7 @@ export class MCPService {
   }
 
   private async _createStdioClient(serverName: string, config: STDIOServerConfig): Promise<MCPClient> {
-    logger.debug(
-      `Creating STDIO client for '${serverName}' with command: '${config.command}' ${config.args?.join(' ') || ''}`,
-    );
+    logger.debug(`Creating STDIO client for '${serverName}'`);
 
     const client = await createMCPClient({ transport: new Experimental_StdioMCPTransport(config) });
 
