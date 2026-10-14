@@ -1,47 +1,34 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 
-// Allowed headers to forward to the target server
-const ALLOW_HEADERS = [
-  'accept-encoding',
-  'accept-language',
-  'accept',
-  'access-control-allow-origin',
-  'authorization',
-  'cache-control',
-  'connection',
-  'content-length',
-  'content-type',
-  'dnt',
-  'pragma',
-  'range',
-  'referer',
-  'user-agent',
-  'x-authorization',
-  'x-http-method-override',
-  'x-requested-with',
-];
+const GIT_HOSTS = new Set(['github.com', 'gitlab.com', 'bitbucket.org']);
+const METHODS = ['GET', 'HEAD', 'POST', 'OPTIONS'];
+const FORWARD_HEADERS = ['accept', 'authorization', 'content-type', 'git-protocol', 'range', 'x-requested-with'];
+const EXPOSE_HEADERS = ['content-type', 'etag', 'www-authenticate'];
+const REDIRECTS = new Set([301, 302, 303, 307, 308]);
+const MAX_REDIRECTS = 5;
 
-// Headers to expose from the target server's response
-const EXPOSE_HEADERS = [
-  'accept-ranges',
-  'age',
-  'cache-control',
-  'content-length',
-  'content-language',
-  'content-type',
-  'date',
-  'etag',
-  'expires',
-  'last-modified',
-  'pragma',
-  'server',
-  'transfer-encoding',
-  'vary',
-  'x-github-request-id',
-  'x-redirected-url',
-];
+function isAllowedTarget(url: URL, method: string) {
+  if (
+    url.protocol !== 'https:' ||
+    !GIT_HOSTS.has(url.hostname) ||
+    url.port ||
+    url.username ||
+    url.password ||
+    url.hash
+  ) {
+    return false;
+  }
 
-// Handle all HTTP methods
+  if (method === 'POST') {
+    return /\/(git-upload-pack|git-receive-pack)$/.test(url.pathname);
+  }
+
+  return (
+    url.pathname.endsWith('/info/refs') &&
+    ['git-upload-pack', 'git-receive-pack'].includes(url.searchParams.get('service') || '')
+  );
+}
+
 export async function action({ request, params }: ActionFunctionArgs) {
   return handleProxyRequest(request, params['*']);
 }
@@ -51,125 +38,117 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 async function handleProxyRequest(request: Request, path: string | undefined) {
+  const requestUrl = new URL(request.url);
+  const origin = request.headers.get('Origin');
+
+  if (origin && origin !== requestUrl.origin) {
+    return Response.json({ error: 'Cross-origin Git proxy requests are not allowed' }, { status: 403 });
+  }
+
+  if (!METHODS.includes(request.method)) {
+    return new Response('Method not allowed', { status: 405, headers: { Allow: METHODS.join(', ') } });
+  }
+
+  if (!path) {
+    return Response.json({ error: 'Invalid proxy URL format' }, { status: 400 });
+  }
+
+  let target: URL;
+
   try {
-    if (!path) {
-      return Response.json({ error: 'Invalid proxy URL format' }, { status: 400 });
-    }
+    target = new URL('https://' + path + requestUrl.search);
+  } catch {
+    return Response.json({ error: 'Invalid proxy URL format' }, { status: 400 });
+  }
 
-    // Handle CORS preflight request
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': ALLOW_HEADERS.join(', '),
-          'Access-Control-Expose-Headers': EXPOSE_HEADERS.join(', '),
-          'Access-Control-Max-Age': '86400',
-        },
-      });
-    }
+  // Preflight checks the intended method and destination before allowing headers.
+  const method =
+    request.method === 'OPTIONS' ? request.headers.get('Access-Control-Request-Method') || 'GET' : request.method;
 
-    // Extract domain and remaining path
-    const parts = path.match(/([^\/]+)\/?(.*)/);
+  if (!['GET', 'HEAD', 'POST'].includes(method) || !isAllowedTarget(target, method)) {
+    return Response.json({ error: 'Only Git requests to supported Git hosts are allowed' }, { status: 403 });
+  }
 
-    if (!parts) {
-      return Response.json({ error: 'Invalid path format' }, { status: 400 });
-    }
+  const responseHeaders = new Headers({
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
+    Vary: 'Origin',
+  });
 
-    const domain = parts[1];
-    const remainingPath = parts[2] || '';
-
-    // Reconstruct the target URL with query parameters
-    const url = new URL(request.url);
-    const targetURL = `https://${domain}/${remainingPath}${url.search}`;
-
-    console.log('Target URL:', targetURL);
-
-    // Filter and prepare headers
-    const headers = new Headers();
-
-    // Only forward allowed headers
-    for (const header of ALLOW_HEADERS) {
-      if (request.headers.has(header)) {
-        headers.set(header, request.headers.get(header)!);
-      }
-    }
-
-    // Set the host header
-    headers.set('Host', domain);
-
-    // Set Git user agent if not already present
-    if (!headers.has('user-agent') || !headers.get('user-agent')?.startsWith('git/')) {
-      headers.set('User-Agent', 'git/@isomorphic-git/cors-proxy');
-    }
-
-    console.log('Request headers:', Object.fromEntries(headers.entries()));
-
-    /*
-     * `duplex` is required by undici/Node when streaming a request body, but it is
-     * absent from the Cloudflare `RequestInit` type, so widen it locally.
-     */
-    const fetchOptions: RequestInit & { duplex?: 'half' } = {
-      method: request.method,
-      headers,
-      redirect: 'follow',
-    };
-
-    // Add body for non-GET/HEAD requests
-    if (!['GET', 'HEAD'].includes(request.method)) {
-      fetchOptions.body = request.body;
-      fetchOptions.duplex = 'half';
-    }
-
-    // Forward the request to the target URL
-    const response = await fetch(targetURL, fetchOptions);
-
-    console.log('Response status:', response.status);
-
-    // Create response headers
-    const responseHeaders = new Headers();
-
-    // Add CORS headers
-    responseHeaders.set('Access-Control-Allow-Origin', '*');
-    responseHeaders.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-    responseHeaders.set('Access-Control-Allow-Headers', ALLOW_HEADERS.join(', '));
+  if (origin) {
+    responseHeaders.set('Access-Control-Allow-Origin', requestUrl.origin);
+    responseHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
+    responseHeaders.set('Access-Control-Allow-Headers', FORWARD_HEADERS.join(', '));
     responseHeaders.set('Access-Control-Expose-Headers', EXPOSE_HEADERS.join(', '));
+  }
 
-    // Copy exposed headers from the target response
-    for (const header of EXPOSE_HEADERS) {
-      // Skip content-length as we'll use the original response's content-length
-      if (header === 'content-length') {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: responseHeaders });
+  }
+
+  const headers = new Headers({ 'User-Agent': 'git/bolt.diy' });
+
+  for (const header of FORWARD_HEADERS) {
+    const value = request.headers.get(header);
+
+    if (value) {
+      headers.set(header, value);
+    }
+  }
+
+  const fetchOptions: RequestInit & { duplex?: 'half' } = {
+    method,
+    headers,
+    redirect: 'manual',
+    signal: request.signal,
+  };
+
+  if (method === 'POST') {
+    fetchOptions.body = request.body;
+    fetchOptions.duplex = 'half';
+  }
+
+  try {
+    for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
+      const response = await fetch(target, fetchOptions);
+
+      if (REDIRECTS.has(response.status)) {
+        const location = response.headers.get('Location');
+        await response.body?.cancel();
+
+        if (!location || method === 'POST' || redirects === MAX_REDIRECTS) {
+          return Response.json({ error: 'Unsupported Git proxy redirect' }, { status: 502 });
+        }
+
+        const next = new URL(location, target);
+
+        // Keep credentials on the original trusted host and revalidate every hop.
+        if (next.origin !== target.origin || !isAllowedTarget(next, method)) {
+          return Response.json({ error: 'Git proxy redirect destination is not allowed' }, { status: 403 });
+        }
+
+        target = next;
         continue;
       }
 
-      if (response.headers.has(header)) {
-        responseHeaders.set(header, response.headers.get(header)!);
+      for (const header of EXPOSE_HEADERS) {
+        const value = response.headers.get(header);
+
+        if (value) {
+          responseHeaders.set(header, value);
+        }
       }
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+      });
     }
-
-    // If the response was redirected, add the x-redirected-url header
-    if (response.redirected) {
-      responseHeaders.set('x-redirected-url', response.url);
-    }
-
-    console.log('Response headers:', Object.fromEntries(responseHeaders.entries()));
-
-    // Return the response with the target's body stream piped directly
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders,
-    });
-  } catch (error) {
-    console.error('Proxy error:', error);
-    return Response.json(
-      {
-        error: 'Proxy error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        url: path ? `https://${path}` : 'Invalid URL',
-      },
-      { status: 500 },
-    );
+  } catch {
+    return Response.json({ error: 'Git proxy request failed' }, { status: 502 });
   }
+
+  return Response.json({ error: 'Too many Git proxy redirects' }, { status: 502 });
 }
