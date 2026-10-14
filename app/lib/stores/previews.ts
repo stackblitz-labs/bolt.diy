@@ -273,8 +273,15 @@ export class PreviewsStore {
         this.previews.set([...previews]);
 
         requestAnimationFrame(() => {
+          const currentPreviews = this.previews.get();
+
+          // A close, reset, or reopened port must not be restored by an old refresh.
+          if (!currentPreviews.includes(preview)) {
+            return;
+          }
+
           preview.ready = true;
-          this.previews.set([...previews]);
+          this.previews.set([...currentPreviews]);
         });
       }
 
