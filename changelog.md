@@ -8,6 +8,14 @@
 
 ### ✨ Features
 
+* add MCP-backed project and web tools, prompt tool access modes, and improved starter setup ([#2270](https://github.com/stackblitz-labs/bolt.diy/pull/2270)) by @dustinwloring1988
+* add Browser Use Cloud and connector action permissions, with connector menus gated by connection status ([#2271](https://github.com/stackblitz-labs/bolt.diy/pull/2271), [#2272](https://github.com/stackblitz-labs/bolt.diy/pull/2272), [#2273](https://github.com/stackblitz-labs/bolt.diy/pull/2273)) by @dustinwloring1988
+* add a declarative plugin marketplace and lifecycle controls by @dustinwloring1988
+* add an agent activity feed and approval tray ([#2275](https://github.com/stackblitz-labs/bolt.diy/pull/2275)) by @dustinwloring1988
+* add visual editing for the live preview ([#2276](https://github.com/stackblitz-labs/bolt.diy/pull/2276)) by @dustinwloring1988
+* improve agentic building with a stronger build loop, thinking UI, recovery, validation, and automatic completion evidence ([#2277](https://github.com/stackblitz-labs/bolt.diy/pull/2277), [#2278](https://github.com/stackblitz-labs/bolt.diy/pull/2278), [#2281](https://github.com/stackblitz-labs/bolt.diy/pull/2281), [#2283](https://github.com/stackblitz-labs/bolt.diy/pull/2283)) by @dustinwloring1988
+* apply onboarding API keys immediately and improve first-run setup ([#2279](https://github.com/stackblitz-labs/bolt.diy/pull/2279)) by @dustinwloring1988
+* rename Settings to Preferences, add a Preferences card, and offer Agent and Discuss modes ([#2282](https://github.com/stackblitz-labs/bolt.diy/pull/2282)) by @dustinwloring1988
 * add in-app documentation and bug report panels ([#2252](https://github.com/stackblitz-labs/bolt.diy/pull/2252)) by @dustinwloring1988
 * add selectable color themes, profile avatars, and theme and interface appearance controls ([#2254](https://github.com/stackblitz-labs/bolt.diy/pull/2254), [#2255](https://github.com/stackblitz-labs/bolt.diy/pull/2255), [#2256](https://github.com/stackblitz-labs/bolt.diy/pull/2256)) by @dustinwloring1988
 * restore first-run onboarding with profile and appearance setup ([#2258](https://github.com/stackblitz-labs/bolt.diy/pull/2258)) by @dustinwloring1988
@@ -29,6 +37,12 @@
 
 ### 🐛 Bug Fixes
 
+* validate model requests at runtime, bound and sanitize provider requests, and improve typed and streamed error handling ([#2266](https://github.com/stackblitz-labs/bolt.diy/pull/2266)) by @dustinwloring1988
+* fix ZIP-imported message creation and prevent unintended autoruns after import ([#2265](https://github.com/stackblitz-labs/bolt.diy/pull/2265)) by @dustinwloring1988
+* fix WebContainer dev-server lifecycle, starter imports, localhost binding, browser startup, and web-search redirects ([#2269](https://github.com/stackblitz-labs/bolt.diy/pull/2269), [#2270](https://github.com/stackblitz-labs/bolt.diy/pull/2270)) by @dustinwloring1988
+* preserve Git configuration files in starter templates ([#2208](https://github.com/stackblitz-labs/bolt.diy/pull/2208)) by @unknowlei
+* sync the in-app documentation theme with app light and dark modes ([#2268](https://github.com/stackblitz-labs/bolt.diy/pull/2268)) by @dustinwloring1988
+* improve connector tool continuations and plugin marketplace error and control styling ([#2275](https://github.com/stackblitz-labs/bolt.diy/pull/2275)) by @dustinwloring1988
 * prevent chat persistence and workbench action races, and restore snapshots correctly on URL-based chat routes ([#2260](https://github.com/stackblitz-labs/bolt.diy/pull/2260)) by @dustinwloring1988
 * keep first-run onboarding from being dismissed prematurely and fix its navigation and appearance controls ([#2258](https://github.com/stackblitz-labs/bolt.diy/pull/2258)) by @dustinwloring1988
 * apply theme surfaces consistently to event logs, notifications, and local provider endpoints ([#2256](https://github.com/stackblitz-labs/bolt.diy/pull/2256)) by @dustinwloring1988
@@ -67,6 +81,7 @@
 
 ### 🧪 Tests
 
+* split the Vitest runner into Node and jsdom projects, and fix filesystem alias resolution ([#2267](https://github.com/stackblitz-labs/bolt.diy/pull/2267)) by @dustinwloring1988
 * wrap state updates in act() to fix React warnings (4e6479b) by @dustinwloring1988
 * add comprehensive tests for chat switching race condition fix (b3ee2a1) by @dustinwloring1988
 * add unit tests for prompt workstyle guidance and workbench view selection retention ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
