@@ -6,6 +6,26 @@ type ChatHistoryItem = Awaited<ReturnType<typeof getMessages>>;
 const messageCache = new Map<string, Promise<ChatHistoryItem>>();
 const snapshotCache = new Map<string, Promise<Snapshot | undefined>>();
 
+function cacheRead<T>(cache: Map<string, Promise<T>>, id: string, read: () => Promise<T>): Promise<T> {
+  const cached = cache.get(id);
+
+  if (cached) {
+    return cached;
+  }
+
+  const promise = read();
+  cache.set(id, promise);
+
+  void promise.catch(() => {
+    // An older read may reject after invalidation and a replacement read.
+    if (cache.get(id) === promise) {
+      cache.delete(id);
+    }
+  });
+
+  return promise;
+}
+
 /**
  * Prefetch chat messages and snapshot from IndexedDB on hover.
  * This primes the in-memory cache before the user clicks to switch chats.
@@ -15,13 +35,12 @@ export function prefetchChat(database: IDBDatabase | undefined, id: string) {
     return;
   }
 
-  const messages = messageCache.get(id) ?? getMessages(database, id);
-  messageCache.set(id, messages);
+  const messages = cacheRead(messageCache, id, () => getMessages(database, id));
 
   void messages
     .then((chat) => {
       if (chat && !snapshotCache.has(chat.id)) {
-        snapshotCache.set(chat.id, getSnapshot(database, chat.id));
+        cacheRead(snapshotCache, chat.id, () => getSnapshot(database, chat.id));
       }
     })
     .catch(() => undefined);
@@ -31,32 +50,14 @@ export function prefetchChat(database: IDBDatabase | undefined, id: string) {
  * Get messages, using the cached promise if available from prefetch.
  */
 export async function getCachedMessages(database: IDBDatabase, id: string): Promise<ChatHistoryItem> {
-  const cached = messageCache.get(id);
-
-  if (cached) {
-    return cached;
-  }
-
-  const promise = getMessages(database, id);
-  messageCache.set(id, promise);
-
-  return promise;
+  return cacheRead(messageCache, id, () => getMessages(database, id));
 }
 
 /**
  * Get snapshot, using the cached promise if available from prefetch.
  */
 export async function getCachedSnapshot(database: IDBDatabase, id: string): Promise<Snapshot | undefined> {
-  const cached = snapshotCache.get(id);
-
-  if (cached) {
-    return cached;
-  }
-
-  const promise = getSnapshot(database, id);
-  snapshotCache.set(id, promise);
-
-  return promise;
+  return cacheRead(snapshotCache, id, () => getSnapshot(database, id));
 }
 
 /**
