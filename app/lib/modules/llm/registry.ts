@@ -17,6 +17,7 @@ import OpenRouterProvider from './providers/open-router';
 import OpenAIProvider from './providers/openai';
 import OpenAILikeProvider from './providers/openai-like';
 import PerplexityProvider from './providers/perplexity';
+import RuncrateProvider from './providers/runcrate';
 import TogetherProvider from './providers/together';
 import XAIProvider from './providers/xai';
 import ZaiProvider from './providers/z-ai';
@@ -38,6 +39,7 @@ export {
   OpenRouterProvider,
   OpenAILikeProvider,
   PerplexityProvider,
+  RuncrateProvider,
   XAIProvider,
   TogetherProvider,
   LMStudioProvider,

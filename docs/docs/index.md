@@ -1,6 +1,6 @@
 # Welcome to bolt diy
 
-bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 22+ providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, Cerebras, Fireworks, Z-AI, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! OpenRouter, Anthropic, OpenAI, and Google are enabled by default; enable and configure other providers in Settings.
+bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 22+ providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, Cerebras, Fireworks, Z-AI, Runcrate, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! OpenRouter, Anthropic, OpenAI, and Google are enabled by default; enable and configure other providers in Settings.
 
 ## Table of Contents
 
