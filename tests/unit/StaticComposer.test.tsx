@@ -69,7 +69,7 @@ describe('StaticComposer', () => {
   describe('useStaticComposer', () => {
     it('should return isReady and handleReady', () => {
       const { result } = renderHook(() => useStaticComposer());
-      
+
       expect(result.current).toHaveProperty('isReady');
       expect(result.current).toHaveProperty('handleReady');
       expect(typeof result.current.handleReady).toBe('function');
@@ -77,8 +77,18 @@ describe('StaticComposer', () => {
 
     it('should start with isReady false', () => {
       const { result } = renderHook(() => useStaticComposer());
-      
+
       expect(result.current.isReady).toBe(false);
+    });
+
+    it('should keep the handler stable across rerenders and avoid duplicate injection', () => {
+      const { result, rerender } = renderHook(() => useStaticComposer());
+      const initialHandler = result.current.handleReady;
+
+      rerender();
+
+      expect(result.current.handleReady).toBe(initialHandler);
+      expect(document.querySelectorAll('[data-static-composer="true"]').length).toBe(1);
     });
   });
 
