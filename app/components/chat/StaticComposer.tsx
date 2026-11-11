@@ -9,7 +9,7 @@
  * After: User can type immediately (<100ms)
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface StaticComposerProps {
   placeholder?: string;
@@ -193,16 +193,28 @@ export function injectStaticComposer(placeholder?: string): void {
  */
 export function useStaticComposer() {
   const [isReady, setIsReady] = useState(false);
+  const hasInjectedRef = useRef(false);
 
   useEffect(() => {
-    // Inject static composer if not already present
+    if (hasInjectedRef.current) {
+      return;
+    }
+
+    hasInjectedRef.current = true;
     injectStaticComposer();
   }, []);
 
-  const handleReady = () => {
-    setIsReady(true);
-    console.log('[STATIC-COMPOSER] Handoff complete');
-  };
+  const handleReady = useCallback(() => {
+    setIsReady((prev) => {
+      if (prev) {
+        return prev;
+      }
+
+      console.log('[STATIC-COMPOSER] Handoff complete');
+
+      return true;
+    });
+  }, []);
 
   return {
     isReady,
