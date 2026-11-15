@@ -379,6 +379,12 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 />
               )}
             </ClientOnly>
+            <SpeechRecognitionButton
+              isListening={props.isListening}
+              onStart={props.startListening}
+              onStop={props.stopListening}
+              disabled={props.isStreaming}
+            />
             <ClientOnly>{() => <ToolAccessMenu />}</ClientOnly>
             {/* Hidden components for programmatic access from menu */}
             <div className="hidden">
@@ -467,12 +473,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
-            <SpeechRecognitionButton
-              isListening={props.isListening}
-              onStart={props.startListening}
-              onStop={props.stopListening}
-              disabled={props.isStreaming}
-            />
             <IconButton
               title="Model Settings"
               className={classNames('transition-all flex items-center gap-1', {
