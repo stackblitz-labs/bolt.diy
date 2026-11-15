@@ -737,11 +737,10 @@ export class WorkbenchStore {
     this.artifacts.setKey(artifactId, { ...artifact, ...state });
   }
   addAction(data: ActionCallbackData) {
-    // this._addAction(data);
-
-    this.addToExecutionQueue(() => this._addAction(data));
+    const requiresApproval = this.#reloadedMessages.has(data.messageId) && data.action.type !== 'file';
+    this.addToExecutionQueue(() => this._addAction(data, requiresApproval));
   }
-  async _addAction(data: ActionCallbackData) {
+  async _addAction(data: ActionCallbackData, requiresApproval = false) {
     const { artifactId } = data;
 
     const artifact = this.#getArtifact(artifactId);
@@ -750,7 +749,12 @@ export class WorkbenchStore {
       unreachable('Artifact not found');
     }
 
-    return artifact.runner.addAction(data);
+    return artifact.runner.addAction(data, requiresApproval);
+  }
+
+  runHistoricalAction(data: ActionCallbackData) {
+    const generation = this.#actionGeneration;
+    return this.addToExecutionQueue(() => this._runAction(data, false, generation, true));
   }
 
   runAction(data: ActionCallbackData, isStreaming: boolean = false) {
@@ -798,7 +802,12 @@ export class WorkbenchStore {
     }
   }
 
-  async _runAction(data: ActionCallbackData, isStreaming: boolean = false, generation = this.#actionGeneration) {
+  async _runAction(
+    data: ActionCallbackData,
+    isStreaming: boolean = false,
+    generation = this.#actionGeneration,
+    approved = false,
+  ) {
     if (generation !== this.#actionGeneration) {
       return;
     }
@@ -813,7 +822,7 @@ export class WorkbenchStore {
 
     const action = artifact.runner.actions.get()[data.actionId];
 
-    if (!action || action.executed) {
+    if (!action || action.executed || (action.requiresApproval && !approved)) {
       return;
     }
 

@@ -32,7 +32,7 @@ interface ArtifactProps {
 
 const EMPTY_ACTIONS_STORE = map<Record<string, ActionState>>({});
 
-export const Artifact = memo(({ artifactId }: ArtifactProps) => {
+export const Artifact = memo(({ artifactId, messageId }: ArtifactProps) => {
   const userToggledActions = useRef(false);
   const [showActions, setShowActions] = useState(false);
 
@@ -50,9 +50,12 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const actions = useStore(
     computed(actionStates, (actions) => {
       // Filter out Supabase actions except for migrations
-      return Object.values(actions).filter((action) => {
+      return Object.entries(actions).filter(([, action]) => {
         // Exclude actions with type 'supabase' or actions that contain 'supabase' in their content
-        return action.type !== 'supabase' && !(action.type === 'shell' && action.content?.includes('supabase'));
+        return (
+          action.requiresApproval ||
+          (action.type !== 'supabase' && !(action.type === 'shell' && action.content?.includes('supabase')))
+        );
       });
     }),
   );
@@ -72,13 +75,16 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
     return null;
   }
 
-  const failed = actions.some((action) => action.status === 'failed');
-  const interrupted = actions.some((action) => action.status === 'aborted');
+  const failed = actions.some(([, action]) => action.status === 'failed');
+  const interrupted = actions.some(([, action]) => action.status === 'aborted');
+  const awaitingApproval = actions.some(([, action]) => action.requiresApproval);
   const emptySetup = artifact.closed && actions.length === 0;
 
   const allActionFinished =
     actions.length > 0 &&
-    actions.every((action) => action.status === 'complete' || (action.type === 'start' && action.status === 'running'));
+    actions.every(
+      ([, action]) => action.status === 'complete' || (action.type === 'start' && action.status === 'running'),
+    );
   const setupStatus = failed
     ? 'failed'
     : interrupted || emptySetup
@@ -97,7 +103,12 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
     running: restored ? 'Restoring Project...' : 'Creating Project...',
   };
 
-  const dynamicTitle = artifact.type === 'bundled' ? setupTitles[setupStatus] : artifact.title;
+  const dynamicTitle =
+    artifact.type === 'bundled'
+      ? awaitingApproval
+        ? 'Saved actions need approval'
+        : setupTitles[setupStatus]
+      : artifact.title;
 
   const setupDescription = failed
     ? 'One or more setup actions failed.'
@@ -155,17 +166,19 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
             <div className={classNames('text-lg', getIconColor(setupStatus))}>
               {setupStatus === 'complete' ? (
                 <div className="i-ph:check"></div>
-              ) : setupStatus !== 'running' ? (
+              ) : setupStatus !== 'running' || awaitingApproval ? (
                 <div className="i-ph:warning-circle"></div>
               ) : (
                 <div className="i-svg-spinners:90-ring-with-bg"></div>
               )}
             </div>
-            <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">{setupDescription}</div>
+            <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">
+              {awaitingApproval ? 'Saved actions await your approval.' : setupDescription}
+            </div>
           </div>
         )}
         <AnimatePresence>
-          {artifact.type !== 'bundled' && showActions && actions.length > 0 && (
+          {(artifact.type !== 'bundled' || awaitingApproval) && showActions && actions.length > 0 && (
             <motion.div
               className="actions"
               initial={{ height: 0 }}
@@ -176,7 +189,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
               <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
 
               <div className="p-5 text-left bg-bolt-elements-actions-background">
-                <ActionList actions={actions} />
+                <ActionList actions={actions} artifactId={artifactId} messageId={messageId} />
               </div>
             </motion.div>
           )}
@@ -206,7 +219,9 @@ function ShellCodeBlock({ classsName, code }: ShellCodeBlockProps) {
 }
 
 interface ActionListProps {
-  actions: ActionState[];
+  actions: [string, ActionState][];
+  artifactId: string;
+  messageId: string;
 }
 
 const actionVariants = {
@@ -222,17 +237,17 @@ export function openArtifactInWorkbench(filePath: any) {
   workbenchStore.setSelectedFile(`${WORK_DIR}/${filePath}`);
 }
 
-const ActionList = memo(({ actions }: ActionListProps) => {
+const ActionList = memo(({ actions, artifactId, messageId }: ActionListProps) => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
       <ul className="list-none space-y-2.5">
-        {actions.map((action, index) => {
+        {actions.map(([actionId, action], index) => {
           const { status, type, content } = action;
           const isLast = index === actions.length - 1;
 
           return (
             <motion.li
-              key={index}
+              key={actionId}
               variants={actionVariants}
               initial="hidden"
               animate="visible"
@@ -283,9 +298,22 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                   >
                     <span className="flex-1">Start Application</span>
                   </a>
+                ) : type === 'build' ? (
+                  <span>Build application</span>
+                ) : type === 'supabase' ? (
+                  <span>Run Supabase {action.operation}</span>
                 ) : null}
+                {action.requiresApproval && (
+                  <button
+                    type="button"
+                    className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-1 text-xs"
+                    onClick={() => workbenchStore.runHistoricalAction({ artifactId, messageId, actionId, action })}
+                  >
+                    Run saved action
+                  </button>
+                )}
               </div>
-              {(type === 'shell' || type === 'start') && (
+              {(type === 'shell' || type === 'start' || (action.requiresApproval && type !== 'file')) && (
                 <ShellCodeBlock
                   classsName={classNames('mt-1', {
                     'mb-3.5': !isLast,

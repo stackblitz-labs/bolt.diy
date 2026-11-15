@@ -16,6 +16,7 @@ export type BaseActionState = BoltAction & {
   abort: () => void;
   executed: boolean;
   abortSignal: AbortSignal;
+  requiresApproval?: boolean;
 };
 
 export type FailedActionState = BoltAction &
@@ -26,7 +27,7 @@ export type FailedActionState = BoltAction &
 
 export type ActionState = BaseActionState | FailedActionState;
 
-type BaseActionUpdate = Partial<Pick<BaseActionState, 'status' | 'abort' | 'executed'>>;
+type BaseActionUpdate = Partial<Pick<BaseActionState, 'status' | 'abort' | 'executed' | 'requiresApproval'>>;
 
 export type ActionStateUpdate =
   BaseActionUpdate | (Omit<BaseActionUpdate, 'status'> & { status: 'failed'; error: string });
@@ -87,7 +88,7 @@ export class ActionRunner {
     this.onDeployAlert = onDeployAlert;
   }
 
-  addAction(data: ActionCallbackData) {
+  addAction(data: ActionCallbackData, requiresApproval = false) {
     const { actionId } = data;
 
     const actions = this.actions.get();
@@ -104,12 +105,17 @@ export class ActionRunner {
       ...data.action,
       status: 'pending',
       executed: false,
+      requiresApproval,
       abort: () => {
         abortController.abort();
         this.#updateAction(actionId, { status: 'aborted' });
       },
       abortSignal: abortController.signal,
     });
+
+    if (requiresApproval) {
+      return;
+    }
 
     this.#currentExecutionPromise.then(() => {
       if (!abortController.signal.aborted) {
@@ -145,7 +151,7 @@ export class ActionRunner {
       return; // No return value here
     }
 
-    this.#updateAction(actionId, { ...action, ...data.action, executed: !isStreaming });
+    this.#updateAction(actionId, { ...action, ...data.action, executed: !isStreaming, requiresApproval: false });
 
     this.#currentExecutionPromise = this.#currentExecutionPromise
       .then(() => {

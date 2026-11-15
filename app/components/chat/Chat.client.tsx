@@ -3,7 +3,7 @@ import { useStore } from '@nanostores/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
@@ -65,9 +65,6 @@ export function Chat() {
 
   const { ready, initialMessages, chatChanged, storeMessageHistory, importChat, exportChat } = useChatHistory();
   const title = useStore(description);
-  useEffect(() => {
-    workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
-  }, [initialMessages]);
 
   return (
     <>
@@ -637,6 +634,20 @@ export const ChatImpl = memo(
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
+    // Mark history before any passive effect can parse it, including template setup effects.
+    useLayoutEffect(() => {
+      const sameChatRefresh = shouldPreserveChatMessagesOnRefresh({
+        chatChanged,
+        currentMessageCount: messagesRef.current.length,
+        storedMessageCount: initialMessages.length,
+        hasAppliedInitialMessages: hasAppliedInitialMessagesRef.current,
+      });
+
+      if (!sameChatRefresh) {
+        workbenchStore.setReloadedMessages(initialMessages.map((message) => message.id));
+      }
+    }, [initialMessages, chatChanged]);
+
     useEffect(() => {
       const sameChatRefresh = shouldPreserveChatMessagesOnRefresh({
         chatChanged,
@@ -682,6 +693,7 @@ export const ChatImpl = memo(
         resetParsedMessages();
       }
 
+      workbenchStore.setReloadedMessages(initialMessages.map((message) => message.id));
       parseMessages(initialMessages, false);
 
       if (initialMessages.length > 0) {
