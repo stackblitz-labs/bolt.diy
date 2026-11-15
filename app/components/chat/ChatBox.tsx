@@ -490,7 +490,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   {props.model && props.model.length > 25 ? `${props.model.slice(0, 22)}...` : props.model}
                 </span>
               ) : (
-                <span />
+                <span className="text-xs">Model Settings</span>
               )}
             </IconButton>
           </div>
