@@ -28,7 +28,7 @@ This project is governed by our **Code of Conduct**. By participating, you agree
 
 ### 1️⃣ Reporting Bugs or Feature Requests
 
-- Check the [issue tracker](#) to avoid duplicates.
+- Check the [issue tracker](https://github.com/stackblitz-labs/bolt.diy/issues) to avoid duplicates.
 - Use issue templates (if available).
 - Provide detailed, relevant information and steps to reproduce bugs.
 
@@ -78,16 +78,18 @@ Interested in maintaining and growing the project? Fill out our [Contributor App
 
 ### 1️⃣ Initial Setup
 
+- Prerequisites: Node.js and pnpm versions listed under [`engines` in package.json](https://github.com/stackblitz-labs/bolt.diy/blob/main/package.json).
 - Clone the repository:
   ```bash
   git clone https://github.com/stackblitz-labs/bolt.diy.git
+  cd bolt.diy
   ```
 - Install dependencies:
   ```bash
   pnpm install
   ```
 - Set up environment variables:
-  1. Rename `.env.example` to `.env.local`.
+  1. Copy `.env.example` to `.env.local`. Replace the placeholders for the providers you use, and remove or comment out the rest.
   2. Add your API keys:
      ```bash
      GROQ_API_KEY=XXX
@@ -103,7 +105,7 @@ Interested in maintaining and growing the project? Fill out our [Contributor App
      # Option 2: Manual copy
      cp .env.local .env
      ```
-     Docker Compose requires `.env` for variable substitution.
+     Docker Compose requires both files and uses `.env` for variable substitution. Repeat the copy after changing `.env.local`; shell environment variables can override substituted values.
   4. Optionally set:
      - Debug level: `VITE_LOG_LEVEL=debug`
      - Context size: `DEFAULT_NUM_CTX=32768`
@@ -116,16 +118,18 @@ Interested in maintaining and growing the project? Fill out our [Contributor App
 pnpm run dev
 ```
 
-**Tip**: Use **Google Chrome Canary** for local testing.
+Open http://localhost:5173 in a supported browser.
 
 ---
 
 ## 🧪 Testing
 
-Run the test suite with:
+Run the Vitest suite, end-to-end tests, and type checks with:
 
 ```bash
 pnpm test
+pnpm run test:e2e
+pnpm run typecheck
 ```
 
 ---
@@ -156,13 +160,13 @@ This section outlines the methods for deploying the application using Docker. Th
 
 ```bash
 # Development build
-npm run dockerbuild
+pnpm run dockerbuild
 ```
 
 **Option 2: Direct Docker Build Command**
 
 ```bash
-docker build . --target bolt-ai-development
+docker build -t bolt-ai:development . --target development
 ```
 
 **Option 3: Docker Compose Profile**
@@ -187,7 +191,7 @@ docker run -p 5173:5173 --env-file .env.local bolt-ai:development
 
 ```bash
 # Production build
-npm run dockerbuild:prod
+pnpm run dockerbuild:prod
 ```
 
 **Option 2: Direct Docker Build Command**
