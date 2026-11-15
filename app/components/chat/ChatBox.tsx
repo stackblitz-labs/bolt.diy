@@ -484,7 +484,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               onClick={() => props.setIsModelSettingsCollapsed(!props.isModelSettingsCollapsed)}
               disabled={!props.providerList || props.providerList.length === 0}
             >
-              <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
               {props.isModelSettingsCollapsed ? (
                 <span className="text-xs" title={props.model}>
                   {props.model && props.model.length > 25 ? `${props.model.slice(0, 22)}...` : props.model}
@@ -492,6 +491,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               ) : (
                 <span className="text-xs">Model Settings</span>
               )}
+              <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
             </IconButton>
           </div>
           <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
