@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, type PanelImperativeHandle } from 'react-resizable-panels';
 import { Terminal, type TerminalRef } from './Terminal';
+import { TerminalContextPicker } from './TerminalContextPicker';
 import { TerminalManager } from './TerminalManager';
 import { IconButton } from '~/components/ui/IconButton';
 import { themeStore } from '~/lib/stores/theme';
@@ -196,6 +197,11 @@ export const TerminalTabs = memo(() => {
               );
             })}
             {terminalCount < MAX_TERMINALS && <IconButton icon="i-ph:plus" size="md" onClick={addTerminal} />}
+            <TerminalContextPicker
+              terminal={() => terminalRefs.current.get(activeTerminal)?.getTerminal()}
+              label={activeTerminal === 0 ? 'Bolt Terminal' : `Terminal ${activeTerminal}`}
+              isBolt={activeTerminal === 0}
+            />
             <IconButton
               icon="i-ph:arrow-clockwise"
               title="Reset Terminal"

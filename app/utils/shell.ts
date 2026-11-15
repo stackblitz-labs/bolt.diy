@@ -2,6 +2,7 @@ import type { WebContainer, WebContainerProcess } from '@webcontainer/api';
 import { atom } from 'nanostores';
 import { withResolvers } from './promises';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
+import { recordTerminalCommand, terminalContextGeneration } from '~/lib/stores/terminalContext';
 import type { ITerminal } from '~/types/terminal';
 
 export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
@@ -244,6 +245,8 @@ export class BoltShell {
     abort?: () => void,
     abortSignal?: AbortSignal,
   ): Promise<ExecutionResult> {
+    const contextGeneration = terminalContextGeneration();
+
     if (!this.process || !this.terminal) {
       return undefined;
     }
@@ -300,6 +303,10 @@ export class BoltShell {
         resp.output = cleanTerminalOutput(resp.output);
       } catch (error) {
         console.log('failed to format terminal output', error);
+      }
+
+      if (!abortSignal?.aborted) {
+        recordTerminalCommand(command, resp.output, resp.exitCode, contextGeneration);
       }
     }
 

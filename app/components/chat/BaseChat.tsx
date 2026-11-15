@@ -13,6 +13,7 @@ import LlmErrorAlert from './LLMApiAlert';
 import { Messages, type DisplayMessage } from './Messages.client';
 import ProgressCompilation from './ProgressCompilation';
 import StarterTemplates from './StarterTemplates';
+import { TerminalAttachments } from './TerminalAttachments';
 import { ToolApprovalTray } from './ToolApprovalTray';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 import { ImportFolderButton } from '~/components/chat/ImportFolderButton';
@@ -448,6 +449,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
                 </div>
                 <ToolApprovalTray messages={messages} addToolOutput={addToolOutput} />
+                <TerminalAttachments />
                 {incomingProgressAnnotations && <ProgressCompilation data={incomingProgressAnnotations} />}
                 <ChatBox
                   isModelSettingsCollapsed={isModelSettingsCollapsed}

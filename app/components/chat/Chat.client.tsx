@@ -36,6 +36,11 @@ import { useMCPStore } from '~/lib/stores/mcp';
 import { usePluginStore } from '~/lib/stores/plugins';
 import { streamingState } from '~/lib/stores/streaming';
 import { supabaseConnection } from '~/lib/stores/supabase';
+import {
+  formatTerminalAttachments,
+  removeTerminalAttachments,
+  terminalAttachments,
+} from '~/lib/stores/terminalContext';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { LlmErrorAlertType } from '~/types/actions';
 import type { ProgressAnnotation } from '~/types/context';
@@ -938,7 +943,10 @@ export const ChatImpl = memo(
         return;
       }
 
-      let finalMessageContent = messageContent;
+      const attachedTerminalOutput = terminalAttachments.get();
+      const consumeTerminalOutput = () => removeTerminalAttachments(attachedTerminalOutput.map((item) => item.id));
+
+      let finalMessageContent = messageContent + formatTerminalAttachments(attachedTerminalOutput);
 
       if (selectedElement) {
         const encodedElement = encodeURIComponent(JSON.stringify(selectedElement)).replace(/'/g, '%27');
@@ -949,7 +957,7 @@ export const ChatImpl = memo(
               .map(({ property, value }) => `${property} = ${JSON.stringify(value)}`)
               .join(', ')}.`
           : '';
-        finalMessageContent = `${messageContent}${visualEditPrompt}${elementInfo}`;
+        finalMessageContent = `${finalMessageContent}${visualEditPrompt}${elementInfo}`;
       }
 
       runAnimation();
@@ -999,6 +1007,7 @@ export const ChatImpl = memo(
                   parts: [{ type: 'text', text: assistantMessage }],
                 },
               ] as any);
+              consumeTerminalOutput();
               setInput('');
               Cookies.remove(PROMPT_COOKIE_KEY);
 
@@ -1024,6 +1033,7 @@ export const ChatImpl = memo(
           content: userMessageText,
           parts: [...createMessageParts(userMessageText, imageDataList), ...fileParts],
         } as any);
+        consumeTerminalOutput();
         setFakeLoading(false);
         setInput('');
         Cookies.remove(PROMPT_COOKIE_KEY);
@@ -1059,6 +1069,7 @@ export const ChatImpl = memo(
         void sendChatMessage((await buildUserMessage(messageText)) as any);
       }
 
+      consumeTerminalOutput();
       setInput('');
       Cookies.remove(PROMPT_COOKIE_KEY);
 

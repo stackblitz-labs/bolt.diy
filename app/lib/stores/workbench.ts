@@ -7,6 +7,7 @@ import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
+import { resetTerminalContext } from './terminalContext';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { description } from '~/lib/persistence';
 import { ActionRunner } from '~/lib/runtime/action-runner';
@@ -238,6 +239,7 @@ export class WorkbenchStore {
      * already in progress finish before clearing the container.
      */
     this.#actionGeneration++;
+    resetTerminalContext();
     this.projectGeneration.set(this.projectGeneration.get() + 1);
 
     for (const pending of this.#pendingStreamActions.values()) {
