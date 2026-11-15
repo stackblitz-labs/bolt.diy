@@ -1,92 +1,27 @@
-# File and Folder Locking Feature Implementation
+# Recent Changes
 
-## Overview
+Highlights since the 1.0.0 release (May 2025), through the current 1.0.3 codebase. These entries summarize changes across that period and are not grouped by release.
 
-This implementation adds persistent file and folder locking functionality to the BoltDIY project. When a file or folder is locked, it cannot be modified by either the user or the AI until it is unlocked. All locks are scoped to the current chat/project to prevent locks from one project affecting files with matching names in other projects.
+## Building and editing
 
-## New Files
+- Added an agent activity feed and approval tray, Agent and Discuss modes, and improvements to multi-step builds, tool-call recovery, and completion feedback.
+- Added visual editing in the preview, along with controls to pause and resume the preview. Projects can also be imported from ZIP archives.
+- Improved starter project setup and automatic startup, template handling, terminal reliability, and WebContainer development-server lifecycle.
+- Added URL content fetching for chat context and improved model prompts, response parsing, and streaming recovery.
 
-### 1. `app/components/chat/LockAlert.tsx`
+## Models and integrations
 
-- A dedicated alert component for displaying lock-related error messages
-- Features a distinctive amber/yellow color scheme and lock icon
-- Provides clear instructions to the user about locked files
+- Expanded and refreshed model support, including Cerebras, Fireworks AI, Moonshot AI, and updated xAI models. Local providers can be enabled from environment configuration.
+- Added GitLab integration and GitHub deployment, improved repository cloning and template Git configuration, and reorganized service integrations into a unified connectors interface.
+- Added MCP-backed project and web tools, prompt-level tool access controls, connector permissions, and a Browser Use Cloud connector.
 
-### 2. `app/lib/persistence/lockedFiles.ts`
+## Experience and reliability
 
-- Core functionality for persisting file and folder locks in localStorage
-- Provides functions for adding, removing, and retrieving locked files and folders
-- Defines the lock modes: "full" (no modifications) and "scoped" (only additions allowed)
-- Implements chat ID scoping to isolate locks to specific projects
+- Restored first-run onboarding and added appearance settings, color themes, profile avatars, an in-app documentation panel, and a redesigned settings interface.
+- Improved startup and navigation performance, streaming rendering, chat persistence, and switching between chats. Fixed several workbench action and project restoration races.
+- Improved request validation and error handling, including bounded provider requests and sanitized stream errors.
 
-### 3. `app/utils/fileLocks.ts`
+## Platform and development
 
-- Utility functions for checking if a file or folder is locked
-- Helps avoid circular dependencies between components and stores
-- Provides a consistent interface for lock checking across the application
-- Extracts chat ID from URL for project-specific lock scoping
-
-## Modified Files
-
-### 1. `app/components/chat/ChatAlert.tsx`
-
-- Updated to use the new LockAlert component for locked file errors
-- Maintains backward compatibility with other error types
-
-### 2. `app/components/editor/codemirror/CodeMirrorEditor.tsx`
-
-- Added checks to prevent editing of locked files
-- Updated to use the new fileLocks utility
-- Displays appropriate tooltips when a user attempts to edit a locked file
-
-### 3. `app/components/workbench/EditorPanel.tsx`
-
-- Added safety checks for unsavedFiles to prevent errors
-- Improved handling of locked files in the editor panel
-
-### 4. `app/components/workbench/FileTree.tsx`
-
-- Added visual indicators for locked files and folders in the file tree
-- Improved handling of locked files and folders in the file tree
-- Added context menu options for locking and unlocking folders
-
-### 5. `app/lib/stores/editor.ts`
-
-- Added checks to prevent updating locked files
-- Improved error handling for locked files
-
-### 6. `app/lib/stores/files.ts`
-
-- Added core functionality for locking and unlocking files and folders
-- Implemented persistence of locked files and folders across page refreshes
-- Added methods for checking if a file or folder is locked
-- Added chat ID scoping to prevent locks from affecting other projects
-
-### 7. `app/lib/stores/workbench.ts`
-
-- Added methods for locking and unlocking files and folders
-- Improved error handling for locked files and folders
-- Fixed issues with alert initialization
-- Added support for chat ID scoping of locks
-
-### 8. `app/types/actions.ts`
-
-- Added `isLockedFile` property to the ActionAlert interface
-- Improved type definitions for locked file alerts
-
-## Key Features
-
-1. **Persistent File and Folder Locking**: Locks are stored in localStorage and persist across page refreshes
-2. **Visual Indicators**: Locked files and folders are clearly marked in the UI with lock icons
-3. **Improved Error Messages**: Clear, visually distinct error messages when attempting to modify locked items
-4. **Lock Modes**: Support for both full locks (no modifications) and scoped locks (only additions allowed)
-5. **Prevention of AI Modifications**: The AI is prevented from modifying locked files and folders
-6. **Project-Specific Locks**: Locks are scoped to the current chat/project to prevent conflicts
-7. **Recursive Folder Locking**: Locking a folder automatically locks all files and subfolders within it
-
-## UI Improvements
-
-1. **Enhanced Alert Design**: Modern, visually appealing alert design with better spacing and typography
-2. **Contextual Icons**: Different icons and colors for different types of alerts
-3. **Improved Error Details**: Better formatting of error details with monospace font and left border
-4. **Responsive Buttons**: Better positioned and styled buttons with appropriate hover effects
+- Updated the AI SDK and major application dependencies, and expanded unit, integration, performance, and Playwright end-to-end test coverage.
+- Improved Docker configuration and startup, desktop packaging and release workflows, and deployment handling for services including Netlify.
