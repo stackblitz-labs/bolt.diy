@@ -61,7 +61,7 @@ jobs:
       - name: Verify pnpm version
         run: |
           echo "pnpm version: $(pnpm --version)"
-          if [[ "$(pnpm --version)" == *"9.14.4"* ]]; then
+          if [[ "$(pnpm --version)" == *"9.15.9"* ]]; then
             echo "✅ Correct pnpm version"
           else
             echo "❌ Wrong pnpm version"
