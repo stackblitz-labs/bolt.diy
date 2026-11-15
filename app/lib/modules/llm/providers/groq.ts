@@ -1,8 +1,8 @@
+import { createOpenAI } from '@ai-sdk/openai';
+import type { LanguageModel } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
 
 export default class GroqProvider extends BaseProvider {
   name = 'Groq';
@@ -13,17 +13,61 @@ export default class GroqProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
-    { name: 'llama-3.1-8b-instant', label: 'Llama 3.1 8b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.2-11b-vision-preview', label: 'Llama 3.2 11b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.2-90b-vision-preview', label: 'Llama 3.2 90b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.2-3b-preview', label: 'Llama 3.2 3b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.2-1b-preview', label: 'Llama 3.2 1b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
-    { name: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70b (Groq)', provider: 'Groq', maxTokenAllowed: 8000 },
     {
-      name: 'deepseek-r1-distill-llama-70b',
-      label: 'Deepseek R1 Distill Llama 70b (Groq)',
+      name: 'llama-3.1-8b-instant',
+      label: 'Llama 3.1 8B',
+      provider: 'Groq',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 8192,
+    },
+    {
+      name: 'llama-3.3-70b-versatile',
+      label: 'Llama 3.3 70B',
+      provider: 'Groq',
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 8192,
+    },
+    {
+      name: 'openai/gpt-oss-120b',
+      label: 'GPT-OSS 120B',
       provider: 'Groq',
       maxTokenAllowed: 131072,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'openai/gpt-oss-20b',
+      label: 'GPT-OSS 20B',
+      provider: 'Groq',
+      maxTokenAllowed: 131072,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'groq/compound',
+      label: 'Groq Compound',
+      provider: 'Groq',
+      maxTokenAllowed: 131072,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'groq/compound-mini',
+      label: 'Groq Compound Mini',
+      provider: 'Groq',
+      maxTokenAllowed: 131072,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'qwen/qwen3-32b',
+      label: 'Qwen3 32B',
+      provider: 'Groq',
+      maxTokenAllowed: 131072,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'qwen/qwen3.6-27b',
+      label: 'Qwen3.6 27B',
+      provider: 'Groq',
+      maxTokenAllowed: 131072,
+      maxCompletionTokens: 65536,
     },
   ];
 
@@ -60,7 +104,8 @@ export default class GroqProvider extends BaseProvider {
       name: m.id,
       label: `${m.id} - context ${m.context_window ? Math.floor(m.context_window / 1000) + 'k' : 'N/A'} [ by ${m.owned_by}]`,
       provider: this.name,
-      maxTokenAllowed: m.context_window || 8000,
+      maxTokenAllowed: Math.min(m.context_window || 8192, 16384),
+      maxCompletionTokens: 8192,
     }));
   }
 
@@ -69,7 +114,7 @@ export default class GroqProvider extends BaseProvider {
     serverEnv: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }): LanguageModelV1 {
+  }): LanguageModel {
     const { model, serverEnv, apiKeys, providerSettings } = options;
 
     const { apiKey } = this.getProviderBaseUrlAndKey({
@@ -89,6 +134,6 @@ export default class GroqProvider extends BaseProvider {
       apiKey,
     });
 
-    return openai(model);
+    return openai.chat(model);
   }
 }

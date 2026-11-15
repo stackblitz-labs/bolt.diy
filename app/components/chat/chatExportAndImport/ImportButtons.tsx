@@ -1,15 +1,16 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { toast } from 'react-toastify';
 import { ImportFolderButton } from '~/components/chat/ImportFolderButton';
+import { ImportZipButton } from '~/components/chat/ImportZipButton';
 import { Button } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';
 
 type ChatData = {
-  messages?: Message[]; // Standard Bolt format
+  messages?: UIMessage[]; // Standard Bolt format
   description?: string; // Optional description
 };
 
-export function ImportButtons(importChat: ((description: string, messages: Message[]) => Promise<void>) | undefined) {
+export function ImportButtons(importChat: ((description: string, messages: UIMessage[]) => Promise<void>) | undefined) {
   return (
     <div className="flex flex-col items-center justify-center w-auto">
       <input
@@ -79,6 +80,17 @@ export function ImportButtons(importChat: ((description: string, messages: Messa
             Import Chat
           </Button>
           <ImportFolderButton
+            importChat={importChat}
+            className={classNames(
+              'gap-2 bg-bolt-elements-background-depth-1',
+              'text-bolt-elements-textPrimary',
+              'hover:bg-bolt-elements-background-depth-2',
+              'border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.08)]',
+              'h-10 px-4 py-2 min-w-[120px] justify-center',
+              'transition-all duration-200 ease-in-out rounded-lg',
+            )}
+          />
+          <ImportZipButton
             importChat={importChat}
             className={classNames(
               'gap-2 bg-bolt-elements-background-depth-1',

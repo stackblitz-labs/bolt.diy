@@ -12,7 +12,22 @@ export interface GitHubUserResponse {
   updated_at: string;
 }
 
+export interface GitLabProjectInfo {
+  id: string;
+  name: string;
+  full_name: string;
+  html_url: string;
+  description: string;
+  stargazers_count: number;
+  forks_count: number;
+  default_branch: string;
+  updated_at: string;
+  language: string;
+  languages_url: string;
+}
+
 export interface GitHubRepoInfo {
+  id: string;
   name: string;
   full_name: string;
   html_url: string;
@@ -25,6 +40,17 @@ export interface GitHubRepoInfo {
   languages_url: string;
   private?: boolean;
   topics?: string[];
+  archived?: boolean;
+  fork?: boolean;
+  size?: number;
+  contributors_count?: number;
+  branches_count?: number;
+  issues_count?: number;
+  pull_requests_count?: number;
+  license?: {
+    name: string;
+    spdx_id: string;
+  };
 }
 
 export interface GitHubContent {
@@ -59,9 +85,12 @@ export interface GitHubBlobResponse {
 
 export interface GitHubOrganization {
   login: string;
+  name?: string;
   avatar_url: string;
   description: string;
   html_url: string;
+  public_repos?: number;
+  followers?: number;
 }
 
 export interface GitHubEvent {
@@ -92,6 +121,23 @@ export interface GitHubStats {
   recentActivity: GitHubEvent[];
   languages: GitHubLanguageStats;
   totalGists: number;
+  publicRepos: number;
+  privateRepos: number;
+  stars: number;
+  forks: number;
+  followers: number;
+  publicGists: number;
+  privateGists: number;
+  lastUpdated: string;
+  totalBranches?: number;
+  totalContributors?: number;
+  totalIssues?: number;
+  totalPullRequests?: number;
+  mostUsedLanguages?: Array<{
+    language: string;
+    bytes: number;
+    repos: number;
+  }>;
 }
 
 export interface GitHubConnection {
@@ -99,6 +145,7 @@ export interface GitHubConnection {
   token: string;
   tokenType: 'classic' | 'fine-grained';
   stats?: GitHubStats;
+  rateLimit?: GitHubRateLimits;
 }
 
 export interface GitHubTokenInfo {

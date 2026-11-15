@@ -33,7 +33,6 @@ win:
   icon: assets/icons/icon.ico
   target:
     - nsis
-  signDlls: false
   artifactName: ${name}-${version}-${os}-${arch}.${ext}
 
 linux:
@@ -62,4 +61,4 @@ publish:
   releaseType: release
 
 electronDownload:
-  mirror: https://npmmirror.com/mirrors/electron/
+  mirror: https://github.com/electron/electron/releases/download/

@@ -1,0 +1,172 @@
+{
+  "version": "1.0.0",
+  "description": "Performance budgets that can only ratchet down, never up",
+  "lastUpdated": "2024-01-01T00:00:00Z",
+  "budgets": {
+    "core-journeys": {
+      "app-launch-interactive": {
+        "budget": 550,
+        "unit": "ms",
+        "description": "Time from page load to interactive (p75)",
+        "history": [
+          { "date": "2024-01-01", "value": 550, "note": "Initial baseline" }
+        ]
+      },
+      "composer-typeable": {
+        "budget": 100,
+        "unit": "ms",
+        "description": "Time from composer mount to typeable",
+        "history": [
+          { "date": "2024-01-01", "value": 100, "note": "Initial baseline" }
+        ]
+      },
+      "message-first-token": {
+        "budget": 300,
+        "unit": "ms",
+        "description": "Time from send to first AI token",
+        "history": [
+          { "date": "2024-01-01", "value": 300, "note": "Initial baseline" }
+        ]
+      },
+      "project-load": {
+        "budget": 730,
+        "unit": "ms",
+        "description": "Time to load existing project",
+        "history": [
+          { "date": "2024-01-01", "value": 730, "note": "Initial baseline" }
+        ]
+      },
+      "webcontainer-boot": {
+        "budget": 2000,
+        "unit": "ms",
+        "description": "WebContainer boot time",
+        "history": [
+          { "date": "2024-01-01", "value": 2000, "note": "Initial baseline" }
+        ]
+      }
+    },
+    "component-performance": {
+      "code-block-render": {
+        "budget": 100,
+        "unit": "ms",
+        "description": "Syntax highlighting for typical code block",
+        "history": [
+          { "date": "2024-01-01", "value": 100, "note": "Initial baseline" }
+        ]
+      },
+      "message-render": {
+        "budget": 50,
+        "unit": "ms",
+        "description": "Single message render time",
+        "history": [
+          { "date": "2024-01-01", "value": 50, "note": "Initial baseline" }
+        ]
+      },
+      "terminal-init": {
+        "budget": 150,
+        "unit": "ms",
+        "description": "XTerm terminal initialization",
+        "history": [
+          { "date": "2024-01-01", "value": 150, "note": "Initial baseline" }
+        ]
+      }
+    },
+    "streaming-performance": {
+      "frame-budget-60fps": {
+        "budget": 16.67,
+        "unit": "ms",
+        "description": "Frame budget for 60fps streaming",
+        "history": [
+          { "date": "2024-01-01", "value": 16.67, "note": "60fps standard" }
+        ]
+      },
+      "frame-budget-120fps": {
+        "budget": 8.33,
+        "unit": "ms",
+        "description": "Frame budget for 120fps streaming (high-refresh displays)",
+        "history": [
+          { "date": "2024-01-01", "value": 8.33, "note": "120fps standard" }
+        ]
+      },
+      "max-dropped-frames": {
+        "budget": 5,
+        "unit": "percent",
+        "description": "Maximum percentage of dropped frames during streaming",
+        "history": [
+          { "date": "2024-01-01", "value": 5, "note": "Initial baseline" }
+        ]
+      }
+    },
+    "bundle-size": {
+      "main-bundle": {
+        "budget": 500,
+        "unit": "kb",
+        "description": "Main JavaScript bundle size (gzipped)",
+        "history": [
+          { "date": "2024-01-01", "value": 500, "note": "Initial baseline" }
+        ]
+      },
+      "vendor-bundle": {
+        "budget": 300,
+        "unit": "kb",
+        "description": "Vendor bundle size (gzipped)",
+        "history": [
+          { "date": "2024-01-01", "value": 300, "note": "Initial baseline" }
+        ]
+      },
+      "webcontainer-api": {
+        "budget": 200,
+        "unit": "kb",
+        "description": "WebContainer API bundle size",
+        "history": [
+          { "date": "2024-01-01", "value": 200, "note": "Initial baseline" }
+        ]
+      }
+    },
+    "web-vitals": {
+      "cls": {
+        "budget": 0.1,
+        "unit": "score",
+        "description": "Cumulative Layout Shift",
+        "history": [
+          { "date": "2024-01-01", "value": 0.1, "note": "Good threshold per Web Vitals" }
+        ]
+      },
+      "lcp": {
+        "budget": 2500,
+        "unit": "ms",
+        "description": "Largest Contentful Paint",
+        "history": [
+          { "date": "2024-01-01", "value": 2500, "note": "Good threshold per Web Vitals" }
+        ]
+      },
+      "fid": {
+        "budget": 100,
+        "unit": "ms",
+        "description": "First Input Delay",
+        "history": [
+          { "date": "2024-01-01", "value": 100, "note": "Good threshold per Web Vitals" }
+        ]
+      },
+      "inp": {
+        "budget": 200,
+        "unit": "ms",
+        "description": "Interaction to Next Paint",
+        "history": [
+          { "date": "2024-01-01", "value": 200, "note": "Good threshold per Web Vitals" }
+        ]
+      }
+    }
+  },
+  "rules": {
+    "ratchet": "Budgets can only decrease, never increase",
+    "tolerance": "Allow 2% variance for measurement noise",
+    "enforcement": "CI fails if any budget is exceeded by more than tolerance",
+    "updates": "When improvements are made, update the budget and add to history"
+  },
+  "integration": {
+    "ci": "Check budgets in CI with: pnpm test:perf",
+    "monitoring": "Real-user metrics tracked via performanceMonitor",
+    "reporting": "Generate report with: node scripts/check-performance-budgets.js"
+  }
+}

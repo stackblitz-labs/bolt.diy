@@ -51,6 +51,9 @@ extra:
       link: https://bsky.app/profile/bolt.diy
       name: bolt.diy on Bluesky
 
+extra_javascript:
+  - javascripts/theme-sync.js
+
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true

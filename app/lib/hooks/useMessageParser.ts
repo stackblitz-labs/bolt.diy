@@ -1,12 +1,12 @@
-import type { Message } from 'ai';
 import { useCallback, useState } from 'react';
-import { StreamingMessageParser } from '~/lib/runtime/message-parser';
+import { getMessageText } from '~/lib/persistence/messageMigration';
+import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('useMessageParser');
 
-const messageParser = new StreamingMessageParser({
+const messageParser = new EnhancedStreamingMessageParser({
   callbacks: {
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
@@ -22,7 +22,10 @@ const messageParser = new StreamingMessageParser({
     onActionOpen: (data) => {
       logger.trace('onActionOpen', data.action);
 
-      // we only add shell actions when when the close tag got parsed because only then we have the content
+      /*
+       * File actions are streamed, so we add them immediately to show progress
+       * Shell actions are complete when created by enhanced parser, so we wait for close
+       */
       if (data.action.type === 'file') {
         workbenchStore.addAction(data);
       }
@@ -30,6 +33,10 @@ const messageParser = new StreamingMessageParser({
     onActionClose: (data) => {
       logger.trace('onActionClose', data.action);
 
+      /*
+       * Add non-file actions (shell, build, start, etc.) when they close
+       * Enhanced parser creates complete shell actions, so they're ready to execute
+       */
       if (data.action.type !== 'file') {
         workbenchStore.addAction(data);
       }
@@ -42,32 +49,37 @@ const messageParser = new StreamingMessageParser({
     },
   },
 });
-const extractTextContent = (message: Message) =>
-  Array.isArray(message.content)
-    ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
-    : message.content;
 
 export function useMessageParser() {
   const [parsedMessages, setParsedMessages] = useState<{ [key: number]: string }>({});
 
-  const parseMessages = useCallback((messages: Message[], isLoading: boolean) => {
-    let reset = false;
+  /**
+   * Drops the parser state and everything it has rendered so far.
+   *
+   * Required when another chat's history is loaded: the parser only emits the
+   * artifact and action callbacks once per message id, so without a reset the
+   * incoming chat would render on top of the outgoing one's output.
+   */
+  const resetParsedMessages = useCallback(() => {
+    messageParser.reset();
+    setParsedMessages({});
+  }, []);
 
-    if (import.meta.env.DEV && !isLoading) {
-      reset = true;
-      messageParser.reset();
-    }
-
+  const parseMessages = useCallback((messages: { id: string; role?: string }[], isLoading: boolean) => {
     for (const [index, message] of messages.entries()) {
       if (message.role === 'assistant' || message.role === 'user') {
-        const newParsedContent = messageParser.parse(message.id, extractTextContent(message));
+        const newParsedContent = messageParser.parse(
+          message.id,
+          getMessageText(message),
+          message.role === 'assistant' && !isLoading,
+        );
         setParsedMessages((prevParsed) => ({
           ...prevParsed,
-          [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,
+          [index]: (prevParsed[index] || '') + newParsedContent,
         }));
       }
     }
   }, []);
 
-  return { parsedMessages, parseMessages };
+  return { parsedMessages, parseMessages, resetParsedMessages };
 }

@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { classNames } from '~/utils/classNames';
 import type { DeployAlert } from '~/types/actions';
+import { classNames } from '~/utils/classNames';
 
 interface DeployAlertProps {
   alert: DeployAlert;

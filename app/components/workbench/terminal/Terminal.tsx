@@ -2,14 +2,15 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { forwardRef, memo, useEffect, useImperativeHandle, useRef } from 'react';
+import { getTerminalTheme } from './theme';
 import type { Theme } from '~/lib/stores/theme';
 import { createScopedLogger } from '~/utils/logger';
-import { getTerminalTheme } from './theme';
 
 const logger = createScopedLogger('Terminal');
 
 export interface TerminalRef {
   reloadStyles: () => void;
+  getTerminal: () => XTerm | undefined;
 }
 
 export interface TerminalProps {
@@ -25,13 +26,16 @@ export const Terminal = memo(
   forwardRef<TerminalRef, TerminalProps>(
     ({ className, theme, readonly, id, onTerminalReady, onTerminalResize }, ref) => {
       const terminalElementRef = useRef<HTMLDivElement>(null);
-      const terminalRef = useRef<XTerm>();
+      const terminalRef = useRef<XTerm>(undefined);
+      const fitAddonRef = useRef<FitAddon>(undefined);
+      const resizeObserverRef = useRef<ResizeObserver>(undefined);
 
       useEffect(() => {
         const element = terminalElementRef.current!;
 
         const fitAddon = new FitAddon();
         const webLinksAddon = new WebLinksAddon();
+        fitAddonRef.current = fitAddon;
 
         const terminal = new XTerm({
           cursorBlink: true,
@@ -40,19 +44,47 @@ export const Terminal = memo(
           theme: getTerminalTheme(readonly ? { cursor: '#00000000' } : {}),
           fontSize: 12,
           fontFamily: 'Menlo, courier-new, courier, monospace',
+          allowProposedApi: true,
+          scrollback: 1000,
+
+          // Enable better clipboard handling
+          rightClickSelectsWord: true,
         });
 
         terminalRef.current = terminal;
 
-        terminal.loadAddon(fitAddon);
-        terminal.loadAddon(webLinksAddon);
-        terminal.open(element);
+        // Error handling for addon loading
+        try {
+          terminal.loadAddon(fitAddon);
+          terminal.loadAddon(webLinksAddon);
+          terminal.open(element);
+        } catch (error) {
+          logger.error(`Failed to initialize terminal [${id}]:`, error);
 
-        const resizeObserver = new ResizeObserver(() => {
-          fitAddon.fit();
-          onTerminalResize?.(terminal.cols, terminal.rows);
+          // Attempt recovery
+          setTimeout(() => {
+            try {
+              terminal.open(element);
+              fitAddon.fit();
+            } catch (retryError) {
+              logger.error(`Terminal recovery failed [${id}]:`, retryError);
+            }
+          }, 100);
+        }
+
+        const resizeObserver = new ResizeObserver((entries) => {
+          // Debounce resize events
+          if (entries.length > 0) {
+            try {
+              fitAddon.fit();
+              onTerminalResize?.(terminal.cols, terminal.rows);
+            } catch (error) {
+              logger.error(`Resize error [${id}]:`, error);
+            }
+          }
         });
 
+        resizeObserverRef.current = resizeObserver;
         resizeObserver.observe(element);
 
         logger.debug(`Attach [${id}]`);
@@ -60,8 +92,12 @@ export const Terminal = memo(
         onTerminalReady?.(terminal);
 
         return () => {
-          resizeObserver.disconnect();
-          terminal.dispose();
+          try {
+            resizeObserver.disconnect();
+            terminal.dispose();
+          } catch (error) {
+            logger.error(`Cleanup error [${id}]:`, error);
+          }
         };
       }, []);
 
@@ -77,11 +113,17 @@ export const Terminal = memo(
       useImperativeHandle(ref, () => {
         return {
           reloadStyles: () => {
-            const terminal = terminalRef.current!;
-            terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
+            const terminal = terminalRef.current;
+
+            if (terminal) {
+              terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
+            }
+          },
+          getTerminal: () => {
+            return terminalRef.current;
           },
         };
-      }, []);
+      }, [readonly]);
 
       return <div className={className} ref={terminalElementRef} />;
     },

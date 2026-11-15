@@ -1,19 +1,19 @@
+import { motion } from 'framer-motion';
 import React, { useEffect, useState, useCallback } from 'react';
+import type { IconType } from 'react-icons';
+import { BiCodeBlock, BiChip } from 'react-icons/bi';
+import { BsRobot, BsCloud } from 'react-icons/bs';
+import { FaCloud, FaBrain } from 'react-icons/fa';
+import { SiGoogle, SiGithub, SiHuggingface, SiPerplexity } from 'react-icons/si';
+import { TbBrain, TbCloudComputing } from 'react-icons/tb';
+import { toast } from 'react-toastify';
 import { Switch } from '~/components/ui/Switch';
 import { useSettings } from '~/lib/hooks/useSettings';
+import { logStore } from '~/lib/stores/logs';
 import { URL_CONFIGURABLE_PROVIDERS } from '~/lib/stores/settings';
 import type { IProviderConfig } from '~/types/model';
-import { logStore } from '~/lib/stores/logs';
-import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
-import { toast } from 'react-toastify';
 import { providerBaseUrlEnvKeys } from '~/utils/constants';
-import { SiAmazon, SiGoogle, SiHuggingface, SiPerplexity, SiOpenai } from 'react-icons/si';
-import { BsRobot, BsCloud } from 'react-icons/bs';
-import { TbBrain, TbCloudComputing } from 'react-icons/tb';
-import { BiCodeBlock, BiChip } from 'react-icons/bi';
-import { FaCloud, FaBrain } from 'react-icons/fa';
-import type { IconType } from 'react-icons';
 
 // Add type for provider names to ensure type safety
 type ProviderName =
@@ -21,6 +21,7 @@ type ProviderName =
   | 'Anthropic'
   | 'Cohere'
   | 'Deepseek'
+  | 'Github'
   | 'Google'
   | 'Groq'
   | 'HuggingFace'
@@ -34,16 +35,17 @@ type ProviderName =
 
 // Update the PROVIDER_ICONS type to use the ProviderName type
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
-  AmazonBedrock: SiAmazon,
+  AmazonBedrock: FaCloud,
   Anthropic: FaBrain,
   Cohere: BiChip,
   Deepseek: BiCodeBlock,
+  Github: SiGithub,
   Google: SiGoogle,
   Groq: BsCloud,
   HuggingFace: SiHuggingface,
   Hyperbolic: TbCloudComputing,
   Mistral: TbBrain,
-  OpenAI: SiOpenai,
+  OpenAI: BsRobot,
   OpenRouter: FaCloud,
   Perplexity: SiPerplexity,
   Together: BsCloud,
@@ -53,6 +55,7 @@ const PROVIDER_ICONS: Record<ProviderName, IconType> = {
 // Update PROVIDER_DESCRIPTIONS to use the same type
 const PROVIDER_DESCRIPTIONS: Partial<Record<ProviderName, string>> = {
   Anthropic: 'Access Claude and other Anthropic models',
+  Github: 'Use OpenAI models hosted through GitHub infrastructure',
   OpenAI: 'Use GPT-4, GPT-3.5, and other OpenAI models',
 };
 
@@ -166,10 +169,8 @@ const CloudProvidersTab = () => {
             <motion.div
               key={provider.name}
               className={classNames(
-                'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary shadow-sm',
-                'bg-bolt-elements-background-depth-2',
-                'hover:bg-bolt-elements-background-depth-3',
-                'transition-all duration-200',
+                'rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary',
+                'transition-colors hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-3',
                 'relative overflow-hidden group',
                 'flex flex-col',
               )}

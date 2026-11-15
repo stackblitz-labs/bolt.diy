@@ -1,7 +1,7 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { classNames } from '~/utils/classNames';
+import React from 'react';
 import { Badge } from './Badge';
+import { classNames } from '~/utils/classNames';
 
 interface SearchResultItemProps {
   title: string;

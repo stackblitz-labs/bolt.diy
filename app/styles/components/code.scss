@@ -3,7 +3,7 @@
 }
 
 .shiki {
-  &:not(:has(.actions), .actions *) {
+  &:not(:has(.actions), .actions *, .mcp-tool-invocation-code *) {
     background-color: var(--bolt-elements-messages-code-background) !important;
   }
 }

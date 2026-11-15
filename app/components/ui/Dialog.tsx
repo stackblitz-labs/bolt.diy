@@ -1,13 +1,13 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { motion, type Variants } from 'framer-motion';
 import React, { memo, type ReactNode, useState, useEffect } from 'react';
+import { List, type RowComponentProps } from 'react-window';
+import { Button } from './Button';
+import { Checkbox } from './Checkbox';
+import { IconButton } from './IconButton';
+import { Label } from './Label';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
-import { IconButton } from './IconButton';
-import { Button } from './Button';
-import { FixedSizeList } from 'react-window';
-import { Checkbox } from './Checkbox';
-import { Label } from './Label';
 
 export { Close as DialogClose, Root as DialogRoot } from '@radix-ui/react-dialog';
 
@@ -95,51 +95,57 @@ export const dialogVariants = {
 interface DialogProps {
   children: ReactNode;
   className?: string;
+  backdropClassName?: string;
   showCloseButton?: boolean;
   onClose?: () => void;
   onBackdrop?: () => void;
 }
 
-export const Dialog = memo(({ children, className, showCloseButton = true, onClose, onBackdrop }: DialogProps) => {
-  return (
-    <RadixDialog.Portal>
-      <RadixDialog.Overlay asChild>
-        <motion.div
-          className={classNames('fixed inset-0 z-[9999] bg-black/70 dark:bg-black/80 backdrop-blur-sm')}
-          initial="closed"
-          animate="open"
-          exit="closed"
-          variants={dialogBackdropVariants}
-          onClick={onBackdrop}
-        />
-      </RadixDialog.Overlay>
-      <RadixDialog.Content asChild>
-        <motion.div
-          className={classNames(
-            'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[520px] focus:outline-none',
-            className,
-          )}
-          initial="closed"
-          animate="open"
-          exit="closed"
-          variants={dialogVariants}
-        >
-          <div className="flex flex-col">
-            {children}
-            {showCloseButton && (
-              <RadixDialog.Close asChild onClick={onClose}>
-                <IconButton
-                  icon="i-ph:x"
-                  className="absolute top-3 right-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
-                />
-              </RadixDialog.Close>
+export const Dialog = memo(
+  ({ children, className, backdropClassName, showCloseButton = true, onClose, onBackdrop }: DialogProps) => {
+    return (
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay asChild>
+          <motion.div
+            className={classNames(
+              'fixed inset-0 z-[9999] bg-black/70 dark:bg-black/80 backdrop-blur-sm',
+              backdropClassName,
             )}
-          </div>
-        </motion.div>
-      </RadixDialog.Content>
-    </RadixDialog.Portal>
-  );
-});
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={dialogBackdropVariants}
+            onClick={onBackdrop}
+          />
+        </RadixDialog.Overlay>
+        <RadixDialog.Content asChild>
+          <motion.div
+            className={classNames(
+              'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[520px] focus:outline-none',
+              className,
+            )}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={dialogVariants}
+          >
+            <div className="flex flex-col">
+              {children}
+              {showCloseButton && (
+                <RadixDialog.Close asChild onClick={onClose}>
+                  <IconButton
+                    icon="i-ph:x"
+                    className="absolute top-3 right-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
+                  />
+                </RadixDialog.Close>
+              )}
+            </div>
+          </motion.div>
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    );
+  },
+);
 
 /**
  * Props for the ConfirmationDialog component
@@ -339,11 +345,12 @@ export function SelectionDialog({
   );
 
   // Render each item in the virtualized list
-  const ItemRenderer = ({ index, style }: { index: number; style: React.CSSProperties }) => {
+  const ItemRenderer = ({ index, style, ariaAttributes }: RowComponentProps) => {
     const item = items[index];
     return (
       <div
         key={item.id}
+        {...ariaAttributes}
         className={classNames(
           'flex items-start space-x-3 p-2 rounded-md transition-colors',
           selectedItems.includes(item.id)
@@ -411,15 +418,14 @@ export function SelectionDialog({
               }}
             >
               {items.length > 0 ? (
-                <FixedSizeList
-                  height={listHeight}
-                  width="100%"
-                  itemCount={items.length}
-                  itemSize={60}
+                <List
+                  style={{ height: listHeight }}
+                  rowComponent={ItemRenderer}
+                  rowCount={items.length}
+                  rowHeight={60}
+                  rowProps={{}}
                   className="scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-bolt-elements-bg-depth-3"
-                >
-                  {ItemRenderer}
-                </FixedSizeList>
+                />
               ) : (
                 <div className="text-center py-4 text-sm text-bolt-elements-textTertiary">No items to display</div>
               )}

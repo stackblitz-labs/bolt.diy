@@ -1,10 +1,27 @@
-import { type ActionFunctionArgs, json } from '@remix-run/cloudflare';
+import type { ActionFunctionArgs } from 'react-router';
 import type { NetlifySiteInfo } from '~/types/netlify';
 
 interface DeployRequestBody {
   siteId?: string;
   files: Record<string, string>;
   chatId: string;
+}
+
+async function readNetlifyError(response: Response) {
+  try {
+    const contentType = response.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      const data = (await response.json()) as { message?: string; error?: string } | undefined;
+      return data?.message || data?.error || JSON.stringify(data);
+    }
+
+    const text = await response.text();
+
+    return text;
+  } catch {
+    return undefined;
+  }
 }
 
 async function sha1(message: string) {
@@ -21,7 +38,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const { siteId, files, token, chatId } = (await request.json()) as DeployRequestBody & { token: string };
 
     if (!token) {
-      return json({ error: 'Not connected to Netlify' }, { status: 401 });
+      return Response.json({ error: 'Not connected to Netlify' }, { status: 401 });
     }
 
     let targetSiteId = siteId;
@@ -30,6 +47,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // If no siteId provided, create a new site
     if (!targetSiteId) {
       const siteName = `bolt-diy-${chatId}-${Date.now()}`;
+
       const createSiteResponse = await fetch('https://api.netlify.com/api/v1/sites', {
         method: 'POST',
         headers: {
@@ -43,7 +61,11 @@ export async function action({ request }: ActionFunctionArgs) {
       });
 
       if (!createSiteResponse.ok) {
-        return json({ error: 'Failed to create site' }, { status: 400 });
+        const errorDetail = await readNetlifyError(createSiteResponse);
+        return Response.json(
+          { error: `Failed to create site${errorDetail ? `: ${errorDetail}` : ''}` },
+          { status: createSiteResponse.status },
+        );
       }
 
       const newSite = (await createSiteResponse.json()) as any;
@@ -79,6 +101,7 @@ export async function action({ request }: ActionFunctionArgs) {
       // If no siteId provided or site doesn't exist, create a new site
       if (!targetSiteId) {
         const siteName = `bolt-diy-${chatId}-${Date.now()}`;
+
         const createSiteResponse = await fetch('https://api.netlify.com/api/v1/sites', {
           method: 'POST',
           headers: {
@@ -92,7 +115,11 @@ export async function action({ request }: ActionFunctionArgs) {
         });
 
         if (!createSiteResponse.ok) {
-          return json({ error: 'Failed to create site' }, { status: 400 });
+          const errorDetail = await readNetlifyError(createSiteResponse);
+          return Response.json(
+            { error: `Failed to create site${errorDetail ? `: ${errorDetail}` : ''}` },
+            { status: createSiteResponse.status },
+          );
         }
 
         const newSite = (await createSiteResponse.json()) as any;
@@ -129,18 +156,25 @@ export async function action({ request }: ActionFunctionArgs) {
         skip_processing: false,
         draft: false, // Change this to false for production deployments
         function_schedules: [],
-        required: Object.keys(fileDigests), // Add this line
         framework: null,
       }),
     });
 
     if (!deployResponse.ok) {
-      return json({ error: 'Failed to create deployment' }, { status: 400 });
+      const errorDetail = await readNetlifyError(deployResponse);
+      return Response.json(
+        { error: `Failed to create deployment${errorDetail ? `: ${errorDetail}` : ''}` },
+        { status: deployResponse.status },
+      );
     }
 
     const deploy = (await deployResponse.json()) as any;
+
     let retryCount = 0;
+
     const maxRetries = 60;
+
+    let filesUploaded = false;
 
     // Poll until deploy is ready for file uploads
     while (retryCount < maxRetries) {
@@ -150,12 +184,25 @@ export async function action({ request }: ActionFunctionArgs) {
         },
       });
 
+      if (!statusResponse.ok) {
+        const errorDetail = await readNetlifyError(statusResponse);
+        return Response.json(
+          { error: `Failed to check deployment status${errorDetail ? `: ${errorDetail}` : ''}` },
+          { status: statusResponse.status },
+        );
+      }
+
       const status = (await statusResponse.json()) as any;
 
-      if (status.state === 'prepared' || status.state === 'uploaded') {
+      if (!filesUploaded && (status.state === 'prepared' || status.state === 'uploaded')) {
         // Upload all files regardless of required array
         for (const [filePath, content] of Object.entries(files)) {
           const normalizedPath = filePath.startsWith('/') ? filePath : '/' + filePath;
+
+          const encodedPath = normalizedPath
+            .split('/')
+            .map((segment) => encodeURIComponent(segment))
+            .join('/');
 
           let uploadSuccess = false;
           let uploadRetries = 0;
@@ -163,7 +210,7 @@ export async function action({ request }: ActionFunctionArgs) {
           while (!uploadSuccess && uploadRetries < 3) {
             try {
               const uploadResponse = await fetch(
-                `https://api.netlify.com/api/v1/deploys/${deploy.id}/files${normalizedPath}`,
+                `https://api.netlify.com/api/v1/deploys/${deploy.id}/files${encodedPath}`,
                 {
                   method: 'PUT',
                   headers: {
@@ -189,28 +236,28 @@ export async function action({ request }: ActionFunctionArgs) {
           }
 
           if (!uploadSuccess) {
-            return json({ error: `Failed to upload file ${filePath}` }, { status: 500 });
+            return Response.json({ error: `Failed to upload file ${filePath}` }, { status: 500 });
           }
         }
+
+        filesUploaded = true;
       }
 
       if (status.state === 'ready') {
         // Only return after files are uploaded
-        if (Object.keys(files).length === 0 || status.summary?.status === 'ready') {
-          return json({
-            success: true,
-            deploy: {
-              id: status.id,
-              state: status.state,
-              url: status.ssl_url || status.url,
-            },
-            site: siteInfo,
-          });
-        }
+        return Response.json({
+          success: true,
+          deploy: {
+            id: status.id,
+            state: status.state,
+            url: status.ssl_url || status.url,
+          },
+          site: siteInfo,
+        });
       }
 
       if (status.state === 'error') {
-        return json({ error: status.error_message || 'Deploy preparation failed' }, { status: 500 });
+        return Response.json({ error: status.error_message || 'Deploy preparation failed' }, { status: 500 });
       }
 
       retryCount++;
@@ -218,11 +265,11 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     if (retryCount >= maxRetries) {
-      return json({ error: 'Deploy preparation timed out' }, { status: 500 });
+      return Response.json({ error: 'Deploy preparation timed out' }, { status: 500 });
     }
 
     // Make sure we're returning the deploy ID and site info
-    return json({
+    return Response.json({
       success: true,
       deploy: {
         id: deploy.id,
@@ -232,6 +279,6 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   } catch (error) {
     console.error('Deploy error:', error);
-    return json({ error: 'Deployment failed' }, { status: 500 });
+    return Response.json({ error: 'Deployment failed' }, { status: 500 });
   }
 }

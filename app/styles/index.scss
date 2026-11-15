@@ -11,6 +11,50 @@ html,
 body {
   height: 100%;
   width: 100%;
+  background-color: var(--bolt-elements-bg-depth-1);
+}
+
+html[data-accent-intensity] .bg-accent-500 {
+  background-color: color-mix(
+    in srgb,
+    var(--bolt-elements-button-primary-text) var(--interface-accent-strength),
+    transparent
+  ) !important;
+}
+
+html[data-corner-radius='sharp'] [class*='rounded-']:not([class*='rounded-full']),
+html[data-corner-radius='soft'] [class*='rounded-']:not([class*='rounded-full']),
+html[data-corner-radius='round'] [class*='rounded-']:not([class*='rounded-full']) {
+  border-radius: var(--interface-corner-radius) !important;
+}
+html[data-corner-radius='sharp'] {
+  --interface-corner-radius: 2px;
+}
+html[data-corner-radius='soft'] {
+  --interface-corner-radius: 8px;
+}
+html[data-corner-radius='round'] {
+  --interface-corner-radius: 16px;
+}
+
+html[data-compact-mode='true'] .p-4 {
+  padding: 0.75rem;
+}
+html[data-compact-mode='true'] .p-3 {
+  padding: 0.5rem;
+}
+html[data-compact-mode='true'] .gap-4 {
+  gap: 0.75rem;
+}
+html[data-compact-mode='true'] .gap-3 {
+  gap: 0.5rem;
+}
+
+html[data-animated-transitions='false'] *,
+html[data-animated-transitions='false'] *::before,
+html[data-animated-transitions='false'] *::after {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
 }
 
 :root {
@@ -25,48 +69,42 @@ body {
 
 .modern-scrollbar {
   overflow: auto;
+}
 
-  // WebKit scrollbar styling
+.modern-scrollbar,
+.modern-scrollbar-invert,
+.xterm .xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: var(--modern-scrollbar-thumb-background) transparent;
+
   &::-webkit-scrollbar {
-    width: 2px;
-    height: 4px;
+    width: 8px;
+    height: 8px;
   }
 
-  &::-webkit-scrollbar-track {
+  &::-webkit-scrollbar-track,
+  &::-webkit-scrollbar-corner {
     background: transparent;
   }
 
+  &::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
   &::-webkit-scrollbar-thumb {
-    // Use CSS variables for colors
     background-color: var(--modern-scrollbar-thumb-background);
-    border-radius: 9999px; // pill shape
-    border: 2px solid transparent; // for padding-like effect
-    background-clip: content-box;
-    transition: background-color 0.2s ease-in-out; // Add transition
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    // Use CSS variable for hover color
     background-color: var(--modern-scrollbar-thumb-backgroundHover);
   }
 
-  // Firefox support
-  scrollbar-width: thin;
-  // Use CSS variables for Firefox colors
-  scrollbar-color: var(--modern-scrollbar-thumb-backgroundHover) transparent; // Use hover color for thumb for consistency
-}
-
-.modern-scrollbar-invert {
-  &::-webkit-scrollbar-thumb {
-    // Override with a contrasting color, e.g., primary text color with transparency
-    background-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 70%);
+  &:hover {
+    scrollbar-color: var(--modern-scrollbar-thumb-backgroundHover) transparent;
   }
-
-  &::-webkit-scrollbar-thumb:hover {
-    // Darker/more opaque version on hover
-    background-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 50%);
-  }
-
-  // Firefox support for inverted colors
-  scrollbar-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 50%) transparent;
 }

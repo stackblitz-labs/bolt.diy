@@ -1,16 +1,16 @@
-import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
-import { workbenchStore } from '~/lib/stores/workbench';
-import type { FileMap } from '~/lib/stores/files';
-import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { diffLines, type Change } from 'diff';
-import { getHighlighter } from 'shiki';
-import '~/styles/diff-view.css';
-import { diffFiles, extractRelativePath } from '~/utils/diff';
-import { ActionRunner } from '~/lib/runtime/action-runner';
-import type { FileHistory } from '~/types/actions';
-import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
+import { memo, useMemo, useState, useEffect, useCallback } from 'react';
+import { createHighlighter } from 'shiki';
+import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
+import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
+import { workbenchStore } from '~/lib/stores/workbench';
+import '~/styles/diff-view.css';
+import type { FileHistory } from '~/types/actions';
+import { getThemeMode } from '~/types/theme';
+import { diffFiles, extractRelativePath } from '~/utils/diff';
+import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 
 interface CodeComparisonProps {
   beforeCode: string;
@@ -40,7 +40,7 @@ interface FullscreenButtonProps {
 const FullscreenButton = memo(({ onClick, isFullscreen }: FullscreenButtonProps) => (
   <button
     onClick={onClick}
-    className="ml-4 p-1 rounded hover:bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors"
+    className="ml-4 p-1 rounded bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors"
     title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
   >
     <div className={isFullscreen ? 'i-ph:corners-in' : 'i-ph:corners-out'} />
@@ -129,6 +129,7 @@ const processChanges = (beforeCode: string, afterCode: string) => {
       } else {
         // Look ahead for potential matches
         let matchFound = false;
+
         const lookAhead = 3; // Number of lines to look ahead
 
         // Try to find matching lines ahead
@@ -316,6 +317,7 @@ const lineNumberStyles =
   'w-9 shrink-0 pl-2 py-1 text-left font-mono text-bolt-elements-textTertiary border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-1';
 const lineContentStyles =
   'px-1 py-1 font-mono whitespace-pre flex-1 group-hover:bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary';
+
 const diffPanelStyles = 'h-full overflow-auto diff-panel-content';
 
 // Updated color styles for better consistency
@@ -379,7 +381,7 @@ const NoChangesView = memo(
                       ? highlighter
                           .codeToHtml(line, {
                             lang: language,
-                            theme: theme === 'dark' ? 'github-dark' : 'github-light',
+                            theme: getThemeMode(theme) === 'dark' ? 'github-dark' : 'github-light',
                           })
                           .replace(/<\/?pre[^>]*>/g, '')
                           .replace(/<\/?code[^>]*>/g, '')
@@ -425,7 +427,10 @@ const CodeLine = memo(
       if (type === 'unchanged' || !block.charChanges) {
         const highlightedCode = highlighter
           ? highlighter
-              .codeToHtml(content, { lang: language, theme: theme === 'dark' ? 'github-dark' : 'github-light' })
+              .codeToHtml(content, {
+                lang: language,
+                theme: getThemeMode(theme) === 'dark' ? 'github-dark' : 'github-light',
+              })
               .replace(/<\/?pre[^>]*>/g, '')
               .replace(/<\/?code[^>]*>/g, '')
           : content;
@@ -441,7 +446,7 @@ const CodeLine = memo(
               ? highlighter
                   .codeToHtml(change.value, {
                     lang: language,
-                    theme: theme === 'dark' ? 'github-dark' : 'github-light',
+                    theme: getThemeMode(theme) === 'dark' ? 'github-dark' : 'github-light',
                   })
                   .replace(/<\/?pre[^>]*>/g, '')
                   .replace(/<\/?code[^>]*>/g, '')
@@ -495,7 +500,6 @@ const FileInfo = memo(
       const changes = diffLines(beforeCode, afterCode, {
         newlineIsToken: false,
         ignoreWhitespace: true,
-        ignoreCase: false,
       });
 
       return changes.reduce(
@@ -542,8 +546,53 @@ const FileInfo = memo(
   },
 );
 
+// Create and manage a single highlighter instance at the module level
+let highlighterInstance: any = null;
+let highlighterPromise: Promise<any> | null = null;
+
+const getSharedHighlighter = async () => {
+  if (highlighterInstance) {
+    return highlighterInstance;
+  }
+
+  if (highlighterPromise) {
+    return highlighterPromise;
+  }
+
+  highlighterPromise = createHighlighter({
+    themes: ['github-dark', 'github-light'],
+    langs: [
+      'typescript',
+      'javascript',
+      'json',
+      'html',
+      'css',
+      'jsx',
+      'tsx',
+      'python',
+      'php',
+      'java',
+      'c',
+      'cpp',
+      'csharp',
+      'go',
+      'ruby',
+      'rust',
+      'plaintext',
+    ],
+  });
+
+  highlighterInstance = await highlighterPromise;
+  highlighterPromise = null;
+
+  // Clear the promise once resolved
+  return highlighterInstance;
+};
+
 const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }: CodeComparisonProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Use state to hold the shared highlighter instance
   const [highlighter, setHighlighter] = useState<any>(null);
   const theme = useStore(themeStore);
 
@@ -554,32 +603,30 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
   const { unifiedBlocks, hasChanges, isBinary, error } = useProcessChanges(beforeCode, afterCode);
 
   useEffect(() => {
-    getHighlighter({
-      themes: ['github-dark', 'github-light'],
-      langs: [
-        'typescript',
-        'javascript',
-        'json',
-        'html',
-        'css',
-        'jsx',
-        'tsx',
-        'python',
-        'php',
-        'java',
-        'c',
-        'cpp',
-        'csharp',
-        'go',
-        'ruby',
-        'rust',
-        'plaintext',
-      ],
-    }).then(setHighlighter);
-  }, []);
+    // Fetch the shared highlighter instance
+    getSharedHighlighter().then(setHighlighter);
+
+    /*
+     * No cleanup needed here for the highlighter instance itself,
+     * as it's managed globally. Shiki instances don't typically
+     * need disposal unless you are dynamically loading/unloading themes/languages.
+     * If you were dynamically loading, you might need a more complex
+     * shared instance manager with reference counting or similar.
+     * For static themes/langs, a single instance is sufficient.
+     */
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   if (isBinary || error) {
     return renderContentWarning(isBinary ? 'binary' : 'error');
+  }
+
+  // Render a loading state or null while highlighter is not ready
+  if (!highlighter) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-bolt-elements-textTertiary">Loading diff...</div>
+      </div>
+    );
   }
 
   return (
@@ -602,7 +649,7 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
                   lineNumber={block.lineNumber}
                   content={block.content}
                   type={block.type}
-                  highlighter={highlighter}
+                  highlighter={highlighter} // Pass the shared instance
                   language={language}
                   block={block}
                   theme={theme}
@@ -621,7 +668,6 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
 interface DiffViewProps {
   fileHistory: Record<string, FileHistory>;
   setFileHistory: React.Dispatch<React.SetStateAction<Record<string, FileHistory>>>;
-  actionRunner: ActionRunner;
 }
 
 export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) => {
@@ -643,6 +689,7 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
 
       // Normalizar o conteúdo para comparação
       const normalizedCurrentContent = currentContent.replace(/\r\n/g, '\n').trim();
+
       const normalizedOriginalContent = (existingHistory?.originalContent || file.content)
         .replace(/\r\n/g, '\n')
         .trim();

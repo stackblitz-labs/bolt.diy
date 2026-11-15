@@ -1,24 +1,60 @@
-import type { IProviderSetting } from '~/types/model';
 import { BaseProvider } from './base-provider';
-import type { ModelInfo, ProviderInfo } from './types';
+import { setEnv } from './env';
 import * as providers from './registry';
+import type { ModelInfo, ProviderInfo } from './types';
+import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('LLMManager');
+
+/*
+ * Providers exposed to the app. Every other provider in ./registry stays
+ * unregistered, so its models never reach the model picker.
+ */
+const ENABLED_PROVIDERS = new Set([
+  'OpenRouter',
+  'Anthropic',
+  'OpenAI',
+  'Google',
+  'Groq',
+  'HuggingFace',
+  'Cohere',
+  'Mistral',
+  'Perplexity',
+  'Deepseek',
+  'xAI',
+  'Together',
+  'Fireworks',
+  'Cerebras',
+  'AmazonBedrock',
+  'Github',
+  'Moonshot',
+  'Hyperbolic',
+  'Z.ai',
+  'Ollama',
+  'LMStudio',
+  'OpenAILike',
+]);
+
 export class LLMManager {
   private static _instance: LLMManager;
   private _providers: Map<string, BaseProvider> = new Map();
   private _modelList: ModelInfo[] = [];
-  private readonly _env: any = {};
+  private _env: Record<string, string> = {};
 
   private constructor(_env: Record<string, string>) {
     this._registerProvidersFromDirectory();
     this._env = _env;
+    setEnv(_env);
   }
 
   static getInstance(env: Record<string, string> = {}): LLMManager {
     if (!LLMManager._instance) {
       LLMManager._instance = new LLMManager(env);
+    } else if (Object.keys(env).length > 0) {
+      // Update env on subsequent calls so Cloudflare Workers get fresh bindings
+      LLMManager._instance._env = env;
+      setEnv(env);
     }
 
     return LLMManager._instance;
@@ -38,6 +74,10 @@ export class LLMManager {
       for (const exportedItem of Object.values(providers)) {
         if (typeof exportedItem === 'function' && exportedItem.prototype instanceof BaseProvider) {
           const provider = new exportedItem();
+
+          if (!ENABLED_PROVIDERS.has(provider.name)) {
+            continue;
+          }
 
           try {
             this.registerProvider(provider);
@@ -78,13 +118,18 @@ export class LLMManager {
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
     serverEnv?: Record<string, string>;
+    enabledProviderNames?: string[];
   }): Promise<ModelInfo[]> {
-    const { apiKeys, providerSettings, serverEnv } = options;
+    const { apiKeys, providerSettings, serverEnv, enabledProviderNames } = options;
 
     let enabledProviders = Array.from(this._providers.values()).map((p) => p.name);
 
-    if (providerSettings && Object.keys(providerSettings).length > 0) {
-      enabledProviders = enabledProviders.filter((p) => providerSettings[p].enabled);
+    if (enabledProviderNames) {
+      enabledProviders = enabledProviders.filter((name) => enabledProviderNames.includes(name));
+    }
+
+    if (!enabledProviderNames && providerSettings && Object.keys(providerSettings).length > 0) {
+      enabledProviders = enabledProviders.filter((name) => providerSettings[name]?.enabled);
     }
 
     // Get dynamic models from all providers that support them
@@ -111,20 +156,31 @@ export class LLMManager {
               return models;
             })
             .catch((err) => {
-              logger.error(`Error getting dynamic models ${provider.name} :`, err);
+              const message = err instanceof Error ? err.message : String(err);
+
+              if (message.toLowerCase().includes('missing api key')) {
+                logger.debug(`Dynamic models skipped for ${provider.name}: ${message}`);
+              } else {
+                logger.error(`Error getting dynamic models ${provider.name} :`, err);
+              }
+
               return [];
             });
 
           return dynamicModels;
         }),
     );
-    const staticModels = Array.from(this._providers.values()).flatMap((p) => p.staticModels || []);
+
+    const staticModels = Array.from(this._providers.values())
+      .filter((provider) => enabledProviders.includes(provider.name))
+      .flatMap((provider) => provider.staticModels || []);
+
     const dynamicModelsFlat = dynamicModels.flat();
     const dynamicModelKeys = dynamicModelsFlat.map((d) => `${d.name}-${d.provider}`);
-    const filteredStaticModesl = staticModels.filter((m) => !dynamicModelKeys.includes(`${m.name}-${m.provider}`));
+    const filteredStaticModels = staticModels.filter((m) => !dynamicModelKeys.includes(`${m.name}-${m.provider}`));
 
     // Combine static and dynamic models
-    const modelList = [...dynamicModelsFlat, ...filteredStaticModesl];
+    const modelList = [...dynamicModelsFlat, ...filteredStaticModels];
     modelList.sort((a, b) => a.name.localeCompare(b.name));
     this._modelList = modelList;
 
@@ -163,7 +219,10 @@ export class LLMManager {
 
     if (cachedModels) {
       logger.info(`Found ${cachedModels.length} cached models for ${provider.name}`);
-      return [...cachedModels, ...staticModels];
+
+      const cachedModelNames = new Set(cachedModels.map((model) => model.name));
+
+      return [...cachedModels, ...staticModels.filter((model) => !cachedModelNames.has(model.name))];
     }
 
     logger.info(`Getting dynamic models for ${provider.name}`);
@@ -177,9 +236,17 @@ export class LLMManager {
         return models;
       })
       .catch((err) => {
-        logger.error(`Error getting dynamic models ${provider.name} :`, err);
+        const message = err instanceof Error ? err.message : String(err);
+
+        if (message.toLowerCase().includes('missing api key')) {
+          logger.debug(`Dynamic models skipped for ${provider.name}: ${message}`);
+        } else {
+          logger.error(`Error getting dynamic models ${provider.name} :`, err);
+        }
+
         return [];
       });
+
     const dynamicModelsName = dynamicModels.map((d) => d.name);
     const filteredStaticList = staticModels.filter((m) => !dynamicModelsName.includes(m.name));
     const modelList = [...dynamicModels, ...filteredStaticList];
@@ -198,6 +265,17 @@ export class LLMManager {
   }
 
   getDefaultProvider(): BaseProvider {
+    /*
+     * Prefer OpenRouter explicitly. Registration order follows the export
+     * order of ./registry, which would otherwise make the default depend on
+     * which provider happens to be listed first.
+     */
+    const openRouter = this._providers.get('OpenRouter');
+
+    if (openRouter) {
+      return openRouter;
+    }
+
     const firstProvider = this._providers.values().next().value;
 
     if (!firstProvider) {

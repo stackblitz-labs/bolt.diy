@@ -1,12 +1,13 @@
-import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+import { formatBuildFailureOutput } from './deployUtils';
+import { chatId } from '~/lib/persistence/useChatHistory';
+import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import { path } from '~/utils/path';
-import { useState } from 'react';
-import type { ActionCallbackData } from '~/lib/runtime/message-parser';
-import { chatId } from '~/lib/persistence/useChatHistory';
 
 export function useNetlifyDeploy() {
   const [isDeploying, setIsDeploying] = useState(false);
@@ -49,6 +50,7 @@ export function useNetlifyDeploy() {
 
       // Set up build action
       const actionId = 'build-' + Date.now();
+
       const actionData: ActionCallbackData = {
         messageId: 'netlify build',
         artifactId: artifact.id,
@@ -65,10 +67,12 @@ export function useNetlifyDeploy() {
       // Then run it
       await artifact.runner.runAction(actionData);
 
-      if (!artifact.runner.buildOutput) {
+      const buildOutput = artifact.runner.buildOutput;
+
+      if (!buildOutput || buildOutput.exitCode !== 0) {
         // Notify that build failed
         deployArtifact.runner.handleDeployAction('building', 'failed', {
-          error: 'Build failed. Check the terminal for details.',
+          error: formatBuildFailureOutput(buildOutput?.output),
           source: 'netlify',
         });
         throw new Error('Build failed');
@@ -81,7 +85,7 @@ export function useNetlifyDeploy() {
       const container = await webcontainer;
 
       // Remove /home/project from buildPath if it exists
-      const buildPath = artifact.runner.buildOutput.path.replace('/home/project', '');
+      const buildPath = buildOutput.path.replace('/home/project', '');
 
       console.log('Original buildPath', buildPath);
 
@@ -166,6 +170,7 @@ export function useNetlifyDeploy() {
       }
 
       const maxAttempts = 20; // 2 minutes timeout
+
       let attempts = 0;
       let deploymentStatus;
 
@@ -223,6 +228,9 @@ export function useNetlifyDeploy() {
         url: deploymentStatus.ssl_url || deploymentStatus.url,
         source: 'netlify',
       });
+
+      // Show success toast notification
+      toast.success(`🚀 Netlify deployment completed successfully!`);
 
       return true;
     } catch (error) {

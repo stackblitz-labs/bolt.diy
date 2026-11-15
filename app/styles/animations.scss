@@ -47,3 +47,32 @@
     transform: translateY(6px);
   }
 }
+
+.thinking-ellipsis span {
+  display: inline-block;
+  animation: thinkingDot 1.2s ease-in-out infinite;
+
+  &:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  &:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}
+
+@keyframes thinkingDot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking-ellipsis span {
+    animation: none;
+  }
+}

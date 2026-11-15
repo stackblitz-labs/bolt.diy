@@ -1,5 +1,4 @@
-import { json } from '@remix-run/cloudflare';
-import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 
 // Allowed headers to forward to the target server
 const ALLOW_HEADERS = [
@@ -54,7 +53,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 async function handleProxyRequest(request: Request, path: string | undefined) {
   try {
     if (!path) {
-      return json({ error: 'Invalid proxy URL format' }, { status: 400 });
+      return Response.json({ error: 'Invalid proxy URL format' }, { status: 400 });
     }
 
     // Handle CORS preflight request
@@ -75,7 +74,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     const parts = path.match(/([^\/]+)\/?(.*)/);
 
     if (!parts) {
-      return json({ error: 'Invalid path format' }, { status: 400 });
+      return Response.json({ error: 'Invalid path format' }, { status: 400 });
     }
 
     const domain = parts[1];
@@ -107,8 +106,11 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
 
     console.log('Request headers:', Object.fromEntries(headers.entries()));
 
-    // Prepare fetch options
-    const fetchOptions: RequestInit = {
+    /*
+     * `duplex` is required by undici/Node when streaming a request body, but it is
+     * absent from the Cloudflare `RequestInit` type, so widen it locally.
+     */
+    const fetchOptions: RequestInit & { duplex?: 'half' } = {
       method: request.method,
       headers,
       redirect: 'follow',
@@ -118,11 +120,6 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     if (!['GET', 'HEAD'].includes(request.method)) {
       fetchOptions.body = request.body;
       fetchOptions.duplex = 'half';
-
-      /*
-       * Note: duplex property is removed to ensure TypeScript compatibility
-       * across different environments and versions
-       */
     }
 
     // Forward the request to the target URL
@@ -166,7 +163,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     });
   } catch (error) {
     console.error('Proxy error:', error);
-    return json(
+    return Response.json(
       {
         error: 'Proxy error',
         message: error instanceof Error ? error.message : 'Unknown error',

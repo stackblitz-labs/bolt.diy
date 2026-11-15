@@ -19,6 +19,7 @@ const lockedItemsMap = new Map<string, Map<string, LockedItem>>();
 
 // Debounce timer for localStorage writes
 let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 const SAVE_DEBOUNCE_MS = 300;
 
 /**
@@ -304,6 +305,7 @@ function checkParentFolderLocks(chatId: string, path: string): { locked: boolean
 
   // Check each parent folder
   const pathParts = path.split('/');
+
   let currentPath = '';
 
   for (let i = 0; i < pathParts.length - 1; i++) {
@@ -495,6 +497,26 @@ export function batchUnlockItems(chatId: string, paths: string[]): void {
   saveLockedItems(filteredItems);
 
   logger.info(`Batch unlocked ${paths.length} items for chat: ${chatId}`);
+}
+
+/**
+ * Clear all locks for a specific chat
+ * @param chatId The chat ID to clear locks for
+ */
+export function clearAllLocksForChat(chatId: string): void {
+  // Ensure cache is initialized
+  const lockedItems = getLockedItems();
+
+  // Update the in-memory map
+  lockedItemsMap.delete(chatId);
+
+  // Filter out all items for this chat
+  const filteredItems = lockedItems.filter((item) => item.chatId !== chatId);
+
+  // Save the updated list
+  saveLockedItems(filteredItems);
+
+  logger.info(`Cleared all locks for chat: ${chatId}`);
 }
 
 /**

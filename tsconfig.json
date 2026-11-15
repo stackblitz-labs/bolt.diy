@@ -2,9 +2,9 @@
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "types": [
-      "@remix-run/cloudflare",
+      "@react-router/cloudflare",
       "vite/client",
-      "@cloudflare/workers-types/2023-07-01",
+      "@cloudflare/workers-types",
       "@types/dom-speech-recognition",
       "electron"
     ],
@@ -13,6 +13,7 @@
     "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "target": "ESNext",
     "strict": true,
@@ -20,7 +21,6 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "paths": {
       "~/*": ["./app/*"]
     },

@@ -1,8 +1,9 @@
-import { json, type LoaderFunctionArgs } from '@remix-run/cloudflare';
-import { default as IndexRoute } from './_index';
+import type { LoaderFunctionArgs } from 'react-router';
 
 export async function loader(args: LoaderFunctionArgs) {
-  return json({ id: args.params.id });
+  return Response.json({ id: args.params.id });
 }
 
-export default IndexRoute;
+export default function ChatRoute() {
+  return null;
+}

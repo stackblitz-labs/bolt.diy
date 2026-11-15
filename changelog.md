@@ -1,3 +1,110 @@
+# Since version 1.0.0
+
+## What's Changed 🌟
+
+### ⚙️ Configuration
+
+* update Cloudflare Workers compatibility date to 2026-10-01
+
+### ✨ Features
+
+* add MCP-backed project and web tools, prompt tool access modes, and improved starter setup ([#2270](https://github.com/stackblitz-labs/bolt.diy/pull/2270)) by @dustinwloring1988
+* add Browser Use Cloud and connector action permissions, with connector menus gated by connection status ([#2271](https://github.com/stackblitz-labs/bolt.diy/pull/2271), [#2272](https://github.com/stackblitz-labs/bolt.diy/pull/2272), [#2273](https://github.com/stackblitz-labs/bolt.diy/pull/2273)) by @dustinwloring1988
+* add a declarative plugin marketplace and lifecycle controls by @dustinwloring1988
+* add an agent activity feed and approval tray ([#2275](https://github.com/stackblitz-labs/bolt.diy/pull/2275)) by @dustinwloring1988
+* add visual editing for the live preview ([#2276](https://github.com/stackblitz-labs/bolt.diy/pull/2276)) by @dustinwloring1988
+* improve agentic building with a stronger build loop, thinking UI, recovery, validation, and automatic completion evidence ([#2277](https://github.com/stackblitz-labs/bolt.diy/pull/2277), [#2278](https://github.com/stackblitz-labs/bolt.diy/pull/2278), [#2281](https://github.com/stackblitz-labs/bolt.diy/pull/2281), [#2283](https://github.com/stackblitz-labs/bolt.diy/pull/2283)) by @dustinwloring1988
+* apply onboarding API keys immediately and improve first-run setup ([#2279](https://github.com/stackblitz-labs/bolt.diy/pull/2279)) by @dustinwloring1988
+* rename Settings to Preferences, add a Preferences card, and offer Agent and Discuss modes ([#2282](https://github.com/stackblitz-labs/bolt.diy/pull/2282)) by @dustinwloring1988
+* add in-app documentation and bug report panels ([#2252](https://github.com/stackblitz-labs/bolt.diy/pull/2252)) by @dustinwloring1988
+* add selectable color themes, profile avatars, and theme and interface appearance controls ([#2254](https://github.com/stackblitz-labs/bolt.diy/pull/2254), [#2255](https://github.com/stackblitz-labs/bolt.diy/pull/2255), [#2256](https://github.com/stackblitz-labs/bolt.diy/pull/2256)) by @dustinwloring1988
+* restore first-run onboarding with profile and appearance setup ([#2258](https://github.com/stackblitz-labs/bolt.diy/pull/2258)) by @dustinwloring1988
+* improve settings and data management navigation, and retain the selected cloud provider tab ([#2250](https://github.com/stackblitz-labs/bolt.diy/pull/2250), [#2251](https://github.com/stackblitz-labs/bolt.diy/pull/2251)) by @dustinwloring1988
+* add Simple Sal, Tiny Tim, and DiligentDan options to the Prompt Library, including prompts optimized for smaller models (91bb67a, 4a6181e, a3d6483)
+* add a blank starter flow and framework starter setup that opens the project without an initial generation request (5397ce4, e4af3b0)
+* move MCP tool selection into the prompt attachment menu and show connector connection status there (2ea9f30, e49c8d5)
+* regroup settings navigation and combine service integrations in the Connectors tab (ca935e8, 78d6b7e)
+* restore all 22 cloud and local AI providers (9ca2a34) by @dustinwloring1988
+* preserve user-selected workbench tab, lazy-mount diff and preview panels, and inject prompt workstyle commentary instructions ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
+* update model catalogs, context windows, and token limits across all supported LLM providers ([#2216](https://github.com/stackblitz-labs/bolt.diy/pull/2216)) by @dustinwloring1988
+* add persistent sidebar trigger toggle button when sidebar is collapsed ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
+* upgrade the AI SDK from v4 to v7 ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (853bd2a) by @dustinwloring1988
+* write both message shapes at the v4 call sites ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (85b0cc1) by @dustinwloring1988
+* add dual-shape message accessors for the v4 to v5 migration ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (f4b3143) by @dustinwloring1988
+* add AI SDK v4 to v5+ message migration module ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (b47f528) by @dustinwloring1988
+* enable Anthropic, OpenAI and Google alongside OpenRouter ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (f3c2b5e) by @dustinwloring1988
+* update core stack React 19 / Vite 8 / TS 7 ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (2f1e20d) by @dustinwloring1988
+
+### 🐛 Bug Fixes
+
+* validate model requests at runtime, bound and sanitize provider requests, and improve typed and streamed error handling ([#2266](https://github.com/stackblitz-labs/bolt.diy/pull/2266)) by @dustinwloring1988
+* fix ZIP-imported message creation and prevent unintended autoruns after import ([#2265](https://github.com/stackblitz-labs/bolt.diy/pull/2265)) by @dustinwloring1988
+* fix WebContainer dev-server lifecycle, starter imports, localhost binding, browser startup, and web-search redirects ([#2269](https://github.com/stackblitz-labs/bolt.diy/pull/2269), [#2270](https://github.com/stackblitz-labs/bolt.diy/pull/2270)) by @dustinwloring1988
+* preserve Git configuration files in starter templates ([#2208](https://github.com/stackblitz-labs/bolt.diy/pull/2208)) by @unknowlei
+* sync the in-app documentation theme with app light and dark modes ([#2268](https://github.com/stackblitz-labs/bolt.diy/pull/2268)) by @dustinwloring1988
+* improve connector tool continuations and plugin marketplace error and control styling ([#2275](https://github.com/stackblitz-labs/bolt.diy/pull/2275)) by @dustinwloring1988
+* prevent chat persistence and workbench action races, and restore snapshots correctly on URL-based chat routes ([#2260](https://github.com/stackblitz-labs/bolt.diy/pull/2260)) by @dustinwloring1988
+* keep first-run onboarding from being dismissed prematurely and fix its navigation and appearance controls ([#2258](https://github.com/stackblitz-labs/bolt.diy/pull/2258)) by @dustinwloring1988
+* apply theme surfaces consistently to event logs, notifications, and local provider endpoints ([#2256](https://github.com/stackblitz-labs/bolt.diy/pull/2256)) by @dustinwloring1988
+* fix first-load dependency optimization in Vite ([#2249](https://github.com/stackblitz-labs/bolt.diy/pull/2249)) by @dustinwloring1988
+* preserve workbench access when starting a project and fix blank starter creation (6358436, 5397ce4)
+* handle tool calls emitted as assistant text and fix route configuration startup crashes (acf91f9, bf0ce1b)
+* improve terminal drawer behavior and light/dark theme styling (1618553)
+* make the redesigned settings panel fit the viewport and improve navigation (2c3b77d, ca935e8)
+* resolve race condition when switching between chats (90d1912) by @dustinwloring1988
+* update GitHub fine-grained token URL from /beta to /personal-access-tokens/new (e6d0c9a) by @chen-jiying
+* update LLM manager tests to reflect all 22 enabled providers (963f6d4) by @dustinwloring1988
+* update Clone a repo button to have single icon in front of text (223e3b1) by @dustinwloring1988
+* quiet missing API key errors on startup for unconfigured LLM providers ([#2215](https://github.com/stackblitz-labs/bolt.diy/pull/2215)) by @dustinwloring1988
+* resolve tsconfig paths natively, silence dotenv dev noise, and disable remote Cloudflare Request.cf fetch during local dev ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
+* add peerDependencyRules to silence safe version mismatches on pnpm install ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
+* restore native anchor reload for logo and new chat navigation ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
+* resolve process.cwd is not a function error in file actions ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211)) (31aff28) by @dustinwloring1988
+* stop losing message fields on import/export, typecheck two chat files ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (1bf219d) by @dustinwloring1988
+* repair the electron build scripts, which could not run ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (951b2dd) by @dustinwloring1988
+* move wrangler to dependencies so the production image can start ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (6ef0f60) by @dustinwloring1988
+* restore typecheck and lint on the merged React 19 / Vite 8 stack ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (035364a) by @dustinwloring1988
+
+### ⚡ Performance Improvements
+
+* speed up template responses and improve XML file call parsing ([#2248](https://github.com/stackblitz-labs/bolt.diy/pull/2248)) by @dustinwloring1988
+* on-demand lazy mounting of DiffView and Preview panels in Workbench to reduce initial render overhead ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
+* eliminate mid-load dependency re-bundling screen flashes via comprehensive optimizeDeps pre-bundling, and lazy-load Workbench on landing page ([#2215](https://github.com/stackblitz-labs/bolt.diy/pull/2215)) by @dustinwloring1988
+* chat mount preservation across navigation, hover prefetching into in-memory cache, deferred Shiki syntax highlighting during streaming, and memoized frozen markdown blocks ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
+* easy performance wins and TDD improvements: reduce unnecessary renders and lazy-load workbench views ([#2212](https://github.com/stackblitz-labs/bolt.diy/pull/2212)) (972059e) by @dustinwloring1988
+
+### ♻️ Code Refactoring
+
+* read presentation components through the dual-shape accessors ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (bc984d9) by @dustinwloring1988
+* make persistence reads shape-agnostic, drop dead ChatMessage ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (4228bdf) by @dustinwloring1988
+* read message data through the dual-shape accessors ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (2fe4e7e) by @dustinwloring1988
+
+### 🧪 Tests
+
+* split the Vitest runner into Node and jsdom projects, and fix filesystem alias resolution ([#2267](https://github.com/stackblitz-labs/bolt.diy/pull/2267)) by @dustinwloring1988
+* wrap state updates in act() to fix React warnings (4e6479b) by @dustinwloring1988
+* add comprehensive tests for chat switching race condition fix (b3ee2a1) by @dustinwloring1988
+* add unit tests for prompt workstyle guidance and workbench view selection retention ([#2217](https://github.com/stackblitz-labs/bolt.diy/pull/2217)) by @dustinwloring1988
+* add unit tests for in-memory chat cache and prefetching layer ([#2214](https://github.com/stackblitz-labs/bolt.diy/pull/2214)) by @dustinwloring1988
+* pin the OpenAI provider wire format before the SDK upgrade ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210)) (0cc227f) by @dustinwloring1988
+* add migration safety harness (stream protocol, llm utils, mcp tools, e2e persistence) and extract reasoning rewrite transform ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (cd755e9) by @dustinwloring1988
+
+### ⚙️ CI
+
+* fix Quality Gates check timing issue (ad6dfd1) by @dustinwloring1988
+* remove hardcoded pnpm version from security and test workflows ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211)) (e3003b8) by @dustinwloring1988
+* replace deleted cloudflare/pages-action with wrangler-action ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (7a7264b) by @dustinwloring1988
+* bump Node to 22 so Vite 8 gets its rolldown native binding, add .gitattributes ([#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) (923bec3) by @dustinwloring1988
+
+### 🔍 Other Changes
+
+* streamline README structure, eliminate redundant setup instructions, and link directly to FAQ & troubleshooting documentation by @dustinwloring1988
+* modernize dependencies and frameworks: migrate to React Router v7, Remix 2.17, Zod 4, Electron 44.5.1, Shiki v4, and update WebContainer API ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211), [#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210), [#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) by @dustinwloring1988
+* broad dependency updates and cleanup across UI and runtime libraries (framer-motion, date-fns, lucide-react, xterm, octokit, pnpm 12) ([#2211](https://github.com/stackblitz-labs/bolt.diy/pull/2211), [#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) by @dustinwloring1988
+* developer tooling and configuration enhancements: add benchmark scripts, adjust OpenRouter completion limits, and remove stale type stubs ([#2210](https://github.com/stackblitz-labs/bolt.diy/pull/2210), [#2209](https://github.com/stackblitz-labs/bolt.diy/pull/2209)) by @dustinwloring1988
+
+---
+
 # 🚀 Release v1.0.0
 
 ## What's Changed 🌟

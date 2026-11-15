@@ -1,3 +1,14 @@
 .xterm {
   padding: 1rem;
+  background-color: var(--bolt-elements-terminal-backgroundColor);
+}
+
+// xterm's stylesheet loads after the app styles and defaults this layer to black.
+html .xterm .xterm-viewport {
+  background-color: var(--bolt-elements-terminal-backgroundColor);
+}
+
+html .xterm .composition-view {
+  background-color: var(--bolt-elements-terminal-backgroundColor);
+  color: var(--bolt-elements-terminal-textColor);
 }

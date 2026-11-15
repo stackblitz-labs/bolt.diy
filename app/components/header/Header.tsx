@@ -1,16 +1,16 @@
 import { useStore } from '@nanostores/react';
 import { ClientOnly } from 'remix-utils/client-only';
-import { chatStore } from '~/lib/stores/chat';
-import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
+import { chatStore } from '~/lib/stores/chat';
+import { classNames } from '~/utils/classNames';
 
 export function Header() {
   const chat = useStore(chatStore);
 
   return (
     <header
-      className={classNames('flex items-center p-5 border-b h-[var(--header-height)]', {
+      className={classNames('flex items-center px-4 border-b h-[var(--header-height)]', {
         'border-transparent': !chat.started,
         'border-bolt-elements-borderColor': chat.started,
       })}
@@ -30,8 +30,8 @@ export function Header() {
           </span>
           <ClientOnly>
             {() => (
-              <div className="mr-1">
-                <HeaderActionButtons />
+              <div className="">
+                <HeaderActionButtons chatStarted={chat.started} />
               </div>
             )}
           </ClientOnly>

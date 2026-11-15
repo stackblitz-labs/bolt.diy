@@ -39,7 +39,7 @@ export default [
   },
   {
     files: [...tsFileExtensions, ...jsFileExtensions, '**/*.tsx'],
-    ignores: ['functions/*', 'electron/**/*'],
+    ignores: ['workers/**/*', 'electron/**/*'],
     rules: {
       'no-restricted-imports': [
         'error',

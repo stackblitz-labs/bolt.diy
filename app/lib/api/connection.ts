@@ -30,10 +30,12 @@ export const checkConnection = async (): Promise<ConnectionStatus> => {
     for (const endpoint of endpoints) {
       try {
         const start = performance.now();
+
         const response = await fetch(endpoint, {
           method: 'HEAD',
           cache: 'no-cache',
         });
+
         const end = performance.now();
 
         if (response.ok) {

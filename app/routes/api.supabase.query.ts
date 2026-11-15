@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { ActionFunctionArgs } from 'react-router';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.supabase.query');
@@ -29,6 +29,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (!response.ok) {
       const errorText = await response.text();
+
       let errorData;
 
       try {

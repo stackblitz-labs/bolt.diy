@@ -1,5 +1,6 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { generateId } from './fileUtils';
+import { createMessage } from '~/lib/persistence/messageMigration';
 
 export interface ProjectCommands {
   type: string;
@@ -14,56 +15,72 @@ interface FileContent {
 }
 
 export async function detectProjectCommands(files: FileContent[]): Promise<ProjectCommands> {
-  const hasFile = (name: string) => files.some((f) => f.path.endsWith(name));
+  const manifests = files.filter((file) => file.path.split('/').at(-1) === 'package.json');
+  const packageFile = manifests.sort((a, b) => a.path.split('/').length - b.path.split('/').length)[0];
 
-  if (hasFile('package.json')) {
-    const packageJsonFile = files.find((f) => f.path.endsWith('package.json'));
+  if (!packageFile) {
+    const htmlFile = files
+      .filter((file) => file.path.split('/').at(-1) === 'index.html')
+      .sort((a, b) => a.path.split('/').length - b.path.split('/').length)[0];
 
-    if (!packageJsonFile) {
-      return { type: '', setupCommand: '', followupMessage: '' };
+    if (htmlFile) {
+      const projectDirectory = htmlFile.path.split('/').slice(0, -1).join('/');
+      const prefix = projectDirectory ? `cd ${JSON.stringify(projectDirectory)} && ` : '';
+
+      return { type: 'Static', startCommand: `${prefix}npx --yes serve`, followupMessage: '' };
     }
 
-    try {
-      const packageJson = JSON.parse(packageJsonFile.content);
-      const scripts = packageJson?.scripts || {};
-
-      // Check for preferred commands in priority order
-      const preferredCommands = ['dev', 'start', 'preview'];
-      const availableCommand = preferredCommands.find((cmd) => scripts[cmd]);
-
-      if (availableCommand) {
-        return {
-          type: 'Node.js',
-          setupCommand: `npm install`,
-          startCommand: `npm run ${availableCommand}`,
-          followupMessage: `Found "${availableCommand}" script in package.json. Running "npm run ${availableCommand}" after installation.`,
-        };
-      }
-
-      return {
-        type: 'Node.js',
-        setupCommand: 'npm install',
-        followupMessage:
-          'Would you like me to inspect package.json to determine the available scripts for running this project?',
-      };
-    } catch (error) {
-      console.error('Error parsing package.json:', error);
-      return { type: '', setupCommand: '', followupMessage: '' };
-    }
+    return { type: '', followupMessage: '' };
   }
 
-  if (hasFile('index.html')) {
+  try {
+    const packageJson = JSON.parse(packageFile.content);
+    const scripts = packageJson?.scripts || {};
+    const preferredScript = ['dev', 'start', 'preview'].find((script) => typeof scripts[script] === 'string');
+    const projectDirectory = packageFile.path.split('/').slice(0, -1).join('/');
+
+    const hasFileInProject = (name: string) =>
+      files.some((file) => {
+        const directory = file.path.split('/').slice(0, -1).join('/');
+        return directory === projectDirectory && file.path.split('/').at(-1) === name;
+      });
+
+    const detectedManager = packageJson.packageManager?.split('@')[0];
+
+    const packageManager =
+      typeof detectedManager === 'string' && ['npm', 'pnpm', 'yarn', 'bun'].includes(detectedManager)
+        ? detectedManager
+        : hasFileInProject('pnpm-lock.yaml')
+          ? 'pnpm'
+          : hasFileInProject('yarn.lock')
+            ? 'yarn'
+            : hasFileInProject('bun.lockb') || hasFileInProject('bun.lock')
+              ? 'bun'
+              : 'npm';
+    const installCommands: Record<string, string> = {
+      npm: 'npm install --no-audit --no-fund',
+      pnpm: 'pnpm install --no-frozen-lockfile',
+      yarn: 'yarn install --non-interactive',
+      bun: 'bun install',
+    };
+
+    const setupCommand = installCommands[packageManager] || installCommands.npm;
+    const prefix = projectDirectory ? `cd ${JSON.stringify(projectDirectory)} && ` : '';
+    const startCommand = preferredScript ? `${prefix}${packageManager} run ${preferredScript}` : undefined;
+
     return {
-      type: 'Static',
-      startCommand: 'npx --yes serve',
+      type: 'Node.js',
+      setupCommand: `${prefix}${setupCommand}`,
+      startCommand,
       followupMessage: '',
     };
+  } catch (error) {
+    console.error('Error parsing package.json:', error);
+    return { type: '', followupMessage: '' };
   }
-
-  return { type: '', setupCommand: '', followupMessage: '' };
 }
 
-export function createCommandsMessage(commands: ProjectCommands): Message | null {
+export function createCommandsMessage(commands: ProjectCommands): UIMessage | null {
   if (!commands.setupCommand && !commands.startCommand) {
     return null;
   }
@@ -81,16 +98,15 @@ export function createCommandsMessage(commands: ProjectCommands): Message | null
 `;
   }
 
-  return {
+  return createMessage({
     role: 'assistant',
-    content: `
+    id: generateId(),
+    text: `
 ${commands.followupMessage ? `\n\n${commands.followupMessage}` : ''}
 <boltArtifact id="project-setup" title="Project Setup">
 ${commandString}
 </boltArtifact>`,
-    id: generateId(),
-    createdAt: new Date(),
-  };
+  }) as UIMessage;
 }
 
 export function escapeBoltArtifactTags(input: string) {

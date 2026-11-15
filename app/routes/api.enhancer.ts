@@ -1,40 +1,34 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { UIMessage } from 'ai';
+import type { ActionFunctionArgs } from 'react-router';
+import { toApiErrorResponse, toMissingCredentialError } from '~/lib/.server/api/errors';
+import { readJsonBody } from '~/lib/.server/api/read-body';
+import { REQUEST_LIMITS, enhancerRequestSchema, parseBody } from '~/lib/.server/api/schemas';
 import { streamText } from '~/lib/.server/llm/stream-text';
-import { stripIndents } from '~/utils/stripIndent';
-import type { ProviderInfo } from '~/types/model';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
-import { createScopedLogger } from '~/utils/logger';
+import { createMessage } from '~/lib/persistence/messageMigration';
+import { stripIndents } from '~/utils/stripIndent';
 
 export async function action(args: ActionFunctionArgs) {
   return enhancerAction(args);
 }
 
-const logger = createScopedLogger('api.enhancher');
-
 async function enhancerAction({ context, request }: ActionFunctionArgs) {
-  const { message, model, provider } = await request.json<{
-    message: string;
-    model: string;
-    provider: ProviderInfo;
-    apiKeys?: Record<string, string>;
-  }>();
+  /*
+   * `provider` used to be destructured from an unvalidated body, so `{ provider: {} }`
+   * threw a TypeError reading `.name` and surfaced as a 500. Validated up front now.
+   */
+  let body;
 
-  const { name: providerName } = provider;
+  try {
+    const rawBody = await readJsonBody(request, { maxBytes: REQUEST_LIMITS.MAX_LLMCALL_BODY_BYTES });
 
-  // validate 'model' and 'provider' fields
-  if (!model || typeof model !== 'string') {
-    throw new Response('Invalid or missing model', {
-      status: 400,
-      statusText: 'Bad Request',
-    });
+    body = parseBody(enhancerRequestSchema, rawBody, 'enhancer');
+  } catch (error) {
+    return toApiErrorResponse(error);
   }
 
-  if (!providerName || typeof providerName !== 'string') {
-    throw new Response('Invalid or missing provider', {
-      status: 400,
-      statusText: 'Bad Request',
-    });
-  }
+  const { message, model } = body;
+  const providerName = body.provider.name;
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
@@ -43,9 +37,9 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
   try {
     const result = await streamText({
       messages: [
-        {
+        createMessage({
           role: 'user',
-          content:
+          text:
             `[Model: ${model}]\n\n[Provider: ${providerName}]\n\n` +
             stripIndents`
             You are a professional prompt engineer specializing in crafting precise, effective prompts.
@@ -75,7 +69,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
               ${message}
             </original_prompt>
           `,
-        },
+        }) as unknown as Omit<UIMessage, 'id'>,
       ],
       env: context.cloudflare?.env as any,
       apiKeys,
@@ -95,21 +89,6 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
       },
     });
 
-    // Handle streaming errors in a non-blocking way
-    (async () => {
-      try {
-        for await (const part of result.fullStream) {
-          if (part.type === 'error') {
-            const error: any = part.error;
-            logger.error('Streaming error:', error);
-            break;
-          }
-        }
-      } catch (error) {
-        logger.error('Error processing stream:', error);
-      }
-    })();
-
     // Return the text stream directly since it's already text data
     return new Response(result.textStream, {
       status: 200,
@@ -120,18 +99,10 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
       },
     });
   } catch (error: unknown) {
-    console.log(error);
-
     if (error instanceof Error && error.message?.includes('API key')) {
-      throw new Response('Invalid or missing API key', {
-        status: 401,
-        statusText: 'Unauthorized',
-      });
+      return toApiErrorResponse(toMissingCredentialError(providerName, error.message));
     }
 
-    throw new Response(null, {
-      status: 500,
-      statusText: 'Internal Server Error',
-    });
+    return toApiErrorResponse(error, providerName);
   }
 }

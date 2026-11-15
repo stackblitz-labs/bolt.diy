@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useStore } from '@nanostores/react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { motion } from 'framer-motion';
+import { jsPDF } from 'jspdf';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
+import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { Switch } from '~/components/ui/Switch';
 import { logStore, type LogEntry } from '~/lib/stores/logs';
-import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { jsPDF } from 'jspdf';
-import { toast } from 'react-toastify';
 
 interface SelectOption {
   value: string;
@@ -135,7 +135,7 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
     if (log.category === 'provider') {
       return (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
             <span>Model: {details.model}</span>
             <span>•</span>
             <span>Tokens: {details.totalTokens}</span>
@@ -144,16 +144,16 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
           </div>
           {details.prompt && (
             <div className="flex flex-col gap-1">
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Prompt:</div>
-              <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded p-2 whitespace-pre-wrap">
+              <div className="text-xs font-medium text-bolt-elements-textPrimary">Prompt:</div>
+              <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded p-2 whitespace-pre-wrap">
                 {details.prompt}
               </pre>
             </div>
           )}
           {details.response && (
             <div className="flex flex-col gap-1">
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Response:</div>
-              <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded p-2 whitespace-pre-wrap">
+              <div className="text-xs font-medium text-bolt-elements-textPrimary">Response:</div>
+              <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded p-2 whitespace-pre-wrap">
                 {details.response}
               </pre>
             </div>
@@ -165,26 +165,26 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
     if (log.category === 'api') {
       return (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
             <span className={details.method === 'GET' ? 'text-green-500' : 'text-blue-500'}>{details.method}</span>
             <span>•</span>
             <span>Status: {details.statusCode}</span>
             <span>•</span>
             <span>Duration: {details.duration}ms</span>
           </div>
-          <div className="text-xs text-gray-600 dark:text-gray-400 break-all">{details.url}</div>
+          <div className="text-xs text-bolt-elements-textSecondary break-all">{details.url}</div>
           {details.request && (
             <div className="flex flex-col gap-1">
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Request:</div>
-              <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded p-2 whitespace-pre-wrap">
+              <div className="text-xs font-medium text-bolt-elements-textPrimary">Request:</div>
+              <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded p-2 whitespace-pre-wrap">
                 {JSON.stringify(details.request, null, 2)}
               </pre>
             </div>
           )}
           {details.response && (
             <div className="flex flex-col gap-1">
-              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">Response:</div>
-              <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded p-2 whitespace-pre-wrap">
+              <div className="text-xs font-medium text-bolt-elements-textPrimary">Response:</div>
+              <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded p-2 whitespace-pre-wrap">
                 {JSON.stringify(details.response, null, 2)}
               </pre>
             </div>
@@ -202,7 +202,7 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
     }
 
     return (
-      <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded whitespace-pre-wrap">
+      <pre className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 rounded whitespace-pre-wrap">
         {JSON.stringify(details, null, 2)}
       </pre>
     );
@@ -215,8 +215,8 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
       className={classNames(
         'flex flex-col gap-2',
         'rounded-lg p-4',
-        'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-        'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+        'bg-bolt-elements-background-depth-1',
+        'border border-bolt-elements-borderColor',
         style.bg,
         'transition-all duration-200',
       )}
@@ -225,12 +225,14 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
         <div className="flex items-start gap-3">
           <span className={classNames('text-lg', style.icon, style.color)} />
           <div className="flex flex-col gap-1">
-            <div className="text-sm font-medium text-gray-900 dark:text-white">{log.message}</div>
+            <div className="text-sm font-medium text-bolt-elements-textPrimary">{log.message}</div>
             {log.details && (
               <>
                 <button
+                  type="button"
+                  aria-expanded={localExpanded}
                   onClick={() => setLocalExpanded(!localExpanded)}
-                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-purple-500 dark:hover:text-purple-400 transition-colors"
+                  className="appearance-none self-start rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1 text-xs font-medium text-bolt-elements-textSecondary transition-colors hover:border-purple-500/40 hover:bg-bolt-elements-background-depth-3 hover:text-purple-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                 >
                   {localExpanded ? 'Hide' : 'Show'} Details
                 </button>
@@ -242,14 +244,14 @@ const LogEntryItem = ({ log, isExpanded: forceExpanded, use24Hour, showTimestamp
                 {log.level}
               </div>
               {log.category && (
-                <div className="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                <div className="px-2 py-0.5 rounded-full text-xs bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary">
                   {log.category}
                 </div>
               )}
             </div>
           </div>
         </div>
-        {showTimestamp && <time className="shrink-0 text-xs text-gray-500 dark:text-gray-400">{timestamp}</time>}
+        {showTimestamp && <time className="shrink-0 text-xs text-bolt-elements-textSecondary">{timestamp}</time>}
       </div>
     </motion.div>
   );
@@ -444,6 +446,7 @@ export function EventLogsTab() {
     try {
       // Convert logs to CSV format
       const headers = ['Timestamp', 'Level', 'Category', 'Message', 'Details'];
+
       const csvData = [
         headers,
         ...filteredLogs.map((log) => [
@@ -458,6 +461,7 @@ export function EventLogsTab() {
       const csvContent = csvData
         .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
         .join('\n');
+
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -479,7 +483,9 @@ export function EventLogsTab() {
       // Create new PDF document
       const doc = new jsPDF();
       const lineHeight = 7;
+
       let yPos = 20;
+
       const margin = 20;
       const pageWidth = doc.internal.pageSize.getWidth();
       const maxLineWidth = pageWidth - 2 * margin;
@@ -729,6 +735,7 @@ export function EventLogsTab() {
       const textContent = filteredLogs
         .map((log) => {
           const timestamp = new Date(log.timestamp).toLocaleString();
+
           let content = `[${timestamp}] ${log.level.toUpperCase()}: ${log.message}\n`;
 
           if (log.category) {
@@ -805,9 +812,9 @@ export function EventLogsTab() {
           className={classNames(
             'group flex items-center gap-2',
             'rounded-lg px-3 py-1.5',
-            'text-sm text-gray-900 dark:text-white',
-            'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-            'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+            'text-sm text-bolt-elements-textPrimary',
+            'bg-bolt-elements-background-depth-2',
+            'border border-bolt-elements-borderColor',
             'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
             'transition-all duration-200',
           )}
@@ -830,9 +837,9 @@ export function EventLogsTab() {
                   onClick={() => handleFormatClick(format.handler)}
                   className={classNames(
                     'flex items-center gap-3 px-4 py-3 text-sm rounded-lg transition-colors w-full text-left',
-                    'bg-white dark:bg-[#0A0A0A]',
-                    'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-                    'hover:bg-purple-50 dark:hover:bg-[#1a1a1a]',
+                    'bg-bolt-elements-background-depth-1',
+                    'border border-bolt-elements-borderColor',
+                    'hover:bg-bolt-elements-background-depth-2',
                     'hover:border-purple-200 dark:hover:border-purple-900/30',
                     'text-bolt-elements-textPrimary',
                   )}
@@ -865,9 +872,9 @@ export function EventLogsTab() {
               className={classNames(
                 'flex items-center gap-2',
                 'rounded-lg px-3 py-1.5',
-                'text-sm text-gray-900 dark:text-white',
-                'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-                'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                'text-sm text-bolt-elements-textPrimary',
+                'bg-bolt-elements-background-depth-2',
+                'border border-bolt-elements-borderColor',
                 'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
                 'transition-all duration-200',
               )}
@@ -883,7 +890,7 @@ export function EventLogsTab() {
 
           <DropdownMenu.Portal>
             <DropdownMenu.Content
-              className="min-w-[200px] bg-white dark:bg-[#0A0A0A] rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-[#E5E5E5] dark:border-[#1A1A1A]"
+              className="min-w-[200px] bg-bolt-elements-background-depth-1 rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-bolt-elements-borderColor"
               sideOffset={5}
               align="start"
               side="bottom"
@@ -942,9 +949,9 @@ export function EventLogsTab() {
             className={classNames(
               'group flex items-center gap-2',
               'rounded-lg px-3 py-1.5',
-              'text-sm text-gray-900 dark:text-white',
-              'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-              'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+              'text-sm text-bolt-elements-textPrimary',
+              'bg-bolt-elements-background-depth-2',
+              'border border-bolt-elements-borderColor',
               'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
               'transition-all duration-200',
               { 'animate-spin': isRefreshing },
@@ -967,9 +974,9 @@ export function EventLogsTab() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className={classNames(
               'w-full px-4 py-2 pl-10 rounded-lg',
-              'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-              'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-              'text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400',
+              'bg-bolt-elements-background-depth-2',
+              'border border-bolt-elements-borderColor',
+              'text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary',
               'focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500',
               'transition-all duration-200',
             )}
@@ -986,13 +993,13 @@ export function EventLogsTab() {
             className={classNames(
               'flex flex-col items-center justify-center gap-4',
               'rounded-lg p-8 text-center',
-              'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-              'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+              'bg-bolt-elements-background-depth-2',
+              'border border-bolt-elements-borderColor',
             )}
           >
             <span className="i-ph:clipboard-text text-4xl text-gray-400 dark:text-gray-600" />
             <div className="flex flex-col gap-1">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white">No Logs Found</h3>
+              <h3 className="text-sm font-medium text-bolt-elements-textPrimary">No Logs Found</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">Try adjusting your search or filters</p>
             </div>
           </motion.div>

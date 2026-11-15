@@ -1,5 +1,5 @@
+import { motion, type MotionProps } from 'framer-motion';
 import React from 'react';
-import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
 
 // Predefined gradient colors
@@ -56,14 +56,14 @@ export function GradientCard({
 
   // Animation variants for hover effect
   const hoverAnimation = hoverEffect
-    ? {
+    ? ({
         whileHover: {
           scale: 1.02,
           y: -2,
           transition: { type: 'spring', stiffness: 400, damping: 17 },
         },
         whileTap: { scale: 0.98 },
-      }
+      } satisfies MotionProps)
     : undefined;
 
   return (

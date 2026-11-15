@@ -1,8 +1,8 @@
+import { createOpenAI } from '@ai-sdk/openai';
+import type { LanguageModel } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
 
 export default class XAIProvider extends BaseProvider {
   name = 'xAI';
@@ -13,9 +13,31 @@ export default class XAIProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
-    { name: 'grok-3-beta', label: 'xAI Grok 3 Beta', provider: 'xAI', maxTokenAllowed: 8000 },
-    { name: 'grok-beta', label: 'xAI Grok Beta', provider: 'xAI', maxTokenAllowed: 8000 },
-    { name: 'grok-2-1212', label: 'xAI Grok2 1212', provider: 'xAI', maxTokenAllowed: 8000 },
+    {
+      name: 'grok-4.3',
+      label: 'xAI Grok 4.3',
+      provider: 'xAI',
+      maxTokenAllowed: 256000,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'grok-build-0.1',
+      label: 'xAI Grok Build 0.1',
+      provider: 'xAI',
+      maxTokenAllowed: 256000,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'grok-code-fast-1',
+      label: 'xAI Grok Code Fast 1',
+      provider: 'xAI',
+      maxTokenAllowed: 131000,
+      maxCompletionTokens: 32768,
+    },
+    { name: 'grok-4', label: 'xAI Grok 4', provider: 'xAI', maxTokenAllowed: 256000 },
+    { name: 'grok-4-07-09', label: 'xAI Grok 4 (07-09)', provider: 'xAI', maxTokenAllowed: 256000 },
+    { name: 'grok-3-mini', label: 'xAI Grok 3 Mini', provider: 'xAI', maxTokenAllowed: 131000 },
+    { name: 'grok-3-mini-fast', label: 'xAI Grok 3 Mini Fast', provider: 'xAI', maxTokenAllowed: 131000 },
   ];
 
   getModelInstance(options: {
@@ -23,7 +45,7 @@ export default class XAIProvider extends BaseProvider {
     serverEnv: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }): LanguageModelV1 {
+  }): LanguageModel {
     const { model, serverEnv, apiKeys, providerSettings } = options;
 
     const { apiKey } = this.getProviderBaseUrlAndKey({
@@ -43,6 +65,10 @@ export default class XAIProvider extends BaseProvider {
       apiKey,
     });
 
-    return openai(model);
+    if ((model === 'grok-4.3' || model.startsWith('grok-build-')) && typeof (openai as any).responses === 'function') {
+      return (openai as any).responses(model);
+    }
+
+    return openai.chat(model);
   }
 }

@@ -74,6 +74,8 @@ export interface NetlifyStats {
   deploys?: NetlifyDeploy[];
   builds?: NetlifyBuild[];
   lastDeployTime?: string;
+  totalDeploys?: number;
+  totalBuilds?: number;
 }
 
 export interface NetlifyConnection {

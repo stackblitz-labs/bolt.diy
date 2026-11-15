@@ -1,7 +1,7 @@
+import Cookies from 'js-cookie';
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
 import type { ProviderInfo } from '~/types/model';
-import Cookies from 'js-cookie';
 
 interface APIKeyManagerProps {
   provider: ProviderInfo;
@@ -18,6 +18,7 @@ const apiKeyMemoizeCache: { [k: string]: Record<string, string> } = {};
 
 export function getApiKeysFromCookies() {
   const storedApiKeys = Cookies.get('apiKeys');
+
   let parsedKeys: Record<string, string> = {};
 
   if (storedApiKeys) {

@@ -31,3 +31,7 @@ $zIndexMax: 999;
 .z-max {
   z-index: $zIndexMax;
 }
+
+.z-toast {
+  z-index: $zIndexMax + 1;
+}

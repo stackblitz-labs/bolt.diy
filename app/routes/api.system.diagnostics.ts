@@ -1,4 +1,4 @@
-import { json, type LoaderFunction, type LoaderFunctionArgs } from '@remix-run/cloudflare';
+import type { LoaderFunction, LoaderFunctionArgs } from 'react-router';
 
 /**
  * Diagnostic API for troubleshooting connection issues
@@ -21,6 +21,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
   // Check cookies
   const cookieHeader = request.headers.get('Cookie') || '';
+
   const cookies = cookieHeader.split(';').reduce(
     (acc, cookie) => {
       const [key, value] = cookie.trim().split('=');
@@ -117,7 +118,7 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
   };
 
   // Return diagnostics
-  return json(
+  return Response.json(
     {
       status: 'success',
       environment: envVars,

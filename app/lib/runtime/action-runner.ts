@@ -1,11 +1,11 @@
 import type { WebContainer } from '@webcontainer/api';
-import { path as nodePath } from '~/utils/path';
 import { atom, map, type MapStore } from 'nanostores';
+import type { ActionCallbackData } from './message-parser';
 import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
-import { unreachable } from '~/utils/unreachable';
-import type { ActionCallbackData } from './message-parser';
+import { path as nodePath } from '~/utils/path';
 import type { BoltShell } from '~/utils/shell';
+import { unreachable } from '~/utils/unreachable';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -29,8 +29,7 @@ export type ActionState = BaseActionState | FailedActionState;
 type BaseActionUpdate = Partial<Pick<BaseActionState, 'status' | 'abort' | 'executed'>>;
 
 export type ActionStateUpdate =
-  | BaseActionUpdate
-  | (Omit<BaseActionUpdate, 'status'> & { status: 'failed'; error: string });
+  BaseActionUpdate | (Omit<BaseActionUpdate, 'status'> & { status: 'failed'; error: string });
 
 type ActionsMap = MapStore<Record<string, ActionState>>;
 
@@ -113,8 +112,21 @@ export class ActionRunner {
     });
 
     this.#currentExecutionPromise.then(() => {
-      this.#updateAction(actionId, { status: 'running' });
+      if (!abortController.signal.aborted) {
+        this.#updateAction(actionId, { status: 'running' });
+      }
     });
+  }
+
+  abortAllActions() {
+    const actions = this.actions.get();
+
+    for (const [actionId, action] of Object.entries(actions)) {
+      if (action.status === 'pending' || action.status === 'running') {
+        logger.debug(`[${action.type}]: Aborting action ${actionId}`);
+        action.abort();
+      }
+    }
   }
 
   async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
@@ -125,7 +137,7 @@ export class ActionRunner {
       unreachable(`Action ${actionId} not found`);
     }
 
-    if (action.executed) {
+    if (action.executed || action.abortSignal.aborted || action.status === 'aborted') {
       return; // No return value here
     }
 
@@ -140,7 +152,7 @@ export class ActionRunner {
         return this.#executeAction(actionId, isStreaming);
       })
       .catch((error) => {
-        console.error('Action failed:', error);
+        logger.error('Action execution promise failed:', error);
       });
 
     await this.#currentExecutionPromise;
@@ -150,6 +162,10 @@ export class ActionRunner {
 
   async #executeAction(actionId: string, isStreaming: boolean = false) {
     const action = this.actions.get()[actionId];
+
+    if (action.abortSignal.aborted) {
+      return;
+    }
 
     this.#updateAction(actionId, { status: 'running' });
 
@@ -189,7 +205,11 @@ export class ActionRunner {
           // making the start app non blocking
 
           this.#runStartAction(action)
-            .then(() => this.#updateAction(actionId, { status: 'complete' }))
+            .then(() => {
+              if (!action.abortSignal.aborted) {
+                this.#updateAction(actionId, { status: 'complete' });
+              }
+            })
             .catch((err: Error) => {
               if (action.abortSignal.aborted) {
                 return;
@@ -259,14 +279,32 @@ export class ActionRunner {
       unreachable('Shell terminal not found');
     }
 
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
-      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
-      action.abort();
-    });
+    // Pre-validate command for common issues
+    const validationResult = await this.#validateShellCommand(action.content);
+
+    if (validationResult.shouldModify && validationResult.modifiedCommand) {
+      logger.debug(`Modified command: ${action.content} -> ${validationResult.modifiedCommand}`);
+      action.content = validationResult.modifiedCommand;
+    }
+
+    if (action.abortSignal.aborted) {
+      return;
+    }
+
+    const resp = await shell.executeCommand(
+      this.runnerId.get(),
+      action.content,
+      () => {
+        logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
+        action.abort();
+      },
+      action.abortSignal,
+    );
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
     if (resp?.exitCode != 0) {
-      throw new ActionCommandError(`Failed To Execute Shell Command`, resp?.output || 'No Output Available');
+      const enhancedError = this.#createEnhancedShellError(action.content, resp?.exitCode, resp?.output);
+      throw new ActionCommandError(enhancedError.title, enhancedError.details);
     }
   }
 
@@ -282,14 +320,23 @@ export class ActionRunner {
     const shell = this.#shellTerminal();
     await shell.ready();
 
+    if (action.abortSignal.aborted) {
+      return undefined;
+    }
+
     if (!shell || !shell.terminal || !shell.process) {
       unreachable('Shell terminal not found');
     }
 
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
-      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
-      action.abort();
-    });
+    const resp = await shell.executeCommand(
+      this.runnerId.get(),
+      action.content,
+      () => {
+        logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
+        action.abort();
+      },
+      action.abortSignal,
+    );
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
     if (resp?.exitCode != 0) {
@@ -304,8 +351,30 @@ export class ActionRunner {
       unreachable('Expected file action');
     }
 
+    /*
+     * The parser tolerates `<boltAction type="file">` without a `filePath` so the
+     * model's text is not swallowed, but there is nothing to write in that case.
+     * Failing explicitly keeps this out of `nodePath.relative`, which would throw a
+     * bare TypeError on `undefined`.
+     */
+    if (!action.filePath) {
+      throw new Error('Cannot write file: the action has no filePath');
+    }
+
     const webcontainer = await this.#webcontainer;
-    const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
+
+    const relativePath = nodePath.isAbsolute(action.filePath)
+      ? nodePath.relative(webcontainer.workdir, action.filePath)
+      : nodePath.normalize(action.filePath);
+
+    if (
+      relativePath === '.' ||
+      relativePath === '..' ||
+      relativePath.startsWith('../') ||
+      nodePath.isAbsolute(relativePath)
+    ) {
+      throw new Error(`Cannot write file outside the project directory: ${action.filePath}`);
+    }
 
     let folder = nodePath.dirname(relativePath);
 
@@ -318,6 +387,7 @@ export class ActionRunner {
         logger.debug('Created folder', folder);
       } catch (error) {
         logger.error('Failed to create folder\n\n', error);
+        throw error;
       }
     }
 
@@ -326,6 +396,7 @@ export class ActionRunner {
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
+      throw error;
     }
   }
 
@@ -386,7 +457,8 @@ export class ActionRunner {
     const buildProcess = await webcontainer.spawn('npm', ['run', 'build']);
 
     let output = '';
-    buildProcess.output.pipeTo(
+
+    const outputPromise = buildProcess.output.pipeTo(
       new WritableStream({
         write(data) {
           output += data;
@@ -395,8 +467,21 @@ export class ActionRunner {
     );
 
     const exitCode = await buildProcess.exit;
+    await outputPromise.catch(() => {
+      // Ignore output piping errors; we still have whatever was captured
+    });
+
+    let buildDir = '';
 
     if (exitCode !== 0) {
+      const buildResult = {
+        path: buildDir,
+        exitCode,
+        output,
+      };
+
+      this.buildOutput = buildResult;
+
       // Trigger build failed alert
       this.onDeployAlert?.({
         type: 'error',
@@ -426,8 +511,6 @@ export class ActionRunner {
     // Check for common build directories
     const commonBuildDirs = ['dist', 'build', 'out', 'output', '.next', 'public'];
 
-    let buildDir = '';
-
     // Try to find the first existing build directory
     for (const dir of commonBuildDirs) {
       const dirPath = nodePath.join(webcontainer.workdir, dir);
@@ -435,25 +518,26 @@ export class ActionRunner {
       try {
         await webcontainer.fs.readdir(dirPath);
         buildDir = dirPath;
-        logger.debug(`Found build directory: ${buildDir}`);
         break;
-      } catch (error) {
-        // Directory doesn't exist, try the next one
-        logger.debug(`Build directory ${dir} not found, trying next option. ${error}`);
+      } catch {
+        continue;
       }
     }
 
     // If no build directory was found, use the default (dist)
     if (!buildDir) {
       buildDir = nodePath.join(webcontainer.workdir, 'dist');
-      logger.debug(`No build directory found, defaulting to: ${buildDir}`);
     }
 
-    return {
+    const buildResult = {
       path: buildDir,
       exitCode,
       output,
     };
+
+    this.buildOutput = buildResult;
+
+    return buildResult;
   }
   async handleSupabaseAction(action: SupabaseAction) {
     const { operation, content, filePath } = action;
@@ -509,7 +593,7 @@ export class ActionRunner {
     details?: {
       url?: string;
       error?: string;
-      source?: 'netlify' | 'vercel' | 'github';
+      source?: 'netlify' | 'vercel' | 'github' | 'gitlab';
     },
   ): void {
     if (!this.onDeployAlert) {
@@ -551,5 +635,189 @@ export class ActionRunner {
       deployStatus: deployStatus as any,
       source: details?.source || 'netlify',
     });
+  }
+
+  async #validateShellCommand(command: string): Promise<{
+    shouldModify: boolean;
+    modifiedCommand?: string;
+    warning?: string;
+  }> {
+    const trimmedCommand = command.trim();
+
+    // Handle rm commands that might fail due to missing files
+    if (trimmedCommand.startsWith('rm ') && !trimmedCommand.includes(' -f')) {
+      const rmMatch = trimmedCommand.match(/^rm\s+(.+)$/);
+
+      if (rmMatch) {
+        const filePaths = rmMatch[1].split(/\s+/);
+
+        // Check if any of the files exist using WebContainer
+        try {
+          const webcontainer = await this.#webcontainer;
+          const existingFiles = [];
+
+          for (const filePath of filePaths) {
+            if (filePath.startsWith('-')) {
+              continue;
+            } // Skip flags
+
+            try {
+              await webcontainer.fs.readFile(filePath);
+              existingFiles.push(filePath);
+            } catch {
+              // File doesn't exist, skip it
+            }
+          }
+
+          if (existingFiles.length === 0) {
+            // No files exist, modify command to use -f flag to avoid error
+            return {
+              shouldModify: true,
+              modifiedCommand: `rm -f ${filePaths.join(' ')}`,
+              warning: 'Added -f flag to rm command as target files do not exist',
+            };
+          } else if (existingFiles.length < filePaths.length) {
+            // Some files don't exist, modify to only remove existing ones with -f for safety
+            return {
+              shouldModify: true,
+              modifiedCommand: `rm -f ${filePaths.join(' ')}`,
+              warning: 'Added -f flag to rm command as some target files do not exist',
+            };
+          }
+        } catch (error) {
+          logger.debug('Could not validate rm command files:', error);
+        }
+      }
+    }
+
+    // Handle cd commands to non-existent directories
+    if (trimmedCommand.startsWith('cd ')) {
+      const cdMatch = trimmedCommand.match(/^cd\s+(.+)$/);
+
+      if (cdMatch) {
+        const targetDir = cdMatch[1].trim();
+
+        try {
+          const webcontainer = await this.#webcontainer;
+          await webcontainer.fs.readdir(targetDir);
+        } catch {
+          return {
+            shouldModify: true,
+            modifiedCommand: `mkdir -p ${targetDir} && cd ${targetDir}`,
+            warning: 'Directory does not exist, created it first',
+          };
+        }
+      }
+    }
+
+    // Handle cp/mv commands with missing source files
+    if (trimmedCommand.match(/^(cp|mv)\s+/)) {
+      const parts = trimmedCommand.split(/\s+/);
+
+      if (parts.length >= 3) {
+        const sourceFile = parts[1];
+
+        try {
+          const webcontainer = await this.#webcontainer;
+          await webcontainer.fs.readFile(sourceFile);
+        } catch {
+          return {
+            shouldModify: false,
+            warning: `Source file '${sourceFile}' does not exist`,
+          };
+        }
+      }
+    }
+
+    return { shouldModify: false };
+  }
+
+  #createEnhancedShellError(
+    command: string,
+    exitCode: number | undefined,
+    output: string | undefined,
+  ): {
+    title: string;
+    details: string;
+  } {
+    const trimmedCommand = command.trim();
+    const firstWord = trimmedCommand.split(/\s+/)[0];
+
+    // Common error patterns and their explanations
+    const errorPatterns = [
+      {
+        pattern: /cannot remove.*No such file or directory/,
+        title: 'File Not Found',
+        getMessage: () => {
+          const fileMatch = output?.match(/'([^']+)'/);
+          const fileName = fileMatch ? fileMatch[1] : 'file';
+
+          return `The file '${fileName}' does not exist and cannot be removed.\n\nSuggestion: Use 'ls' to check what files exist, or use 'rm -f' to ignore missing files.`;
+        },
+      },
+      {
+        pattern: /No such file or directory/,
+        title: 'File or Directory Not Found',
+        getMessage: () => {
+          if (trimmedCommand.startsWith('cd ')) {
+            const dirMatch = trimmedCommand.match(/cd\s+(.+)/);
+            const dirName = dirMatch ? dirMatch[1] : 'directory';
+
+            return `The directory '${dirName}' does not exist.\n\nSuggestion: Use 'mkdir -p ${dirName}' to create it first, or check available directories with 'ls'.`;
+          }
+
+          return `The specified file or directory does not exist.\n\nSuggestion: Check the path and use 'ls' to see available files.`;
+        },
+      },
+      {
+        pattern: /Permission denied/,
+        title: 'Permission Denied',
+        getMessage: () =>
+          `Permission denied for '${firstWord}'.\n\nSuggestion: The file may not be executable. Try 'chmod +x filename' first.`,
+      },
+      {
+        pattern: /command not found/,
+        title: 'Command Not Found',
+        getMessage: () =>
+          `The command '${firstWord}' is not available in WebContainer.\n\nSuggestion: Check available commands or use a package manager to install it.`,
+      },
+      {
+        pattern: /Is a directory/,
+        title: 'Target is a Directory',
+        getMessage: () =>
+          `Cannot perform this operation - target is a directory.\n\nSuggestion: Use 'ls' to list directory contents or add appropriate flags.`,
+      },
+      {
+        pattern: /File exists/,
+        title: 'File Already Exists',
+        getMessage: () => `File already exists.\n\nSuggestion: Use a different name or add '-f' flag to overwrite.`,
+      },
+    ];
+
+    // Try to match known error patterns
+    for (const errorPattern of errorPatterns) {
+      if (output && errorPattern.pattern.test(output)) {
+        return {
+          title: errorPattern.title,
+          details: errorPattern.getMessage(),
+        };
+      }
+    }
+
+    // Generic error with suggestions based on command type
+    let suggestion = '';
+
+    if (trimmedCommand.startsWith('npm ')) {
+      suggestion = '\n\nSuggestion: Try running "npm install" first or check package.json.';
+    } else if (trimmedCommand.startsWith('git ')) {
+      suggestion = "\n\nSuggestion: Check if you're in a git repository or if remote is configured.";
+    } else if (trimmedCommand.match(/^(ls|cat|rm|cp|mv)/)) {
+      suggestion = '\n\nSuggestion: Check file paths and use "ls" to see available files.';
+    }
+
+    return {
+      title: `Command Failed (exit code: ${exitCode})`,
+      details: `Command: ${trimmedCommand}\n\nOutput: ${output || 'No output available'}${suggestion}`,
+    };
   }
 }

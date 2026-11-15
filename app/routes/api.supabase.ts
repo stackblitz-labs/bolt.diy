@@ -1,9 +1,9 @@
-import { json, type ActionFunction } from '@remix-run/cloudflare';
+import type { ActionFunction } from 'react-router';
 import type { SupabaseProject } from '~/types/supabase';
 
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   try {
@@ -20,7 +20,7 @@ export const action: ActionFunction = async ({ request }) => {
       const errorText = await projectsResponse.text();
       console.error('Projects fetch failed:', errorText);
 
-      return json({ error: 'Failed to fetch projects' }, { status: 401 });
+      return Response.json({ error: 'Failed to fetch projects' }, { status: 401 });
     }
 
     const projects = (await projectsResponse.json()) as SupabaseProject[];
@@ -37,7 +37,7 @@ export const action: ActionFunction = async ({ request }) => {
 
     uniqueProjects.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    return json({
+    return Response.json({
       user: { email: 'Connected', role: 'Admin' },
       stats: {
         projects: uniqueProjects,
@@ -46,7 +46,7 @@ export const action: ActionFunction = async ({ request }) => {
     });
   } catch (error) {
     console.error('Supabase API error:', error);
-    return json(
+    return Response.json(
       {
         error: error instanceof Error ? error.message : 'Authentication failed',
       },

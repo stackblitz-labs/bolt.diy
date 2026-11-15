@@ -1,13 +1,14 @@
+/*
+ * This store runs in the browser, where Vite externalizes `node:buffer` and throws
+ * "Module 'node:buffer' has been externalized for browser compatibility". The bare
+ * `buffer` specifier is aliased to an ESM shim for the client environment in
+ * vite.config.ts, so it must not use the `node:` protocol here.
+ */
+// eslint-disable-next-line unicorn/prefer-node-protocol
+import { Buffer } from 'buffer';
 import type { PathWatcherEvent, WebContainer } from '@webcontainer/api';
 import { getEncoding } from 'istextorbinary';
 import { map, type MapStore } from 'nanostores';
-import { Buffer } from 'node:buffer';
-import { path } from '~/utils/path';
-import { bufferWatchEvents } from '~/utils/buffer';
-import { WORK_DIR } from '~/utils/constants';
-import { computeFileModifications } from '~/utils/diff';
-import { createScopedLogger } from '~/utils/logger';
-import { unreachable } from '~/utils/unreachable';
 import {
   addLockedFile,
   removeLockedFile,
@@ -19,8 +20,15 @@ import {
   isPathInLockedFolder,
   migrateLegacyLocks,
   clearCache,
+  clearAllLocksForChat,
 } from '~/lib/persistence/lockedFiles';
+import { bufferWatchEvents } from '~/utils/buffer';
+import { WORK_DIR } from '~/utils/constants';
+import { computeFileModifications } from '~/utils/diff';
 import { getCurrentChatId } from '~/utils/fileLocks';
+import { createScopedLogger } from '~/utils/logger';
+import { path } from '~/utils/path';
+import { unreachable } from '~/utils/unreachable';
 
 const logger = createScopedLogger('FilesStore');
 
@@ -492,6 +500,47 @@ export class FilesStore {
     return { isLocked: false };
   }
 
+  /**
+   * Clear all locks for the current chat
+   * @param chatId Optional chat ID (defaults to current chat)
+   */
+  clearAllLocksForCurrentChat(chatId?: string): void {
+    const currentChatId = chatId || getCurrentChatId();
+    const currentFiles = this.files.get();
+    const updates: FileMap = {};
+
+    // Clear all isLocked flags in memory
+    for (const [path, dirent] of Object.entries(currentFiles)) {
+      if (dirent && 'isLocked' in dirent && dirent.isLocked) {
+        if (dirent.type === 'file') {
+          updates[path] = {
+            ...dirent,
+            isLocked: false,
+            lockedByFolder: undefined,
+          };
+        } else if (dirent.type === 'folder') {
+          updates[path] = {
+            type: dirent.type,
+            isLocked: false,
+          };
+        }
+      }
+    }
+
+    // Apply updates to the store
+    if (Object.keys(updates).length > 0) {
+      this.files.set({
+        ...currentFiles,
+        ...updates,
+      });
+    }
+
+    // Clear from localStorage
+    clearAllLocksForChat(currentChatId);
+
+    logger.info(`Cleared all locks for chat: ${currentChatId}`);
+  }
+
   getFile(filePath: string) {
     const dirent = this.files.get()[filePath];
 
@@ -547,6 +596,32 @@ export class FilesStore {
     this.#modifiedFiles.clear();
   }
 
+  /**
+   * Empties the store and the container's working directory.
+   *
+   * The file map is only a mirror of the container, so the two have to be
+   * cleared together. A map that stopped listing the outgoing project's files
+   * while those files were still on disk would keep serving them from the
+   * preview and fold them into the incoming chat's snapshot.
+   */
+  async reset() {
+    this.files.set({});
+    this.#size = 0;
+    this.#modifiedFiles.clear();
+    this.#deletedPaths.clear();
+    this.#persistDeletedPaths();
+
+    const container = await this.#webcontainer;
+
+    try {
+      for (const entry of await container.fs.readdir('.')) {
+        await container.fs.rm(entry, { recursive: true });
+      }
+    } catch (error) {
+      logger.error('Failed to empty the working directory', error);
+    }
+  }
+
   async saveFile(filePath: string, content: string) {
     const webcontainer = await this.#webcontainer;
 
@@ -561,6 +636,12 @@ export class FilesStore {
 
       if (!oldContent && oldContent !== '') {
         unreachable('Expected content to be defined');
+      }
+
+      const parentPath = path.dirname(relativePath);
+
+      if (parentPath !== '.') {
+        await webcontainer.fs.mkdir(parentPath, { recursive: true });
       }
 
       await webcontainer.fs.writeFile(relativePath, content);
@@ -597,7 +678,11 @@ export class FilesStore {
 
     // Set up file watcher
     webcontainer.internal.watchPaths(
-      { include: [`${WORK_DIR}/**`], exclude: ['**/node_modules', '.git'], includeContent: true },
+      {
+        include: [`${WORK_DIR}/**`],
+        exclude: ['**/node_modules', '.git', '**/package-lock.json'],
+        includeContent: true,
+      },
       bufferWatchEvents(100, this.#processEventBuffer.bind(this)),
     );
 
@@ -692,27 +777,9 @@ export class FilesStore {
   #processEventBuffer(events: Array<[events: PathWatcherEvent[]]>) {
     const watchEvents = events.flat(2);
 
-    for (const { type, path: eventPath, buffer } of watchEvents) {
+    for (const { type, path, buffer } of watchEvents) {
       // remove any trailing slashes
-      const sanitizedPath = eventPath.replace(/\/+$/g, '');
-
-      // Skip processing if this file/folder was explicitly deleted
-      if (this.#deletedPaths.has(sanitizedPath)) {
-        continue;
-      }
-
-      let isInDeletedFolder = false;
-
-      for (const deletedPath of this.#deletedPaths) {
-        if (sanitizedPath.startsWith(deletedPath + '/')) {
-          isInDeletedFolder = true;
-          break;
-        }
-      }
-
-      if (isInDeletedFolder) {
-        continue;
-      }
+      const sanitizedPath = path.replace(/\/+$/g, '');
 
       switch (type) {
         case 'add_dir': {
@@ -738,42 +805,26 @@ export class FilesStore {
           }
 
           let content = '';
+
+          /**
+           * @note This check is purely for the editor. The way we detect this is not
+           * bullet-proof and it's a best guess so there might be false-positives.
+           * The reason we do this is because we don't want to display binary files
+           * in the editor nor allow to edit them.
+           */
           const isBinary = isBinaryFile(buffer);
 
-          if (isBinary && buffer) {
-            // For binary files, we need to preserve the content as base64
-            content = Buffer.from(buffer).toString('base64');
-          } else if (!isBinary) {
+          if (!isBinary) {
             content = this.#decodeFileContent(buffer);
-
-            /*
-             * If the content is a single space and this is from our empty file workaround,
-             * convert it back to an actual empty string
-             */
-            if (content === ' ' && type === 'add_file') {
-              content = '';
-            }
           }
 
-          const existingFile = this.files.get()[sanitizedPath];
+          this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
 
-          if (existingFile?.type === 'file' && existingFile.isBinary && existingFile.content && !content) {
-            content = existingFile.content;
-          }
-
-          // Preserve lock state if the file already exists
-          const isLocked = existingFile?.type === 'file' ? existingFile.isLocked : false;
-
-          this.files.setKey(sanitizedPath, {
-            type: 'file',
-            content,
-            isBinary,
-            isLocked,
-          });
           break;
         }
         case 'remove_file': {
-          this.#size--;
+          // Clamped: emptying the working directory removes files the map no longer tracks.
+          this.#size = Math.max(0, this.#size - 1);
           this.files.setKey(sanitizedPath, undefined);
           break;
         }
@@ -829,8 +880,7 @@ export class FilesStore {
 
         this.#modifiedFiles.set(filePath, base64Content);
       } else {
-        const contentToWrite = (content as string).length === 0 ? ' ' : content;
-        await webcontainer.fs.writeFile(relativePath, contentToWrite);
+        await webcontainer.fs.writeFile(relativePath, content as string);
 
         this.files.setKey(filePath, {
           type: 'file',

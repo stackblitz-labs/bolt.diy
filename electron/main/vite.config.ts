@@ -2,6 +2,7 @@ import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  publicDir: false,
   build: {
     lib: {
       entry: resolve('electron/main/index.ts'),
@@ -27,7 +28,8 @@ export default defineConfig({
         'node:stream',
         'node:events',
         'electron-store',
-        '@remix-run/node',
+        '@react-router/node',
+        'react-router',
 
         // "mime", // NOTE: don't enable. not working if it's external.
         'electron-updater',

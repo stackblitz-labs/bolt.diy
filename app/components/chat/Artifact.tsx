@@ -1,40 +1,54 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { computed } from 'nanostores';
+import { computed, map } from 'nanostores';
 import { memo, useEffect, useRef, useState } from 'react';
-import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
+import { createHighlighter, type Highlighter } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
-import { cubicEasingFn } from '~/utils/easings';
 import { WORK_DIR } from '~/utils/constants';
+import { cubicEasingFn } from '~/utils/easings';
 
 const highlighterOptions = {
   langs: ['shell'],
   themes: ['light-plus', 'dark-plus'],
 };
 
-const shellHighlighter: HighlighterGeneric<BundledLanguage, BundledTheme> =
-  import.meta.hot?.data.shellHighlighter ?? (await createHighlighter(highlighterOptions));
+/*
+ * `import.meta.hot` can be present without `data` outside a Vite dev server, so
+ * the optional chain has to cover `data` too.
+ */
+const shellHighlighter: Highlighter =
+  import.meta.hot?.data?.shellHighlighter ?? (await createHighlighter(highlighterOptions));
 
-if (import.meta.hot) {
+if (import.meta.hot?.data) {
   import.meta.hot.data.shellHighlighter = shellHighlighter;
 }
 
 interface ArtifactProps {
   messageId: string;
+  artifactId: string;
 }
 
-export const Artifact = memo(({ messageId }: ArtifactProps) => {
+const EMPTY_ACTIONS_STORE = map<Record<string, ActionState>>({});
+
+export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const userToggledActions = useRef(false);
   const [showActions, setShowActions] = useState(false);
-  const [allActionFinished, setAllActionFinished] = useState(false);
 
   const artifacts = useStore(workbenchStore.artifacts);
-  const artifact = artifacts[messageId];
+  const artifact = artifacts[artifactId];
+
+  /*
+   * `artifactId` comes from the rendered message text, while the artifacts map
+   * is filled by a parse pass that runs after render. The two are therefore out
+   * of step for a render or two whenever the workbench is emptied, e.g. when
+   * another chat is opened. Nothing to draw until the entry comes back.
+   */
+  const actionStates = artifact ? artifact.runner.actions : EMPTY_ACTIONS_STORE;
 
   const actions = useStore(
-    computed(artifact.runner.actions, (actions) => {
+    computed(actionStates, (actions) => {
       // Filter out Supabase actions except for migrations
       return Object.values(actions).filter((action) => {
         // Exclude actions with type 'supabase' or actions that contain 'supabase' in their content
@@ -52,29 +66,50 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
     if (actions.length && !showActions && !userToggledActions.current) {
       setShowActions(true);
     }
+  }, [actions, artifact?.type, showActions]);
 
-    if (actions.length !== 0 && artifact.type === 'bundled') {
-      const finished = !actions.find(
-        (action) => action.status !== 'complete' && !(action.type === 'start' && action.status === 'running'),
-      );
+  if (!artifact) {
+    return null;
+  }
 
-      if (allActionFinished !== finished) {
-        setAllActionFinished(finished);
-      }
-    }
-  }, [actions, artifact.type, allActionFinished]);
+  const failed = actions.some((action) => action.status === 'failed');
+  const interrupted = actions.some((action) => action.status === 'aborted');
+  const emptySetup = artifact.closed && actions.length === 0;
 
-  // Determine the dynamic title based on state for bundled artifacts
-  const dynamicTitle =
-    artifact?.type === 'bundled'
-      ? allActionFinished
-        ? artifact.id === 'restored-project-setup'
-          ? 'Project Restored' // Title when restore is complete
-          : 'Project Created' // Title when initial creation is complete
-        : artifact.id === 'restored-project-setup'
-          ? 'Restoring Project...' // Title during restore
-          : 'Creating Project...' // Title during initial creation
-      : artifact?.title; // Fallback to original title for non-bundled or if artifact is missing
+  const allActionFinished =
+    actions.length > 0 &&
+    actions.every((action) => action.status === 'complete' || (action.type === 'start' && action.status === 'running'));
+  const setupStatus = failed
+    ? 'failed'
+    : interrupted || emptySetup
+      ? 'aborted'
+      : allActionFinished
+        ? 'complete'
+        : 'running';
+
+  const restored = artifact.id === 'restored-project-setup';
+
+  // Render terminal states for empty, failed, and cancelled setup artifacts.
+  const setupTitles = {
+    failed: restored ? 'Project Restore Failed' : 'Project Setup Failed',
+    aborted: restored ? 'Project Restore Incomplete' : 'Project Setup Incomplete',
+    complete: restored ? 'Project Restored' : 'Project Created',
+    running: restored ? 'Restoring Project...' : 'Creating Project...',
+  };
+
+  const dynamicTitle = artifact.type === 'bundled' ? setupTitles[setupStatus] : artifact.title;
+
+  const setupDescription = failed
+    ? 'One or more setup actions failed.'
+    : interrupted
+      ? 'Project setup was interrupted.'
+      : emptySetup
+        ? 'No setup actions were generated.'
+        : allActionFinished
+          ? restored
+            ? 'Restore files from snapshot'
+            : 'Initial files created'
+          : 'Creating initial files';
 
   return (
     <>
@@ -117,21 +152,16 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
         </div>
         {artifact.type === 'bundled' && (
           <div className="flex items-center gap-1.5 p-5 bg-bolt-elements-actions-background border-t border-bolt-elements-artifacts-borderColor">
-            <div className={classNames('text-lg', getIconColor(allActionFinished ? 'complete' : 'running'))}>
-              {allActionFinished ? (
+            <div className={classNames('text-lg', getIconColor(setupStatus))}>
+              {setupStatus === 'complete' ? (
                 <div className="i-ph:check"></div>
+              ) : setupStatus !== 'running' ? (
+                <div className="i-ph:warning-circle"></div>
               ) : (
                 <div className="i-svg-spinners:90-ring-with-bg"></div>
               )}
             </div>
-            <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">
-              {/* This status text remains the same */}
-              {allActionFinished
-                ? artifact.id === 'restored-project-setup'
-                  ? 'Restore files from snapshot'
-                  : 'Initial files created'
-                : 'Creating initial files'}
-            </div>
+            <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">{setupDescription}</div>
           </div>
         )}
         <AnimatePresence>
@@ -184,7 +214,7 @@ const actionVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-function openArtifactInWorkbench(filePath: any) {
+export function openArtifactInWorkbench(filePath: any) {
   if (workbenchStore.currentView.get() !== 'code') {
     workbenchStore.currentView.set('code');
   }

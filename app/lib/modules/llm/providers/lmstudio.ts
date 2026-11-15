@@ -1,8 +1,8 @@
+import { createOpenAI } from '@ai-sdk/openai';
+import type { LanguageModel } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import { createOpenAI } from '@ai-sdk/openai';
-import type { LanguageModelV1 } from 'ai';
 import { logger } from '~/utils/logger';
 
 export default class LMStudioProvider extends BaseProvider {
@@ -18,11 +18,11 @@ export default class LMStudioProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [];
 
-  async getDynamicModels(
+  private _resolveBaseUrl(
     apiKeys?: Record<string, string>,
     settings?: IProviderSetting,
-    serverEnv: Record<string, string> = {},
-  ): Promise<ModelInfo[]> {
+    serverEnv?: Record<string, string>,
+  ): string {
     let { baseUrl } = this.getProviderBaseUrlAndKey({
       apiKeys,
       providerSettings: settings,
@@ -35,52 +35,64 @@ export default class LMStudioProvider extends BaseProvider {
       throw new Error('No baseUrl found for LMStudio provider');
     }
 
-    if (typeof window === 'undefined') {
-      /*
-       * Running in Server
-       * Backend: Check if we're running in Docker
-       */
-      const isDocker = process?.env?.RUNNING_IN_DOCKER === 'true' || serverEnv?.RUNNING_IN_DOCKER === 'true';
+    baseUrl = this.resolveDockerUrl(baseUrl, serverEnv);
 
-      baseUrl = isDocker ? baseUrl.replace('localhost', 'host.docker.internal') : baseUrl;
-      baseUrl = isDocker ? baseUrl.replace('127.0.0.1', 'host.docker.internal') : baseUrl;
-    }
-
-    const response = await fetch(`${baseUrl}/v1/models`);
-    const data = (await response.json()) as { data: Array<{ id: string }> };
-
-    return data.data.map((model) => ({
-      name: model.id,
-      label: model.id,
-      provider: this.name,
-      maxTokenAllowed: 8000,
-    }));
+    return baseUrl;
   }
+
+  async getDynamicModels(
+    apiKeys?: Record<string, string>,
+    settings?: IProviderSetting,
+    serverEnv: Record<string, string> = {},
+  ): Promise<ModelInfo[]> {
+    const baseUrl = this._resolveBaseUrl(apiKeys, settings, serverEnv);
+
+    try {
+      const response = await fetch(`${baseUrl}/v1/models`, {
+        signal: this.createTimeoutSignal(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = (await response.json()) as { data: Array<{ id: string }> };
+
+      return data.data.map((model) => ({
+        name: model.id,
+        label: model.id,
+        provider: this.name,
+        maxTokenAllowed: 8000,
+      }));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'TimeoutError') {
+        logger.warn('LMStudio model fetch timed out — is LM Studio running?');
+
+        return [];
+      }
+
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        logger.warn(`LMStudio not reachable at ${baseUrl} — is LM Studio running?`);
+
+        return [];
+      }
+
+      logger.error('Error fetching LMStudio models:', error);
+
+      return [];
+    }
+  }
+
   getModelInstance: (options: {
     model: string;
     serverEnv?: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }) => LanguageModelV1 = (options) => {
+  }) => LanguageModel = (options) => {
     const { apiKeys, providerSettings, serverEnv, model } = options;
-    let { baseUrl } = this.getProviderBaseUrlAndKey({
-      apiKeys,
-      providerSettings: providerSettings?.[this.name],
-      serverEnv: serverEnv as any,
-      defaultBaseUrlKey: 'LMSTUDIO_API_BASE_URL',
-      defaultApiTokenKey: '',
-    });
+    const envRecord = this.convertEnvToRecord(serverEnv);
 
-    if (!baseUrl) {
-      throw new Error('No baseUrl found for LMStudio provider');
-    }
-
-    const isDocker = process?.env?.RUNNING_IN_DOCKER === 'true' || serverEnv?.RUNNING_IN_DOCKER === 'true';
-
-    if (typeof window === 'undefined') {
-      baseUrl = isDocker ? baseUrl.replace('localhost', 'host.docker.internal') : baseUrl;
-      baseUrl = isDocker ? baseUrl.replace('127.0.0.1', 'host.docker.internal') : baseUrl;
-    }
+    const baseUrl = this._resolveBaseUrl(apiKeys, providerSettings?.[this.name], envRecord);
 
     logger.debug('LMStudio Base Url used: ', baseUrl);
 
@@ -89,6 +101,6 @@ export default class LMStudioProvider extends BaseProvider {
       apiKey: '',
     });
 
-    return lmstudio(model);
+    return lmstudio.chat(model);
   };
 }

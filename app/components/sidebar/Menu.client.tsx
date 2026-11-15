@@ -1,19 +1,28 @@
+import { useStore } from '@nanostores/react';
 import { motion, type Variants } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { ControlPanel } from '~/components/@settings/core/ControlPanel';
-import { SettingsButton } from '~/components/ui/SettingsButton';
-import { Button } from '~/components/ui/Button';
-import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
-import { cubicEasingFn } from '~/utils/easings';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
+
+/*
+ * Lazy-load the heavy ControlPanel (settings UI).  Most users don't open it on
+ * every visit, so keeping it out of the critical-path bundle improves initial
+ * load time.
+ */
+const LazyControlPanel = lazy(() =>
+  import('~/components/@settings/core/ControlPanel').then((m) => ({ default: m.ControlPanel })),
+);
+import { Button } from '~/components/ui/Button';
+import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { DocumentationPanel } from '~/components/ui/DocumentationPanel';
+import { SettingsButton, HelpButton } from '~/components/ui/SettingsButton';
+import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
+import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
+import { DEFAULT_AVATAR, profileStore } from '~/lib/stores/profile';
 import { classNames } from '~/utils/classNames';
-import { useStore } from '@nanostores/react';
-import { profileStore } from '~/lib/stores/profile';
+import { cubicEasingFn } from '~/utils/easings';
 
 const menuVariants = {
   closed: {
@@ -37,9 +46,7 @@ const menuVariants = {
 } satisfies Variants;
 
 type DialogContent =
-  | { type: 'delete'; item: ChatHistoryItem }
-  | { type: 'bulkDelete'; items: ChatHistoryItem[] }
-  | null;
+  { type: 'delete'; item: ChatHistoryItem } | { type: 'bulkDelete'; items: ChatHistoryItem[] } | null;
 
 function CurrentDateTime() {
   const [dateTime, setDateTime] = useState(new Date());
@@ -64,12 +71,14 @@ function CurrentDateTime() {
 }
 
 export const Menu = () => {
-  const { duplicateCurrentChat, exportChat } = useChatHistory();
+  const { duplicateCurrentChat, exportChat } = useChatHistory({ loadHistory: false });
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDocumentationOpen, setIsDocumentationOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<string | undefined>(undefined);
   const profile = useStore(profileStore);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -158,8 +167,10 @@ export const Menu = () => {
       console.log(`Starting bulk delete for ${itemsToDeleteIds.length} chats`, itemsToDeleteIds);
 
       let deletedCount = 0;
+
       const errors: string[] = [];
       const currentChatId = chatId.get();
+
       let shouldNavigate = false;
 
       // Process deletions sequentially using the shared deleteChat logic
@@ -279,8 +290,8 @@ export const Menu = () => {
   }, [open, selectionMode]);
 
   useEffect(() => {
-    const enterThreshold = 40;
-    const exitThreshold = 40;
+    const enterThreshold = 20;
+    const exitThreshold = 20;
 
     function onMouseMove(event: MouseEvent) {
       if (isSettingsOpen) {
@@ -303,6 +314,20 @@ export const Menu = () => {
     };
   }, [isSettingsOpen]);
 
+  useEffect(() => {
+    const handleOpenGitHubSettings = () => {
+      setSettingsInitialTab('github');
+      setIsSettingsOpen(true);
+      setOpen(false);
+    };
+
+    document.addEventListener('open-github-settings', handleOpenGitHubSettings);
+
+    return () => {
+      document.removeEventListener('open-github-settings', handleOpenGitHubSettings);
+    };
+  }, []);
+
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);
     loadEntries(); // Reload the list after duplication
@@ -315,6 +340,7 @@ export const Menu = () => {
 
   const handleSettingsClose = () => {
     setIsSettingsOpen(false);
+    setSettingsInitialTab(undefined);
   };
 
   const setDialogContentWithLogging = useCallback((content: DialogContent) => {
@@ -331,30 +357,27 @@ export const Menu = () => {
         variants={menuVariants}
         style={{ width: '340px' }}
         className={classNames(
-          'flex selection-accent flex-col side-menu fixed top-0 h-full',
-          'bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800/50',
+          'flex selection-accent flex-col side-menu fixed top-0 h-full rounded-r-2xl',
+          'bg-bolt-elements-background-depth-1 border-r border-bolt-elements-borderColor',
           'shadow-sm text-sm',
           isSettingsOpen ? 'z-40' : 'z-sidebar',
         )}
       >
-        <div className="h-12 flex items-center justify-between px-4 border-b border-gray-100 dark:border-gray-800/50 bg-gray-50/50 dark:bg-gray-900/50">
-          <div className="text-gray-900 dark:text-white font-medium"></div>
+        <div className="h-12 flex items-center justify-between px-4 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 rounded-tr-2xl">
+          <div className="text-bolt-elements-textPrimary font-medium"></div>
           <div className="flex items-center gap-3">
-            <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
+            <HelpButton onClick={() => setIsDocumentationOpen(true)} />
+            <span className="font-medium text-sm text-bolt-elements-textPrimary truncate">
               {profile?.username || 'Guest User'}
             </span>
-            <div className="flex items-center justify-center w-[32px] h-[32px] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0">
-              {profile?.avatar ? (
-                <img
-                  src={profile.avatar}
-                  alt={profile?.username || 'User'}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                  decoding="sync"
-                />
-              ) : (
-                <div className="i-ph:user-fill text-lg" />
-              )}
+            <div className="flex items-center justify-center w-[32px] h-[32px] overflow-hidden bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary rounded-full shrink-0">
+              <img
+                src={profile?.avatar || DEFAULT_AVATAR}
+                alt={profile?.username || 'User'}
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="sync"
+              />
             </div>
           </div>
         </div>
@@ -387,7 +410,7 @@ export const Menu = () => {
                 <span className="i-ph:magnifying-glass h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
               <input
-                className="w-full bg-gray-50 dark:bg-gray-900 relative pl-9 pr-3 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-800"
+                className="w-full bg-bolt-elements-background-depth-2 relative pl-9 pr-3 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive/50 text-sm text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary border border-bolt-elements-borderColor"
                 type="search"
                 placeholder="Search chats..."
                 onChange={handleSearchChange}
@@ -413,7 +436,7 @@ export const Menu = () => {
               </div>
             )}
           </div>
-          <div className="flex-1 overflow-auto px-3 pb-3">
+          <div className="flex-1 overflow-auto modern-scrollbar px-3 pb-3">
             {filteredList.length === 0 && (
               <div className="px-4 text-gray-500 dark:text-gray-400 text-sm">
                 {list.length === 0 ? 'No previous conversations' : 'No matches found'}
@@ -422,7 +445,7 @@ export const Menu = () => {
             <DialogRoot open={dialogContent !== null}>
               {binDates(filteredList).map(({ category, items }) => (
                 <div key={category} className="mt-2 first:mt-0 space-y-1">
-                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 sticky top-0 z-1 bg-white dark:bg-gray-950 px-4 py-1">
+                  <div className="text-xs font-medium text-bolt-elements-textTertiary sticky top-0 z-1 bg-bolt-elements-background-depth-1 px-4 py-1">
                     {category}
                   </div>
                   <div className="space-y-0.5 pr-1">
@@ -449,19 +472,19 @@ export const Menu = () => {
               <Dialog onBackdrop={closeDialog} onClose={closeDialog}>
                 {dialogContent?.type === 'delete' && (
                   <>
-                    <div className="p-6 bg-white dark:bg-gray-950">
-                      <DialogTitle className="text-gray-900 dark:text-white">Delete Chat?</DialogTitle>
-                      <DialogDescription className="mt-2 text-gray-600 dark:text-gray-400">
+                    <div className="p-6 bg-bolt-elements-background-depth-1">
+                      <DialogTitle className="text-bolt-elements-textPrimary">Delete Chat?</DialogTitle>
+                      <DialogDescription className="mt-2 text-bolt-elements-textSecondary">
                         <p>
                           You are about to delete{' '}
-                          <span className="font-medium text-gray-900 dark:text-white">
+                          <span className="font-medium text-bolt-elements-textPrimary">
                             {dialogContent.item.description}
                           </span>
                         </p>
                         <p className="mt-2">Are you sure you want to delete this chat?</p>
                       </DialogDescription>
                     </div>
-                    <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex justify-end gap-3 px-6 py-4 bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor">
                       <DialogButton type="secondary" onClick={closeDialog}>
                         Cancel
                       </DialogButton>
@@ -480,18 +503,18 @@ export const Menu = () => {
                 )}
                 {dialogContent?.type === 'bulkDelete' && (
                   <>
-                    <div className="p-6 bg-white dark:bg-gray-950">
-                      <DialogTitle className="text-gray-900 dark:text-white">Delete Selected Chats?</DialogTitle>
-                      <DialogDescription className="mt-2 text-gray-600 dark:text-gray-400">
+                    <div className="p-6 bg-bolt-elements-background-depth-1">
+                      <DialogTitle className="text-bolt-elements-textPrimary">Delete Selected Chats?</DialogTitle>
+                      <DialogDescription className="mt-2 text-bolt-elements-textSecondary">
                         <p>
                           You are about to delete {dialogContent.items.length}{' '}
                           {dialogContent.items.length === 1 ? 'chat' : 'chats'}:
                         </p>
-                        <div className="mt-2 max-h-32 overflow-auto border border-gray-100 dark:border-gray-800 rounded-md bg-gray-50 dark:bg-gray-900 p-2">
+                        <div className="mt-2 max-h-32 overflow-auto border border-bolt-elements-borderColor rounded-md bg-bolt-elements-background-depth-2 p-2">
                           <ul className="list-disc pl-5 space-y-1">
                             {dialogContent.items.map((item) => (
                               <li key={item.id} className="text-sm">
-                                <span className="font-medium text-gray-900 dark:text-white">{item.description}</span>
+                                <span className="font-medium text-bolt-elements-textPrimary">{item.description}</span>
                               </li>
                             ))}
                           </ul>
@@ -499,7 +522,7 @@ export const Menu = () => {
                         <p className="mt-3">Are you sure you want to delete these chats?</p>
                       </DialogDescription>
                     </div>
-                    <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex justify-end gap-3 px-6 py-4 bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor">
                       <DialogButton type="secondary" onClick={closeDialog}>
                         Cancel
                       </DialogButton>
@@ -525,13 +548,36 @@ export const Menu = () => {
             </DialogRoot>
           </div>
           <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-800 px-4 py-3">
-            <SettingsButton onClick={handleSettingsClick} />
+            <div className="flex items-center gap-3">
+              <SettingsButton onClick={handleSettingsClick} />
+            </div>
             <ThemeSwitch />
           </div>
         </div>
       </motion.div>
 
-      <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
+      {/* Persistent sidebar trigger — always visible when sidebar is closed */}
+      {!open && !isSettingsOpen && (
+        <button
+          onClick={() => setOpen(true)}
+          className={classNames(
+            'fixed left-0 top-[72px] z-sidebar',
+            'bg-bolt-elements-background-depth-1',
+            'border border-l-0 border-bolt-elements-borderColor',
+            'rounded-r-lg p-1.5 shadow-sm',
+            'hover:bg-bolt-elements-background-depth-2',
+            'transition-colors',
+          )}
+          aria-label="Open sidebar"
+        >
+          <div className="i-ph:caret-right text-gray-500 dark:text-gray-400" />
+        </button>
+      )}
+
+      <Suspense fallback={null}>
+        <LazyControlPanel open={isSettingsOpen} onClose={handleSettingsClose} initialTab={settingsInitialTab as any} />
+      </Suspense>
+      <DocumentationPanel open={isDocumentationOpen} onClose={() => setIsDocumentationOpen(false)} />
     </>
   );
 };

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { classNames } from '~/utils/classNames';
 import { motion } from 'framer-motion';
+import React, { useState } from 'react';
 import { FileIcon } from './FileIcon';
 import { Tooltip } from './Tooltip';
+import { classNames } from '~/utils/classNames';
 
 interface CodeBlockProps {
   code: string;

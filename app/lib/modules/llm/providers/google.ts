@@ -1,8 +1,8 @@
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import type { LanguageModel } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 export default class GoogleProvider extends BaseProvider {
   name = 'Google';
@@ -13,19 +13,62 @@ export default class GoogleProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
-    { name: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash', provider: 'Google', maxTokenAllowed: 8192 },
     {
-      name: 'gemini-2.0-flash-thinking-exp-01-21',
-      label: 'Gemini 2.0 Flash-thinking-exp-01-21',
+      name: 'gemini-3.1-pro-preview',
+      label: 'Gemini 3.1 Pro Preview',
       provider: 'Google',
-      maxTokenAllowed: 65536,
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
     },
-    { name: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-1.5-flash-002', label: 'Gemini 1.5 Flash-002', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-1.5-flash-8b', label: 'Gemini 1.5 Flash-8b', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-1.5-pro-002', label: 'Gemini 1.5 Pro-002', provider: 'Google', maxTokenAllowed: 8192 },
-    { name: 'gemini-exp-1206', label: 'Gemini exp-1206', provider: 'Google', maxTokenAllowed: 8192 },
+    {
+      name: 'gemini-3.5-flash',
+      label: 'Gemini 3.5 Flash',
+      provider: 'Google',
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'gemini-3-flash-preview',
+      label: 'Gemini 3 Flash Preview',
+      provider: 'Google',
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'gemini-2.5-pro',
+      label: 'Gemini 2.5 Pro',
+      provider: 'Google',
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'gemini-2.5-flash',
+      label: 'Gemini 2.5 Flash',
+      provider: 'Google',
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'gemini-2.5-flash-lite',
+      label: 'Gemini 2.5 Flash-Lite',
+      provider: 'Google',
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'gemini-1.5-pro',
+      label: 'Gemini 1.5 Pro',
+      provider: 'Google',
+      maxTokenAllowed: 2000000,
+      maxCompletionTokens: 8192,
+    },
+    {
+      name: 'gemini-1.5-flash',
+      label: 'Gemini 1.5 Flash',
+      provider: 'Google',
+      maxTokenAllowed: 1000000,
+      maxCompletionTokens: 8192,
+    },
   ];
 
   async getDynamicModels(
@@ -51,16 +94,66 @@ export default class GoogleProvider extends BaseProvider {
       },
     });
 
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models from Google API: ${response.status} ${response.statusText}`);
+    }
+
     const res = (await response.json()) as any;
 
-    const data = res.models.filter((model: any) => model.outputTokenLimit > 8000);
+    if (!res.models || !Array.isArray(res.models)) {
+      throw new Error('Invalid response format from Google API');
+    }
 
-    return data.map((m: any) => ({
-      name: m.name.replace('models/', ''),
-      label: `${m.displayName} - context ${Math.floor((m.inputTokenLimit + m.outputTokenLimit) / 1000) + 'k'}`,
-      provider: this.name,
-      maxTokenAllowed: m.inputTokenLimit + m.outputTokenLimit || 8000,
-    }));
+    // Filter out models with very low token limits and experimental/unstable models
+    const data = res.models.filter((model: any) => {
+      const hasGoodTokenLimit = (model.outputTokenLimit || 0) > 8000;
+      const isStable = !model.name.includes('exp') || model.name.includes('flash-exp');
+
+      return hasGoodTokenLimit && isStable;
+    });
+
+    return data.map((m: any) => {
+      const modelName = m.name.replace('models/', '');
+
+      // Get accurate context window from Google API
+      let contextWindow = 32000; // default fallback
+
+      if (m.inputTokenLimit && m.outputTokenLimit) {
+        // Use the input limit as the primary context window (typically larger)
+        contextWindow = m.inputTokenLimit;
+      } else if (modelName.includes('gemini-3') || modelName.includes('gemini-2.5')) {
+        contextWindow = 1048576;
+      } else if (modelName.includes('gemini-1.5-pro')) {
+        contextWindow = 2000000; // Gemini 1.5 Pro has 2M context
+      } else if (modelName.includes('gemini-1.5-flash')) {
+        contextWindow = 1000000; // Gemini 1.5 Flash has 1M context
+      } else if (modelName.includes('gemini-2.0-flash')) {
+        contextWindow = 1000000; // Gemini 2.0 Flash has 1M context
+      } else if (modelName.includes('gemini-pro')) {
+        contextWindow = 32000; // Gemini Pro has 32k context
+      } else if (modelName.includes('gemini-flash')) {
+        contextWindow = 32000; // Gemini Flash has 32k context
+      }
+
+      // Cap at reasonable limits to prevent issues
+      const maxAllowed = 2000000; // 2M tokens max
+      const finalContext = Math.min(contextWindow, maxAllowed);
+
+      // Get completion token limit from Google API
+      let completionTokens = modelName.includes('gemini-3') || modelName.includes('gemini-2.5') ? 65536 : 8192;
+
+      if (m.outputTokenLimit && m.outputTokenLimit > 0) {
+        completionTokens = Math.min(m.outputTokenLimit, 128000); // Use API value, cap at reasonable limit
+      }
+
+      return {
+        name: modelName,
+        label: `${m.displayName} (${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'} context)`,
+        provider: this.name,
+        maxTokenAllowed: finalContext,
+        maxCompletionTokens: completionTokens,
+      };
+    });
   }
 
   getModelInstance(options: {
@@ -68,7 +161,7 @@ export default class GoogleProvider extends BaseProvider {
     serverEnv: any;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }): LanguageModelV1 {
+  }): LanguageModel {
     const { model, serverEnv, apiKeys, providerSettings } = options;
 
     const { apiKey } = this.getProviderBaseUrlAndKey({

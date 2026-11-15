@@ -1,5 +1,5 @@
-import { atom, map } from 'nanostores';
 import Cookies from 'js-cookie';
+import { atom, map } from 'nanostores';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('LogStore');
@@ -120,6 +120,7 @@ class LogStore {
       const sortedLogs = currentLogs.sort(
         ([, a], [, b]) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
+
       const newLogs = Object.fromEntries(sortedLogs.slice(0, MAX_LOGS));
       this._logs.set(newLogs);
     }
@@ -134,6 +135,7 @@ class LogStore {
     metadata?: LogEntry['metadata'],
   ) {
     const id = this._generateId();
+
     const entry: LogEntry = {
       id,
       timestamp: new Date().toISOString(),
@@ -285,6 +287,7 @@ class LogStore {
     return this.getLogs().filter((log) => {
       const matchesLevel = !level || level === 'debug' || log.level === level;
       const matchesCategory = !category || log.category === category;
+
       const matchesSearch =
         !searchQuery ||
         log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||

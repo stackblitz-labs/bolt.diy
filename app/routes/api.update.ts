@@ -1,11 +1,11 @@
-import { json, type ActionFunction } from '@remix-run/cloudflare';
+import type { ActionFunction } from 'react-router';
 
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
-  return json(
+  return Response.json(
     {
       error: 'Updates must be performed manually in a server environment',
       instructions: [

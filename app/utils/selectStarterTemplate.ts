@@ -1,119 +1,58 @@
 import ignore from 'ignore';
-import type { ProviderInfo } from '~/types/model';
-import type { Template } from '~/types/template';
 import { STARTER_TEMPLATES } from './constants';
+import { createCommandActionsString, detectProjectCommands } from './projectCommands';
+import type { ProviderInfo } from '~/types/model';
 
-const starterTemplateSelectionPrompt = (templates: Template[]) => `
-You are an experienced developer who helps people choose the best starter template for their projects, Vite is preferred.
+export const selectStarterTemplate = async (options: { message: string; model?: string; provider?: ProviderInfo }) => {
+  const { message } = options;
 
-Available templates:
-<template>
-  <name>blank</name>
-  <description>Empty starter for simple scripts and trivial tasks that don't require a full template setup</description>
-  <tags>basic, script</tags>
-</template>
-${templates
-  .map(
-    (template) => `
-<template>
-  <name>${template.name}</name>
-  <description>${template.description}</description>
-  ${template.tags ? `<tags>${template.tags.join(', ')}</tags>` : ''}
-</template>
-`,
-  )
-  .join('\n')}
+  // Information requests can use research tools in Build mode without initializing a project.
+  const informationRequest =
+    /^\s*(?:(?:please|can you|could you)\s+)*(?:find|search|look up|research|explain|tell me|what|where|when|why|how|which|who)\b/i.test(
+      message,
+    );
 
-Response Format:
-<selection>
-  <templateName>{selected template name}</templateName>
-  <title>{a proper title for the project}</title>
-</selection>
+  const buildRequest = /\b(?:build|create|implement|develop|design|code|make|add)\b/i.test(message);
 
-Examples:
-
-<example>
-User: I need to build a todo app
-Response:
-<selection>
-  <templateName>react-basic-starter</templateName>
-  <title>Simple React todo application</title>
-</selection>
-</example>
-
-<example>
-User: Write a script to generate numbers from 1 to 100
-Response:
-<selection>
-  <templateName>blank</templateName>
-  <title>script to generate numbers from 1 to 100</title>
-</selection>
-</example>
-
-Instructions:
-1. For trivial tasks and simple scripts, always recommend the blank template
-2. For more complex projects, recommend templates from the provided list
-3. Follow the exact XML format
-4. Consider both technical requirements and tags
-5. If no perfect match exists, recommend the closest option
-
-Important: Provide only the selection tags in your response, no additional text.
-MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH 
-`;
-
-const templates: Template[] = STARTER_TEMPLATES.filter((t) => !t.name.includes('shadcn'));
-
-const parseSelectedTemplate = (llmOutput: string): { template: string; title: string } | null => {
-  try {
-    // Extract content between <templateName> tags
-    const templateNameMatch = llmOutput.match(/<templateName>(.*?)<\/templateName>/);
-    const titleMatch = llmOutput.match(/<title>(.*?)<\/title>/);
-
-    if (!templateNameMatch) {
-      return null;
-    }
-
-    return { template: templateNameMatch[1].trim(), title: titleMatch?.[1].trim() || 'Untitled Project' };
-  } catch (error) {
-    console.error('Error parsing template selection:', error);
-    return null;
+  if (informationRequest && !buildRequest) {
+    return { template: 'blank', title: message.trim().slice(0, 100) };
   }
-};
 
-export const selectStarterTemplate = async (options: { message: string; model: string; provider: ProviderInfo }) => {
-  const { message, model, provider } = options;
-  const requestBody = {
-    message,
-    model,
-    provider,
-    system: starterTemplateSelectionPrompt(templates),
+  const requestedFrameworks: [RegExp, string][] = [
+    [/\bnext\.?js\b/i, /\bshadcn\b/i.test(message) ? 'NextJS Shadcn' : 'blank'],
+    [/\bshadcn\b/i, 'Vite Shadcn'],
+    [/\bastro\b/i, 'Basic Astro'],
+    [/\bexpo\b/i, 'Expo App'],
+    [/\bremix\b/i, 'Remix Typescript'],
+    [/\bqwik\b/i, 'Qwik Typescript'],
+    [/\bsvelte(?:kit)?\b/i, 'Sveltekit'],
+    [/\bvue(?:\.js)?\b/i, 'Vue'],
+    [/\bangular\b/i, 'Angular'],
+    [/\bsolid(?:js)?\b/i, 'SolidJS'],
+    [/\breact\b/i, 'Vite React'],
+  ];
+
+  const requestedTemplate = requestedFrameworks.find(([pattern]) => pattern.test(message));
+
+  if (requestedTemplate) {
+    return { template: requestedTemplate[1], title: message.trim().slice(0, 100) };
+  }
+
+  const simpleTask = /\b(script|snippet|one[- ]off|quick calculation|simple command)\b/i.test(message);
+
+  return {
+    template: simpleTask ? 'blank' : 'Vite React',
+    title: message.trim().slice(0, 100) || 'Untitled Project',
   };
-  const response = await fetch('/api/llmcall', {
-    method: 'POST',
-    body: JSON.stringify(requestBody),
-  });
-  const respJson: { text: string } = await response.json();
-  console.log(respJson);
-
-  const { text } = respJson;
-  const selectedTemplate = parseSelectedTemplate(text);
-
-  if (selectedTemplate) {
-    return selectedTemplate;
-  } else {
-    console.log('No template selected, using blank template');
-
-    return {
-      template: 'blank',
-      title: '',
-    };
-  }
 };
 
-const getGitHubRepoContent = async (repoName: string): Promise<{ name: string; path: string; content: string }[]> => {
+const getGitHubRepoContent = async (
+  repoName: string,
+  signal?: AbortSignal,
+): Promise<{ name: string; path: string; content: string }[]> => {
   try {
     // Instead of directly fetching from GitHub, use our own API endpoint as a proxy
-    const response = await fetch(`/api/github-template?repo=${encodeURIComponent(repoName)}`);
+    const response = await fetch(`/api/github-template?repo=${encodeURIComponent(repoName)}`, { signal });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -129,7 +68,7 @@ const getGitHubRepoContent = async (repoName: string): Promise<{ name: string; p
   }
 };
 
-export async function getTemplates(templateName: string, title?: string) {
+export async function getTemplates(templateName: string, title?: string, signal?: AbortSignal) {
   const template = STARTER_TEMPLATES.find((t) => t.name == templateName);
 
   if (!template) {
@@ -137,7 +76,11 @@ export async function getTemplates(templateName: string, title?: string) {
   }
 
   const githubRepo = template.githubRepo;
-  const files = await getGitHubRepoContent(githubRepo);
+  const files = await getGitHubRepoContent(githubRepo, signal);
+
+  if (!files.length) {
+    throw new Error('The starter template did not contain any files.');
+  }
 
   let filteredFiles = files;
 
@@ -145,7 +88,7 @@ export async function getTemplates(templateName: string, title?: string) {
    * ignoring common unwanted files
    * exclude    .git
    */
-  filteredFiles = filteredFiles.filter((x) => x.path.startsWith('.git') == false);
+  filteredFiles = filteredFiles.filter((x) => x.path !== '.git' && !x.path.startsWith('.git/'));
 
   /*
    * exclude    lock files
@@ -194,7 +137,15 @@ ${file.content}
   .join('\n')}
 </boltArtifact>
 `;
+
+  const commandActions = createCommandActionsString(await detectProjectCommands(filesToImport.files));
+
+  const setupMessage = commandActions
+    ? `<boltArtifact id="project-setup" title="Project Setup" type="bundled">${commandActions}\n</boltArtifact>`
+    : '';
+
   let userMessage = ``;
+
   const templatePromptFile = files.filter((x) => x.path.startsWith('.bolt')).find((x) => x.name == 'prompt');
 
   if (templatePromptFile) {
@@ -237,17 +188,17 @@ If you need to make changes to functionality, create new files instead of modify
 
   userMessage += `
 ---
-template import is done, and you can now use the imported files,
-edit only the files that need to be changed, and you can create new files as needed.
-NO NOT EDIT/WRITE ANY FILES THAT ALREADY EXIST IN THE PROJECT AND DOES NOT NEED TO BE MODIFIED
+The template files are now in the active project. Inspect and patch only the relevant existing files, and create new files when needed. Use project_patch_file for targeted edits. A full replacement with project_write_file requires replacementReason explaining why a patch is insufficient.
 ---
 Now that the Template is imported please continue with my original request
 
-IMPORTANT: Dont Forget to install the dependencies before running the app by using \`npm install && npm run dev\`
+The user's original prompt is authorization to complete the requested work. Record a brief plan with observable completion criteria, then implement it now. Do not stop after a plan, ask whether to proceed, or wait for another user message. Inspect and patch the relevant starter files, install dependencies if needed, start the app, and run relevant checks. Repair failures and continue until the requested app is implemented, verified, and running.
 `;
 
   return {
     assistantMessage,
+    setupMessage,
     userMessage,
+    files: filesToImport.files,
   };
 }

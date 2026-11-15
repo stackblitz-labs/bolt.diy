@@ -1,10 +1,10 @@
+import { createScopedLogger } from './logger';
 import {
   getLockedItems,
   isFileLocked as isFileLockedInternal,
   isFolderLocked as isFolderLockedInternal,
   isPathInLockedFolder,
 } from '~/lib/persistence/lockedFiles';
-import { createScopedLogger } from './logger';
 
 const logger = createScopedLogger('FileLocks');
 

@@ -1,7 +1,8 @@
-import type { Message } from 'ai';
-import { createScopedLogger } from '~/utils/logger';
-import type { ChatHistoryItem } from './useChatHistory';
+import type { UIMessage } from 'ai';
+import { migrateLegacyMessages } from './messageMigration';
 import type { Snapshot } from './types'; // Import Snapshot type
+import type { ChatHistoryItem } from './useChatHistory';
+import { createScopedLogger } from '~/utils/logger';
 
 export interface IChatMetadata {
   gitUrl: string;
@@ -57,15 +58,36 @@ export async function getAll(db: IDBDatabase): Promise<ChatHistoryItem[]> {
     const store = transaction.objectStore('chats');
     const request = store.getAll();
 
-    request.onsuccess = () => resolve(request.result as ChatHistoryItem[]);
+    /*
+     * Chats persisted by v4 have no `parts`. convertToModelMessages reads
+     * message.parts directly, so anything handed to useChat must be migrated
+     * first. migrateLegacyMessages is idempotent, so re-reading a chat that was
+     * already migrated on disk is a no-op.
+     */
+    request.onsuccess = () =>
+      resolve((request.result as ChatHistoryItem[]).map(migrateChatMessages) as ChatHistoryItem[]);
     request.onerror = () => reject(request.error);
   });
+}
+
+/*
+ * Returns a migrated copy of a stored chat. The stored record is only ever
+ * rewritten by an explicit write path, and the read-modify-write helpers plus
+ * the export path use the *Raw readers so a pre-v7 chat keeps its original
+ * shape on disk.
+ */
+export function migrateChatMessages(chat: ChatHistoryItem): ChatHistoryItem {
+  if (!chat || !Array.isArray(chat.messages)) {
+    return chat;
+  }
+
+  return { ...chat, messages: migrateLegacyMessages(chat.messages) } as ChatHistoryItem;
 }
 
 export async function setMessages(
   db: IDBDatabase,
   id: string,
-  messages: Message[],
+  messages: UIMessage[],
   urlId?: string,
   description?: string,
   timestamp?: string,
@@ -89,8 +111,10 @@ export async function setMessages(
       metadata,
     });
 
-    request.onsuccess = () => resolve();
+    transaction.oncomplete = () => resolve();
     request.onerror = () => reject(request.error);
+    transaction.onerror = () => reject(transaction.error || request.error);
+    transaction.onabort = () => reject(transaction.error || new Error('Chat message save was aborted'));
   });
 }
 
@@ -99,6 +123,16 @@ export async function getMessages(db: IDBDatabase, id: string): Promise<ChatHist
 }
 
 export async function getMessagesByUrlId(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
+  return migrateChatMessages(await getMessagesByUrlIdRaw(db, id));
+}
+
+/*
+ * Un-migrated read. Required by the single-chat export path, which must stay
+ * lossless, and by the read-modify-write helpers below, which would otherwise
+ * rewrite a pre-v7 chat's messages into the v5 shape and drop `content`,
+ * `annotations` and any unknown fields from the original record.
+ */
+export async function getMessagesByUrlIdRaw(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');
     const store = transaction.objectStore('chats');
@@ -111,6 +145,10 @@ export async function getMessagesByUrlId(db: IDBDatabase, id: string): Promise<C
 }
 
 export async function getMessagesById(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
+  return migrateChatMessages(await getMessagesByIdRaw(db, id));
+}
+
+export async function getMessagesByIdRaw(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');
     const store = transaction.objectStore('chats');
@@ -166,18 +204,106 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
   });
 }
 
-export async function getNextId(db: IDBDatabase): Promise<string> {
+/**
+ * Allocate the next numeric chat ID and persist the chat in one readwrite
+ * transaction. IndexedDB serializes overlapping readwrite transactions, so a
+ * concurrent creator observes the ID written by the previous transaction.
+ */
+export async function createChatWithNextId(
+  db: IDBDatabase,
+  messages: UIMessage[],
+  urlId?: string,
+  description?: string,
+  metadata?: IChatMetadata,
+  ensureUrlId = false,
+): Promise<{ id: string; urlId?: string }> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction('chats', 'readonly');
+    const transaction = db.transaction('chats', 'readwrite');
     const store = transaction.objectStore('chats');
-    const request = store.getAllKeys();
 
-    request.onsuccess = () => {
-      const highestId = request.result.reduce((cur, acc) => Math.max(+cur, +acc), 0);
-      resolve(String(+highestId + 1));
+    let created: { id: string; urlId?: string } | undefined;
+    let highestId = 0;
+
+    const usedUrlIds = new Set<string>();
+
+    let scansRemaining = ensureUrlId ? 2 : 1;
+
+    const finishScan = () => {
+      scansRemaining--;
+
+      if (scansRemaining > 0) {
+        return;
+      }
+
+      const id = String(highestId + 1);
+      const baseUrlId = urlId || id;
+
+      let finalUrlId = urlId;
+
+      if (ensureUrlId) {
+        finalUrlId = baseUrlId;
+
+        let suffix = 2;
+
+        while (usedUrlIds.has(finalUrlId)) {
+          finalUrlId = `${baseUrlId}-${suffix++}`;
+        }
+      }
+
+      store.add({
+        id,
+        messages,
+        urlId: finalUrlId,
+        description,
+        timestamp: new Date().toISOString(),
+        metadata,
+      });
+      created = { id, urlId: finalUrlId };
     };
 
-    request.onerror = () => reject(request.error);
+    const idCursorRequest = store.openKeyCursor();
+
+    idCursorRequest.onsuccess = () => {
+      const cursor = idCursorRequest.result;
+
+      if (cursor) {
+        highestId = Math.max(highestId, Number(cursor.key) || 0);
+        cursor.continue();
+      } else {
+        finishScan();
+      }
+    };
+    idCursorRequest.onerror = () => reject(idCursorRequest.error);
+
+    if (ensureUrlId) {
+      const urlIdIndex = store.index('urlId');
+      const urlIdCursorRequest = urlIdIndex.openKeyCursor();
+
+      urlIdCursorRequest.onsuccess = () => {
+        const cursor = urlIdCursorRequest.result;
+
+        if (cursor) {
+          if (typeof cursor.key === 'string') {
+            usedUrlIds.add(cursor.key);
+          }
+
+          cursor.continue();
+        } else {
+          finishScan();
+        }
+      };
+      urlIdCursorRequest.onerror = () => reject(urlIdCursorRequest.error);
+    }
+
+    transaction.oncomplete = () => {
+      if (created) {
+        resolve(created);
+      } else {
+        reject(new Error('Chat creation transaction completed without creating a chat'));
+      }
+    };
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error('Chat creation was aborted'));
   });
 }
 
@@ -223,7 +349,7 @@ async function getUrlIds(db: IDBDatabase): Promise<string[]> {
 }
 
 export async function forkChat(db: IDBDatabase, chatId: string, messageId: string): Promise<string> {
-  const chat = await getMessages(db, chatId);
+  const chat = await getMessagesByIdRaw(db, chatId);
 
   if (!chat) {
     throw new Error('Chat not found');
@@ -243,7 +369,7 @@ export async function forkChat(db: IDBDatabase, chatId: string, messageId: strin
 }
 
 export async function duplicateChat(db: IDBDatabase, id: string): Promise<string> {
-  const chat = await getMessages(db, id);
+  const chat = await getMessagesByIdRaw(db, id);
 
   if (!chat) {
     throw new Error('Chat not found');
@@ -255,27 +381,16 @@ export async function duplicateChat(db: IDBDatabase, id: string): Promise<string
 export async function createChatFromMessages(
   db: IDBDatabase,
   description: string,
-  messages: Message[],
+  messages: UIMessage[],
   metadata?: IChatMetadata,
 ): Promise<string> {
-  const newId = await getNextId(db);
-  const newUrlId = await getUrlId(db, newId); // Get a new urlId for the duplicated chat
+  const created = await createChatWithNextId(db, messages, undefined, description, metadata, true);
 
-  await setMessages(
-    db,
-    newId,
-    messages,
-    newUrlId, // Use the new urlId
-    description,
-    undefined, // Use the current timestamp
-    metadata,
-  );
-
-  return newUrlId; // Return the urlId instead of id for navigation
+  return created.urlId!;
 }
 
 export async function updateChatDescription(db: IDBDatabase, id: string, description: string): Promise<void> {
-  const chat = await getMessages(db, id);
+  const chat = await getMessagesByIdRaw(db, id);
 
   if (!chat) {
     throw new Error('Chat not found');
@@ -293,7 +408,7 @@ export async function updateChatMetadata(
   id: string,
   metadata: IChatMetadata | undefined,
 ): Promise<void> {
-  const chat = await getMessages(db, id);
+  const chat = await getMessagesByIdRaw(db, id);
 
   if (!chat) {
     throw new Error('Chat not found');
@@ -319,8 +434,10 @@ export async function setSnapshot(db: IDBDatabase, chatId: string, snapshot: Sna
     const store = transaction.objectStore('snapshots');
     const request = store.put({ chatId, snapshot });
 
-    request.onsuccess = () => resolve();
+    transaction.oncomplete = () => resolve();
     request.onerror = () => reject(request.error);
+    transaction.onerror = () => reject(transaction.error || request.error);
+    transaction.onabort = () => reject(transaction.error || new Error('Chat snapshot save was aborted'));
   });
 }
 

@@ -1,8 +1,8 @@
+import { generateId } from 'ai';
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { ImportExportService } from '~/lib/services/importExportService';
 import { useIndexedDB } from '~/lib/hooks/useIndexedDB';
-import { generateId } from 'ai';
+import { ImportExportService } from '~/lib/services/importExportService';
 
 interface UseDataOperationsProps {
   /**
@@ -599,16 +599,27 @@ export function useDataOperations({
 
           // Ensure each message has required fields
           const validatedMessages = chat.messages.map((msg: any) => {
-            if (!msg.role || !msg.content) {
+            if (!msg || typeof msg !== 'object' || !msg.role) {
               throw new Error('Invalid message format: missing required fields');
             }
 
+            /*
+             * v4 messages carry `content`; v5+ carry `parts`. Accept either so
+             * imports survive the AI SDK migration.
+             */
+            const hasPayload = Boolean(msg.content) || (Array.isArray(msg.parts) && msg.parts.length > 0);
+
+            if (!hasPayload) {
+              throw new Error('Invalid message format: missing required fields');
+            }
+
+            /*
+             * Copy every field through rather than a fixed key list, so parts,
+             * annotations and attachments survive the round trip.
+             */
             return {
+              ...msg,
               id: msg.id || generateId(),
-              role: msg.role,
-              content: msg.content,
-              name: msg.name,
-              function_call: msg.function_call,
               timestamp: msg.timestamp || Date.now(),
             };
           });
@@ -739,6 +750,7 @@ export function useDataOperations({
 
         // Count how many keys were imported
         const keyCount = Object.keys(newKeys).length;
+
         const newKeyCount = Object.keys(newKeys).filter(
           (key) => !currentApiKeys[key] || currentApiKeys[key] !== newKeys[key],
         ).length;
@@ -933,6 +945,7 @@ export function useDataOperations({
       const blob = new Blob([JSON.stringify(templateData, null, 2)], {
         type: 'application/json',
       });
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

@@ -1,29 +1,44 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { Fragment } from 'react';
-import { classNames } from '~/utils/classNames';
-import { AssistantMessage } from './AssistantMessage';
-import { UserMessage } from './UserMessage';
-import { useLocation } from '@remix-run/react';
-import { db, chatId } from '~/lib/persistence/useChatHistory';
-import { forkChat } from '~/lib/persistence/db';
-import { toast } from 'react-toastify';
-import { useStore } from '@nanostores/react';
-import { profileStore } from '~/lib/stores/profile';
 import { forwardRef } from 'react';
 import type { ForwardedRef } from 'react';
+import { useLocation, useNavigate } from 'react-router';
+import { toast } from 'react-toastify';
+import { AssistantMessage } from './AssistantMessage';
+import { isModelThinking, ThinkingIndicator } from './Thinking';
+import { UserMessage } from './UserMessage';
+import { forkChat } from '~/lib/persistence/db';
+import { getMessageText, hasMessageFlag } from '~/lib/persistence/messageMigration';
+import { db, chatId } from '~/lib/persistence/useChatHistory';
+import type { ProviderInfo } from '~/types/model';
+import { classNames } from '~/utils/classNames';
+
+/*
+ * v5 removed UIMessage.content, but Chat.client still needs to hand the parsed
+ * artifact/action stream to the renderer. useMessageParser turns the raw model
+ * text (which contains <boltArtifact>/<boltAction> tags) into the display text,
+ * so it travels on this side channel instead of overwriting `content`.
+ */
+export type DisplayMessage = UIMessage & { parsedContent?: string };
 
 interface MessagesProps {
   id?: string;
   className?: string;
   isStreaming?: boolean;
-  messages?: Message[];
+  messages?: DisplayMessage[];
+  append?: (message: UIMessage) => void;
+  chatMode?: 'discuss' | 'build';
+  setChatMode?: (mode: 'discuss' | 'build') => void;
+  model?: string;
+  provider?: ProviderInfo;
+  addToolResult: (options: { tool: string; toolCallId: string; output: unknown }) => void;
 }
 
 export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
   (props: MessagesProps, ref: ForwardedRef<HTMLDivElement> | undefined) => {
     const { id, isStreaming = false, messages = [] } = props;
     const location = useLocation();
-    const profile = useStore(profileStore);
+    const navigate = useNavigate();
 
     const handleRewind = (messageId: string) => {
       const searchParams = new URLSearchParams(location.search);
@@ -39,7 +54,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
         }
 
         const urlId = await forkChat(db, chatId.get()!, messageId);
-        window.location.href = `/chat/${urlId}`;
+        navigate(`/chat/${urlId}`);
       } catch (error) {
         toast.error('Failed to fork chat: ' + (error as Error).message);
       }
@@ -49,51 +64,44 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
       <div id={id} className={props.className} ref={ref}>
         {messages.length > 0
           ? messages.map((message, index) => {
-              const { role, content, id: messageId, annotations } = message;
+              const { role, id: messageId, parts, parsedContent } = message;
               const isUserMessage = role === 'user';
               const isFirst = index === 0;
-              const isLast = index === messages.length - 1;
-              const isHidden = annotations?.includes('hidden');
+              const isHidden = hasMessageFlag(message, 'hidden');
 
               if (isHidden) {
                 return <Fragment key={index} />;
               }
 
+              /*
+               * Assistant bubbles render useMessageParser's output, which has
+               * already stripped boltArtifact/boltAction tags. Falling back to
+               * the raw parts would leak that markup into the UI.
+               */
               return (
                 <div
                   key={index}
-                  className={classNames('flex gap-4 p-6 py-5 w-full rounded-[calc(0.75rem-1px)]', {
-                    'bg-bolt-elements-messages-background': isUserMessage || !isStreaming || (isStreaming && !isLast),
-                    'bg-gradient-to-b from-bolt-elements-messages-background from-30% to-transparent':
-                      isStreaming && isLast,
+                  className={classNames('flex gap-4 py-3 w-full rounded-lg', {
                     'mt-4': !isFirst,
                   })}
                 >
-                  {isUserMessage && (
-                    <div className="flex items-center justify-center w-[40px] h-[40px] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0 self-start">
-                      {profile?.avatar ? (
-                        <img
-                          src={profile.avatar}
-                          alt={profile?.username || 'User'}
-                          className="w-full h-full object-cover"
-                          loading="eager"
-                          decoding="sync"
-                        />
-                      ) : (
-                        <div className="i-ph:user-fill text-2xl" />
-                      )}
-                    </div>
-                  )}
-                  <div className="grid grid-col-1 w-full">
+                  <div className="grid grid-cols-1 w-full">
                     {isUserMessage ? (
-                      <UserMessage content={content} />
+                      <UserMessage content={getMessageText(message)} parts={parts} />
                     ) : (
                       <AssistantMessage
-                        content={content}
-                        annotations={message.annotations}
+                        content={parsedContent ?? getMessageText(message)}
                         messageId={messageId}
+                        isStreaming={isStreaming && index === messages.length - 1}
                         onRewind={handleRewind}
                         onFork={handleFork}
+                        append={props.append}
+                        chatMode={props.chatMode}
+                        setChatMode={props.setChatMode}
+                        model={props.model}
+                        provider={props.provider}
+                        parts={parts}
+                        addToolResult={props.addToolResult}
                       />
                     )}
                   </div>
@@ -101,9 +109,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               );
             })
           : null}
-        {isStreaming && (
-          <div className="text-center w-full  text-bolt-elements-item-contentAccent i-svg-spinners:3-dots-fade text-4xl mt-4"></div>
-        )}
+        {isModelThinking(messages, isStreaming) && <ThinkingIndicator />}
       </div>
     );
   },

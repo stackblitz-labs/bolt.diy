@@ -1,7 +1,7 @@
+import type { LanguageModel } from 'ai';
 import { BaseProvider, getOpenAILikeModel } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
 
 export default class TogetherProvider extends BaseProvider {
   name = 'Together';
@@ -13,23 +13,25 @@ export default class TogetherProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
-    {
-      name: 'Qwen/Qwen2.5-Coder-32B-Instruct',
-      label: 'Qwen/Qwen2.5-Coder-32B-Instruct',
-      provider: 'Together',
-      maxTokenAllowed: 8000,
-    },
+    /*
+     * Essential fallback models - only the most stable/reliable ones
+     * Llama 3.2 90B Vision: 128k context, multimodal capabilities
+     */
     {
       name: 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
-      label: 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
+      label: 'Llama 3.2 90B Vision',
       provider: 'Together',
-      maxTokenAllowed: 8000,
+      maxTokenAllowed: 128000,
+      maxCompletionTokens: 8192,
     },
+
+    // Mixtral 8x7B: 32k context, strong performance
     {
       name: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
       label: 'Mixtral 8x7B Instruct',
       provider: 'Together',
-      maxTokenAllowed: 8192,
+      maxTokenAllowed: 32000,
+      maxCompletionTokens: 8192,
     },
   ];
 
@@ -45,6 +47,7 @@ export default class TogetherProvider extends BaseProvider {
       defaultBaseUrlKey: 'TOGETHER_API_BASE_URL',
       defaultApiTokenKey: 'TOGETHER_API_KEY',
     });
+
     const baseUrl = fetchBaseUrl || 'https://api.together.xyz/v1';
 
     if (!baseUrl || !apiKey) {
@@ -67,6 +70,7 @@ export default class TogetherProvider extends BaseProvider {
       label: `${m.display_name} - in:$${m.pricing.input.toFixed(2)} out:$${m.pricing.output.toFixed(2)} - context ${Math.floor(m.context_length / 1000)}k`,
       provider: this.name,
       maxTokenAllowed: 8000,
+      maxCompletionTokens: 8192,
     }));
   }
 
@@ -75,7 +79,7 @@ export default class TogetherProvider extends BaseProvider {
     serverEnv: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }): LanguageModelV1 {
+  }): LanguageModel {
     const { model, serverEnv, apiKeys, providerSettings } = options;
 
     const { baseUrl, apiKey } = this.getProviderBaseUrlAndKey({

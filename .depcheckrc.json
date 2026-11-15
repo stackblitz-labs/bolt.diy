@@ -1,0 +1,28 @@
+{
+  "ignoreMatches": [
+    "@types/*",
+    "eslint-*",
+    "prettier*",
+    "husky",
+    "rimraf",
+    "vitest",
+    "vite",
+    "typescript",
+    "wrangler",
+    "electron*"
+  ],
+  "ignoreDirs": [
+    "dist",
+    "build",
+    "node_modules",
+    ".git"
+  ],
+  "skipMissing": false,
+  "ignorePatterns": [
+    "*.d.ts",
+    "*.test.ts",
+    "*.test.tsx",
+    "*.spec.ts",
+    "*.spec.tsx"
+  ]
+}

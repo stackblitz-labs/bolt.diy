@@ -1,10 +1,8 @@
 import { defineConfig } from 'vite';
-import { vitePlugin as remixVitePlugin } from '@remix-run/dev';
+import { reactRouter } from '@react-router/dev/vite';
 import UnoCSS from 'unocss/vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
-import tsconfigPaths from 'vite-tsconfig-paths';
-
 import { execSync } from 'child_process';
 
 // Get git hash with fallback
@@ -22,6 +20,9 @@ export default defineConfig((config) => {
       __COMMIT_HASH: JSON.stringify(getGitHash()),
       __APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },
+    resolve: {
+      tsconfigPaths: true,
+    },
     build: {
       target: 'esnext',
     },
@@ -29,17 +30,8 @@ export default defineConfig((config) => {
       nodePolyfills({
         include: ['path', 'buffer', 'process'],
       }),
-      remixVitePlugin({
-        future: {
-          v3_fetcherPersist: true,
-          v3_relativeSplatPath: true,
-          v3_throwAbortReason: true,
-          v3_lazyRouteDiscovery: true,
-        },
-        serverModuleFormat: 'esm',
-      }),
+      reactRouter(),
       UnoCSS(),
-      tsconfigPaths(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
       {
         name: 'replaceReactDomServerImport',
@@ -60,16 +52,10 @@ export default defineConfig((config) => {
     envPrefix: [
       'VITE_',
       'OPENAI_LIKE_API_BASE_URL',
+      'OPENAI_LIKE_API_MODELS',
       'OLLAMA_API_BASE_URL',
       'LMSTUDIO_API_BASE_URL',
       'TOGETHER_API_BASE_URL',
     ],
-    css: {
-      preprocessorOptions: {
-        scss: {
-          api: 'modern-compiler',
-        },
-      },
-    },
   };
 });

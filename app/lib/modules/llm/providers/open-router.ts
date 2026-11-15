@@ -1,16 +1,17 @@
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import type { LanguageModel } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
 interface OpenRouterModel {
   name: string;
   id: string;
   context_length: number;
+  architecture?: { output_modalities?: string[] };
   pricing: {
-    prompt: number;
-    completion: number;
+    prompt: number | string;
+    completion: number | string;
   };
 }
 
@@ -28,49 +29,24 @@ export default class OpenRouterProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'z-ai/glm-5.3-flash',
+      label: 'GLM 5.3 Flash',
+      provider: 'OpenRouter',
+      maxTokenAllowed: 1310720,
+      maxCompletionTokens: 16384,
+    },
+    {
       name: 'anthropic/claude-3.5-sonnet',
-      label: 'Anthropic: Claude 3.5 Sonnet (OpenRouter)',
+      label: 'Claude 3.5 Sonnet',
       provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
+      maxTokenAllowed: 200000,
     },
     {
-      name: 'anthropic/claude-3-haiku',
-      label: 'Anthropic: Claude 3 Haiku (OpenRouter)',
+      name: 'openai/gpt-4o',
+      label: 'GPT-4o',
       provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
+      maxTokenAllowed: 128000,
     },
-    {
-      name: 'deepseek/deepseek-coder',
-      label: 'Deepseek-Coder V2 236B (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    {
-      name: 'google/gemini-flash-1.5',
-      label: 'Google Gemini Flash 1.5 (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    {
-      name: 'google/gemini-pro-1.5',
-      label: 'Google Gemini Pro 1.5 (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    { name: 'x-ai/grok-beta', label: 'xAI Grok Beta (OpenRouter)', provider: 'OpenRouter', maxTokenAllowed: 8000 },
-    {
-      name: 'mistralai/mistral-nemo',
-      label: 'OpenRouter Mistral Nemo (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    {
-      name: 'qwen/qwen-110b-chat',
-      label: 'OpenRouter Qwen 110b Chat (OpenRouter)',
-      provider: 'OpenRouter',
-      maxTokenAllowed: 8000,
-    },
-    { name: 'cohere/command', label: 'Cohere Command (OpenRouter)', provider: 'OpenRouter', maxTokenAllowed: 4096 },
   ];
 
   async getDynamicModels(
@@ -85,16 +61,33 @@ export default class OpenRouterProvider extends BaseProvider {
         },
       });
 
+      if (!response.ok) {
+        throw new Error(`OpenRouter model list request failed (${response.status}).`);
+      }
+
       const data = (await response.json()) as OpenRouterModelsResponse;
 
       return data.data
+        .filter(
+          (model) => !model.architecture?.output_modalities || model.architecture.output_modalities.includes('text'),
+        )
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map((m) => ({
-          name: m.id,
-          label: `${m.name} - in:$${(m.pricing.prompt * 1_000_000).toFixed(2)} out:$${(m.pricing.completion * 1_000_000).toFixed(2)} - context ${Math.floor(m.context_length / 1000)}k`,
-          provider: this.name,
-          maxTokenAllowed: 8000,
-        }));
+        .map((m) => {
+          // Get accurate context window from OpenRouter API
+          const contextWindow = m.context_length || 32000; // Use API value or fallback
+
+          // Cap at reasonable limits to prevent issues (OpenRouter has some very large models)
+          const maxAllowed = 2000000; // 2M tokens max for safety
+          const finalContext = Math.min(contextWindow, maxAllowed);
+
+          return {
+            name: m.id,
+            label: `${m.name} - in:$${(Number(m.pricing.prompt) * 1_000_000).toFixed(2)} out:$${(Number(m.pricing.completion) * 1_000_000).toFixed(2)} - context ${finalContext >= 1000000 ? Math.floor(finalContext / 1000000) + 'M' : Math.floor(finalContext / 1000) + 'k'}`,
+            provider: this.name,
+            isFree: Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0,
+            maxTokenAllowed: finalContext,
+          };
+        });
     } catch (error) {
       console.error('Error getting OpenRouter models:', error);
       return [];
@@ -106,7 +99,7 @@ export default class OpenRouterProvider extends BaseProvider {
     serverEnv: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
-  }): LanguageModelV1 {
+  }): LanguageModel {
     const { model, serverEnv, apiKeys, providerSettings } = options;
 
     const { apiKey } = this.getProviderBaseUrlAndKey({
@@ -124,7 +117,8 @@ export default class OpenRouterProvider extends BaseProvider {
     const openRouter = createOpenRouter({
       apiKey,
     });
-    const instance = openRouter.chat(model) as LanguageModelV1;
+
+    const instance = openRouter.chat(model);
 
     return instance;
   }

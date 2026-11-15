@@ -1,6 +1,6 @@
+import { useStore } from '@nanostores/react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { useStore } from '@nanostores/react';
 import { logStore } from '~/lib/stores/logs';
 import {
   supabaseConnection,
@@ -9,9 +9,10 @@ import {
   isFetchingApiKeys,
   updateSupabaseConnection,
   fetchProjectApiKeys,
+  initializeSupabaseConnection,
 } from '~/lib/stores/supabase';
 
-export function useSupabaseConnection() {
+export function useSupabaseConnection({ enabled = true }: { enabled?: boolean } = {}) {
   const connection = useStore(supabaseConnection);
   const connecting = useStore(isConnecting);
   const fetchingStats = useStore(isFetchingStats);
@@ -20,23 +21,49 @@ export function useSupabaseConnection() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
-    const savedConnection = localStorage.getItem('supabase_connection');
-    const savedCredentials = localStorage.getItem('supabaseCredentials');
-
-    if (savedConnection) {
-      const parsed = JSON.parse(savedConnection);
-
-      if (savedCredentials && !parsed.credentials) {
-        parsed.credentials = JSON.parse(savedCredentials);
-      }
-
-      updateSupabaseConnection(parsed);
-
-      if (parsed.token && parsed.selectedProjectId && !parsed.credentials) {
-        fetchProjectApiKeys(parsed.selectedProjectId, parsed.token).catch(console.error);
-      }
+    if (!enabled) {
+      return;
     }
-  }, []);
+
+    const initConnection = async () => {
+      console.log('useSupabaseConnection: Initializing connection...');
+
+      // First, try to initialize from server-side token
+      try {
+        await initializeSupabaseConnection();
+        console.log('useSupabaseConnection: Server-side initialization completed');
+      } catch {
+        console.log('useSupabaseConnection: Server-side initialization failed, trying localStorage');
+      }
+
+      // Then check localStorage for additional data
+      const savedConnection = localStorage.getItem('supabase_connection');
+      const savedCredentials = localStorage.getItem('supabaseCredentials');
+
+      if (savedConnection) {
+        console.log('useSupabaseConnection: Loading from localStorage');
+
+        const parsed = JSON.parse(savedConnection);
+
+        if (savedCredentials && !parsed.credentials) {
+          parsed.credentials = JSON.parse(savedCredentials);
+        }
+
+        // Only update if we don't already have a connection from server-side
+        const currentState = supabaseConnection.get();
+
+        if (!currentState.user) {
+          updateSupabaseConnection(parsed);
+        }
+
+        if (parsed.token && parsed.selectedProjectId && !parsed.credentials) {
+          fetchProjectApiKeys(parsed.selectedProjectId, parsed.token).catch(console.error);
+        }
+      }
+    };
+
+    void initConnection();
+  }, [enabled]);
 
   const handleConnect = async () => {
     isConnecting.set(true);
@@ -91,6 +118,7 @@ export function useSupabaseConnection() {
 
   const selectProject = async (projectId: string) => {
     const currentState = supabaseConnection.get();
+
     let projectData = undefined;
 
     if (projectId && currentState.stats?.projects) {

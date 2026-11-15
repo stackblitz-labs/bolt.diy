@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { extractRelativePath } from './diff';
 import { WORK_DIR } from './constants';
+import { extractRelativePath } from './diff';
 
 describe('Diff', () => {
   it('should strip out Work_dir', () => {
