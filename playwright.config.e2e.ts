@@ -6,6 +6,21 @@ export default defineConfig({
   // Also include existing e2e tests from tests/e2e
   projects: [
     {
+      name: 'ci',
+      testDir: './e2e-tests',
+      testMatch: [
+        '00-health-check.e2e.ts',
+        '01-basic-chat.e2e.ts',
+        '02-code-generation.e2e.ts',
+        '04-attachment-menu.e2e.ts',
+        '06-mocked-chat.e2e.ts',
+      ],
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1920, height: 1080 },
+      },
+    },
+    {
       name: 'chromium',
       testDir: './e2e-tests',
       testMatch: '**/*.e2e.ts',
@@ -31,11 +46,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['list'],
-    ['json', { outputFile: 'test-results.json' }],
-  ],
+  reporter: [['html', { outputFolder: 'playwright-report' }], ['list'], ['json', { outputFile: 'test-results.json' }]],
   use: {
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:5173',
     // Note: Even if E2E_BASE_URL points to a remote app, webServer below still

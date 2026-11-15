@@ -21,6 +21,7 @@
     "test:perf": "vitest --run tests/performance",
     "test:coverage": "vitest --run --coverage",
     "test:e2e": "playwright test --config=playwright.config.e2e.ts",
+    "test:e2e:ci": "playwright test --config=playwright.config.e2e.ts --project=ci",
     "test:e2e:ui": "playwright test --config=playwright.config.e2e.ts --ui",
     "test:e2e:headed": "playwright test --config=playwright.config.e2e.ts --headed",
     "test:e2e:debug": "playwright test --config=playwright.config.e2e.ts --debug",
