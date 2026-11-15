@@ -9,6 +9,12 @@ import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
+import {
+  canDispatchQueuedPrompt,
+  isQueueableResponse,
+  moveQueuedPrompt,
+  type QueuedPrompt,
+} from '~/lib/chat/promptQueue';
 import { isServerAgentTool } from '~/lib/common/agentLoop';
 import { STARTER_BUILD_FLAG } from '~/lib/common/starterBuild';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
@@ -127,6 +133,25 @@ export const ChatImpl = memo(
     const [imageDataList, setImageDataList] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
     const [fakeLoading, setFakeLoading] = useState(false);
+    const [queuedPrompts, setQueuedPrompts] = useState<QueuedPrompt[]>([]);
+    const queuedPromptsRef = useRef<QueuedPrompt[]>([]);
+    const [queuePaused, setQueuePaused] = useState(false);
+    const queuePausedRef = useRef(false);
+    const queueReadyRef = useRef(false);
+    const queueEpochRef = useRef(0);
+    const queueIdRef = useRef(0);
+
+    const setQueue = (items: QueuedPrompt[]) => {
+      queueEpochRef.current++;
+      queuedPromptsRef.current = items;
+      setQueuedPrompts(items);
+    };
+    const pauseQueue = (paused: boolean) => {
+      queueEpochRef.current++;
+      queuePausedRef.current = paused;
+      setQueuePaused(paused);
+    };
+
     const files = useStore(workbenchStore.files);
     const [designScheme, setDesignScheme] = useState<DesignScheme>(defaultDesignScheme);
     const actionAlert = useStore(workbenchStore.alert);
@@ -252,6 +277,7 @@ export const ChatImpl = memo(
       sendMessage: sendChatMessage,
       setMessages,
       error,
+      clearError,
       addToolOutput,
     } = useChat({
       transport: new DefaultChatTransport({
@@ -290,10 +316,20 @@ export const ChatImpl = memo(
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
       onError: (e) => {
         setFakeLoading(false);
+        queueReadyRef.current = false;
+        pauseQueue(true);
         handleError(e, 'chat');
       },
-      onFinish: ({ message }) => {
+      onFinish: ({ message, isAbort, isError }) => {
         setProgressAnnotations([]);
+
+        if (isAbort || isError) {
+          queueReadyRef.current = false;
+          pauseQueue(true);
+        } else {
+          // A tool-call response may be followed by another automatic request or approval.
+          queueReadyRef.current = isQueueableResponse(getMessageParts(message) ?? []);
+        }
 
         const userMessages = messagesRef.current.filter((item) => item.role === 'user');
 
@@ -360,6 +396,9 @@ export const ChatImpl = memo(
     });
 
     const isLoading = status === 'submitted' || status === 'streaming';
+    const queueStatusRef = useRef({ status, fakeLoading });
+    queueStatusRef.current = { status, fakeLoading };
+
     const messagesRef = useRef(messages);
     messagesRef.current = messages;
 
@@ -370,6 +409,10 @@ export const ChatImpl = memo(
 
     useEffect(() => {
       const unsubscribe = workbenchStore.projectGeneration.listen(() => {
+        queueReadyRef.current = false;
+        setQueue([]);
+        pauseQueue(false);
+
         for (const controller of projectToolControllersRef.current.values()) {
           controller.abort();
         }
@@ -679,6 +722,9 @@ export const ChatImpl = memo(
        * or every action would run a second time.
        */
       if (chatChanged) {
+        setQueue([]);
+        queueReadyRef.current = false;
+        pauseQueue(false);
         resetParsedMessages();
       }
 
@@ -754,6 +800,8 @@ export const ChatImpl = memo(
     };
 
     const abort = () => {
+      queueReadyRef.current = false;
+      pauseQueue(true);
       stop();
       chatStore.setKey('aborted', true);
       workbenchStore.abortAllActions();
@@ -1132,11 +1180,103 @@ export const ChatImpl = memo(
       Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
     };
 
+    useEffect(() => {
+      if (status !== 'ready' || fakeLoading || queuePaused || !queueReadyRef.current || queuedPrompts.length === 0) {
+        return undefined;
+      }
+
+      let cancelled = false;
+
+      const epoch = queueEpochRef.current;
+      const projectGeneration = workbenchStore.projectGeneration.get();
+
+      // Flush the final response through the parser before waiting for its workbench actions.
+      pendingTemplateParserRef.current(messagesRef.current, false);
+
+      void (async () => {
+        await workbenchStore.waitForExecutionQueue();
+
+        if (
+          !canDispatchQueuedPrompt({
+            cancelled,
+            originalGeneration: projectGeneration,
+            currentGeneration: workbenchStore.projectGeneration.get(),
+            originalEpoch: epoch,
+            currentEpoch: queueEpochRef.current,
+            paused: queuePausedRef.current,
+            ready: queueReadyRef.current,
+            status: queueStatusRef.current.status,
+            preparing: queueStatusRef.current.fakeLoading,
+          })
+        ) {
+          return;
+        }
+
+        if (workbenchStore.alert.get()) {
+          pauseQueue(true);
+          return;
+        }
+
+        const [next, ...remaining] = queuedPromptsRef.current;
+
+        if (!next?.text.trim()) {
+          pauseQueue(true);
+          return;
+        }
+
+        queueReadyRef.current = false;
+        setQueue(remaining);
+
+        const modifiedFiles = workbenchStore.getModifiedFiles();
+        const changes = modifiedFiles ? filesToArtifacts(modifiedFiles, `${Date.now()}`) : '';
+        const text = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${changes}${next.text}`;
+
+        if (modifiedFiles) {
+          workbenchStore.resetAllFileModifications();
+        }
+
+        try {
+          await sendChatMessage(createMessage({ role: 'user', text }) as UIMessage);
+        } catch {
+          pauseQueue(true);
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [status, fakeLoading, queuePaused, queuedPrompts, messages, model, provider, sendChatMessage]);
+
     return (
       <BaseChat
         ref={animationScope}
         textareaRef={textareaRef}
         input={input}
+        promptQueue={{
+          items: queuedPrompts,
+          paused: queuePaused,
+          canAdd: !!input.trim() && uploadedFiles.length === 0 && imageDataList.length === 0 && !selectedElement,
+          add: () => {
+            if (!input.trim() || uploadedFiles.length || imageDataList.length || selectedElement) {
+              return;
+            }
+
+            setQueue([...queuedPromptsRef.current, { id: ++queueIdRef.current, text: input.trim() }]);
+            setInput('');
+            Cookies.remove(PROMPT_COOKIE_KEY);
+          },
+          update: (id, text) =>
+            setQueue(queuedPromptsRef.current.map((item) => (item.id === id ? { ...item, text } : item))),
+          remove: (id) => setQueue(queuedPromptsRef.current.filter((item) => item.id !== id)),
+          move: (id, direction) => {
+            setQueue(moveQueuedPrompt(queuedPromptsRef.current, id, direction));
+          },
+          resume: () => {
+            queueReadyRef.current = true;
+            clearError();
+            pauseQueue(false);
+          },
+        }}
         showChat={showChat}
         chatStarted={chatStarted}
         isStreaming={isLoading || fakeLoading}

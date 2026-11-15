@@ -7,6 +7,7 @@ import { AttachmentMenu } from './AttachmentMenu';
 import styles from './BaseChat.module.scss';
 import FilePreview from './FilePreview';
 import { McpTools } from './MCPTools';
+import { PromptQueue, type PromptQueueControls } from './PromptQueue';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { SendButton } from './SendButton.client';
 import { SupabaseConnection } from './SupabaseConnection';
@@ -30,6 +31,7 @@ import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 
 interface ChatBoxProps {
+  promptQueue?: PromptQueueControls;
   isModelSettingsCollapsed: boolean;
   setIsModelSettingsCollapsed: (collapsed: boolean) => void;
   provider: any;
@@ -225,6 +227,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           )}
         </ClientOnly>
       </div>
+      {props.promptQueue && <PromptQueue queue={props.promptQueue} />}
       <FilePreview
         files={props.uploadedFiles}
         imageDataList={props.imageDataList}
@@ -353,6 +356,17 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </ClientOnly>
         <div className="flex justify-between items-center text-sm p-4 pt-2">
           <div className="flex gap-1 items-center">
+            {props.isStreaming && props.promptQueue && (
+              <button
+                type="button"
+                onClick={props.promptQueue.add}
+                disabled={!props.promptQueue.canAdd}
+                title="Queue the current text for the next turn"
+                className="rounded px-2 py-1 text-xs disabled:opacity-50"
+              >
+                Add to queue
+              </button>
+            )}
             <ClientOnly>
               {() => (
                 <AttachmentMenu

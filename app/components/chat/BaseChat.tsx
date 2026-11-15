@@ -12,6 +12,7 @@ import GitCloneButton from './GitCloneButton';
 import LlmErrorAlert from './LLMApiAlert';
 import { Messages, type DisplayMessage } from './Messages.client';
 import ProgressCompilation from './ProgressCompilation';
+import type { PromptQueueControls } from './PromptQueue';
 import StarterTemplates from './StarterTemplates';
 import { ToolApprovalTray } from './ToolApprovalTray';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
@@ -40,6 +41,7 @@ import { PROVIDER_LIST } from '~/utils/constants';
 const TEXTAREA_MIN_HEIGHT = 76;
 
 interface BaseChatProps {
+  promptQueue?: PromptQueueControls;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null> | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
   scrollRef?: RefCallback<HTMLDivElement> | undefined;
@@ -89,6 +91,7 @@ interface BaseChatProps {
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   (
     {
+      promptQueue,
       textareaRef,
       showChat = true,
       chatStarted = false,
@@ -450,6 +453,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <ToolApprovalTray messages={messages} addToolOutput={addToolOutput} />
                 {incomingProgressAnnotations && <ProgressCompilation data={incomingProgressAnnotations} />}
                 <ChatBox
+                  promptQueue={promptQueue}
                   isModelSettingsCollapsed={isModelSettingsCollapsed}
                   setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
                   provider={provider}
