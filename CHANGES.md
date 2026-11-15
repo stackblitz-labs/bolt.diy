@@ -25,3 +25,7 @@ Highlights since the 1.0.0 release (May 2025), through the current 1.0.3 codebas
 
 - Updated the AI SDK and major application dependencies, and expanded unit, integration, performance, and Playwright end-to-end test coverage.
 - Improved Docker configuration and startup, desktop packaging and release workflows, and deployment handling for services including Netlify.
+
+## Stable Branch
+
+- updated stable branch
