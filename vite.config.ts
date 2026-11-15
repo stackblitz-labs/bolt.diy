@@ -28,8 +28,21 @@ export default defineConfig((config) => {
     },
     build: {
       target: 'esnext',
+      rollupOptions: {
+        output: {
+          format: 'esm',
+        },
+      },
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      },
     },
     optimizeDeps: {
+      esbuildOptions: {
+        define: {
+          global: 'globalThis',
+        },
+      },
       include: [
         'react',
         'react/jsx-runtime',
