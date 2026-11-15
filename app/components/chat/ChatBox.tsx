@@ -379,6 +379,12 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 />
               )}
             </ClientOnly>
+            <SpeechRecognitionButton
+              isListening={props.isListening}
+              onStart={props.startListening}
+              onStop={props.stopListening}
+              disabled={props.isStreaming}
+            />
             <ClientOnly>{() => <ToolAccessMenu />}</ClientOnly>
             {/* Hidden components for programmatic access from menu */}
             <div className="hidden">
@@ -467,12 +473,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
-            <SpeechRecognitionButton
-              isListening={props.isListening}
-              onStart={props.startListening}
-              onStop={props.stopListening}
-              disabled={props.isStreaming}
-            />
             <IconButton
               title="Model Settings"
               className={classNames('transition-all flex items-center gap-1', {
@@ -484,14 +484,14 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               onClick={() => props.setIsModelSettingsCollapsed(!props.isModelSettingsCollapsed)}
               disabled={!props.providerList || props.providerList.length === 0}
             >
-              <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
               {props.isModelSettingsCollapsed ? (
                 <span className="text-xs" title={props.model}>
                   {props.model && props.model.length > 25 ? `${props.model.slice(0, 22)}...` : props.model}
                 </span>
               ) : (
-                <span />
+                <span className="text-xs">Model Settings</span>
               )}
+              <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
             </IconButton>
           </div>
           <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
