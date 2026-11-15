@@ -74,8 +74,23 @@ jobs:
       - name: Validate Docker production build
         run: |
           echo "🐳 Testing Docker production target..."
-          docker build --target bolt-ai-production . --no-cache --progress=plain
+          docker build --target bolt-ai-production -t bolt-ai:ci . --no-cache --progress=plain
           echo "✅ Production target builds successfully"
+
+      - name: Smoke test production container
+        run: |
+          container_id=$(docker run -d -p 127.0.0.1:5173:5173 bolt-ai:ci)
+          trap 'docker logs "$container_id"; docker rm -f "$container_id"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5173/ -o /dev/null; then
+              exit 0
+            fi
+            if [ "$(docker inspect -f '{{.State.Running}}' "$container_id")" != "true" ]; then
+              exit 1
+            fi
+            sleep 2
+          done
+          exit 1
 
       - name: Validate Docker development build
         run: |

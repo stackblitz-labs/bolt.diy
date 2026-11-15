@@ -29,15 +29,10 @@ RUN pnpm install --offline --frozen-lockfile
 # Build the Remix app (SSR + client)
 RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm run build
 
-# ---- production dependencies stage ----
-FROM build AS prod-deps
-
-# Keep only production deps for runtime
-RUN pnpm prune --prod --ignore-scripts
-
-
 # ---- production stage ----
-FROM prod-deps AS bolt-ai-production
+# Vite preview loads vite.config.ts and its plugins at runtime, so it needs the
+# build dependencies as well as the production dependencies.
+FROM build AS bolt-ai-production
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -61,12 +56,6 @@ ENV WRANGLER_SEND_METRICS=false \
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy built files
-COPY --from=prod-deps /app/build /app/build
-COPY --from=prod-deps /app/node_modules /app/node_modules
-COPY --from=prod-deps /app/package.json /app/package.json
-COPY --from=prod-deps /app/wrangler.jsonc /app/wrangler.jsonc
-
 # Pre-configure wrangler to disable metrics
 RUN mkdir -p /root/.config/.wrangler && \
     echo '{"enabled":false}' > /root/.config/.wrangler/metrics.json
@@ -77,7 +66,7 @@ EXPOSE 5173
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
   CMD curl -fsS http://localhost:5173/ || exit 1
 
-# Start using dockerstart script with Wrangler
+# Start the built app with Vite's Cloudflare preview server
 CMD ["pnpm", "run", "dockerstart"]
 
 
