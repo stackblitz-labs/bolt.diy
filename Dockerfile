@@ -1,5 +1,5 @@
 # ---- build stage ----
-FROM node:22-bookworm-slim AS build
+FROM node:22.23.5-bookworm-slim AS build
 WORKDIR /app
 
 # CI-friendly env
