@@ -12,6 +12,8 @@ jobs:
   prepare-release:
     if: contains(github.event.head_commit.message, '#release')
     runs-on: ubuntu-latest
+    outputs:
+      tag: v${{ steps.bump_version.outputs.new_version }}
 
     steps:
       - uses: actions/checkout@v7
@@ -59,8 +61,9 @@ jobs:
 
       - name: Determine Version Bump
         id: version_bump
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
           if [[ $COMMIT_MSG =~ "#release:major" ]]; then
             echo "bump=major" >> $GITHUB_OUTPUT
           elif [[ $COMMIT_MSG =~ "#release:minor" ]]; then
@@ -125,3 +128,9 @@ jobs:
             --title "Release $VERSION" \
             --notes-file release_notes.md \
             --target stable
+
+  desktop-release:
+    needs: prepare-release
+    uses: ./.github/workflows/electron.yml
+    with:
+      tag: ${{ needs.prepare-release.outputs.tag }}

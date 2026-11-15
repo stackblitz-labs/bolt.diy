@@ -1,6 +1,12 @@
 name: Electron Build and Release
 
 on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Release tag to build and attach binaries to.'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
@@ -28,6 +34,8 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Install Node.js
         uses: actions/setup-node@v7
@@ -70,28 +78,41 @@ jobs:
           NODE_OPTIONS: "--max_old_space_size=4096"
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
-            pnpm run electron:build:win
+            pnpm run electron:build:win --publish never
           elif [ "$RUNNER_OS" == "macOS" ]; then
-            pnpm run electron:build:mac
+            pnpm run electron:build:mac --publish never
           else
-            pnpm run electron:build:linux
+            pnpm run electron:build:linux --publish never
           fi
         shell: bash
 
-      # Create Release
-      - name: Create Release
+      - name: Verify desktop artifacts exist
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Windows) pattern='dist/*.exe' ;;
+            macOS) pattern='dist/*.dmg' ;;
+            Linux) pattern='dist/*.AppImage' ;;
+          esac
+          if ! compgen -G "$pattern" > /dev/null; then
+            echo "No desktop artifact found matching $pattern"
+            exit 1
+          fi
+
+      # Attach each platform's assets to the release created by the caller.
+      - name: Publish desktop artifacts
         uses: softprops/action-gh-release@v2
         with:
-          # Use the workflow_dispatch input tag if available, else use the Git ref name.
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
-          # Only branch pushes remain drafts. For workflow_dispatch and tag pushes the release is published.
-          draft: ${{ github.event_name != 'workflow_dispatch' && github.ref_type == 'branch' }}
-          # For tag pushes, name the release as "Release <tagname>", otherwise "Electron Release".
-          name: ${{ (github.event_name == 'push' && github.ref_type == 'tag') && format('Release {0}', github.ref_name) || 'Electron Release' }}
+          # Use the supplied tag for reusable and manual runs.
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          # Only direct branch-push builds without a supplied release tag are drafts.
+          draft: ${{ !inputs.tag && github.event_name == 'push' && github.ref_type == 'branch' }}
+          name: ${{ (inputs.tag || github.ref_type == 'tag') && format('Release {0}', inputs.tag || github.ref_name) || 'Electron Release' }}
           files: |
             dist/*.exe
             dist/*.dmg
             dist/*.deb
+            dist/*.rpm
             dist/*.AppImage
             dist/*.zip
         env:
