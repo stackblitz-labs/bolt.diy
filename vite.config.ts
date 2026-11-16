@@ -6,6 +6,10 @@ import { defineConfig, type ViteDevServer } from 'vite';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import { browserPolyfills } from './scripts/vite/browser-polyfills.ts';
 
+const ReactCompilerConfig = {
+  target: '19',
+};
+
 /*
  * Prevent miniflare from making an external network request to workers.cloudflare.com
  * for Request.cf during local dev, which causes 3-second TimeoutError warnings.
@@ -23,11 +27,55 @@ export default defineConfig((config) => {
       // Ensure process.cwd is defined as a function for path-browserify compatibility
       'process.cwd': '() => "/"',
     },
+    server: {
+      // Warm up frequently used dependencies
+      warmup: {
+        clientFiles: [
+          './app/root.tsx',
+          './app/routes/_index.tsx',
+          './app/components/chat/Chat.client.tsx',
+          './app/components/chat/BaseChat.tsx',
+        ],
+      },
+      // Optimize HMR
+      hmr: {
+        overlay: true,
+      },
+    },
     resolve: {
       tsconfigPaths: true,
     },
     build: {
       target: 'esnext',
+      // Optimize chunk splitting for better caching
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            // Split vendor dependencies for better caching
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+                return 'react-vendor';
+              }
+              if (id.includes('@ai-sdk') || id.includes('/ai/')) {
+                return 'ai-vendor';
+              }
+              if (id.includes('@radix-ui') || id.includes('framer-motion')) {
+                return 'ui-vendor';
+              }
+              if (id.includes('@codemirror')) {
+                return 'editor';
+              }
+              if (id.includes('@xterm')) {
+                return 'terminal';
+              }
+            }
+          },
+        },
+      },
+      // Increase chunk size warning limit (these are chunked appropriately)
+      chunkSizeWarningLimit: 1000,
+      // Enable CSS code splitting
+      cssCodeSplit: true,
     },
     optimizeDeps: {
       include: [

@@ -474,14 +474,16 @@ export const Menu = () => {
                   <>
                     <div className="p-6 bg-bolt-elements-background-depth-1">
                       <DialogTitle className="text-bolt-elements-textPrimary">Delete Chat?</DialogTitle>
-                      <DialogDescription className="mt-2 text-bolt-elements-textSecondary">
-                        <p>
-                          You are about to delete{' '}
-                          <span className="font-medium text-bolt-elements-textPrimary">
-                            {dialogContent.item.description}
-                          </span>
-                        </p>
-                        <p className="mt-2">Are you sure you want to delete this chat?</p>
+                      <DialogDescription asChild>
+                        <div className="mt-2 text-sm text-bolt-elements-textSecondary">
+                          <p>
+                            You are about to delete{' '}
+                            <span className="font-medium text-bolt-elements-textPrimary">
+                              {dialogContent.item.description}
+                            </span>
+                          </p>
+                          <p className="mt-2">Are you sure you want to delete this chat?</p>
+                        </div>
                       </DialogDescription>
                     </div>
                     <div className="flex justify-end gap-3 px-6 py-4 bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor">
@@ -505,21 +507,23 @@ export const Menu = () => {
                   <>
                     <div className="p-6 bg-bolt-elements-background-depth-1">
                       <DialogTitle className="text-bolt-elements-textPrimary">Delete Selected Chats?</DialogTitle>
-                      <DialogDescription className="mt-2 text-bolt-elements-textSecondary">
-                        <p>
-                          You are about to delete {dialogContent.items.length}{' '}
-                          {dialogContent.items.length === 1 ? 'chat' : 'chats'}:
-                        </p>
-                        <div className="mt-2 max-h-32 overflow-auto border border-bolt-elements-borderColor rounded-md bg-bolt-elements-background-depth-2 p-2">
-                          <ul className="list-disc pl-5 space-y-1">
-                            {dialogContent.items.map((item) => (
-                              <li key={item.id} className="text-sm">
-                                <span className="font-medium text-bolt-elements-textPrimary">{item.description}</span>
-                              </li>
-                            ))}
-                          </ul>
+                      <DialogDescription asChild>
+                        <div className="mt-2 text-sm text-bolt-elements-textSecondary">
+                          <p>
+                            You are about to delete {dialogContent.items.length}{' '}
+                            {dialogContent.items.length === 1 ? 'chat' : 'chats'}:
+                          </p>
+                          <div className="mt-2 max-h-32 overflow-auto border border-bolt-elements-borderColor rounded-md bg-bolt-elements-background-depth-2 p-2">
+                            <ul className="list-disc pl-5 space-y-1">
+                              {dialogContent.items.map((item) => (
+                                <li key={item.id} className="text-sm">
+                                  <span className="font-medium text-bolt-elements-textPrimary">{item.description}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <p className="mt-3">Are you sure you want to delete these chats?</p>
                         </div>
-                        <p className="mt-3">Are you sure you want to delete these chats?</p>
                       </DialogDescription>
                     </div>
                     <div className="flex justify-end gap-3 px-6 py-4 bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor">

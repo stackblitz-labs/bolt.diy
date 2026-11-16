@@ -66,8 +66,7 @@ If you're new to installing software from GitHub, don't worry! If you encounter 
 
 1. **Install Git**: [Download Git](https://git-scm.com/downloads)
 2. **Install Node.js**: [Download Node.js](https://nodejs.org/en/download/)
-   - **Version Required**: Node.js **>= 22.12.0** (required by Vite 8 for Rolldown native bindings).
-   - **Package Manager**: pnpm **>= 9.15.9** (`npm install -g pnpm`).
+   - **Required versions**: See [`engines` in package.json](https://github.com/stackblitz-labs/bolt.diy/blob/main/package.json) for the supported Node.js and pnpm versions. Install pnpm with `npm install -g pnpm` if needed.
    - After installation, the Node.js path is usually added to your system automatically. To verify:
      - **Windows**: Search for "Edit the system environment variables," click "Environment Variables," and check if `Node.js` is in the `Path` variable.
      - **Mac/Linux**: Open a terminal and run:
@@ -78,7 +77,7 @@ If you're new to installing software from GitHub, don't worry! If you encounter 
 
 ### Clone the Repository
 
-Alternatively, you can download the latest version of the project directly from the [Releases Page](https://github.com/stackblitz-labs/bolt.diy/releases/latest). Simply download the .zip file, extract it, and proceed with the setup instructions below. If you are comfertiable using git then run the command below.
+Alternatively, download the latest version from the [Releases Page](https://github.com/stackblitz-labs/bolt.diy/releases/latest), extract it, and follow the setup instructions below. To use Git, run the following commands.
 
 Clone the repository using Git:
 
@@ -95,7 +94,7 @@ There are two ways to configure your API keys in bolt.diy:
 
 #### 1. Set API Keys in the `.env.local` File
 
-When setting up the application, you will need to add your API keys for the LLMs you wish to use. You can do this by renaming the `.env.example` file to `.env.local` and adding your API keys there.
+Copy `.env.example` to `.env.local` and add keys for the providers you want to use. Replace the placeholders you need, and remove or comment out unused placeholders so they are not mistaken for configured credentials.
 
 - On **Mac**, you can find the file at `[your name]/bolt.diy/.env.example`.
 - On **Windows/Linux**, the path will be similar.
@@ -112,13 +111,13 @@ Make sure to add your API keys for each provider you want to use, for example:
 GROQ_API_KEY=XXX
 OPENAI_API_KEY=XXX
 ANTHROPIC_API_KEY=XXX
+OPEN_ROUTER_API_KEY=XXX
+GOOGLE_GENERATIVE_AI_API_KEY=XXX
 ```
 
 Once you've set your keys, you can proceed with running the app. You will set these keys up during the initial setup, and you can revisit and update them later after the app is running.
 
-**Important for Docker users**: Docker Compose needs a `.env` file for variable substitution.
-- For development: Run `./scripts/setup-env.sh` to sync `.env.local` to `.env`, or manually copy: `cp .env.local .env`
-- For production: You can also use the clean production template: `cp .env.production .env`
+**Important for Docker users**: The development and production Compose services require both `.env` and `.env.local`. Compose uses `.env` for variable substitution and passes both files to the container. Run `./scripts/setup-env.sh` or copy `cp .env.local .env` after configuring the keys, and repeat the copy when `.env.local` changes. Shell environment variables can override values used for Compose substitution.
 
 **Note**: Never commit your `.env.local` or `.env` files to version control. They're already included in the `.gitignore`.
 
@@ -129,17 +128,19 @@ Alternatively, you can configure your API keys directly in the application using
 1. **Open Settings**: Click the settings icon (⚙️) in the sidebar to access the settings panel
 2. **Navigate to Providers**: Select the "Providers" tab from the settings menu
 3. **Choose Provider Type**: Switch between "Cloud Providers" and "Local Providers" tabs
-4. **Select Provider**: Browse the grid of available providers and click on the provider card you want to configure
-5. **Configure API Key**: Click on the "API Key" field to enter edit mode, then paste your API key and press Enter
-6. **Verify Configuration**: Look for the green checkmark indicator showing the provider is properly configured
+4. **Enable the provider** and configure its endpoint if applicable.
+5. **Configure the API key**: In the chat composer, select the provider, click **Edit API Key**, enter the key, and save it.
+6. **Check the status**: The indicator shows whether a key is set, not whether the provider accepts it. Send a test request to verify access.
 
 The interface provides:
-- **Real-time validation** with visual status indicators
+- **Key status indicators** showing whether a key is set
 - **Bulk operations** to enable/disable multiple providers at once
-- **Secure storage** of API keys in browser cookies
+- **Browser-cookie storage** for keys entered in the UI. These cookies are accessible to JavaScript and are sent to the application server with requests. Protect access to the browser and use HTTPS for remote deployments.
 - **Environment variable auto-detection** for server-side configurations
 
 Once you've configured your keys, the application will be ready to use the selected LLMs.
+
+For OpenRouter, select **OpenRouter** in the provider selector and **Free Models Router** (`openrouter/free`) in the model selector. Availability and rate limits depend on OpenRouter. For Ollama and LM Studio, use `OLLAMA_API_BASE_URL` and `LMSTUDIO_API_BASE_URL`; in Docker, `127.0.0.1` points to the container, so use a host-reachable address such as `host.docker.internal` where supported.
 
 ---
 
@@ -163,7 +164,7 @@ Once you've configured your keys, the application will be ready to use the selec
    ```bash
    pnpm run dev
    ```
-   This will start the React Router Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
+   This starts the React Router Vite development server at http://localhost:5173.
 
 ### Option 2: With Docker
 
@@ -178,13 +179,13 @@ Once you've configured your keys, the application will be ready to use the selec
    Use the provided NPM scripts:
 
    ```bash
-   npm run dockerbuild
+   pnpm run dockerbuild
    ```
 
    Alternatively, use Docker commands directly:
 
    ```bash
-   docker build . --target bolt-ai-development
+   docker build -t bolt-ai:development . --target development
    ```
 
 2. **Run the Container**:  
@@ -578,7 +579,7 @@ All templates are pre-configured with modern tooling, linting, and build process
 - `pnpm run build`: Builds the project for production (`react-router build`)
 - `pnpm run start`: Starts the local preview server (`vite preview --port 5173`)
 - `pnpm run preview`: Builds and starts locally for production verification
-- `pnpm test`: Runs the unit and integration test suite using Vitest
+- `pnpm test`: Runs the Vitest suite, including unit, integration, and performance tests
 - `pnpm run test:watch`: Runs tests in watch mode
 - `pnpm run test:e2e`: Runs Playwright end-to-end integration tests
 - `pnpm run lint`: Runs ESLint
@@ -593,12 +594,12 @@ All templates are pre-configured with modern tooling, linting, and build process
 - `docker compose --profile development up`: Runs with Docker Compose (development)
 
 ### Electron Scripts
-- `pnpm run electron:dev`: Starts the Electron desktop application in development mode
+- `pnpm run electron:dev`: Starts the Electron desktop application in development mode; server detection requires `lsof`, which is not available in a standard Windows shell
 - `pnpm run electron:dev:inspect`: Starts Electron with Node inspector enabled on port 9229
 - `pnpm electron:build:win`: Builds the Windows installer
 - `pnpm electron:build:mac`: Builds for macOS
 - `pnpm electron:build:linux`: Builds for Linux
-- `pnpm electron:build:dist`: Builds for all platforms (Mac, Windows, Linux)
+- `pnpm electron:build:dist`: Requests builds for macOS, Windows, and Linux; cross-platform builds can require additional tools or signing configuration
 - `pnpm electron:build:unpack`: Creates unpacked build for testing
 
 ### Deployment Scripts
