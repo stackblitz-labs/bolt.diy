@@ -3,6 +3,7 @@ import { diffLines, type Change } from 'diff';
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { createHighlighter } from 'shiki';
 import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
+import { sanitizeCodeHtml } from '~/lib/security/sanitize';
 import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -377,15 +378,17 @@ const NoChangesView = memo(
                 <span className="mr-2"> </span>
                 <span
                   dangerouslySetInnerHTML={{
-                    __html: highlighter
-                      ? highlighter
-                          .codeToHtml(line, {
-                            lang: language,
-                            theme: getThemeMode(theme) === 'dark' ? 'github-dark' : 'github-light',
-                          })
-                          .replace(/<\/?pre[^>]*>/g, '')
-                          .replace(/<\/?code[^>]*>/g, '')
-                      : line,
+                    __html: sanitizeCodeHtml(
+                      highlighter
+                        ? highlighter
+                            .codeToHtml(line, {
+                              lang: language,
+                              theme: getThemeMode(theme) === 'dark' ? 'github-dark' : 'github-light',
+                            })
+                            .replace(/<\/?pre[^>]*>/g, '')
+                            .replace(/<\/?code[^>]*>/g, '')
+                        : line,
+                    ),
                   }}
                 />
               </div>
@@ -434,7 +437,7 @@ const CodeLine = memo(
               .replace(/<\/?pre[^>]*>/g, '')
               .replace(/<\/?code[^>]*>/g, '')
           : content;
-        return <span dangerouslySetInnerHTML={{ __html: highlightedCode }} />;
+        return <span dangerouslySetInnerHTML={{ __html: sanitizeCodeHtml(highlightedCode) }} />;
       }
 
       return (
@@ -452,7 +455,13 @@ const CodeLine = memo(
                   .replace(/<\/?code[^>]*>/g, '')
               : change.value;
 
-            return <span key={index} className={changeClass} dangerouslySetInnerHTML={{ __html: highlightedCode }} />;
+            return (
+              <span
+                key={index}
+                className={changeClass}
+                dangerouslySetInnerHTML={{ __html: sanitizeCodeHtml(highlightedCode) }}
+              />
+            );
           })}
         </>
       );

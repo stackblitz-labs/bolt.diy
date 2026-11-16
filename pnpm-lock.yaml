@@ -200,6 +200,9 @@ importers:
       diff:
         specifier: ^9.0.0
         version: 9.0.0
+      dompurify:
+        specifier: ^3.4.18
+        version: 3.4.18
       dotenv:
         specifier: ^18.0.10
         version: 18.0.10
@@ -10321,7 +10324,6 @@ snapshots:
   dompurify@3.4.18:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
-    optional: true
 
   dot-prop@10.2.0:
     dependencies:

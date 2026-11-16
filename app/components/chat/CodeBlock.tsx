@@ -1,6 +1,7 @@
 import { memo, useEffect, useState } from 'react';
 import type { BundledLanguage } from 'shiki';
 import styles from './CodeBlock.module.scss';
+import { sanitizeCodeHtml } from '~/lib/security/sanitize';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger } from '~/utils/logger';
 import { highlightCode } from '~/utils/syntax-highlighter-client';
@@ -128,7 +129,7 @@ export const CodeBlock = memo(
             </button>
           )}
         </div>
-        <div dangerouslySetInnerHTML={{ __html: html ?? '' }}></div>
+        <div dangerouslySetInnerHTML={{ __html: sanitizeCodeHtml(html ?? '') }}></div>
       </div>
     );
   },
