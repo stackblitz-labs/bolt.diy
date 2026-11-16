@@ -1,57 +1,48 @@
-# Project management of bolt.diy
+# bolt.diy architecture
 
-First off: this sounds funny, we know. "Project management" comes from a world of enterprise stuff and this project is
-far from being enterprisy- it's still anarchy all over the place 😉
+bolt.diy is a browser-based AI development workspace. The web application coordinates chat, model requests, project files, and integrations; generated application code runs in a WebContainer in the user's browser.
 
-But we need to organize ourselves somehow, right?
+## System overview
 
-> tl;dr: We've got a project board with epics and features. We use PRs as change log and as materialized features. Find it [here](https://github.com/orgs/stackblitz-labs/projects/4).
+```mermaid
+flowchart LR
+    User[User's browser]
+    UI["React Router UI<br/>Chat, editor, terminal, preview"]
+    WC["WebContainer<br/>Generated project runtime"]
+    API["React Router actions/loaders<br/>Worker server routes"]
+    LLM[Configured model provider]
+    Tools[MCP and service integrations]
+    Store["Browser storage<br/>IndexedDB, localStorage, cookies"]
 
-Here's how we structure long-term vision, mid-term capabilities of the software and short term improvements.
+    User --> UI
+    UI <--> WC
+    UI --> API
+    API <--> LLM
+    API <--> Tools
+    UI <--> Store
+    API -->|streamed chat response| UI
+```
 
-## Strategic epics (long-term)
+## Application and server
 
-Strategic epics define areas in which the product evolves. Usually, these epics don’t overlap. They shall allow the core
-team to define what they believe is most important and should be worked on with the highest priority.
+The interface is built with React and React Router. `app/routes.ts` defines the application routes, and `app/components/` contains the chat, workbench, settings, and shared UI. The main route combines the chat UI with the client-side workbench.
 
-You can find the [epics as issues](https://github.com/stackblitz-labs/bolt.diy/labels/epic) which are probably never
-going to be closed.
+The server entry point is `workers/app.ts`. It passes incoming requests and the Cloudflare Worker environment to React Router. Route modules under `app/routes/` provide page loaders/actions and API endpoints. For example, `app/routes/api.chat.ts` validates chat requests, reads provider credentials and settings, coordinates context and tool calls, and streams model output back to the browser. Provider implementations and model selection live under `app/lib/modules/llm/`.
 
-What's the benefit / purpose of epics?
+## Project runtime and persistence
 
-1. Prioritization
+The WebContainer is initialized on the client in `app/lib/webcontainer/`. It provides the project filesystem, terminal processes, development server, and preview for the generated application inside the browser. It is separate from the Worker that serves bolt.diy itself.
 
-E. g. we could say “managing files is currently more important that quality”. Then, we could thing about which features
-would bring “managing files” forward. It may be different features, such as “upload local files”, “import from a repo”
-or also undo/redo/commit.
+Chat history and snapshots use browser IndexedDB through `app/lib/persistence/`. Other preferences and integration settings use browser storage such as `localStorage` and cookies. This is local to the browser profile; the application does not provide account-based project synchronization or a shared project database.
 
-In a more-or-less regular meeting dedicated for that, the core team discusses which epics matter most, sketch features
-and then check who can work on them. After the meeting, they update the roadmap (at least for the next development turn)
-and this way communicate where the focus currently is.
+## Model and tool integrations
 
-2. Grouping of features
+Provider classes are registered in `app/lib/modules/llm/registry.ts`. A user can select a configured provider and model for chat. Credentials can come from server environment variables or from settings saved in browser cookies and sent with requests.
 
-By linking features with epics, we can keep them together and document _why_ we invest work into a particular thing.
+Chat can also use selected MCP tools, project tools, and configured service integrations. MCP server connections are managed by `app/lib/services/mcpService.ts`; chat request orchestration is in `app/routes/api.chat.ts`. Integrations such as GitHub, Supabase, and deployment providers have their own route modules and browser-side stores.
 
-## Features (mid-term)
+## Build and deployment
 
-We all know probably a dozen of methodologies following which features are being described (User story, business
-function, you name it).
+Vite builds the React Router application for the Cloudflare Workers runtime. `workers/app.ts` is the production Worker entry point, configured by `wrangler.jsonc`. The Dockerfile provides development and production image targets; Electron packages the renderer and desktop main/preload processes for desktop use.
 
-However, we intentionally describe features in a more vague manner. Why? Everybody loves crisp, well-defined
-acceptance-criteria, no? Well, every product owner loves it. because he knows what he’ll get once it’s done.
-
-But: **here is no owner of this product**. Therefore, we grant _maximum flexibility to the developer contributing a feature_ – so that he can bring in his ideas and have most fun implementing it.
-
-The feature therefore tries to describe _what_ should be improved but not in detail _how_.
-
-## PRs as materialized features (short-term)
-
-Once a developer starts working on a feature, a draft-PR _can_ be opened asap to share, describe and discuss, how the feature shall be implemented. But: this is not a must. It just helps to get early feedback and get other developers involved. Sometimes, the developer just wants to get started and then open a PR later.
-
-In a loosely organized project, it may as well happen that multiple PRs are opened for the same feature. This is no real issue: Usually, peoply being passionate about a solution are willing to join forces and get it done together. And if a second developer was just faster getting the same feature realized: Be happy that it's been done, close the PR and look out for the next feature to implement 🤓
-
-## PRs as change log
-
-Once a PR is merged, a squashed commit contains the whole PR description which allows for a good change log.
-All authors of commits in the PR are mentioned in the squashed commit message and become contributors 🙌
+For package scripts and local setup, see the [README](README.md). The application source is organized primarily under `app/`, with the Worker entry point in `workers/` and desktop code in `electron/`.

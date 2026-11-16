@@ -1,656 +1,113 @@
-# Welcome to bolt diy
+# Welcome to bolt.diy
 
-bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 22+ providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, Cerebras, Fireworks, Z-AI, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! OpenRouter, Anthropic, OpenAI, and Google are enabled by default; enable and configure other providers in Settings.
+bolt.diy is an open-source AI developer workspace for building web applications in the browser. Choose a model provider for each prompt, work with project files in the integrated editor and terminal, and preview the running app. The application supports 22+ cloud and local providers. OpenRouter, Anthropic, OpenAI, and Google are enabled by default; enable and configure other providers under **Settings → Providers**.
 
-## Table of Contents
-
-- [Join the community!](#join-the-community)
-- [Features](#features)
-- [Setup](#setup)
-  - [Prerequisites](#prerequisites)
-  - [Clone the Repository](#clone-the-repository)
-  - [Entering API Keys](#entering-api-keys)
-    - [1. Set API Keys in the `.env.local` File](#1-set-api-keys-in-the-envlocal-file)
-    - [2. Configure API Keys Directly in the Application](#2-configure-api-keys-directly-in-the-application)
-- [Run the Application](#run-the-application)
-  - [Option 1: Without Docker](#option-1-without-docker)
-  - [Option 2: With Docker](#option-2-with-docker)
-- [Update Your Local Version to the Latest](#update-your-local-version-to-the-latest)
-- [Adding New LLMs](#adding-new-llms)
-- [MCP (Model Context Protocol) Integration](#mcp-model-context-protocol-integration)
-- [Git Integration and Version Control](#git-integration-and-version-control)
-- [Deployment Options](#deployment-options)
-- [Supabase Integration](#supabase-integration)
-- [WebContainer and Live Preview](#webcontainer-and-live-preview)
-- [Project Templates](#project-templates)
-- [Available Scripts](#available-scripts)
-- [Development](#development)
-- [Tips and Tricks](#tips-and-tricks)
-
----
-
-## Join the community!
-
-[Join the community!](https://thinktank.ottomator.ai)
-
-Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos-tutorial-helpful-content/3243) has a bunch of incredible resources for running and deploying bolt.diy yourself!
-
----
+For the current feature summary and command reference, see the [repository README](https://github.com/stackblitz-labs/bolt.diy#bolt-diy). For setup troubleshooting, see the [FAQ](FAQ.md).
 
 ## Features
 
-- **AI-powered full-stack web development** directly in your browser with live preview
-- **Support for 22+ LLM providers** with an extensible architecture to integrate additional models
-- **Attach images and files to prompts** for better contextual understanding
-- **Integrated terminal** with WebContainer sandbox for running commands and testing
-- **Version control with Git** - import/export projects, connect to GitHub repositories
-- **MCP (Model Context Protocol)** integration for enhanced AI capabilities and tool calling
-- **Database integration** with Supabase for backend development
-- **One-click deployments** to Vercel, Netlify, and GitHub Pages
-- **Project templates** for popular frameworks (React, Vue, Angular, Next.js, Astro, etc.)
-- **Real-time collaboration** and project sharing
-- **Code diff visualization** and version history
-- **Download projects as ZIP** or push directly to GitHub
-- **Docker support** for containerized development environments
-- **Electron app** for native desktop experience
-- **Theme customization** and accessibility features
-- **Help icon** in sidebar linking to comprehensive documentation
-
----
+- Browser-based development with an editor, terminal, and live preview powered by WebContainers
+- Model selection across supported cloud and local providers
+- Image and file attachments for prompts
+- Project workflows including GitHub import/push, ZIP export, snapshots, and visual diffs
+- MCP tools that can be selected for a prompt
+- Supabase integration for connected projects
+- Deployment integrations for Netlify, Vercel, and GitHub Pages
+- Electron desktop app and Docker-based development/deployment options
+- Prompt library, voice prompting, and configurable workspace settings
 
 ## Setup
 
-If you're new to installing software from GitHub, don't worry! If you encounter any issues, feel free to submit an "issue" using the provided links or improve this documentation by forking the repository, editing the instructions, and submitting a pull request. The following instruction will help you get the stable branch up and running on your local machine in no time.
-
 ### Prerequisites
 
-1. **Install Git**: [Download Git](https://git-scm.com/downloads)
-2. **Install Node.js**: [Download Node.js](https://nodejs.org/en/download/)
-   - **Required versions**: See [`engines` in package.json](https://github.com/stackblitz-labs/bolt.diy/blob/main/package.json) for the supported Node.js and pnpm versions. Install pnpm with `npm install -g pnpm` if needed.
-   - After installation, the Node.js path is usually added to your system automatically. To verify:
-     - **Windows**: Search for "Edit the system environment variables," click "Environment Variables," and check if `Node.js` is in the `Path` variable.
-     - **Mac/Linux**: Open a terminal and run:
-       ```bash
-       echo $PATH
-       ```
-       Look for `/usr/local/bin` in the output.
+- Git, if you plan to clone the repository
+- Node.js **22.12.0 or later**
+- pnpm **9.15.9 or later**
+- Docker, if you plan to use the container setup
 
-### Clone the Repository
+The supported Node.js and pnpm versions are defined in [`package.json`](https://github.com/stackblitz-labs/bolt.diy/blob/main/package.json).
 
-Alternatively, download the latest version from the [Releases Page](https://github.com/stackblitz-labs/bolt.diy/releases/latest), extract it, and follow the setup instructions below. To use Git, run the following commands.
-
-Clone the repository using Git:
+### Clone and install
 
 ```bash
-git clone https://github.com/stackblitz-labs/bolt.diy
+git clone https://github.com/stackblitz-labs/bolt.diy.git
 cd bolt.diy
-```
-
----
-
-### Entering API Keys
-
-There are two ways to configure your API keys in bolt.diy:
-
-#### 1. Set API Keys in the `.env.local` File
-
-Copy `.env.example` to `.env.local` and add keys for the providers you want to use. Replace the placeholders you need, and remove or comment out unused placeholders so they are not mistaken for configured credentials.
-
-- On **Mac**, you can find the file at `[your name]/bolt.diy/.env.example`.
-- On **Windows/Linux**, the path will be similar.
-
-If you can't see the file, it's likely because hidden files are not being shown. On **Mac**, open a Terminal window and enter the following command to show hidden files:
-
-```bash
-defaults write com.apple.finder AppleShowAllFiles YES
-```
-
-Make sure to add your API keys for each provider you want to use, for example:
-
-```
-GROQ_API_KEY=XXX
-OPENAI_API_KEY=XXX
-ANTHROPIC_API_KEY=XXX
-OPEN_ROUTER_API_KEY=XXX
-GOOGLE_GENERATIVE_AI_API_KEY=XXX
-```
-
-Once you've set your keys, you can proceed with running the app. You will set these keys up during the initial setup, and you can revisit and update them later after the app is running.
-
-**Important for Docker users**: The development and production Compose services require both `.env` and `.env.local`. Compose uses `.env` for variable substitution and passes both files to the container. Run `./scripts/setup-env.sh` or copy `cp .env.local .env` after configuring the keys, and repeat the copy when `.env.local` changes. Shell environment variables can override values used for Compose substitution.
-
-**Note**: Never commit your `.env.local` or `.env` files to version control. They're already included in the `.gitignore`.
-
-#### 2. Configure API Keys Directly in the Application
-
-Alternatively, you can configure your API keys directly in the application using the modern settings interface:
-
-1. **Open Settings**: Click the settings icon (⚙️) in the sidebar to access the settings panel
-2. **Navigate to Providers**: Select the "Providers" tab from the settings menu
-3. **Choose Provider Type**: Switch between "Cloud Providers" and "Local Providers" tabs
-4. **Enable the provider** and configure its endpoint if applicable.
-5. **Configure the API key**: In the chat composer, select the provider, click **Edit API Key**, enter the key, and save it.
-6. **Check the status**: The indicator shows whether a key is set, not whether the provider accepts it. Send a test request to verify access.
-
-The interface provides:
-- **Key status indicators** showing whether a key is set
-- **Bulk operations** to enable/disable multiple providers at once
-- **Browser-cookie storage** for keys entered in the UI. These cookies are accessible to JavaScript and are sent to the application server with requests. Protect access to the browser and use HTTPS for remote deployments.
-- **Environment variable auto-detection** for server-side configurations
-
-Once you've configured your keys, the application will be ready to use the selected LLMs.
-
-For OpenRouter, select **OpenRouter** in the provider selector and **Free Models Router** (`openrouter/free`) in the model selector. Availability and rate limits depend on OpenRouter. For Ollama and LM Studio, use `OLLAMA_API_BASE_URL` and `LMSTUDIO_API_BASE_URL`; in Docker, `127.0.0.1` points to the container, so use a host-reachable address such as `host.docker.internal` where supported.
-
----
-
-## Run the Application
-
-### Option 1: Without Docker
-
-1. **Install Dependencies**:
-
-   ```bash
-   pnpm install
-   ```
-
-   If `pnpm` is not installed, install it using:
-
-   ```bash
-   sudo npm install -g pnpm
-   ```
-
-2. **Start the Application**:
-   ```bash
-   pnpm run dev
-   ```
-   This starts the React Router Vite development server at http://localhost:5173.
-
-### Option 2: With Docker
-
-#### Prerequisites
-
-- Ensure Git, Node.js, and Docker are installed: [Download Docker](https://www.docker.com/)
-
-#### Steps
-
-1. **Build the Docker Image**:
-
-   Use the provided NPM scripts:
-
-   ```bash
-   pnpm run dockerbuild
-   ```
-
-   Alternatively, use Docker commands directly:
-
-   ```bash
-   docker build -t bolt-ai:development . --target development
-   ```
-
-2. **Run the Container**:  
-   Use Docker Compose profiles to manage environments:
-
-   ```bash
-   docker compose --profile development up
-   ```
-
-   - With the development profile, changes to your code will automatically reflect in the running container (hot reloading).
-
----
-
-### Update Your Local Version to the Latest
-
-To keep your local version of bolt.diy up to date with the latest changes, follow these steps for your operating system:
-
-#### 1. **Navigate to your project folder**
-
-Navigate to the directory where you cloned the repository and open a terminal:
-
-#### 2. **Fetch the Latest Changes**
-
-Use Git to pull the latest changes from the main repository:
-
-```bash
-git pull origin main
-```
-
-#### 3. **Update Dependencies**
-
-After pulling the latest changes, update the project dependencies by running the following command:
-
-```bash
 pnpm install
 ```
 
-#### 4. **Rebuild and Start the Application**
+### Configure providers
 
-- **If using Docker**, ensure you rebuild the Docker image to avoid using a cached version:
+You can set provider credentials in the application or in a local environment file.
 
-  ```bash
-  docker compose --profile development up --build
-  ```
+To use environment variables, copy `.env.example` to `.env.local`, replace the placeholders for the providers you use, and remove or comment out unused placeholders. For example:
 
-- **If not using Docker**, you can start the application as usual with:
-  ```bash
-  pnpm run dev
-  ```
-
-This ensures that you're running the latest version of bolt.diy and can take advantage of all the newest features and bug fixes.
-
----
-
-## Adding New LLMs
-
-bolt.diy supports a modular architecture for adding new LLM providers and models. The system is designed to be easily extensible while maintaining consistency across all providers.
-
-### Understanding the Provider Architecture
-
-Each LLM provider is implemented as a separate class that extends the `BaseProvider` class. The provider system includes:
-
-- **Static Models**: Pre-defined models that are always available
-- **Dynamic Models**: Models that can be loaded from the provider's API at runtime
-- **Configuration**: API key management and provider-specific settings
-
-### Adding a New Provider
-
-To add a new LLM provider, you need to create multiple files:
-
-#### 1. Create the Provider Class
-
-Create a new file in `app/lib/modules/llm/providers/your-provider.ts`:
-
-```typescript
-import { BaseProvider } from '~/lib/modules/llm/base-provider';
-import type { ModelInfo } from '~/lib/modules/llm/types';
-import type { LanguageModel } from 'ai';
-import type { IProviderSetting } from '~/types/model';
-import { createYourProvider } from '@ai-sdk/your-provider';
-
-export default class YourProvider extends BaseProvider {
-  name = 'YourProvider';
-  getApiKeyLink = 'https://your-provider.com/api-keys';
-
-  config = {
-    apiTokenKey: 'YOUR_PROVIDER_API_KEY',
-  };
-
-  staticModels: ModelInfo[] = [
-    {
-      name: 'your-model-name',
-      label: 'Your Model Label',
-      provider: 'YourProvider',
-      maxTokenAllowed: 100000,
-      maxCompletionTokens: 4000,
-    },
-  ];
-
-  async getDynamicModels(
-    apiKeys?: Record<string, string>,
-    settings?: IProviderSetting,
-    serverEnv?: Record<string, string>,
-  ): Promise<ModelInfo[]> {
-    // Implement dynamic model loading if supported
-    return [];
-  }
-
-  getModelInstance(options: {
-    model: string;
-    serverEnv?: Env;
-    apiKeys?: Record<string, string>;
-    providerSettings?: Record<string, IProviderSetting>;
-  }): LanguageModel {
-    const { apiKeys, model } = options;
-    const apiKey = apiKeys?.[this.config.apiTokenKey] || '';
-
-    return createYourProvider({
-      apiKey,
-      // other configuration options
-    })(model);
-  }
-}
+```dotenv
+ANTHROPIC_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
+GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
+OPEN_ROUTER_API_KEY=your_key_here
+OLLAMA_API_BASE_URL=http://127.0.0.1:11434
+LMSTUDIO_API_BASE_URL=http://127.0.0.1:1234
 ```
 
-#### 2. Register the Provider
+In the app, enable a provider under **Settings → Providers**. Select it in the chat composer, choose **Edit API Key**, enter the key, and save. Keys entered in the UI are stored in JavaScript-accessible browser cookies and sent to the application server with requests; protect browser access and use HTTPS for remote deployments. A key status indicator means a key is set, not that the provider has validated it.
 
-Add your provider to `app/lib/modules/llm/registry.ts`:
+For OpenRouter's free router, select **OpenRouter** as the provider and **Free Models Router** (`openrouter/free`) as the model. Model availability and rate limits are controlled by OpenRouter. For Ollama or LM Studio running on the host while bolt.diy runs in Docker, use a host-reachable endpoint such as `host.docker.internal`; `127.0.0.1` inside the container refers to the container itself.
 
-```typescript
-import YourProvider from './providers/your-provider';
+Never commit `.env.local` or `.env` files. Docker Compose uses `.env` for variable substitution and passes both `.env` and `.env.local` to the container. After configuring `.env.local`, run `./scripts/setup-env.sh` or copy it to `.env`; repeat this after changing `.env.local`.
 
-// ... existing imports ...
-
-export {
-  // ... existing exports ...
-  YourProvider,
-};
-```
-
-#### 3. Update the Manager (if needed)
-
-The provider will be automatically registered by the `LLMManager` through the registry. The manager scans for all classes that extend `BaseProvider` and registers them automatically.
-
-### Adding Models to Existing Providers
-
-To add new models to an existing provider:
-
-1. **Edit the provider file** (e.g., `app/lib/modules/llm/providers/openai.ts`)
-2. **Add to the `staticModels` array**:
-
-```typescript
-staticModels: ModelInfo[] = [
-  // ... existing models ...
-  {
-    name: 'gpt-4o-mini-new',
-    label: 'GPT-4o Mini (New)',
-    provider: 'OpenAI',
-    maxTokenAllowed: 128000,
-    maxCompletionTokens: 16000,
-  },
-];
-```
-
-### Provider-Specific Configuration
-
-Each provider can have its own configuration options:
-
-- **API Key Environment Variables**: Define in the `config` object
-- **Base URL Support**: Add `baseUrlKey` for custom endpoints
-- **Provider Settings**: Custom settings in the UI
-- **Dynamic Model Loading**: Implement `getDynamicModels()` for API-based model discovery
-
-### Testing Your New Provider
-
-1. **Restart the development server** after making changes
-2. **Check the provider appears** in the Settings → Providers section
-3. **Configure API keys** in the provider settings
-4. **Test the models** in a chat session
-
-### Best Practices
-
-- **Follow the naming conventions** used by existing providers
-- **Include proper error handling** for API failures
-- **Add comprehensive documentation** for your provider
-- **Test with both static and dynamic models**
-- **Ensure proper API key validation**
-
-The modular architecture makes it easy to add new providers while maintaining consistency and reliability across the entire system.
-
----
-
-## MCP (Model Context Protocol) Integration
-
-bolt.diy supports MCP (Model Context Protocol) servers to extend AI capabilities with external tools and services. MCP allows you to connect various tools and services that the AI can use during conversations.
-
-### Setting up MCP Servers
-
-1. Navigate to Settings → Integrations → MCP Servers.
-2. Add MCP server configurations
-3. Configure server endpoints and authentication
-4. Enable/disable servers as needed
-
-### Using MCP Tools
-
-After connecting an MCP server, open the attachment menu beside the prompt composer and choose **MCP Tools Available** to select tools for your prompt. Connection indicators in the prompt menu show the status of configured integrations.
-
-MCP servers can provide:
-- Database connections and queries
-- File system operations
-- API integrations
-- Custom business logic tools
-- And much more...
-
-The MCP integration enhances the AI's ability to perform complex tasks by giving it access to external tools and data sources.
-
----
-
-## Git Integration and Version Control
-
-bolt.diy provides comprehensive Git integration for version control, collaboration, and project management.
-
-### GitHub Integration
-
-1. **Connect your GitHub account** in Settings → Connections → GitHub
-2. **Import existing repositories** by URL or from your connected account
-3. **Push projects directly to GitHub** with automatic repository creation
-4. **Sync changes** between local development and remote repositories
-
-### Version Control Features
-
-- **Automatic commits** for major changes
-- **Diff visualization** to see code changes
-- **Branch management** and merge conflict resolution
-- **Revert to previous versions** for debugging
-- **Collaborative development** with team members
-
-### Export Options
-
-- **Download as ZIP** for easy sharing
-- **Push to GitHub** for version control and collaboration
-- **Import from GitHub** to continue working on existing projects
-
----
-
-## Deployment Options
-
-bolt.diy provides one-click deployment to popular hosting platforms, making it easy to share your projects with the world.
-
-### Supported Platforms
-
-#### Vercel Deployment
-1. Connect your Vercel account in Settings → Connections → Vercel
-2. Click the deploy button in your project
-3. bolt.diy automatically builds and deploys your project
-4. Get a live URL instantly with Vercel's global CDN
-
-#### Netlify Deployment
-1. Connect your Netlify account in Settings → Connections → Netlify
-2. Deploy with a single click
-3. Automatic build configuration and optimization
-4. Preview deployments for every change
-
-#### GitHub Pages
-1. Connect your GitHub account
-2. Push your project to a GitHub repository
-3. Enable GitHub Pages in repository settings
-4. Automatic deployment from your repository
-
-### Deployment Features
-
-- **Automatic build configuration** for popular frameworks
-- **Environment variable management** for production
-- **Custom domain support** through platform settings
-- **Deployment previews** for testing changes
-- **Rollback capabilities** for quick issue resolution
-
----
-
-## Supabase Integration
-
-bolt.diy integrates with Supabase to provide backend database functionality, authentication, and real-time features for your applications.
-
-### Setting up Supabase
-
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Get your project URL and API keys from the Supabase dashboard
-3. Configure the connection in your bolt.diy project
-4. Use the Supabase tools to interact with your database
-
-### Database Features
-
-- **Real-time subscriptions** for live data updates
-- **Authentication** with built-in user management
-- **Row Level Security (RLS)** policies for data protection
-- **Built-in API** for CRUD operations
-- **Database migrations** and schema management
-
-### Integration with AI Development
-
-The AI can help you:
-- **Design database schemas** for your applications
-- **Write SQL queries** and database functions
-- **Implement authentication flows**
-- **Create API endpoints** for your frontend
-- **Set up real-time features** for collaborative apps
-
-Supabase integration makes it easy to build full-stack applications with a robust backend infrastructure.
-
----
-
-## WebContainer and Live Preview
-
-bolt.diy uses WebContainer technology to provide a secure, isolated development environment with live preview capabilities.
-
-### WebContainer Features
-
-- **Secure sandbox environment** - Run code in isolated containers
-- **Live preview** - See your changes instantly without leaving the editor
-- **Full Node.js environment** - Run npm scripts, build tools, and development servers
-- **File system access** - Direct manipulation of project files
-- **Terminal integration** - Execute commands and see real-time output
-
-### Development Workflow
-
-1. **Write code** in the integrated editor
-2. **Run development servers** directly in WebContainer
-3. **Preview your application** in real-time
-4. **Test functionality** with the integrated terminal
-5. **Debug issues** with live error reporting
-
-### Supported Technologies
-
-WebContainer supports all major JavaScript frameworks and tools:
-- React, Vue, Angular, Svelte
-- Next.js, Nuxt, Astro, Remix
-- Vite, Webpack, Parcel
-- Node.js, npm, pnpm, yarn
-- And many more...
-
-The WebContainer integration provides a seamless development experience without the need for local setup.
-
----
-
-## Project Templates
-
-bolt.diy comes with a comprehensive collection of starter templates to help you quickly bootstrap your projects. Choose from popular frameworks and technologies:
-
-### Frontend Frameworks
-- **React + Vite** - Modern React setup with TypeScript
-- **Vue.js** - Progressive JavaScript framework
-- **Angular** - Enterprise-ready framework
-- **Svelte** - Compiler-based framework for fast apps
-- **SolidJS** - Reactive framework with fine-grained updates
-
-### Full-Stack Frameworks
-- **Next.js with shadcn/ui** - React framework with UI components
-- **Astro** - Static site generator for content-focused sites
-- **Qwik** - Resumable framework for instant loading
-- **Remix** - Full-stack React framework
-- **Nuxt** - Vue.js meta-framework
-
-### Mobile & Cross-Platform
-- **Expo App** - React Native with Expo
-- **React Native** - Cross-platform mobile development
-
-### Presentation & Content
-- **Slidev** - Developer-friendly presentations
-- **Astro Basic** - Lightweight static sites
-
-### Vanilla JavaScript
-- **Vanilla Vite** - Minimal JavaScript setup
-- **Vite TypeScript** - TypeScript without framework
-
-### Getting Started with Templates
-
-1. Start a new project in bolt.diy
-2. Browse available templates in the starter selection
-3. Select your preferred technology stack
-4. The AI will scaffold your project with best practices
-5. Begin development immediately with live preview
-
-All templates are pre-configured with modern tooling, linting, and build processes for immediate productivity.
-
----
-
-## Available Scripts
-
-### Development Scripts
-- `pnpm run dev`: Starts the React Router development server with hot reloading
-- `pnpm run build`: Builds the project for production (`react-router build`)
-- `pnpm run start`: Starts the local preview server (`vite preview --port 5173`)
-- `pnpm run preview`: Builds and starts locally for production verification
-- `pnpm test`: Runs the Vitest suite, including unit, integration, and performance tests
-- `pnpm run test:watch`: Runs tests in watch mode
-- `pnpm run test:e2e`: Runs Playwright end-to-end integration tests
-- `pnpm run lint`: Runs ESLint
-- `pnpm run lint:fix`: Runs ESLint with auto-fix and Prettier formatting
-- `pnpm run typecheck`: Runs TypeScript type checking (`tsc`)
-- `pnpm run typegen`: Generates worker types using Wrangler
-
-### Docker Scripts
-- `pnpm run dockerbuild`: Builds Docker image for development
-- `pnpm run dockerbuild:prod`: Builds Docker image for production
-- `pnpm run dockerrun`: Runs the Docker container
-- `docker compose --profile development up`: Runs with Docker Compose (development)
-
-### Electron Scripts
-- `pnpm run electron:dev`: Starts the Electron desktop application in development mode; server detection requires `lsof`, which is not available in a standard Windows shell
-- `pnpm run electron:dev:inspect`: Starts Electron with Node inspector enabled on port 9229
-- `pnpm electron:build:win`: Builds the Windows installer
-- `pnpm electron:build:mac`: Builds for macOS
-- `pnpm electron:build:linux`: Builds for Linux
-- `pnpm electron:build:dist`: Requests builds for macOS, Windows, and Linux; cross-platform builds can require additional tools or signing configuration
-- `pnpm electron:build:unpack`: Creates unpacked build for testing
-
-### Deployment Scripts
-- `pnpm run deploy`: Builds and deploys to Cloudflare Workers
-- `npm run dockerbuild`: Alternative Docker build command
-
-### Utility Scripts
-- `pnpm run clean`: Cleans build artifacts
-- `pnpm run prepare`: Sets up Husky for git hooks
-
----
-
-## Development
-
-To start the development server:
+### Run the development server
 
 ```bash
 pnpm run dev
 ```
 
-This will start the React Router Vite development server. You will need Google Chrome Canary to run this locally if you use Chrome! It's an easy install and a good browser for web development anyway.
+Open [http://localhost:5173](http://localhost:5173). Use a current browser with WebContainer support; some browser features may require a secure context.
 
----
+### Run with Docker
 
-## Getting Help & Resources
+Configure the environment files as described above, then run:
 
-### Help Icon in Sidebar
-bolt.diy includes a convenient help icon (?) in the sidebar that provides quick access to comprehensive documentation. Simply click the help icon to open the full documentation in a new tab.
+```bash
+docker compose --profile development up
+```
 
-The documentation includes:
-- **Complete setup guides** for all supported providers
-- **Feature explanations** for advanced capabilities
-- **Troubleshooting guides** for common issues
-- **Best practices** for optimal usage
-- **FAQ section** with detailed answers
+For production image builds, use `pnpm run dockerbuild:prod` and `docker compose --profile production up`. See the repository [Docker Compose configuration](https://github.com/stackblitz-labs/bolt.diy/blob/main/docker-compose.yaml) for the available services and ports.
 
-### Community Support
-- **GitHub Issues**: Report bugs and request features
-- **Community Forum**: Join discussions at [thinktank.ottomator.ai](https://thinktank.ottomator.ai)
-- **Contributing Guide**: Learn how to contribute to the project
+## Working with projects
 
-## Tips and Tricks
+Describe the framework or stack you want in your first prompt. When a matching starter is available, bolt.diy can import it and then continue implementing your request. A starter is only a starting point: review the generated files and check that the app runs in the preview.
 
-Here are some tips to get the most out of bolt.diy:
+You can select configured MCP tools from the attachment menu beside the prompt composer. To use Supabase, connect the service and select a project in the chat interface before asking bolt.diy to work with it.
 
-- **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure Bolt scaffolds the project accordingly.
+Project import, push, and deployment options depend on the service connection and project compatibility. Manage service connections under **Settings → Integrations → Connectors**. Use the in-app deployment flow for provider-specific instructions and status.
 
-- **Use the enhance prompt icon**: Before sending your prompt, try clicking the 'enhance' icon to have the AI model help you refine your prompt, then edit the results before submitting.
+## Add a provider
 
-- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps Bolt understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
+Providers are implemented as classes in `app/lib/modules/llm/providers/` and exported from `app/lib/modules/llm/registry.ts`. Extending `BaseProvider` alone does not register a provider; include it in the registry. Follow the patterns in existing provider files and check the current `BaseProvider` and `ModelInfo` types before implementing a new integration, since the provider interface can change.
 
-- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask Bolt to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
+## Development commands
 
-- **Access documentation quickly**: Use the help icon (?) in the sidebar for instant access to guides, troubleshooting, and best practices.
+Common commands from the repository root:
+
+| Command | Purpose |
+| --- | --- |
+| `pnpm run dev` | Start the development server |
+| `pnpm run build` | Build the app for production |
+| `pnpm run preview` | Build and preview locally |
+| `pnpm run typecheck` | Run TypeScript type checking |
+| `pnpm run lint` | Run ESLint |
+| `pnpm test` | Run the Vitest suite |
+| `pnpm run test:e2e` | Run Playwright end-to-end tests |
+| `pnpm run dockerbuild` | Build the development Docker image |
+| `pnpm run dockerbuild:prod` | Build the production Docker image |
+| `pnpm run deploy` | Build and deploy to Cloudflare Workers |
+
+For contribution steps, see the [Contributing Guide](CONTRIBUTING.md). For the full set of scripts, consult [`package.json`](https://github.com/stackblitz-labs/bolt.diy/blob/main/package.json).
+
+## Support
+
+- [FAQ and troubleshooting](FAQ.md)
+- [GitHub issues](https://github.com/stackblitz-labs/bolt.diy/issues)
+- [bolt.diy community](https://thinktank.ottomator.ai/c/bolt-diy/17)
+- [Repository README](https://github.com/stackblitz-labs/bolt.diy#bolt-diy)
