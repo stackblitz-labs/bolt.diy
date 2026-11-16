@@ -1,5 +1,7 @@
 # Performance Architecture Diagram
 
+This is a map of implemented utilities and proposed measurement flow, not a claim that every optimization or CI gate is active. The app starts journey metrics, Web Vitals observation, and WebContainer preboot from `app/root.tsx`. Performance events are local diagnostics; the repository does not send them to a centralized production analytics service. In CI, bundle budget failures are blocking, while performance tests and Lighthouse are currently allowed to fail without failing their steps.
+
 ## System Overview
 
 ```
@@ -44,8 +46,8 @@
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Production Analytics                          │
-│         (Real User Monitoring + Performance Reports)             │
+│                Optional future telemetry                         │
+│       (No centralized production RUM sink is configured)          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -181,8 +183,8 @@ User hovers over link
            │                   │
            ▼                   ▼
 ┌──────────────────┐  ┌──────────────────┐
-│  Development     │  │  Production      │
-│  console.log()   │  │  Analytics       │
+│  Development     │  │  Browser storage │
+│  debug output    │  │  (local only)    │
 └──────────────────┘  └──────────────────┘
 ```
 
@@ -211,7 +213,7 @@ User hovers over link
                           │
                           ▼
               ┌──────────────────────┐
-              │ Check vs Budgets     │
+              │ Check bundle budgets │
               │ (.performance-       │
               │  budgets.json)       │
               └──────────┬───────────┘
@@ -221,7 +223,7 @@ User hovers over link
                     ▼         ▼
               ┌─────────┐ ┌─────────┐
               │  Pass   │ │  Fail   │
-              │  Merge  │ │  Block  │
+              │ Bundle  │ │ Bundle  │
               └─────────┘ └─────────┘
 ```
 
@@ -288,7 +290,7 @@ bolt.diy/
     ├── PERFORMANCE_OPTIMIZATION.md ← Worker and dashboard notes
     └── performance-architecture.md ← This file
 
-PERFORMANCE.md at the repo root is the single guide.
+The guides are in `docs/PERFORMANCE_OPTIMIZATION.md` and this file.
 ```
 
 ## Key Metrics Dashboard (Conceptual)
@@ -316,8 +318,7 @@ PERFORMANCE.md at the repo root is the single guide.
 │                                                               │
 │  CLS: 0.08  ✓  (Budget: < 0.1)                              │
 │  LCP: 2.1s  ✓  (Budget: < 2.5s)                             │
-│  FID: 85ms  ✓  (Budget: < 100ms)                            │
-│  INP: 180ms ✓  (Budget: < 200ms)                            │
+│  INP: observer metric; values here would be illustrative only │
 │                                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -329,14 +330,16 @@ PERFORMANCE.md at the repo root is the single guide.
 import { journeys } from '~/lib/performance';
 
 // Your feature code here
-journeys.yourFeature.start();
-// ... work ...
-journeys.yourFeature.complete();
+journeys.appLaunch.start();
+// ... mark React hydration and the point at which the app is interactive ...
+journeys.appLaunch.reactHydrated();
+journeys.appLaunch.interactive();
 ```
 
 ### 2. Component Level
 ```typescript
-import { usePrefetchOnHover, useStableCallback } from '~/lib/performance';
+import { usePrefetchOnHover } from '~/lib/performance';
+import { useStableCallback } from '~/lib/hooks/usePerformanceOptimizedRender';
 
 // In your React components
 const prefetch = usePrefetchOnHover(...);
@@ -350,7 +353,7 @@ const stableCallback = useStableCallback(...);
 - run: pnpm run perf:analyze
 ```
 
-### 4. Console (Production)
+### 4. Browser Console
 ```javascript
 // Available globally
 window.__BOLT_PERFORMANCE__.report()
@@ -387,13 +390,12 @@ window.__BOLT_STREAMING__.getStats()
 
 ## Success Criteria
 
-1. ✅ All core journeys instrumented
-2. ✅ Budgets established and enforced in CI
-3. ✅ <5% frame drops during streaming
-4. ✅ No layout shifts > 0.1 CLS
-5. ✅ Bundle sizes tracked and controlled
-6. ✅ Continuous monitoring in production
+1. App launch and several named journeys are instrumented; coverage is not complete.
+2. Bundle budgets are enforced in CI; performance tests and Lighthouse are informational.
+3. Frame-rate and layout-shift metrics can be measured; the values are not universal guarantees.
+4. Bundle sizes are checked against configured budgets.
+5. Centralized production monitoring is not configured.
 
 ---
 
-This architecture enables continuous performance improvement through measurement, optimization, and enforcement.
+These utilities support local measurement and targeted optimization. Add centralized monitoring or stricter CI gates only when those behaviors are implemented and configured.

@@ -1,13 +1,13 @@
 # Performance Optimization Guide
 
-This document describes the performance optimization work inspired by Claude.dev's 3x performance sprint.
+This guide describes the performance utilities currently present in the repository and distinguishes them from planned or sample optimizations. Performance targets below are goals, not measured production guarantees.
 
 ## Overview
 
-We've implemented a systematic approach to performance optimization focusing on:
+The repository includes utilities for:
 - **Measurement** - Track all critical user journeys
 - **Lab Benchmarks** - Fast iteration without waiting for deploys
-- **Guardrails** - Prevent regressions automatically
+- **Guardrails** - Run performance benchmarks and bundle budget checks in CI; benchmark and Lighthouse failures are informational, while bundle budget failures fail the workflow
 - **Hill Climbing** - Continuously improve measurable metrics
 
 ## Architecture Changes
@@ -16,12 +16,12 @@ We've implemented a systematic approach to performance optimization focusing on:
 
 **Location**: `app/utils/performance-monitor.ts`
 
-Tracks key user journeys and metrics:
+Tracks explicitly instrumented journeys and metrics:
 - Page load time
 - Chat initialization
 - Message send latency
 - File operations
-- Core Web Vitals (FCP, LCP, FID, CLS, INP, TTFB)
+- The root app currently observes CLS, LCP, and legacy FID in `app/lib/performance/metrics.ts`. A separate utility supports FCP, LCP, CLS, INP, and TTFB when `PerformanceMonitor.trackWebVitals()` is called; confirm that call site before assuming those values are collected.
 - Layout shifts
 - Long tasks (>50ms)
 
@@ -83,7 +83,7 @@ function StreamingMessage() {
 
 Moves expensive syntax highlighting off the main thread to prevent UI blocking during streaming.
 
-**Expected Impact**: 40-60% reduction in main thread blocking time
+The worker/client utilities exist, but this alone does not mean the chat renderer uses them. Confirm the call site before attributing a performance improvement to worker-based highlighting.
 
 **Usage**:
 ```typescript
@@ -95,38 +95,21 @@ const html = await highlightCode(
 );
 ```
 
-**Features**:
-- Automatic caching (500 most recent highlights)
-- Graceful fallback for unsupported browsers
-- Preloaded common languages (JS, TS, Python, HTML, CSS, etc.)
-- Request timeout protection (5s)
+Check `app/utils/syntax-highlighter-client.ts` for the current cache, language loading, fallback, and timeout behavior; keep this summary aligned with that implementation.
 
 ### 4. Static Composer (Time-to-Typeable)
 
 **Location**: `app/components/chat/StaticComposer.tsx`
 
-Provides an instant-loading input field that captures user input while React loads.
+Provides markup and handoff helpers for an early input field. It is not currently wired into the main chat UI, so the suggested time savings are not measured or realized by default.
 
-**Expected Impact**: 200-500ms faster time-to-typeable
-
-**Implementation**:
+**Available helpers** (these are not currently connected to the main chat composer):
 ```typescript
-import { useStaticComposerHandoff, generateStaticComposerHTML } from '~/components/chat/StaticComposer';
+import { injectStaticComposer, StaticComposer } from '~/components/chat/StaticComposer';
 
-// In your chat component
-function ChatInput() {
-  const [value, setValue] = useStaticComposerHandoff('');
-  
-  return (
-    <textarea
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-    />
-  );
-}
-
-// In your HTML template (server-side or build-time)
-const staticHTML = generateStaticComposerHTML('How can Bolt help you today?');
+// Inject the early HTML input before React mounts, then render its handoff target.
+injectStaticComposer();
+<StaticComposer onReady={() => setComposerReady(true)} />
 ```
 
 ### 5. Performance Dashboard
@@ -151,7 +134,7 @@ import { PerformanceDashboard } from '~/components/debug/PerformanceDashboard';
 
 **Location**: `tests/performance/`
 
-Automated performance tests that run in CI:
+Performance tests and benchmarks are present. The current CI workflow invokes `pnpm run perf:test` with `continue-on-error`, so benchmark failures are informational. Bundle analysis also continues long enough to report results, then an explicit follow-up step fails the job when the bundle budget check fails. Lighthouse is informational.
 
 ### Chat Input Benchmarks
 - Typing latency (target: <16ms per keystroke)
@@ -166,19 +149,19 @@ Automated performance tests that run in CI:
 
 **Run Benchmarks**:
 ```bash
-# Run all benchmarks
-pnpm vitest bench
+# Run the performance test suite
+pnpm run perf:test
 
 # Run specific benchmark
-pnpm vitest bench tests/performance/chat-input.bench.ts
+pnpm exec vitest --run tests/performance/chat-input.perf.test.ts
 
 # Run with detailed output
-pnpm vitest bench --reporter=verbose
+pnpm exec vitest --run tests/performance --reporter=verbose
 ```
 
 ## Key User Journeys to Track
 
-Based on the architecture, these are the critical paths (95% of user activity):
+These are useful paths to instrument; the list is not based on an activity analysis or a claim that it covers 95% of usage:
 
 ### 1. App Launch
 - Cold start time (web & desktop)
@@ -266,39 +249,26 @@ Target metrics for core journeys (P75):
 
 ## Optimization Checklist
 
-### Quick Wins (Week 1)
+### Implemented utilities and remaining work
 - [x] Add performance monitoring infrastructure
 - [x] Create frame rate monitor
 - [x] Move syntax highlighting to web worker
 - [x] Create static composer for instant input
 - [x] Add performance dashboard
-- [x] Set up benchmark suite
-- [ ] Integrate static composer into main app
-- [ ] Add instrumentation to key journeys
-- [ ] Audit and reduce re-renders in hot paths
-
-### Medium-Term (Week 2-3)
-- [ ] Lazy load WebContainer (on-demand initialization)
-- [ ] Implement prefetch on hover (conversations, files)
-- [ ] Optimize CodeMirror extensions (load on-demand)
-- [ ] Add terminal output throttling
-- [ ] Bundle size optimization (code splitting)
-- [ ] Reduce dependency weight (evaluate alternatives)
-
-### Long-Term (Week 4+)
-- [ ] Create CI performance gates
-- [ ] Set up nightly performance reports
-- [ ] Add RUM (Real User Monitoring) aggregation
-- [ ] Electron-specific optimizations (V8 cache, preload)
-- [ ] 120fps target for high-refresh displays
-- [ ] Advanced caching strategies
+- [x] Performance metrics and journey helpers exist; `app/root.tsx` observes Web Vitals and preboots WebContainer.
+- [x] Prefetch, streaming, WebContainer, and CodeMirror optimization utilities exist under `app/lib/performance/`.
+- [x] Performance tests, bundle analysis, and a budget-check script exist.
+- [ ] Wire the static composer into the main chat UI if instant pre-hydration typing is still a product goal.
+- [ ] Instrument remaining user journeys and confirm each metric's call sites.
+- [ ] Make CI performance and bundle checks required if they are intended to block regressions.
+- [ ] Add a production aggregation/telemetry destination only if product requirements call for it; current metrics are local diagnostics, not centralized RUM.
 
 ## CI Integration
 
-Add performance checks to your CI pipeline:
+The existing pipeline is `.github/workflows/performance.yaml`. Performance benchmark and Lighthouse failures are informational; the bundle budget check is blocking through an explicit follow-up step. The following is an example only, not the active workflow:
 
 ```yaml
-# .github/workflows/performance.yml
+# Example only; active workflow: .github/workflows/performance.yaml
 name: Performance Tests
 
 on: [pull_request]
@@ -324,8 +294,7 @@ jobs:
 ### Using the Performance Dashboard
 
 1. Enable dev mode
-2. Press `Ctrl/Cmd + Shift + P` to open command palette
-3. Search for "Performance Dashboard"
+2. Press `Ctrl+Shift+P` to toggle the in-app performance monitor (see `app/components/debug/PerformanceMonitor.tsx`).
 4. View live metrics and statistics
 
 ### Browser DevTools Integration
@@ -389,16 +358,15 @@ const HeavyComponent = lazy(() => import('./Heavy'));
 ```
 
 ### 5. Monitor in Production
-Keep lightweight monitoring in production:
+The app records local performance diagnostics in browser storage. It does not send these events to a production aggregation service. If adding telemetry, define consent, sampling, retention, and privacy requirements first. Example sampling logic only:
 ```typescript
-if (Math.random() < 0.01) { // 1% sampling
+if (Math.random() < 0.01) { // illustrative 1% sampling; not current app behavior
   PerformanceMonitor.trackJourney(name, duration);
 }
 ```
 
 ## Resources
 
-- [Claude.dev Performance Blog Post](https://claude.dev/blog/how-we-made-claude-ai-faster/)
 - [Web Vitals Documentation](https://web.dev/vitals/)
 - [Shiki Documentation](https://shiki.style/)
 - [Vitest Benchmarking](https://vitest.dev/guide/features.html#benchmarking)

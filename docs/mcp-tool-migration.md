@@ -1,5 +1,7 @@
 # MCP Tool Migration
 
+**Status:** Built-in project file, search, command, and web tools are implemented through an MCP bridge and server adapters. The implementation notes and remaining deployment limitations are summarized at the end of this document. The end-to-end browser/provider workflow still needs validation.
+
 ## Goal and scope
 
 Move model-invoked project operations to real MCP calls with validated inputs, structured results, cancellation, and visible failures. Cover filesystem read/write/patch/delete, file/folder/content search, related-file discovery, web search/fetch, and WebContainer commands/process output.
@@ -19,13 +21,14 @@ MCP alone does not guarantee reliability. The improvement comes from shared vali
 | Capability | Current path | Runtime |
 | --- | --- | --- |
 | External MCP tools | `MCPService` → `/api/chat`; approved calls execute on a later chat request | Server |
-| Model file/shell/build/start | `<boltAction>` → parser → `ActionRunner` | Browser/WebContainer |
+| Built-in model project tools | `/api/chat` tool schemas/approval → browser MCP bridge → project runtime | Server and browser/WebContainer |
+| Legacy action tags and saved history | `<boltAction>` → parser → `ActionRunner` | Browser/WebContainer |
 | File state/changes | `FilesStore`, `ActionRunner` → `webcontainer.fs` | Browser/WebContainer |
-| Workbench content search | `Search.tsx` → `webcontainer.internal.textSearch` | Browser/WebContainer |
-| URL content fetch | `WebSearch.client.tsx` → `/api/web-search` | Browser UI/server fetch |
+| Workbench content search | `Search.tsx` → shared ripgrep WASM runner | Browser worker/WebContainer |
+| Web search/fetch | Project MCP tools → `/api/web-search` → DuckDuckGo/public page fetch | Server; no API key |
 | Command output/errors | WebContainer streams → terminal/action state | Browser/WebContainer |
 
-The current web route fetches a supplied URL; it does not search the web. It needs no key, but truncates content only after reading the full response. Its initial hostname check does not validate redirect destinations or resolved IP addresses. The migration must address those gaps.
+The web route supports both DuckDuckGo search and URL fetch without a key. Fetching is streamed with byte/character bounds, timeouts, content-type checks, and redirect revalidation. The portable fetch implementation cannot inspect or pin DNS answers, so deployments that can resolve caller-controlled hostnames to private networks still need public-only egress controls.
 
 ## Execution architecture
 
@@ -50,21 +53,23 @@ Validate at both the model boundary and MCP server. Return MCP content blocks pl
 
 Patches must check expected content/revision and fail on ambiguous matches. Serialize mutations and preserve action ordering; independent reads may run concurrently. Reuse store/terminal primitives after auditing them: existing helpers do not uniformly enforce confinement or locks. Avoid a cycle where a store calls a tool whose handler calls that same public store method.
 
-## Ripgrep compatibility gate
+## Ripgrep runtime and remaining gate
 
-WebContainers support JavaScript and WebAssembly; ordinary native ripgrep binaries cannot be assumed to run. Before replacing search, demonstrate genuine ripgrep against the live filesystem through a compatible WebAssembly build and JavaScript/WASI launcher. Check source, license, runtime compatibility, file access, ignore semantics, and performance. Pin and bundle it as app infrastructure rather than adding dependencies to every user's project.
+WebContainers support JavaScript and WebAssembly; ordinary native ripgrep binaries cannot be assumed to run. The app now bundles a ripgrep WebAssembly build and invokes it through the browser runtime. The workbench search and project MCP content search share this runner. The package is app infrastructure rather than a dependency installed into each generated project.
 
 Use argument arrays, not shell interpolation of queries. Use `rg --json` for content matches and `rg --files` for file discovery. Exit code 1 means no matches; exit code 2 means an error. Bound results/output/time and support cancellation. Derive folder results from file paths and directory metadata. Related-file results should explain their evidence; do not claim semantic search without an implementation.
 
-This demonstration is a release gate. If it fails, record the concrete runtime limitation and resolve the execution environment before enabling the replacement. Do not silently substitute another engine or ship default search that only reports missing `rg`.
+Keep runtime, file-access, ignore, and output-bound behavior covered when updating the bundled binary or launcher. The current project search is genuine ripgrep; do not silently replace it with a different search engine.
 
 ## Web constraints
 
-Select a no-key search source after checking current availability, usage terms, and supported deployment runtimes. Public HTML endpoints can throttle, change markup, or return challenges; report those as failures instead of empty successful results. Keep the source adapter replaceable. A self-hosted option may be configurable, but the default must not quietly require another service the user has to provision.
+The current no-key search adapter uses DuckDuckGo HTML. Public HTML endpoints can throttle, change markup, or return challenges; report those as failures instead of empty successful results. Keep the source adapter replaceable. A self-hosted option may be configurable, but the default must not quietly require another service the user has to provision.
 
 Use bounded streamed reads, timeouts, content-type checks, and a redirect limit. Validate every redirect and reject private/loopback/link-local IPv4 and IPv6 targets, embedded credentials, and DNS resolutions to blocked addresses. Where DNS checks are unavailable, use runtime-appropriate egress protection and document limitations before enabling arbitrary fetch. Preserve requested/final URLs, snippets, and truncation metadata. Never fall back to a keyed provider.
 
-## Ordered implementation
+## Original implementation checklist
+
+The steps below preserve the design and rollout checklist. Use the implementation status at the end of this document for current completion and known gaps.
 
 1. **Resolve feasibility.** Demonstrate ripgrep in WebContainer and browser MCP client/server bundling. Select/document the no-key search source. Check browser, Electron, and Cloudflare/server deployment compatibility.
 2. **Define shared contracts.** Add schemas, model aliases, MCP results, capability metadata, execution location, and project-generation/cancellation rules. Reject tool-name collisions.
@@ -93,6 +98,6 @@ Use bounded streamed reads, timeouts, content-type checks, and a redirect limit.
 
 ## Implementation status
 
-The first implementation is in place on branch `test-it-out`: build-mode tool calls use a browser MCP bridge for project files, ripgrep WASM search, and WebContainer commands; the workbench search UI uses the same ripgrep runner; and web search/fetch use a no-key DuckDuckGo HTML adapter. Type checking, targeted lint, the prompt-workstyle unit tests, and diff checks pass. The bundled ripgrep WASM was directly exercised against a synthetic project tree for JSON matches and `.gitignore` behavior. The requested independent GPT-6.1 SOL review found several approval, ordering, retention, search, and UI issues; those were fixed, and its follow-up review reported no remaining actionable findings.
+The current implementation includes a browser MCP bridge for project file operations and WebContainer commands, ripgrep WASM for project/workbench search, and no-key DuckDuckGo search plus public URL fetch. Approved project tool calls return results to the model through the chat continuation; configured external MCP tools keep their server-side execution path. The implementation is in the repository source and the MCP project bridge has focused unit coverage.
 
-An end-to-end browser session with a live WebContainer and provider has not been exercised. The existing shell/artifact parser remains for saved chats and imports. The web fetch layer cannot inspect or pin DNS resolution with portable `fetch`; deployments need public-only egress controls for caller-provided hostnames. DuckDuckGo HTML availability and markup remain subject to challenge, throttling, and change.
+The existing shell/artifact parser remains for saved chats and imports. An end-to-end browser session with a live WebContainer and provider is not established by the focused unit coverage. The web fetch layer cannot inspect or pin DNS resolution with portable `fetch`; deployments need public-only egress controls for caller-provided hostnames. DuckDuckGo HTML availability and markup remain subject to challenge, throttling, and change.

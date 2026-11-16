@@ -1,6 +1,6 @@
 # Plugin system implementation plan
 
-**Status:** Reviewed proposal for `plugin-system`. The first functional delivery is implemented locally on the branch and is undergoing final review; marketplace files are prepared in the named source repository checkout.
+**Status (2026-11):** The repository now contains a local declarative plugin manager: Settings navigation, marketplace discovery, install/import, profile-local persistence, enable/disable, updates/rollback, logs, and a fixed Text Utilities adapter. This plan records the design constraints and remaining scope; it is not evidence that every acceptance criterion below has been verified. The marketplace repository is external to this checkout.
 
 **Initial scope:** A functional plugin manager in Settings, using reviewed declarative packages from `bolt-marketplace`. Installed plugins expose tools through fixed host adapters. The first delivery targets the current local installation and browser profile. Shared hosting and independently executable plugin code require additional storage and runtime work described below.
 
@@ -19,15 +19,15 @@ Use the app's existing theme tokens, controls, and icon system to reproduce the 
 
 ## What exists today
 
-The Settings Control Panel uses a closed tab list, explicit component switch, and a grouped `NAV_GROUPS` rail: [types.ts](../app/components/@settings/core/types.ts), [constants.tsx](../app/components/@settings/core/constants.tsx), and [ControlPanel.tsx](../app/components/@settings/core/ControlPanel.tsx). Those files have no Plugins entry. Saved tile visibility/order is loaded in [settings.ts](../app/lib/stores/settings.ts) without merging newly added defaults, so a migration is needed to make the Plugins tile appear for existing profiles. Rail entries currently come from `NAV_GROUPS` independently of tile visibility; preserve that distinction. The project/history sidebar in [Menu.client.tsx](../app/components/sidebar/Menu.client.tsx) already opens this Control Panel.
+The Settings Control Panel now includes Plugins under Extensions via [types.ts](../app/components/@settings/core/types.ts), [constants.tsx](../app/components/@settings/core/constants.tsx), and [ControlPanel.tsx](../app/components/@settings/core/ControlPanel.tsx). [PluginTab.tsx](../app/components/@settings/tabs/plugins/PluginTab.tsx) contains Marketplace, Installed, Updates, Details, and Develop views. The plugin store and [database.ts](../app/lib/plugins/database.ts) persist installed packages and logs in IndexedDB for the current browser profile. Confirm that saved tile preferences retain the Plugins entry when reviewing navigation migrations; rail entries and tile visibility are separate mechanisms. The project/history sidebar in [Menu.client.tsx](../app/components/sidebar/Menu.client.tsx) opens the Control Panel.
 
 Connectors are a static catalog of provider-specific screens in [ConnectorsTab.tsx](../app/components/@settings/tabs/connectors/ConnectorsTab.tsx). MCP is a configurable tool-server connection: [McpTab.tsx](../app/components/@settings/tabs/mcp/McpTab.tsx), [mcp.ts](../app/lib/stores/mcp.ts), and [mcpService.ts](../app/lib/services/mcpService.ts). It can expose tools to chat, and existing controls enable or disable connectors and individual tools. Chat also supports per-call tool approval.
 
-The repository does not currently contain a plugin marketplace, plugin manifest, install/update lifecycle, plugin registry, plugin runtime, publisher identity/signatures, or plugin activity log. MCP servers and service connectors are useful integration points; they are not a plugin package or runtime.
+The app validates declarative manifests and catalog/package integrity, supports marketplace and local ZIP installs, and exposes a fixed host adapter for the Text Utilities plugin. Plugin tool schemas and execution are defined by [adapters.ts](../app/lib/plugins/adapters.ts); arbitrary plugin code is not executed. This is not a general executable plugin runtime. Publisher identity/signatures and a centralized activity service are not implemented. MCP servers and service connectors remain separate integration mechanisms.
 
 ## Marketplace source repository
 
-Use [`dustinwloring1988/bolt-marketplace`](https://github.com/dustinwloring1988/bolt-marketplace) as the canonical home for public plugin packages and their catalog metadata. At plan review time, the GitHub repository was empty. Its initial catalog format, package layout, validator, CI workflow, and Text Utilities pilot have now been added in the local marketplace checkout. The repository is a content source; it does not own a user's installed state, configuration, permission grants, or secrets, and it does not provide the plugin runtime.
+The app is configured to read public packages and catalog metadata from [`dustinwloring1988/bolt-marketplace`](https://github.com/dustinwloring1988/bolt-marketplace). That repository is not part of this checkout, so its current contents and release workflow must be reviewed in that repository. It is a content source; it does not own a user's installed state, configuration, permission grants, or secrets, and it does not provide the plugin runtime.
 
 Proposed initial contract to establish in the marketplace repository:
 
@@ -152,7 +152,7 @@ The existing [withSecurity](../app/lib/security.ts) wrapper adds method/rate-lim
 | Develop Plugin: Basic Information → Capabilities → Configuration → Review | Supported declarative package draft/export in Phase 3; executable publishing in Phase 4 |
 | Install Plugin button | Validated local ZIP import in Phase 3; source/verification status shown |
 
-## First release acceptance criteria
+## First release acceptance criteria to verify
 
 - Plugins appears under Extensions in the Settings rail and opens directly to Marketplace.
 - Existing saved user navigation/settings preferences do not hide the new entry after upgrade.

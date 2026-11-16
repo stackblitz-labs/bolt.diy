@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'docs/**' # This will only trigger the workflow when files in docs directory change
+      - 'docs/**'
+      - '.github/workflows/docs.yaml'
 permissions:
   contents: write
 jobs:
@@ -22,7 +23,11 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
       - uses: actions/setup-python@v6
         with:
-          python-version: 3.x
+          python-version: '3.11'
+      - name: Install Poetry
+        run: pip install poetry==1.4.2
+      - name: Install locked documentation dependencies
+        run: poetry install --no-root
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
       - uses: actions/cache@v6
         with:
@@ -31,5 +36,4 @@ jobs:
           restore-keys: |
             mkdocs-material-
 
-      - run: pip install mkdocs-material
-      - run: mkdocs gh-deploy --force
+      - run: poetry run mkdocs gh-deploy --force
