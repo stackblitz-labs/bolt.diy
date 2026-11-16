@@ -1,9 +1,17 @@
 import { useStore } from '@nanostores/react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import type { Terminal as XTerm } from '@xterm/xterm';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, type PanelImperativeHandle } from 'react-resizable-panels';
 import { Terminal, type TerminalRef } from './Terminal';
 import { TerminalManager } from './TerminalManager';
 import { IconButton } from '~/components/ui/IconButton';
+import {
+  addTerminalContext,
+  terminalCommandHistory,
+  type TerminalCommandRecord,
+  type TerminalContextKind,
+} from '~/lib/stores/terminalContext';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -20,6 +28,7 @@ const MINIMIZED_TERMINAL_HEIGHT = 34;
 export const TerminalTabs = memo(() => {
   const showTerminal = useStore(workbenchStore.showTerminal);
   const theme = useStore(themeStore);
+  const commandHistory = useStore(terminalCommandHistory);
 
   const terminalRefs = useRef<Map<number, TerminalRef>>(new Map());
   const terminalPanelRef = useRef<PanelImperativeHandle>(null);
@@ -144,34 +153,19 @@ export const TerminalTabs = memo(() => {
           <div className="flex items-center bg-bolt-elements-background-depth-2 border-y border-bolt-elements-borderColor gap-1.5 min-h-[34px] p-2">
             {Array.from({ length: terminalCount + 1 }, (_, index) => {
               const isActive = activeTerminal === index;
+              const terminalName = index === 0 ? 'Bolt Terminal' : `Terminal ${index}`;
 
               return (
                 <React.Fragment key={index}>
                   {index == 0 ? (
-                    <button
-                      key={index}
-                      className={classNames(
-                        'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
-                        {
-                          'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary':
-                            isActive,
-                          'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
-                            !isActive,
-                        },
-                      )}
-                      onClick={() => setActiveTerminal(index)}
-                    >
-                      <div className="i-ph:terminal-window-duotone text-lg" />
-                      Bolt Terminal
-                    </button>
-                  ) : (
-                    <React.Fragment>
+                    <div className="flex items-center gap-1">
                       <button
                         key={index}
                         className={classNames(
                           'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
                           {
-                            'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textPrimary': isActive,
+                            'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary':
+                              isActive,
                             'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
                               !isActive,
                           },
@@ -179,17 +173,46 @@ export const TerminalTabs = memo(() => {
                         onClick={() => setActiveTerminal(index)}
                       >
                         <div className="i-ph:terminal-window-duotone text-lg" />
-                        Terminal {terminalCount > 1 && index}
+                        Bolt Terminal
+                      </button>
+                      <TerminalContextMenu
+                        terminalName={terminalName}
+                        getTerminal={() => terminalRefs.current.get(index)?.getTerminal()}
+                        commands={commandHistory}
+                      />
+                    </div>
+                  ) : (
+                    <React.Fragment>
+                      <div className="flex items-center gap-1">
                         <button
-                          className="bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:bg-transparent rounded"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            closeTerminal(index);
-                          }}
+                          key={index}
+                          className={classNames(
+                            'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
+                            {
+                              'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textPrimary': isActive,
+                              'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
+                                !isActive,
+                            },
+                          )}
+                          onClick={() => setActiveTerminal(index)}
+                        >
+                          <div className="i-ph:terminal-window-duotone text-lg" />
+                          {terminalName}
+                        </button>
+                        <TerminalContextMenu
+                          terminalName={terminalName}
+                          getTerminal={() => terminalRefs.current.get(index)?.getTerminal()}
+                          commands={commandHistory.filter((command) => command.terminalName === terminalName)}
+                        />
+                        <button
+                          type="button"
+                          title="Close terminal"
+                          className="rounded p-1 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
+                          onClick={() => closeTerminal(index)}
                         >
                           <div className="i-ph:x text-xs" />
                         </button>
-                      </button>
+                      </div>
                     </React.Fragment>
                   )}
                 </React.Fragment>
@@ -211,7 +234,7 @@ export const TerminalTabs = memo(() => {
                   if (activeTerminal === 0) {
                     workbenchStore.attachBoltTerminal(terminal);
                   } else {
-                    workbenchStore.attachTerminal(terminal);
+                    workbenchStore.attachTerminal(terminal, `Terminal ${activeTerminal}`);
                   }
                 }
               }}
@@ -270,7 +293,7 @@ export const TerminalTabs = memo(() => {
                         terminalRefs.current.set(index, ref);
                       }
                     }}
-                    onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
+                    onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal, `Terminal ${index}`)}
                     onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
                     theme={theme}
                   />
@@ -287,3 +310,124 @@ export const TerminalTabs = memo(() => {
     </Panel>
   );
 });
+
+function TerminalContextMenu({
+  terminalName,
+  getTerminal,
+  commands,
+}: {
+  terminalName: string;
+  getTerminal: () => XTerm | undefined;
+  commands: TerminalCommandRecord[];
+}) {
+  const attachBuffer = (kind: Extract<TerminalContextKind, 'last-lines' | 'session' | 'selection'>) => {
+    const terminal = getTerminal();
+
+    if (!terminal) {
+      return;
+    }
+
+    let text = '';
+
+    if (kind === 'selection') {
+      text = terminal.getSelection();
+    } else {
+      const buffer = terminal.buffer.active;
+
+      const lines = Array.from(
+        { length: buffer.length },
+        (_, index) => buffer.getLine(index)?.translateToString(true) ?? '',
+      );
+      text = (kind === 'last-lines' ? lines.slice(-100) : lines).join('\n');
+    }
+
+    addTerminalContext({ terminalName, kind, text });
+  };
+
+  const attachCommand = (command: (typeof commands)[number], isError = false) => {
+    addTerminalContext({
+      terminalName: command.terminalName,
+      kind: isError ? 'error' : 'command',
+      command: command.command,
+      exitCode: command.exitCode,
+      text: command.output,
+    });
+  };
+
+  const failedCommand = commands[0]?.exitCode !== 0 ? commands[0] : undefined;
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          title="Add terminal output to chat"
+          aria-label={`Add ${terminalName} output to chat`}
+          className="rounded-md p-1.5 text-bolt-elements-textTertiary hover:bg-bolt-elements-item-backgroundActive hover:text-bolt-elements-textPrimary"
+        >
+          <span className="i-ph:paperclip text-base" />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          sideOffset={5}
+          className="z-50 max-h-[70vh] min-w-[220px] overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1 shadow-lg"
+        >
+          {failedCommand && (
+            <DropdownMenu.Item
+              className="cursor-pointer rounded-md px-3 py-2 text-sm text-red-400 outline-none hover:bg-bolt-elements-item-backgroundActive focus:bg-bolt-elements-item-backgroundActive"
+              onSelect={() => attachCommand(failedCommand, true)}
+            >
+              <span className="i-ph:warning-circle mr-2 inline-block" />
+              Send error to chat
+            </DropdownMenu.Item>
+          )}
+          <ContextMenuItem onSelect={() => attachBuffer('last-lines')}>Attach last 100 lines</ContextMenuItem>
+          <ContextMenuItem onSelect={() => attachBuffer('session')}>Attach whole session</ContextMenuItem>
+          <DropdownMenu.Item
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-bolt-elements-textPrimary outline-none hover:bg-bolt-elements-item-backgroundActive focus:bg-bolt-elements-item-backgroundActive"
+            onSelect={() => attachBuffer('selection')}
+          >
+            Attach selected output
+          </DropdownMenu.Item>
+          {commands.length > 0 && (
+            <>
+              <DropdownMenu.Separator className="my-1 h-px bg-bolt-elements-borderColor" />
+              <div className="px-3 py-1 text-xs text-bolt-elements-textTertiary">Recent Bolt commands</div>
+              {commands.slice(0, 10).map((command) => (
+                <DropdownMenu.Item
+                  key={command.id}
+                  className="cursor-pointer rounded-md px-3 py-2 text-sm text-bolt-elements-textPrimary outline-none hover:bg-bolt-elements-item-backgroundActive focus:bg-bolt-elements-item-backgroundActive"
+                  onSelect={() => attachCommand(command)}
+                >
+                  <span
+                    className={
+                      command.exitCode === 0
+                        ? 'i-ph:terminal mr-2 inline-block'
+                        : 'i-ph:warning mr-2 inline-block text-red-400'
+                    }
+                  />
+                  <span className="inline-block max-w-[240px] truncate align-bottom">
+                    {command.command} {command.exitCode === 0 ? '' : `(exit ${command.exitCode})`}
+                  </span>
+                </DropdownMenu.Item>
+              ))}
+            </>
+          )}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
+function ContextMenuItem({ children, onSelect }: { children: React.ReactNode; onSelect: () => void }) {
+  return (
+    <DropdownMenu.Item
+      className="cursor-pointer rounded-md px-3 py-2 text-sm text-bolt-elements-textPrimary outline-none hover:bg-bolt-elements-item-backgroundActive focus:bg-bolt-elements-item-backgroundActive"
+      onSelect={onSelect}
+    >
+      {children}
+    </DropdownMenu.Item>
+  );
+}
