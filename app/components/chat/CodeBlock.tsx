@@ -1,15 +1,12 @@
 import { memo, useEffect, useState } from 'react';
-import { bundledLanguages, codeToHtml, type BundledLanguage } from 'shiki';
+import type { BundledLanguage } from 'shiki';
 import styles from './CodeBlock.module.scss';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger } from '~/utils/logger';
+import { highlightCode } from '~/utils/syntax-highlighter-client';
 
 const logger = createScopedLogger('CodeBlock');
 
-/**
- * Languages shiki handles without a bundled grammar, so they are absent from `bundledLanguages`
- * but still valid inputs to `codeToHtml`. Replaces shiki's removed `SpecialLanguage` / `isSpecialLang`.
- */
 const SPECIAL_LANGUAGES = ['ansi', 'plaintext', 'plain', 'text', 'txt'];
 type SpecialLanguage = (typeof SPECIAL_LANGUAGES)[number];
 
@@ -76,23 +73,32 @@ export const CodeBlock = memo(
         setHTML(
           `<pre class="shiki" style="background-color:var(--shiki-bg,#1e1e1e);color:var(--shiki-fg,#d4d4d4);padding:1em;border-radius:0.5em;overflow-x:auto"><code>${escapeHtml(code)}</code></pre>`,
         );
-        return;
+        return undefined;
       }
 
-      let effectiveLanguage = language;
-
-      if (language && !isSpecialLanguage(language) && !(language in bundledLanguages)) {
-        logger.warn(`Unsupported language '${language}', falling back to plaintext`);
-        effectiveLanguage = 'plaintext';
+      if (isSpecialLanguage(language)) {
+        setHTML(`<pre><code>${escapeHtml(code)}</code></pre>`);
+        return undefined;
       }
 
+      const effectiveLanguage: BundledLanguage = language;
       logger.trace(`Language = ${effectiveLanguage}`);
 
-      const processCode = async () => {
-        setHTML(await codeToHtml(code, { lang: effectiveLanguage, theme }));
-      };
+      let cancelled = false;
 
-      processCode();
+      highlightCode(code, effectiveLanguage, theme)
+        .then((highlightedCode) => {
+          if (!cancelled) {
+            setHTML(highlightedCode);
+          }
+        })
+        .catch((error: unknown) => {
+          logger.error('Failed to highlight code', error);
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }, [code, language, theme, isStreaming]);
 
     return (
