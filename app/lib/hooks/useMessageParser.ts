@@ -65,21 +65,31 @@ export function useMessageParser() {
     setParsedMessages({});
   }, []);
 
-  const parseMessages = useCallback((messages: { id: string; role?: string }[], isLoading: boolean) => {
-    for (const [index, message] of messages.entries()) {
-      if (message.role === 'assistant' || message.role === 'user') {
-        const newParsedContent = messageParser.parse(
-          message.id,
-          getMessageText(message),
-          message.role === 'assistant' && !isLoading,
-        );
-        setParsedMessages((prevParsed) => ({
-          ...prevParsed,
-          [index]: (prevParsed[index] || '') + newParsedContent,
-        }));
+  const parseMessages = useCallback(
+    (messages: { id: string; role?: string }[], isLoading: boolean, allowCodeActions = true) => {
+      for (const [index, message] of messages.entries()) {
+        if (message.role === 'assistant' || message.role === 'user') {
+          const messageText = getMessageText(message);
+
+          const parserText = allowCodeActions
+            ? messageText
+            : messageText
+                .replace(/<boltArtifact\b[^>]*>[\s\S]*?<\/boltArtifact\s*>/gi, '')
+                .replace(/<boltAction\b[^>]*>[\s\S]*?<\/boltAction\s*>/gi, '');
+          const newParsedContent = messageParser.parse(
+            message.id,
+            parserText,
+            message.role === 'assistant' && !isLoading,
+          );
+          setParsedMessages((prevParsed) => ({
+            ...prevParsed,
+            [index]: (prevParsed[index] || '') + newParsedContent,
+          }));
+        }
       }
-    }
-  }, []);
+    },
+    [],
+  );
 
   return { parsedMessages, parseMessages, resetParsedMessages };
 }
