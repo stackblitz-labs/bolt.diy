@@ -6,6 +6,7 @@ import { getAll, openDatabase } from '~/lib/persistence/db';
 import type { MCPConfig } from '~/lib/services/mcpService';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { DEFAULT_AVATARS, DEFAULT_AVATAR, updateProfile } from '~/lib/stores/profile';
+import { providersStore, updateProviderSettings } from '~/lib/stores/settings';
 import { setTheme, themeStore } from '~/lib/stores/theme';
 import { THEMES, type Theme } from '~/types/theme';
 import { PROVIDER_LIST } from '~/utils/constants';
@@ -18,7 +19,7 @@ export function FirstRunOnboarding() {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string>(DEFAULT_AVATAR);
-  const [providerName, setProviderName] = useState(PROVIDER_LIST[0]?.name ?? '');
+  const [providerName, setProviderName] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [mcpText, setMcpText] = useState(JSON.stringify(EMPTY_MCP_CONFIG, null, 2));
   const [selectedTheme, setSelectedTheme] = useState<Theme>(() => themeStore.get());
@@ -130,6 +131,24 @@ export function FirstRunOnboarding() {
         new CustomEvent<ApiKeysUpdatedDetail>(API_KEYS_UPDATED_EVENT, { detail: { apiKeys, providerName } }),
       );
     }
+
+    /*
+     * Onboarding is an explicit provider selection step. Start with every
+     * provider disabled and enable only the selected provider when a key was
+     * supplied. Users can enable additional providers later in Settings.
+     */
+    const currentProviders = providersStore.get();
+    Object.keys(currentProviders).forEach((name) => {
+      updateProviderSettings(name, { enabled: name === providerName && Boolean(apiKey.trim()) });
+    });
+
+    const providerSettings = providersStore.get();
+    Cookies.set(
+      'providers',
+      JSON.stringify(
+        Object.fromEntries(Object.entries(providerSettings).map(([name, provider]) => [name, provider.settings])),
+      ),
+    );
   };
 
   const next = async () => {
@@ -308,8 +327,8 @@ export function FirstRunOnboarding() {
         {step === 1 && (
           <div className="space-y-3">
             <p className="text-sm text-[#a09baa]">
-              Choose a provider and add its API key to start building. You can also skip this and use a locally
-              configured provider.
+              Choose a provider and add its API key to start building. You can skip this and enable providers later in
+              Settings, then add their keys from the prompt box.
             </p>
             <label className="block text-sm font-medium" htmlFor="onboarding-provider">
               AI provider
@@ -320,6 +339,7 @@ export function FirstRunOnboarding() {
               onChange={(event) => setProviderName(event.target.value)}
               className="w-full rounded-md border border-[#302e39] bg-[#121116] px-3 py-2 text-sm text-[#f4f1fa]"
             >
+              <option value="">None for now</option>
               {PROVIDER_LIST.map((provider) => (
                 <option key={provider.name} value={provider.name}>
                   {provider.name}
