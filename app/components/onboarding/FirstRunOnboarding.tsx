@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie';
+import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
@@ -126,7 +127,7 @@ export function FirstRunOnboarding() {
 
     if (providerName && apiKey.trim()) {
       const apiKeys = { ...keys, [providerName]: apiKey.trim() };
-      Cookies.set('apiKeys', JSON.stringify(apiKeys), { expires: 365 });
+      setSecureCookie('apiKeys', JSON.stringify(apiKeys), { expires: 365 });
       window.dispatchEvent(
         new CustomEvent<ApiKeysUpdatedDetail>(API_KEYS_UPDATED_EVENT, { detail: { apiKeys, providerName } }),
       );

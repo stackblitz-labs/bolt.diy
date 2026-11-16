@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
+import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { isServerAgentTool } from '~/lib/common/agentLoop';
 import { STARTER_BUILD_FLAG } from '~/lib/common/starterBuild';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
@@ -1026,7 +1027,7 @@ export const ChatImpl = memo(
                 },
               ] as any);
               setInput('');
-              Cookies.remove(PROMPT_COOKIE_KEY);
+              removeSecureCookie(PROMPT_COOKIE_KEY);
 
               setUploadedFiles([]);
               setImageDataList([]);
@@ -1052,7 +1053,7 @@ export const ChatImpl = memo(
         } as any);
         setFakeLoading(false);
         setInput('');
-        Cookies.remove(PROMPT_COOKIE_KEY);
+        removeSecureCookie(PROMPT_COOKIE_KEY);
 
         setUploadedFiles([]);
         setImageDataList([]);
@@ -1086,7 +1087,7 @@ export const ChatImpl = memo(
       }
 
       setInput('');
-      Cookies.remove(PROMPT_COOKIE_KEY);
+      removeSecureCookie(PROMPT_COOKIE_KEY);
 
       setUploadedFiles([]);
       setImageDataList([]);
@@ -1126,7 +1127,7 @@ export const ChatImpl = memo(
     const debouncedCachePrompt = useCallback(
       debounce((event: React.ChangeEvent<HTMLTextAreaElement>) => {
         const trimmedValue = event.target.value.trim();
-        Cookies.set(PROMPT_COOKIE_KEY, trimmedValue, { expires: 30 });
+        setSecureCookie(PROMPT_COOKIE_KEY, trimmedValue, { expires: 30 });
       }, 1000),
       [],
     );
@@ -1150,12 +1151,12 @@ export const ChatImpl = memo(
 
     const handleModelChange = (newModel: string) => {
       setModel(newModel);
-      Cookies.set('selectedModel', newModel, { expires: 30 });
+      setSecureCookie('selectedModel', newModel, { expires: 30 });
     };
 
     const handleProviderChange = (newProvider: ProviderInfo) => {
       setProvider(newProvider);
-      Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
+      setSecureCookie('selectedProvider', newProvider.name, { expires: 30 });
     };
 
     return (
@@ -1229,7 +1230,7 @@ export const ChatImpl = memo(
         agentMode={agentMode}
         setAgentMode={(enabled) => {
           setAgentMode(enabled);
-          Cookies.set('agentMode', String(enabled), { expires: 30 });
+          setSecureCookie('agentMode', String(enabled), { expires: 30 });
         }}
         designScheme={designScheme}
         setDesignScheme={setDesignScheme}

@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie';
+import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { atom, computed } from 'nanostores';
 import { gitHubApiService } from '~/lib/services/githubApiService';
 import { logStore } from '~/lib/stores/logs';
@@ -89,9 +90,9 @@ export const githubConnectionStore = {
       };
 
       // Set cookies for client-side access
-      Cookies.set('githubUsername', user.login);
-      Cookies.set('githubToken', token);
-      Cookies.set('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
+      setSecureCookie('githubUsername', user.login);
+      setSecureCookie('githubToken', token);
+      setSecureCookie('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
 
       // Store connection details in localStorage
       localStorage.setItem('github_connection', JSON.stringify(connection));
@@ -133,9 +134,9 @@ export const githubConnectionStore = {
     localStorage.removeItem('github_connection');
 
     // Clear cookies
-    Cookies.remove('githubUsername');
-    Cookies.remove('githubToken');
-    Cookies.remove('git:github.com');
+    removeSecureCookie('githubUsername');
+    removeSecureCookie('githubToken');
+    removeSecureCookie('git:github.com');
 
     // Clear API service cache
     gitHubApiService.clearCache();

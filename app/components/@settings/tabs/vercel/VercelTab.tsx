@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { motion } from 'framer-motion';
 import Cookies from 'js-cookie';
+import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import {
@@ -253,7 +254,7 @@ export default function VercelTab() {
       const userData = (await testResponse.json()) as VercelUserResponse;
 
       // Set cookies for server-side API access
-      Cookies.set('VITE_VERCEL_ACCESS_TOKEN', token, { expires: 365 });
+      setSecureCookie('VITE_VERCEL_ACCESS_TOKEN', token, { expires: 365 });
 
       // Normalize the user data structure
       const normalizedUser = userData.user || {
@@ -285,7 +286,7 @@ export default function VercelTab() {
 
   const handleDisconnect = () => {
     // Clear Vercel-related cookies
-    Cookies.remove('VITE_VERCEL_ACCESS_TOKEN');
+    removeSecureCookie('VITE_VERCEL_ACCESS_TOKEN');
 
     updateVercelConnection({ user: null, token: '' });
     toast.success('Disconnected from Vercel');

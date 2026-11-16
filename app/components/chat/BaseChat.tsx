@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import type { UIMessage } from 'ai';
 import Cookies from 'js-cookie';
+import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import React, { lazy, Suspense, type RefCallback, useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { getApiKeysFromCookies } from './APIKeyManager';
@@ -204,7 +205,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setApiKeys(parsedApiKeys);
         } catch (error) {
           console.error('Error loading API keys from cookies:', error);
-          Cookies.remove('apiKeys');
+          removeSecureCookie('apiKeys');
         }
 
         setIsModelLoading('all');
@@ -236,7 +237,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const onApiKeysChange = async (providerName: string, apiKey: string) => {
       const newApiKeys = { ...apiKeys, [providerName]: apiKey };
       setApiKeys(newApiKeys);
-      Cookies.set('apiKeys', JSON.stringify(newApiKeys));
+      setSecureCookie('apiKeys', JSON.stringify(newApiKeys));
 
       setIsModelLoading(providerName);
 

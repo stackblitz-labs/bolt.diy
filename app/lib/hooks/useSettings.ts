@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/react';
 import Cookies from 'js-cookie';
+import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TabWindowConfig } from '~/components/@settings/core/types';
 import { getLocalStorage, setLocalStorage } from '~/lib/persistence';
@@ -113,7 +114,7 @@ export function useSettings(): UseSettingsReturn {
   const enableDebugMode = useCallback((enabled: boolean) => {
     isDebugMode.set(enabled);
     logStore.logSystem(`Debug mode ${enabled ? 'enabled' : 'disabled'}`);
-    Cookies.set('isDebugEnabled', String(enabled));
+    setSecureCookie('isDebugEnabled', String(enabled));
   }, []);
 
   const setEventLogs = useCallback((enabled: boolean) => {
@@ -175,7 +176,7 @@ export function useSettings(): UseSettingsReturn {
     Object.keys(providers).forEach((provider) => {
       providerSetting[provider] = providers[provider].settings;
     });
-    Cookies.set('providers', JSON.stringify(providerSetting));
+    setSecureCookie('providers', JSON.stringify(providerSetting));
   }, [providers]);
 
   return {

@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/react';
 import Cookies from 'js-cookie';
+import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useGitHubAPI } from './useGitHubAPI';
@@ -139,9 +140,9 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
       };
 
       // Set cookies for API requests
-      Cookies.set('githubToken', token);
-      Cookies.set('githubUsername', userData.login);
-      Cookies.set(
+      setSecureCookie('githubToken', token);
+      setSecureCookie('githubUsername', userData.login);
+      setSecureCookie(
         'git:github.com',
         JSON.stringify({
           username: token,
@@ -171,9 +172,9 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
     localStorage.removeItem(STORAGE_KEY);
 
     // Clear all GitHub-related cookies
-    Cookies.remove('githubToken');
-    Cookies.remove('githubUsername');
-    Cookies.remove('git:github.com');
+    removeSecureCookie('githubToken');
+    removeSecureCookie('githubUsername');
+    removeSecureCookie('git:github.com');
 
     // Reset store
     updateGitHubConnection({

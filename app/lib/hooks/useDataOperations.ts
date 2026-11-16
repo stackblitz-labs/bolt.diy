@@ -1,6 +1,7 @@
 import { generateId } from 'ai';
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { useIndexedDB } from '~/lib/hooks/useIndexedDB';
 import { ImportExportService } from '~/lib/services/importExportService';
 
@@ -740,7 +741,7 @@ export function useDataOperations({
 
         const newKeys = ImportExportService.importAPIKeys(importedData);
         const apiKeysJson = JSON.stringify(newKeys);
-        document.cookie = `apiKeys=${apiKeysJson}; path=/; max-age=31536000`;
+        setSecureCookie('apiKeys', apiKeysJson, { expires: 365 });
 
         // Step 5: Complete
         showProgress('Completing import', 100);
@@ -1187,7 +1188,7 @@ export function useDataOperations({
           const previousAPIKeys = lastOperation.data.previous;
           const newKeys = ImportExportService.importAPIKeys(previousAPIKeys);
           const apiKeysJson = JSON.stringify(newKeys);
-          document.cookie = `apiKeys=${apiKeysJson}; path=/; max-age=31536000`;
+          setSecureCookie('apiKeys', apiKeysJson, { expires: 365 });
 
           // Dismiss progress toast before showing success toast
           toast.dismiss('progress-toast');
