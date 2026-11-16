@@ -203,16 +203,21 @@ export function createSecurityHeaders(request?: Request) {
 function getAllowedOrigin(request: Request): string | undefined {
   const originHeader = request.headers.get('origin');
 
-  if (!originHeader || originHeader === 'null') return undefined;
+  if (!originHeader || originHeader === 'null') {
+    return undefined;
+  }
 
   let origin: string;
+
   try {
     origin = new URL(originHeader).origin;
   } catch {
     return undefined;
   }
 
-  if (origin === new URL(request.url).origin) return origin;
+  if (origin === new URL(request.url).origin) {
+    return origin;
+  }
 
   const configuredOrigins = [process.env.VITE_PUBLIC_APP_URL, 'https://bolt.diy', 'https://www.bolt.diy'];
 
@@ -221,7 +226,9 @@ function getAllowedOrigin(request: Request): string | undefined {
   }
 
   const allowedOrigins = configuredOrigins.flatMap((value) => {
-    if (!value) return [];
+    if (!value) {
+      return [];
+    }
 
     try {
       return [new URL(value).origin];
@@ -241,12 +248,14 @@ function applySecurityHeaders(headers: Headers, request: Request) {
     }
 
     const currentVary = headers.get('Vary');
+
     if (!currentVary) {
       headers.set('Vary', value);
       return;
     }
 
     const varyValues = currentVary.split(',').map((item) => item.trim().toLowerCase());
+
     if (!varyValues.includes('*') && !varyValues.includes(value.toLowerCase())) {
       headers.append('Vary', value);
     }
@@ -320,7 +329,11 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
       const headers = createSecurityHeaders(request);
       const requestedMethod = request.headers.get('access-control-request-method');
       const origin = request.headers.get('origin');
-      const allowed = !origin || (Boolean(headers['Access-Control-Allow-Origin']) && (!requestedMethod || CORS_METHODS.split(', ').includes(requestedMethod)));
+
+      const allowed =
+        !origin ||
+        (Boolean(headers['Access-Control-Allow-Origin']) &&
+          (!requestedMethod || CORS_METHODS.split(', ').includes(requestedMethod)));
 
       return new Response(null, { status: allowed ? 204 : 403, headers });
     }
