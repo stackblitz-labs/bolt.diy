@@ -143,7 +143,7 @@ function normalizeIpAddress(value: string | null): string | undefined {
 /**
  * Security headers middleware
  */
-export function createSecurityHeaders() {
+export function createSecurityHeaders(nonce?: string) {
   return {
     // Prevent clickjacking
     'X-Frame-Options': 'DENY',
@@ -157,15 +157,18 @@ export function createSecurityHeaders() {
     // Content Security Policy - restrict to same origin and trusted sources
     'Content-Security-Policy': [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Allow inline scripts for React
-      "style-src 'self' 'unsafe-inline'", // Allow inline styles
+      `script-src 'self'${nonce ? ` 'nonce-${nonce}'` : ''} https://unpkg.com`,
+      `style-src 'self'${nonce ? ` 'nonce-${nonce}'` : ''} 'unsafe-inline' https://fonts.googleapis.com`,
+      "style-src-attr 'unsafe-inline'",
       "img-src 'self' data: https: blob:", // Allow images from same origin, data URLs, and HTTPS
       "font-src 'self' data:", // Allow fonts from same origin and data URLs
-      "connect-src 'self' https://api.github.com https://api.netlify.com", // Allow connections to GitHub and Netlify APIs
+      "connect-src 'self' https: wss:",
+      "worker-src 'self' blob:",
       "frame-src 'none'", // Prevent iframe embedding
       "object-src 'none'", // Prevent object embedding
       "base-uri 'self'",
       "form-action 'self'",
+      "frame-ancestors 'none'",
     ].join('; '),
 
     // Referrer Policy

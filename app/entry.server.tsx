@@ -1,15 +1,19 @@
 import { isbot } from 'isbot';
 import { renderToReadableStream } from 'react-dom/server';
 import { ServerRouter, type EntryContext, type RouterContextProvider } from 'react-router';
+import { createSecurityHeaders } from './lib/security';
+import { cspNonceContext } from './lib/security/nonce';
 
 export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  _loadContext: Readonly<RouterContextProvider>,
+  loadContext: Readonly<RouterContextProvider>,
 ) {
-  const body = await renderToReadableStream(<ServerRouter context={routerContext} url={request.url} />, {
+  const nonce = loadContext.get(cspNonceContext);
+
+  const body = await renderToReadableStream(<ServerRouter context={routerContext} url={request.url} nonce={nonce} />, {
     signal: request.signal,
     onError(error: unknown) {
       console.error(error);
@@ -30,6 +34,7 @@ export default async function handleRequest(
    */
   responseHeaders.set('Cross-Origin-Embedder-Policy', 'credentialless');
   responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+  Object.entries(createSecurityHeaders(nonce)).forEach(([name, value]) => responseHeaders.set(name, value));
 
   return new Response(body, {
     headers: responseHeaders,

@@ -4,7 +4,17 @@ import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 import { useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, type LinksFunction } from 'react-router';
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+  type LinksFunction,
+  type MiddlewareFunction,
+  type RouterContextProvider,
+} from 'react-router';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
@@ -92,6 +102,7 @@ const inlineThemeCode = stripIndents`
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
+  const { nonce } = useLoaderData<typeof loader>();
 
   useEffect(() => {
     const mode = theme === 'dark' || theme.startsWith('dark-') ? 'dark' : 'light';
@@ -113,7 +124,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
       </head>
       <body className="w-full h-full">
         {/*
@@ -164,6 +175,17 @@ import { logStore } from './lib/stores/logs';
 import { themeStore } from './lib/stores/theme';
 import globalStyles from './styles/index.scss?url';
 import { stripIndents } from './utils/stripIndent';
+import { cspNonceContext } from './lib/security/nonce';
+
+export const middleware: MiddlewareFunction[] = [({ context }) => {
+  const nonceBytes = crypto.getRandomValues(new Uint8Array(16));
+  const nonce = Array.from(nonceBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  context.set(cspNonceContext, nonce);
+}];
+
+export function loader({ context }: { context: Readonly<RouterContextProvider> }) {
+  return { nonce: context.get(cspNonceContext) };
+}
 
 export default function App() {
   const theme = useStore(themeStore);
