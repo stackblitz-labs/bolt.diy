@@ -15,6 +15,7 @@ import {
   isToolResultPart,
   type AnyPart,
 } from '~/lib/persistence/messageMigration';
+import { sanitizeCodeHtml } from '~/lib/security/sanitize';
 import { themeStore, type Theme } from '~/lib/stores/theme';
 import { useToolAccessStore } from '~/lib/stores/toolAccess';
 import type { ToolCallAnnotation } from '~/types/context';
@@ -79,10 +80,12 @@ function JsonCodeBlock({ className, code, theme }: JsonCodeBlockProps) {
     <div
       className={classNames('text-xs rounded-md overflow-hidden mcp-tool-invocation-code', className)}
       dangerouslySetInnerHTML={{
-        __html: jsonHighlighter.codeToHtml(formattedCode, {
-          lang: 'json',
-          theme: getThemeMode(theme) === 'dark' ? 'dark-plus' : 'light-plus',
-        }),
+        __html: sanitizeCodeHtml(
+          jsonHighlighter.codeToHtml(formattedCode, {
+            lang: 'json',
+            theme: getThemeMode(theme) === 'dark' ? 'dark-plus' : 'light-plus',
+          }),
+        ),
       }}
       style={{
         padding: '0',

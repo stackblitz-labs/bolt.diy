@@ -4,6 +4,7 @@ import { computed, map } from 'nanostores';
 import { memo, useEffect, useRef, useState } from 'react';
 import { createHighlighter, type Highlighter } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
+import { sanitizeCodeHtml } from '~/lib/security/sanitize';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { WORK_DIR } from '~/utils/constants';
@@ -196,10 +197,12 @@ function ShellCodeBlock({ classsName, code }: ShellCodeBlockProps) {
     <div
       className={classNames('text-xs', classsName)}
       dangerouslySetInnerHTML={{
-        __html: shellHighlighter.codeToHtml(code, {
-          lang: 'shell',
-          theme: 'dark-plus',
-        }),
+        __html: sanitizeCodeHtml(
+          shellHighlighter.codeToHtml(code, {
+            lang: 'shell',
+            theme: 'dark-plus',
+          }),
+        ),
       }}
     ></div>
   );

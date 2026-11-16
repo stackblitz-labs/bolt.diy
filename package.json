@@ -122,6 +122,7 @@
     "class-variance-authority": "^0.7.1",
     "date-fns": "^4.4.0",
     "diff": "^9.0.0",
+    "dompurify": "^3.4.18",
     "dotenv": "^18.0.10",
     "electron-log": "^5.4.4",
     "electron-store": "^12.0.0",

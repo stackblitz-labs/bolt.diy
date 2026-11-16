@@ -58,14 +58,22 @@ const fuzzyMatch = (query: string, text: string): { score: number; matches: bool
   };
 };
 
-const highlightText = (text: string, query: string): string => {
+const highlightText = (text: string, query: string) => {
   if (!query) {
     return text;
   }
 
   const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
 
-  return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 text-current">$1</mark>');
+  return text.split(regex).map((part, index) =>
+    index % 2 === 1 ? (
+      <mark className="bg-yellow-200 dark:bg-yellow-800 text-current" key={index}>
+        {part}
+      </mark>
+    ) : (
+      part
+    ),
+  );
 };
 
 const formatContextSize = (tokens: number): string => {
@@ -216,8 +224,6 @@ export const ModelSelector = ({
           ...model,
           searchScore: bestScore,
           searchMatches: matches,
-          highlightedLabel: highlightText(model.label, debouncedModelSearchQuery),
-          highlightedName: highlightText(model.name, debouncedModelSearchQuery),
         };
       })
       .filter((model) => model.searchMatches)
@@ -243,7 +249,6 @@ export const ModelSelector = ({
           ...provider,
           searchScore: match.score,
           searchMatches: match.matches,
-          highlightedName: highlightText(provider.name, debouncedProviderSearchQuery),
         };
       })
       .filter((provider) => provider.searchMatches)
@@ -621,11 +626,7 @@ export const ModelSelector = ({
                           )}
                         />
                       )}
-                      <span
-                        dangerouslySetInnerHTML={{
-                          __html: (providerOption as any).highlightedName || providerOption.name,
-                        }}
-                      />
+                      <span>{highlightText(providerOption.name, debouncedProviderSearchQuery)}</span>
                     </div>
                   </div>
                 ))
@@ -834,11 +835,7 @@ export const ModelSelector = ({
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="truncate">
-                          <span
-                            dangerouslySetInnerHTML={{
-                              __html: (modelOption as any).highlightedLabel || modelOption.label,
-                            }}
-                          />
+                          <span>{highlightText(modelOption.label, debouncedModelSearchQuery)}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-bolt-elements-textTertiary">
