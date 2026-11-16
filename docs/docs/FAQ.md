@@ -13,6 +13,7 @@ You can configure API keys in two ways:
     ```bash
     ANTHROPIC_API_KEY=your_anthropic_key_here
     OPENAI_API_KEY=your_openai_key_here
+    OPEN_ROUTER_API_KEY=your_openrouter_key_here
     GOOGLE_GENERATIVE_AI_API_KEY=your_google_key_here
     MOONSHOT_API_KEY=your_moonshot_key_here
     XAI_API_KEY=your_xai_key_here
@@ -22,13 +23,13 @@ You can configure API keys in two ways:
     - Click the settings icon (⚙️) in the sidebar
     - Navigate to the "Providers" tab
     - Switch between "Cloud Providers" and "Local Providers" tabs
-    - Click on a provider card to expand its configuration
-    - Click on the "API Key" field to enter edit mode
-    - Paste your API key and press Enter to save
-    - Look for the green checkmark to confirm proper configuration
+    - Enable the provider and configure its endpoint if applicable
+    - In the chat composer, select the provider and click **Edit API Key**
+    - Enter the API key and save it
+    - The green checkmark means a key is set; send a request to verify that the provider accepts it
 
     !!! note "Security Note"
-        Never commit API keys to version control. The `.env.local` file is already in `.gitignore`.
+        Never commit API keys to version control. Keys entered in the UI are stored in JavaScript-accessible browser cookies and sent to the application server. Protect access to the browser and use HTTPS for remote deployments.
 
 ??? question "How do I add a new LLM provider?"
 bolt.diy uses a modular provider architecture. To add a new provider:

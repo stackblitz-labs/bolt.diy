@@ -57,7 +57,11 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 1. **Configure Environment Variables**:
    ```bash
    cp .env.example .env.local
+   # Replace the placeholders for the providers you use; remove or comment out the others.
+   cp .env.local .env
    ```
+
+   Compose requires both files. It reads `.env` for variable substitution and passes both files to the container. After changing `.env.local`, copy it to `.env` again so substituted values stay in sync. Do not commit either file.
 
 2. **Build and Run**:
    ```bash
@@ -76,10 +80,14 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 bolt.diy is also available as a cross-platform desktop application:
 
 - **Download**: Grab pre-built installers from [Latest Releases](https://github.com/stackblitz-labs/bolt.diy/releases/latest).
-- **Build from Source**:
+- **Build from Source**: Select the target for your host platform:
   ```bash
-  pnpm electron:build:dist
+  pnpm electron:build:win   # Windows
+  pnpm electron:build:mac   # macOS
+  pnpm electron:build:linux # Linux
   ```
+
+  `pnpm electron:build:unpack` creates an unpacked build for testing. `pnpm electron:build:dist` requests all three platforms and may require platform-specific build tools or signing configuration. The `electron:dev` script checks for the development server with `lsof`, so it needs that command available and does not work in a standard Windows shell without it.
 
 ---
 
@@ -88,7 +96,7 @@ bolt.diy is also available as a cross-platform desktop application:
 You can configure model providers either directly in the UI or via environment variables:
 
 ### Option A: In the UI (Recommended)
-Click the **Settings** icon (⚙️) in the sidebar → **Providers**. Enter your API keys or configure local endpoints (Ollama, LM Studio, OpenAI-compatible). Keys are validated in real time and stored securely in your browser cookies.
+Enable providers and configure supported local endpoints under **Settings → Providers**. Select a provider in the chat composer, click **Edit API Key**, enter the key, and save it. Keys entered in the UI are stored in JavaScript-accessible browser cookies and sent to the application server with requests. The indicator shows that a key is set; it does not guarantee that the provider accepts it. Protect access to the browser and use HTTPS for remote deployments.
 
 ### Option B: Environment Variables
 Copy `.env.example` to `.env.local` and add your keys or local endpoints:
@@ -97,12 +105,15 @@ Copy `.env.example` to `.env.local` and add your keys or local endpoints:
 # Cloud Providers
 ANTHROPIC_API_KEY=your_key_here
 OPENAI_API_KEY=your_key_here
-GEMINI_API_KEY=your_key_here
+GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
+OPEN_ROUTER_API_KEY=your_key_here
 
 # Local Providers
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-LMSTUDIO_BASE_URL=http://127.0.0.1:1234
+OLLAMA_API_BASE_URL=http://127.0.0.1:11434
+LMSTUDIO_API_BASE_URL=http://127.0.0.1:1234
 ```
+
+Replace only the placeholders you need and remove or comment out the rest. To use OpenRouter's free router, select **OpenRouter** in the provider selector, then select **Free Models Router** (`openrouter/free`) in the model selector. Free-model availability and rate limits depend on OpenRouter. For Docker, `127.0.0.1` refers to the container; configure local provider endpoints to reach the host instead, for example with `host.docker.internal` where supported.
 
 ---
 
@@ -127,7 +138,7 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 - **Data & Backend Integrations**: Built-in Supabase management, interactive charts, and bulk chat operations.
 - **Prompt and Connector Controls**: Select MCP tools from the prompt attachment menu; manage GitHub, GitLab, Netlify, and other service connections under Settings → Integrations → Connectors.
 
-> **Looking Ahead**: Ongoing work includes bug Fixes, dependance updates and fixes for reliability issues no new features are planed.
+> **Looking Ahead**: Ongoing work focuses on bug fixes, dependency updates, and reliability improvements; no new features are planned.
 
 ---
 
@@ -138,12 +149,13 @@ LMSTUDIO_BASE_URL=http://127.0.0.1:1234
 | `pnpm run dev` | Start development server with hot module reloading |
 | `pnpm run build` | Build the application for production (`react-router build`) |
 | `pnpm run preview` | Preview production build locally |
-| `pnpm test` | Run unit and integration tests with Vitest |
+| `pnpm test` | Run the Vitest suite, including unit, integration, and performance tests |
 | `pnpm run typecheck` | Run TypeScript type checks (`tsc`) |
 | `pnpm run lint` | Run ESLint across the codebase |
 | `pnpm run dockerbuild` | Build Docker container for development |
 | `pnpm run electron:dev` | Start Electron desktop application in dev mode |
-| `pnpm electron:build:dist` | Package Electron desktop app for current OS |
+| `pnpm electron:build:win`, `pnpm electron:build:mac`, `pnpm electron:build:linux` | Package Electron for the specified platform |
+| `pnpm electron:build:dist` | Request Electron builds for Windows, macOS, and Linux |
 
 ---
 
