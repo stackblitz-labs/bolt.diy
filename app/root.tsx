@@ -23,6 +23,10 @@ export const links: LinksFunction = () => [
     href: '/favicon.svg',
     type: 'image/svg+xml',
   },
+
+  // Preload critical styles for faster FCP
+  { rel: 'preload', href: tailwindReset, as: 'style' },
+  { rel: 'preload', href: globalStyles, as: 'style' },
   { rel: 'stylesheet', href: reactToastifyStyles },
   { rel: 'stylesheet', href: tailwindReset },
   { rel: 'stylesheet', href: globalStyles },
@@ -37,6 +41,11 @@ export const links: LinksFunction = () => [
     crossOrigin: 'anonymous',
   },
   {
+    rel: 'preload',
+    href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+    as: 'style',
+  },
+  {
     rel: 'stylesheet',
     href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   },
@@ -47,6 +56,12 @@ export const links: LinksFunction = () => [
   {
     rel: 'dns-prefetch',
     href: 'https://unpkg.com',
+  },
+
+  // Prefetch WebContainer API for faster bootup
+  {
+    rel: 'modulepreload',
+    href: 'https://unpkg.com/@webcontainer/api@1.6.5-internal.2/dist/index.js',
   },
 ];
 
@@ -142,6 +157,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { PerformanceMonitor } from './components/debug/PerformanceMonitor';
 import { journeys, observeWebVitals } from './lib/performance/metrics';
 import { prebootWebContainer } from './lib/performance/webcontainer-optimizer';
 import { logStore } from './lib/stores/logs';
@@ -204,5 +220,10 @@ export default function App() {
    * nesting and duplicate-element mounts. Remix v2 required the explicit wrap;
    * React Router 8 does not.
    */
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <PerformanceMonitor />
+    </>
+  );
 }
