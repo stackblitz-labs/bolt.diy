@@ -35,6 +35,7 @@ export default class OllamaProvider extends BaseProvider {
 
   config = {
     baseUrlKey: 'OLLAMA_API_BASE_URL',
+    baseUrl: 'http://127.0.0.1:11434',
   };
 
   staticModels: ModelInfo[] = [];
