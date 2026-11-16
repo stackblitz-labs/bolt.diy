@@ -1,8 +1,7 @@
 import { useStore } from '@nanostores/react';
-import Cookies from 'js-cookie';
-import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TabWindowConfig } from '~/components/@settings/core/types';
+import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { getLocalStorage, setLocalStorage } from '~/lib/persistence';
 import { logStore } from '~/lib/stores/logs';
 import {

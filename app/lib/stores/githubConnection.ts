@@ -1,6 +1,5 @@
-import Cookies from 'js-cookie';
-import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { atom, computed } from 'nanostores';
+import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { gitHubApiService } from '~/lib/services/githubApiService';
 import { logStore } from '~/lib/stores/logs';
 import type { GitHubConnection } from '~/types/GitHub';

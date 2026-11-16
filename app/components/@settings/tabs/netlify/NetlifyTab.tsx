@@ -3,7 +3,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { removeSecureCookie } from '~/lib/api/secure-cookies';
 import {
   ConnectorActionPermissions,
   getConnectorPermissionKey,
@@ -11,6 +10,7 @@ import {
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { removeSecureCookie } from '~/lib/api/secure-cookies';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';

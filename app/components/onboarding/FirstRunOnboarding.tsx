@@ -1,8 +1,8 @@
 import Cookies from 'js-cookie';
-import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
+import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { getAll, openDatabase } from '~/lib/persistence/db';
 import type { MCPConfig } from '~/lib/services/mcpService';
 import { useMCPStore } from '~/lib/stores/mcp';

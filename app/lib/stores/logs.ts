@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie';
-import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { atom, map } from 'nanostores';
+import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('LogStore');

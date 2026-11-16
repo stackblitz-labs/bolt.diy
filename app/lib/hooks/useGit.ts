@@ -2,9 +2,9 @@ import type { WebContainer } from '@webcontainer/api';
 import git, { type GitAuth, type PromiseFsClient } from 'isomorphic-git';
 import http from 'isomorphic-git/http/web';
 import Cookies from 'js-cookie';
-import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { toast } from 'react-toastify';
+import { setSecureCookie } from '~/lib/api/secure-cookies';
 import { webcontainer as webcontainerPromise } from '~/lib/webcontainer';
 
 const lookupSavedPassword = (url: string) => {
