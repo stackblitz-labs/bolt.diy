@@ -143,7 +143,12 @@ function normalizeIpAddress(value: string | null): string | undefined {
 /**
  * Security headers middleware
  */
-export function createSecurityHeaders() {
+const CORS_METHODS = 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS';
+const CORS_HEADERS = 'Content-Type, Authorization, X-Requested-With';
+
+export function createSecurityHeaders(request?: Request) {
+  const allowedOrigin = request ? getAllowedOrigin(request) : undefined;
+
   return {
     // Prevent clickjacking
     'X-Frame-Options': 'DENY',
@@ -174,6 +179,18 @@ export function createSecurityHeaders() {
     // Permissions Policy (formerly Feature Policy)
     'Permissions-Policy': ['camera=()', 'microphone=()', 'geolocation=()', 'payment=()'].join(', '),
 
+    ...(request?.headers.has('origin') ? { Vary: 'Origin' } : {}),
+    ...(allowedOrigin
+      ? {
+          'Access-Control-Allow-Origin': allowedOrigin,
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Methods': CORS_METHODS,
+          'Access-Control-Allow-Headers': CORS_HEADERS,
+          'Access-Control-Expose-Headers': 'Retry-After, X-RateLimit-Reset',
+          'Access-Control-Max-Age': '600',
+        }
+      : {}),
+
     // HSTS (HTTP Strict Transport Security) - only in production
     ...(process.env.NODE_ENV === 'production'
       ? {
@@ -181,6 +198,68 @@ export function createSecurityHeaders() {
         }
       : {}),
   };
+}
+
+function getAllowedOrigin(request: Request): string | undefined {
+  const originHeader = request.headers.get('origin');
+
+  if (!originHeader || originHeader === 'null') {
+    return undefined;
+  }
+
+  let origin: string;
+
+  try {
+    origin = new URL(originHeader).origin;
+  } catch {
+    return undefined;
+  }
+
+  if (origin === new URL(request.url).origin) {
+    return origin;
+  }
+
+  const configuredOrigins = [process.env.VITE_PUBLIC_APP_URL, 'https://bolt.diy', 'https://www.bolt.diy'];
+
+  if (process.env.NODE_ENV === 'development') {
+    configuredOrigins.push('http://localhost:5173', 'http://127.0.0.1:5173');
+  }
+
+  const allowedOrigins = configuredOrigins.flatMap((value) => {
+    if (!value) {
+      return [];
+    }
+
+    try {
+      return [new URL(value).origin];
+    } catch {
+      return [];
+    }
+  });
+
+  return allowedOrigins.includes(origin) ? origin : undefined;
+}
+
+function applySecurityHeaders(headers: Headers, request: Request) {
+  Object.entries(createSecurityHeaders(request)).forEach(([name, value]) => {
+    if (name.toLowerCase() !== 'vary') {
+      headers.set(name, value);
+      return;
+    }
+
+    const currentVary = headers.get('Vary');
+
+    if (!currentVary) {
+      headers.set('Vary', value);
+      return;
+    }
+
+    const varyValues = currentVary.split(',').map((item) => item.trim().toLowerCase());
+
+    if (!varyValues.includes('*') && !varyValues.includes(value.toLowerCase())) {
+      headers.append('Vary', value);
+    }
+  });
 }
 
 /**
@@ -246,11 +325,31 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
     const url = new URL(request.url);
     const endpoint = url.pathname;
 
+    if (request.method === 'OPTIONS') {
+      const headers = createSecurityHeaders(request);
+      const requestedMethod = request.headers.get('access-control-request-method');
+      const origin = request.headers.get('origin');
+
+      const allowed =
+        !origin ||
+        (Boolean(headers['Access-Control-Allow-Origin']) &&
+          (!requestedMethod || CORS_METHODS.split(', ').includes(requestedMethod)));
+
+      return new Response(null, { status: allowed ? 204 : 403, headers });
+    }
+
+    if (request.headers.has('origin') && !getAllowedOrigin(request)) {
+      return new Response('Origin not allowed', {
+        status: 403,
+        headers: createSecurityHeaders(request),
+      });
+    }
+
     // Check allowed methods
     if (options.allowedMethods && !options.allowedMethods.includes(request.method)) {
       return new Response('Method not allowed', {
         status: 405,
-        headers: createSecurityHeaders(),
+        headers: createSecurityHeaders(request),
       });
     }
 
@@ -261,7 +360,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
       if (rateLimitResult.unavailable) {
         return new Response('Rate limiting requires trusted client IP configuration', {
           status: 503,
-          headers: createSecurityHeaders(),
+          headers: createSecurityHeaders(request),
         });
       }
 
@@ -269,7 +368,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
         return new Response('Rate limit exceeded', {
           status: 429,
           headers: {
-            ...createSecurityHeaders(),
+            ...createSecurityHeaders(request),
             'Retry-After': Math.ceil((rateLimitResult.resetTime! - Date.now()) / 1000).toString(),
             'X-RateLimit-Reset': rateLimitResult.resetTime!.toString(),
           },
@@ -283,9 +382,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
 
       // Add security headers to response
       const responseHeaders = new Headers(response.headers);
-      Object.entries(createSecurityHeaders()).forEach(([key, value]) => {
-        responseHeaders.set(key, value);
-      });
+      applySecurityHeaders(responseHeaders, request);
 
       return new Response(response.body, {
         status: response.status,
@@ -305,10 +402,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
        */
       if (error instanceof Response) {
         const responseHeaders = new Headers(error.headers);
-
-        Object.entries(createSecurityHeaders()).forEach(([key, value]) => {
-          responseHeaders.set(key, value);
-        });
+        applySecurityHeaders(responseHeaders, request);
 
         return new Response(error.body, {
           status: error.status,
@@ -330,7 +424,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
         return new Response(JSON.stringify(error.body), {
           status: error.status,
           headers: {
-            ...createSecurityHeaders(),
+            ...createSecurityHeaders(request),
             'Content-Type': 'application/json',
           },
         });
@@ -348,7 +442,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
         {
           status: 500,
           headers: {
-            ...createSecurityHeaders(),
+            ...createSecurityHeaders(request),
             'Content-Type': 'application/json',
           },
         },
