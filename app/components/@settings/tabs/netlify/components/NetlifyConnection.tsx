@@ -1,4 +1,5 @@
 import { useStore } from '@nanostores/react';
+import { removeSecureCookie } from '~/lib/api/secure-cookies';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Cloud as CloudIcon,
@@ -447,7 +448,7 @@ export default function NetlifyConnection() {
     localStorage.removeItem('netlify_connection');
 
     // Remove cookies
-    document.cookie = 'netlifyToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    removeSecureCookie('netlifyToken');
 
     // Update the store
     updateNetlifyConnection({ user: null, token: '' });

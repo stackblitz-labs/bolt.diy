@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import Cookies from 'js-cookie';
+import { removeSecureCookie } from '~/lib/api/secure-cookies';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '~/components/ui/Button';
@@ -208,7 +209,7 @@ export function DataTab() {
   }, [handleResetChats]);
 
   const handleDeleteAllAPIKeys = useCallback(() => {
-    Cookies.remove('apiKeys', { path: '/' });
+    removeSecureCookie('apiKeys', { path: '/' });
     setShowDeleteAPIKeysConfirm(false);
     toast.success('All saved API keys were deleted');
     window.location.reload();

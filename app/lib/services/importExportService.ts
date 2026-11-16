@@ -1,5 +1,6 @@
 import { type UIMessage } from 'ai';
 import Cookies from 'js-cookie';
+import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { getAllChats, deleteChat } from '~/lib/persistence/chats';
 
 interface ExtendedMessage extends UIMessage {
@@ -308,7 +309,7 @@ export class ImportExportService {
     cookieKeys.forEach((key) => {
       if (!cookiesToPreserve.includes(key)) {
         try {
-          Cookies.remove(key);
+          removeSecureCookie(key);
         } catch (err) {
           console.error(`Error removing cookie ${key}:`, err);
         }
@@ -684,7 +685,7 @@ export class ImportExportService {
    */
   private static _safeSetCookie(key: string, value: any): void {
     try {
-      Cookies.set(key, typeof value === 'string' ? value : JSON.stringify(value), { expires: 365 });
+      setSecureCookie(key, typeof value === 'string' ? value : JSON.stringify(value), { expires: 365 });
     } catch (err) {
       console.error(`Error setting cookie ${key}:`, err);
     }

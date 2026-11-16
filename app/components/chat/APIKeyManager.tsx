@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie';
+import { setSecureCookie } from '~/lib/api/secure-cookies';
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
 import type { ProviderInfo } from '~/types/model';
@@ -81,7 +82,7 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
     // Save to cookies
     const currentKeys = getApiKeysFromCookies();
     const newKeys = { ...currentKeys, [provider.name]: tempKey };
-    Cookies.set('apiKeys', JSON.stringify(newKeys));
+    setSecureCookie('apiKeys', JSON.stringify(newKeys));
 
     setIsEditing(false);
   };

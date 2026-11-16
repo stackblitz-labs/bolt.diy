@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { removeSecureCookie } from '~/lib/api/secure-cookies';
 import {
   ConnectorActionPermissions,
   getConnectorPermissionKey,
@@ -510,7 +511,7 @@ export default function NetlifyTab() {
     localStorage.removeItem('netlify_connection');
 
     // Remove cookies
-    document.cookie = 'netlifyToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    removeSecureCookie('netlifyToken');
 
     // Update the store
     updateNetlifyConnection({ user: null, token: '' });
