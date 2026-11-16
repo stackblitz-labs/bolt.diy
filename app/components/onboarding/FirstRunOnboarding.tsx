@@ -50,7 +50,9 @@ export function FirstRunOnboarding() {
 
     const checkFirstRun = async () => {
       // Smoke tests can bypass the first-run modal without changing saved setup state.
-      if (new URLSearchParams(window.location.search).get('skipOnboarding') === 'true') {
+      const searchParams = new URLSearchParams(window.location.search);
+
+      if (searchParams.get('skipOnboarding') === 'true' || searchParams.get('smokeTest') === 'true') {
         return;
       }
 
