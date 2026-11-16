@@ -1,5 +1,4 @@
 import { useStore } from '@nanostores/react';
-import { removeSecureCookie } from '~/lib/api/secure-cookies';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Cloud as CloudIcon,
@@ -21,6 +20,7 @@ import { toast } from 'react-toastify';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { removeSecureCookie } from '~/lib/api/secure-cookies';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
 import { classNames } from '~/utils/classNames';

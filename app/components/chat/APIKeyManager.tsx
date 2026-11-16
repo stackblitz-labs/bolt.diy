@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie';
-import { setSecureCookie } from '~/lib/api/secure-cookies';
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
+import { setSecureCookie } from '~/lib/api/secure-cookies';
 import type { ProviderInfo } from '~/types/model';
 
 interface APIKeyManagerProps {

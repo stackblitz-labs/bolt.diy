@@ -1,7 +1,5 @@
 import { useStore } from '@nanostores/react';
 import { motion } from 'framer-motion';
-import Cookies from 'js-cookie';
-import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import {
@@ -11,6 +9,7 @@ import {
 import { ServiceHeader, ConnectionTestIndicator } from '~/components/@settings/shared/service-integration';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { useConnectionTest } from '~/lib/hooks';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';

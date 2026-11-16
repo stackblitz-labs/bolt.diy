@@ -1,9 +1,8 @@
 import { useStore } from '@nanostores/react';
-import Cookies from 'js-cookie';
-import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useGitHubAPI } from './useGitHubAPI';
+import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { githubConnection, isConnecting, updateGitHubConnection } from '~/lib/stores/github';
 import type { GitHubUserResponse, GitHubConnection } from '~/types/GitHub';
 

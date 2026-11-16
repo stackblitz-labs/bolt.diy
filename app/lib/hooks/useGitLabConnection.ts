@@ -1,9 +1,8 @@
 import { useStore } from '@nanostores/react';
-import Cookies from 'js-cookie';
-import { removeSecureCookie } from '~/lib/api/secure-cookies';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useGitLabAPI } from './useGitLabAPI';
+import { removeSecureCookie } from '~/lib/api/secure-cookies';
 import { gitlabConnectionStore, gitlabConnection, isGitLabConnected } from '~/lib/stores/gitlabConnection';
 import type { GitLabConnection } from '~/types/GitLab';
 
