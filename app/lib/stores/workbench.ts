@@ -290,8 +290,8 @@ export class WorkbenchStore {
     this.#terminalStore.writeToBoltTerminal(data);
   }
 
-  attachTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachTerminal(terminal);
+  attachTerminal(terminal: ITerminal, terminalName?: string) {
+    this.#terminalStore.attachTerminal(terminal, terminalName);
   }
   attachBoltTerminal(terminal: ITerminal) {
     this.#terminalStore.attachBoltTerminal(terminal);

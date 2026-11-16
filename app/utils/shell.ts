@@ -2,9 +2,10 @@ import type { WebContainer, WebContainerProcess } from '@webcontainer/api';
 import { atom } from 'nanostores';
 import { withResolvers } from './promises';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
+import { recordTerminalCommand } from '~/lib/stores/terminalContext';
 import type { ITerminal } from '~/types/terminal';
 
-export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
+export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal, terminalName = 'Terminal') {
   const args: string[] = [];
 
   // we spawn a JSH process with a fallback cols and rows in case the process is not attached yet to a visible terminal
@@ -21,6 +22,10 @@ export async function newShellProcess(webcontainer: WebContainer, terminal: ITer
   const jshReady = withResolvers<void>();
 
   let isInteractive = false;
+  let pendingCommand = '';
+  let activeCommand = '';
+  let activeCommandOutput = '';
+
   output.pipeTo(
     new WritableStream({
       write(data) {
@@ -36,6 +41,25 @@ export async function newShellProcess(webcontainer: WebContainer, terminal: ITer
         }
 
         terminal.write(data);
+
+        if (activeCommand) {
+          activeCommandOutput += data;
+
+          const exitMatch = activeCommandOutput.match(/\x1b\]654;exit=?(-?\d+)(?::\d+)?\x07/);
+
+          if (exitMatch) {
+            recordTerminalCommand({
+              terminalName,
+              command: activeCommand,
+              output: cleanTerminalOutput(activeCommandOutput),
+              exitCode: Number(exitMatch[1]),
+            });
+            activeCommand = '';
+            activeCommandOutput = '';
+          } else if (activeCommandOutput.length > 100_000) {
+            activeCommandOutput = activeCommandOutput.slice(-80_000);
+          }
+        }
 
         // Capture terminal output for debugging
         try {
@@ -63,6 +87,27 @@ export async function newShellProcess(webcontainer: WebContainer, terminal: ITer
 
     if (isInteractive) {
       input.write(data);
+
+      const printableInput = data.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '');
+
+      for (const character of printableInput) {
+        if (character === '\r' || character === '\n') {
+          const command = pendingCommand.trim();
+
+          if (command) {
+            activeCommand = command;
+            activeCommandOutput = '';
+          }
+
+          pendingCommand = '';
+        } else if (character === '\x7f' || character === '\b') {
+          pendingCommand = pendingCommand.slice(0, -1);
+        } else if (character === '\x15') {
+          pendingCommand = '';
+        } else if (character >= ' ') {
+          pendingCommand += character;
+        }
+      }
 
       // Capture terminal input for debugging
       try {
@@ -301,6 +346,13 @@ export class BoltShell {
       } catch (error) {
         console.log('failed to format terminal output', error);
       }
+
+      recordTerminalCommand({
+        terminalName: 'Bolt Terminal',
+        command,
+        output: resp.output,
+        exitCode: resp.exitCode,
+      });
     }
 
     return resp;

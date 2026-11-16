@@ -10,6 +10,7 @@ import { McpTools } from './MCPTools';
 import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { SendButton } from './SendButton.client';
 import { SupabaseConnection } from './SupabaseConnection';
+import { TerminalContextAttachments } from './TerminalContextAttachments';
 import { ToolAccessMenu } from './ToolAccessMenu';
 import { ModelSelector } from '~/components/chat/ModelSelector';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
@@ -23,6 +24,7 @@ import { useMCPStore, type ConnectorId } from '~/lib/stores/mcp';
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { supabaseConnection } from '~/lib/stores/supabase';
+import { terminalContextAttachments } from '~/lib/stores/terminalContext';
 import { vercelConnection } from '~/lib/stores/vercel';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ProviderInfo } from '~/types/model';
@@ -78,6 +80,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const [isMcpToolsOpen, setIsMcpToolsOpen] = React.useState(false);
   const mcpToolsInitialized = useMCPStore((state) => state.isInitialized);
   const mcpSettings = useMCPStore((state) => state.settings);
+  const attachedTerminalContexts = useStore(terminalContextAttachments);
   const setWebSearchEnabled = useMCPStore((state) => state.setWebSearchEnabled);
   const setConnectorEnabled = useMCPStore((state) => state.setConnectorEnabled);
   const serverTools = useMCPStore((state) => state.serverTools);
@@ -233,6 +236,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           props.setImageDataList?.(props.imageDataList.filter((_, i) => i !== index));
         }}
       />
+      <TerminalContextAttachments />
       <ClientOnly>
         {() => (
           <ScreenshotStateManager
@@ -335,7 +339,12 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <ClientOnly>
           {() => (
             <SendButton
-              show={props.input.length > 0 || props.isStreaming || props.uploadedFiles.length > 0}
+              show={
+                props.input.length > 0 ||
+                props.isStreaming ||
+                props.uploadedFiles.length > 0 ||
+                attachedTerminalContexts.length > 0
+              }
               isStreaming={props.isStreaming}
               disabled={!props.providerList || props.providerList.length === 0}
               onClick={(event) => {
@@ -344,7 +353,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   return;
                 }
 
-                if (props.input.length > 0 || props.uploadedFiles.length > 0) {
+                if (props.input.length > 0 || props.uploadedFiles.length > 0 || attachedTerminalContexts.length > 0) {
                   props.handleSendMessage?.(event);
                 }
               }}
