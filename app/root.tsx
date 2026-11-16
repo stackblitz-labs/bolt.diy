@@ -171,17 +171,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
 import { PerformanceMonitor } from './components/debug/PerformanceMonitor';
 import { journeys, observeWebVitals } from './lib/performance/metrics';
 import { prebootWebContainer } from './lib/performance/webcontainer-optimizer';
+import { cspNonceContext } from './lib/security/nonce';
 import { logStore } from './lib/stores/logs';
 import { themeStore } from './lib/stores/theme';
 import globalStyles from './styles/index.scss?url';
 import { stripIndents } from './utils/stripIndent';
-import { cspNonceContext } from './lib/security/nonce';
 
-export const middleware: MiddlewareFunction[] = [({ context }) => {
-  const nonceBytes = crypto.getRandomValues(new Uint8Array(16));
-  const nonce = Array.from(nonceBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-  context.set(cspNonceContext, nonce);
-}];
+export const middleware: MiddlewareFunction[] = [
+  ({ context }) => {
+    const nonceBytes = crypto.getRandomValues(new Uint8Array(16));
+    const nonce = Array.from(nonceBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    context.set(cspNonceContext, nonce);
+  },
+];
 
 export function loader({ context }: { context: Readonly<RouterContextProvider> }) {
   return { nonce: context.get(cspNonceContext) };
