@@ -222,13 +222,6 @@ export const AssistantMessage = memo(
             {messageText}
           </Markdown>
         )}
-        {chatMode !== 'build' && toolInvocations && toolInvocations.length > 0 && (
-          <ToolInvocations
-            toolInvocations={toolInvocations}
-            toolCallAnnotations={toolCallAnnotations}
-            addToolResult={addToolResult}
-          />
-        )}
       </div>
     );
   },

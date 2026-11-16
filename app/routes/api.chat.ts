@@ -142,12 +142,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             /<boltArtifact\b[^>]*\bid=["']imported-files["']/i.test(getMessageText(message)),
         );
 
-        const processedMessages = await mcpService.processToolInvocations(messages, writer, {
-          browserUseCloudEnabled: connectorEnabled?.browserUseCloud === true,
-          disabledTools: Object.entries(body.toolEnabled ?? {})
-            .filter(([, enabled]) => !enabled)
-            .map(([toolName]) => toolName),
-        });
+        const processedMessages =
+          chatMode === 'build'
+            ? await mcpService.processToolInvocations(messages, writer, {
+                browserUseCloudEnabled: connectorEnabled?.browserUseCloud === true,
+                disabledTools: Object.entries(body.toolEnabled ?? {})
+                  .filter(([, enabled]) => !enabled)
+                  .map(([toolName]) => toolName),
+              })
+            : messages;
 
         if (processedMessages.length > 3) {
           messageSliceId = processedMessages.length - 3;
@@ -275,14 +278,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           // logger.debug('Code Files Selected');
         }
 
-        const mcpTools = mcpService.getToolsWithoutExecute({
-          disabledServers: connectorEnabled?.browserUseCloud === true ? [] : ['browser-use-cloud'],
-          disabledTools: Object.entries(body.toolEnabled ?? {})
-            .filter(([, enabled]) => !enabled)
-            .map(([toolName]) => toolName),
-        });
+        const mcpTools =
+          chatMode === 'build'
+            ? mcpService.getToolsWithoutExecute({
+                disabledServers: connectorEnabled?.browserUseCloud === true ? [] : ['browser-use-cloud'],
+                disabledTools: Object.entries(body.toolEnabled ?? {})
+                  .filter(([, enabled]) => !enabled)
+                  .map(([toolName]) => toolName),
+              })
+            : {};
 
-        const enabledPlugins = body.plugins ?? [];
+        const enabledPlugins = chatMode === 'build' ? (body.plugins ?? []) : [];
 
         const pluginTools = getPluginTools(
           enabledPlugins,

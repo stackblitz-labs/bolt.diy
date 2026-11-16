@@ -104,11 +104,20 @@ const processSampledMessages = createSampler(
     initialMessages: UIMessage[];
     isLoading: boolean;
     isPreparingProject: boolean;
-    parseMessages: (messages: UIMessage[], isLoading: boolean) => void;
+    allowCodeActions: boolean;
+    parseMessages: (messages: UIMessage[], isLoading: boolean, allowCodeActions?: boolean) => void;
     storeMessageHistory: (messages: UIMessage[], isStreaming?: boolean) => Promise<void>;
   }) => {
-    const { messages, initialMessages, isLoading, isPreparingProject, parseMessages, storeMessageHistory } = options;
-    parseMessages(messages, isLoading);
+    const {
+      messages,
+      initialMessages,
+      isLoading,
+      isPreparingProject,
+      allowCodeActions,
+      parseMessages,
+      storeMessageHistory,
+    } = options;
+    parseMessages(messages, isLoading, allowCodeActions);
 
     if (messages.length > initialMessages.length) {
       storeMessageHistory(messages, isLoading || isPreparingProject).catch((error) => toast.error(error.message));
@@ -630,7 +639,7 @@ export const ChatImpl = memo(
          * queued afterward and do not delay the first response.
          */
         try {
-          parseMessages(messages, false);
+          parseMessages(messages, false, chatMode === 'build');
           await workbenchStore.waitForFileActions();
           await sendChatMessage(pendingMessage);
         } catch (error) {
@@ -639,7 +648,7 @@ export const ChatImpl = memo(
           setFakeLoading(false);
         }
       })();
-    }, [messages, sendChatMessage]);
+    }, [messages, sendChatMessage, chatMode]);
 
     useEffect(() => {
       const prompt = searchParams.get('prompt');
@@ -767,10 +776,11 @@ export const ChatImpl = memo(
         initialMessages,
         isLoading,
         isPreparingProject: fakeLoading,
+        allowCodeActions: chatMode === 'build',
         parseMessages,
         storeMessageHistory,
       });
-    }, [messages, isLoading, fakeLoading, parseMessages]);
+    }, [messages, isLoading, fakeLoading, parseMessages, chatMode]);
 
     const scrollTextArea = () => {
       const textarea = textareaRef.current;

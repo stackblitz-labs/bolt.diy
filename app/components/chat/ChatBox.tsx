@@ -452,10 +452,12 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                     </div>
                   </DropdownMenu.Item>
                   <DropdownMenu.Item
+                    disabled={!props.chatStarted}
                     className={classNames(
-                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer',
-                      'text-bolt-elements-textPrimary',
-                      'hover:bg-bolt-elements-item-backgroundActive',
+                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm',
+                      props.chatStarted
+                        ? 'text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive cursor-pointer'
+                        : 'text-bolt-elements-textTertiary opacity-50 cursor-not-allowed',
                       'focus:outline-none',
                       props.chatMode === 'discuss' && 'bg-bolt-elements-item-backgroundAccent',
                     )}
