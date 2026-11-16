@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { toggleTheme } from './theme';
 import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
 import type { TabVisibilityConfig, TabWindowConfig, UserTabConfig } from '~/components/@settings/core/types';
-import type { IProviderConfig } from '~/types/model';
+import type { IProviderConfig, IProviderSetting } from '~/types/model';
 import { PROVIDER_LIST } from '~/utils/constants';
 
 export interface Shortcut {
@@ -86,16 +86,15 @@ const fetchConfiguredProviders = async (): Promise<ConfiguredProvider[]> => {
 const getInitialProviderSettings = (): ProviderSetting => {
   const initialSettings: ProviderSetting = {};
 
-  // Default enabled providers (only these 4 are enabled by default)
-  const DEFAULT_ENABLED_PROVIDERS = ['OpenRouter', 'Anthropic', 'OpenAI', 'Google'];
-
-  // Start with default settings
+  /*
+   * Providers remain disabled until the user chooses one during onboarding or
+   * enables it in Settings.
+   */
   PROVIDER_LIST.forEach((provider) => {
     initialSettings[provider.name] = {
       ...provider,
       settings: {
-        // Only default providers are enabled, all others are disabled by default
-        enabled: DEFAULT_ENABLED_PROVIDERS.includes(provider.name),
+        enabled: false,
       },
     };
   });
@@ -147,11 +146,11 @@ const autoEnableConfiguredProviders = async () => {
           /*
            * Only auto-enable if:
            * 1. Provider is not already enabled, AND
-           * 2. Either we haven't saved settings yet (first time) OR provider was previously auto-enabled
+           * 2. The provider was previously auto-enabled by this feature
            */
           const hasUserSettings = savedSettings !== null;
           const wasAutoEnabled = previouslyAutoEnabled.includes(name);
-          const shouldAutoEnable = !currentProvider.settings.enabled && (!hasUserSettings || wasAutoEnabled);
+          const shouldAutoEnable = hasUserSettings && !currentProvider.settings.enabled && wasAutoEnabled;
 
           if (shouldAutoEnable) {
             currentSettings[name] = {
@@ -200,7 +199,7 @@ if (isBrowser) {
 }
 
 // Create a function to update provider settings that handles both store and persistence
-export const updateProviderSettings = (provider: string, settings: ProviderSetting) => {
+export const updateProviderSettings = (provider: string, settings: IProviderSetting) => {
   const currentSettings = providersStore.get();
 
   // Create new provider config with updated settings
