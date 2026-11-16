@@ -14,6 +14,7 @@ export default defineConfig({
         '02-code-generation.e2e.ts',
         '04-attachment-menu.e2e.ts',
         '06-mocked-chat.e2e.ts',
+        '07-build-smoke.e2e.ts',
       ],
       use: {
         ...devices['Desktop Chrome'],

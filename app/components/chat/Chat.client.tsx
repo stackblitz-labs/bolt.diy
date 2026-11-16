@@ -60,6 +60,18 @@ import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTempla
 
 const logger = createScopedLogger('Chat');
 
+const SMOKE_TEST_PROVIDER: ProviderInfo = {
+  name: 'replay-test',
+  staticModels: [
+    {
+      name: 'model-test',
+      label: 'model-test',
+      provider: 'replay-test',
+      maxTokenAllowed: 200000,
+    },
+  ],
+};
+
 export function Chat() {
   renderLogger.trace('Chat');
 
@@ -139,14 +151,28 @@ export const ChatImpl = memo(
 
     // const _supabaseAlert = undefined;
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
+
+    const smokeTestMode =
+      import.meta.env.DEV && new URLSearchParams(window.location.search).get('smokeTest') === 'true';
+
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
 
     const [model, setModel] = useState(() => {
+      if (smokeTestMode) {
+        return 'model-test';
+      }
+
       const savedModel = Cookies.get('selectedModel');
+
       return savedModel || DEFAULT_MODEL;
     });
     const [provider, setProvider] = useState(() => {
+      if (smokeTestMode) {
+        return SMOKE_TEST_PROVIDER;
+      }
+
       const savedProvider = Cookies.get('selectedProvider');
+
       return (PROVIDER_LIST.find((p) => p.name === savedProvider) || DEFAULT_PROVIDER) as ProviderInfo;
     });
 
@@ -1150,7 +1176,7 @@ export const ChatImpl = memo(
         setModel={handleModelChange}
         provider={provider}
         setProvider={handleProviderChange}
-        providerList={activeProviders}
+        providerList={smokeTestMode ? [SMOKE_TEST_PROVIDER] : activeProviders}
         handleInputChange={(e) => {
           onTextareaChange(e);
           debouncedCachePrompt(e);
