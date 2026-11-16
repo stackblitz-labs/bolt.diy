@@ -16,6 +16,26 @@ function decodeTextFile(bytes: Uint8Array): string | null {
   }
 }
 
+async function fetchGitHub(url: string, githubToken: string | undefined, headers: HeadersInit = {}) {
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set('User-Agent', 'bolt.diy-app');
+
+  if (githubToken) {
+    requestHeaders.set('Authorization', `Bearer ${githubToken}`);
+  }
+
+  const response = await fetch(url, { headers: requestHeaders });
+
+  // A stale or invalid optional token should not prevent access to public templates.
+  if (response.status === 401 && githubToken) {
+    requestHeaders.delete('Authorization');
+
+    return fetch(url, { headers: requestHeaders });
+  }
+
+  return response;
+}
+
 // Function to detect if we're running in Cloudflare
 function isCloudflareEnvironment(context: any): boolean {
   /*
@@ -44,12 +64,8 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
   const baseUrl = 'https://api.github.com';
 
   // Get repository info to find default branch
-  const repoResponse = await fetch(`${baseUrl}/repos/${repo}`, {
-    headers: {
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'bolt.diy-app',
-      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
-    },
+  const repoResponse = await fetchGitHub(`${baseUrl}/repos/${repo}`, githubToken, {
+    Accept: 'application/vnd.github.v3+json',
   });
 
   if (!repoResponse.ok) {
@@ -69,13 +85,11 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
   const defaultBranch = repoData.default_branch;
 
   // Get the tree recursively
-  const treeResponse = await fetch(`${baseUrl}/repos/${repo}/git/trees/${defaultBranch}?recursive=1`, {
-    headers: {
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'bolt.diy-app',
-      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
-    },
-  });
+  const treeResponse = await fetchGitHub(
+    `${baseUrl}/repos/${repo}/git/trees/${defaultBranch}?recursive=1`,
+    githubToken,
+    { Accept: 'application/vnd.github.v3+json' },
+  );
 
   if (!treeResponse.ok) {
     throw new Error(`Failed to fetch repository tree: ${treeResponse.status}`);
@@ -116,12 +130,8 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
 
     const batchPromises = batch.map(async (file: any) => {
       try {
-        const contentResponse = await fetch(`${baseUrl}/repos/${repo}/contents/${file.path}`, {
-          headers: {
-            Accept: 'application/vnd.github.v3+json',
-            'User-Agent': 'bolt.diy-app',
-            ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
-          },
+        const contentResponse = await fetchGitHub(`${baseUrl}/repos/${repo}/contents/${file.path}`, githubToken, {
+          Accept: 'application/vnd.github.v3+json',
         });
 
         if (!contentResponse.ok) {
@@ -166,12 +176,8 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
   const baseUrl = 'https://api.github.com';
 
   // Get the latest release
-  const releaseResponse = await fetch(`${baseUrl}/repos/${repo}/releases/latest`, {
-    headers: {
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'bolt.diy-app',
-      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
-    },
+  const releaseResponse = await fetchGitHub(`${baseUrl}/repos/${repo}/releases/latest`, githubToken, {
+    Accept: 'application/vnd.github.v3+json',
   });
 
   if (!releaseResponse.ok) {
@@ -186,11 +192,7 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
   const zipballUrl = releaseData.zipball_url;
 
   // Fetch the zipball
-  const zipResponse = await fetch(zipballUrl, {
-    headers: {
-      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
-    },
-  });
+  const zipResponse = await fetchGitHub(zipballUrl, githubToken);
 
   if (!zipResponse.ok) {
     throw new Error(`Failed to fetch release zipball: ${zipResponse.status}`);
