@@ -5,7 +5,7 @@ describe('default native tool prompt', () => {
   const options = { cwd: '/home/project', allowedHtmlElements: [], modificationTagName: 'modifications' };
 
   it('uses one execution protocol and respects simple requests', () => {
-    const prompt = PromptLibrary.getPropmtFromLibrary('default', {
+    const prompt = PromptLibrary.getPromptFromLibrary('default', {
       ...options,
       projectTools: true,
       supabase: { isConnected: true, hasSelectedProject: true },
@@ -19,6 +19,6 @@ describe('default native tool prompt', () => {
   });
 
   it('retains the legacy prompt for builds without the agent tools', () => {
-    expect(PromptLibrary.getPropmtFromLibrary('default', options)).toContain('<boltArtifact');
+    expect(PromptLibrary.getPromptFromLibrary('default', options)).toContain('<boltArtifact');
   });
 });

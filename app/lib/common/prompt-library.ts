@@ -58,13 +58,24 @@ export class PromptLibrary {
       };
     });
   }
-  static getPropmtFromLibrary(promptId: string, options: PromptOptions) {
-    const prompt = this.library[promptId];
+
+  /**
+   * Resolves a prompt template by id, falling back to the default template.
+   *
+   * `promptId` is persisted in localStorage and in exported settings, so it
+   * outlives the ids that produced it — they have been renamed several times
+   * (`og-prompt`, `simple-sal`, `diligent-dan`, …). An unknown id therefore
+   * means a stale preference, not a fatal error: throwing here used to abort
+   * the whole chat request with a bare string, which surfaced as the baffling
+   * "Prompt Now Found" provider error.
+   */
+  static getPromptFromLibrary(promptId: string, options: PromptOptions): string {
+    const prompt = this.library[promptId] ?? this.library.default;
 
     if (!prompt) {
-      throw 'Prompt Now Found';
+      throw new Error(`No prompt template is registered for "${promptId}" and no default exists.`);
     }
 
-    return this.library[promptId]?.get(options);
+    return prompt.get(options);
   }
 }

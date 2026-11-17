@@ -121,10 +121,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * onChunk rather than by iterating the stream alongside the UI merge.
      */
     const observeChunk = ({ chunk }: { chunk: unknown }) => {
-      const part = chunk as { type?: string };
+      const part = chunk as { type?: string; error?: unknown };
 
       if (part.type === 'error') {
-        logger.error('Streaming provider error');
+        const err = part.error;
+        const message = err instanceof Error ? err.message : err ? String(err) : 'unknown error';
+
+        const details =
+          err && typeof err === 'object'
+            ? JSON.stringify(err, Object.getOwnPropertyNames(err))
+            : String(err ?? 'unknown error');
+
+        logger.error(`Streaming provider error: ${message}`);
+        logger.error(`Streaming provider error details: ${details}`);
       }
     };
 
