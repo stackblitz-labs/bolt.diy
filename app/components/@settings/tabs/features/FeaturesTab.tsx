@@ -134,8 +134,8 @@ export default function FeaturesTab() {
       setAutoSelectTemplate(true); // Default: ON - Enable auto-select templates
     }
 
-    if (promptId === undefined) {
-      setPromptId('default'); // Default: 'default'
+    if (promptId === undefined || !PromptLibrary.getList().some((entry) => entry.id === promptId)) {
+      setPromptId('default'); // Default: 'default'; also repairs ids left over from older releases
     }
 
     if (eventLogs === undefined) {

@@ -60,6 +60,32 @@ describe('toSafeStreamErrorMessage', () => {
     );
   });
 
+  it('explains an upstream shared-pool 429 without echoing the provider payload', () => {
+    const error = Object.assign(new Error('[Google AI Studio] model is temporarily rate-limited upstream'), {
+      statusCode: 429,
+      responseBody: JSON.stringify({
+        error: {
+          message: 'Provider returned error',
+          code: 429,
+          metadata: { limit_source: 'upstream_provider_shared_pool', user_id: 'secret-user' },
+        },
+      }),
+    });
+
+    const hint = toSafeStreamErrorMessage(error);
+
+    expect(hint).toContain('upstream provider pool');
+    expect(hint).toContain('provider key');
+    expect(hint).not.toContain('secret-user');
+    expect(hint).not.toContain('Provider returned error');
+  });
+
+  it('keeps the generic rate-limit hint for ordinary 429s', () => {
+    const error = Object.assign(new Error('Too many requests'), { statusCode: 429 });
+
+    expect(toSafeStreamErrorMessage(error)).toContain('API rate limit exceeded');
+  });
+
   it('returns a generic message instead of an unknown provider diagnostic', () => {
     const diagnostic = 'Request https://provider.example/?api_key=secret-value failed';
     const responseMessage = toSafeStreamErrorMessage(new Error(diagnostic));

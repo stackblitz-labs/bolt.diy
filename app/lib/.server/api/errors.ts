@@ -136,7 +136,13 @@ export function toSafeStreamErrorMessage(error: unknown): string {
   const statusCode =
     typeof error === 'object' && error !== null && 'statusCode' in error ? error.statusCode : undefined;
 
-  logger.error(`Streaming provider error (${error instanceof Error ? error.name : 'UnknownError'})`);
+  const details =
+    error && typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : String(error);
+
+  logger.error(
+    `Streaming provider error (${error instanceof Error ? error.name : 'UnknownError'}): ${providerMessage}`,
+  );
+  logger.error(`Streaming provider error details: ${details}`);
 
   if ((error instanceof Error && error.name === 'TimeoutError') || /timeout|timed\s*out/.test(normalizedMessage)) {
     return 'Custom error: The AI provider stopped responding before the next step completed. Completed file changes and tool results are preserved. Retry to continue, or select a different model.';
@@ -158,6 +164,10 @@ export function toSafeStreamErrorMessage(error: unknown): string {
     return 'Custom error: Invalid model selected. Please check that the model name is correct and available.';
   }
 
+  if (normalizedMessage.includes('prompt not found') || normalizedMessage.includes('prompt now found')) {
+    return 'Custom error: The selected prompt template could not be loaded. Check Settings → Features → Prompt Library, then retry.';
+  }
+
   if (providerMessage.includes('Invalid JSON response')) {
     return 'Custom error: The AI service returned an invalid response. This may be due to an invalid model name, API rate limiting, or server issues. Try selecting a different model or check your API key.';
   }
@@ -175,6 +185,10 @@ export function toSafeStreamErrorMessage(error: unknown): string {
   }
 
   if (statusCode === 429 || normalizedMessage.includes('rate limit') || providerMessage.includes('429')) {
+    if (isUpstreamSharedPoolRateLimit(error)) {
+      return 'Custom error: The selected free model is rate-limited by its upstream provider pool. Retry shortly, add your own OpenRouter provider key to use your own limits, or choose another model.';
+    }
+
     return 'Custom error: API rate limit exceeded, or the provider rejected the request for account reasons. Check your provider account and try again.';
   }
 
@@ -259,6 +273,30 @@ export function isTokenLimitFailure(error: unknown): error is Error {
 
 function isTypedFailure(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && 'status' in error;
+}
+
+/**
+ * True when OpenRouter reports a 429 caused by a free model's shared upstream
+ * pool rather than by the user's own quota. The payload is inspected only to
+ * choose a better hint; none of it is forwarded to the client.
+ */
+function isUpstreamSharedPoolRateLimit(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null || !('responseBody' in error)) {
+    return false;
+  }
+
+  const { responseBody } = error as { responseBody?: unknown };
+
+  if (typeof responseBody !== 'string') {
+    return false;
+  }
+
+  try {
+    const parsed = JSON.parse(responseBody);
+    return parsed?.error?.metadata?.limit_source === 'upstream_provider_shared_pool';
+  } catch {
+    return false;
+  }
 }
 
 /**
