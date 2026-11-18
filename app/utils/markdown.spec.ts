@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stripCodeFenceFromArtifact } from './Markdown';
+import { stripCodeFenceFromArtifact } from './markdown';
 
 describe('stripCodeFenceFromArtifact', () => {
   it('should remove code fences around artifact element', () => {
@@ -28,7 +28,7 @@ describe('stripCodeFenceFromArtifact', () => {
     expect(stripCodeFenceFromArtifact(input)).toBe(input);
   });
 
-  it('should handle multiple artifacts but only remove fences around them', () => {
+  it('should leave unrelated code fences intact', () => {
     const input = [
       'Some text',
       '```typescript',

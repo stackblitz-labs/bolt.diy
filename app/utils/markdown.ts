@@ -5,6 +5,26 @@ import type { PluggableList, Plugin } from 'unified';
 import type { Node as UnistNode, Parent as UnistParent } from 'unist';
 import { SKIP, visit } from 'unist-util-visit';
 
+// Expose the first artifact to the Markdown renderer when the model fenced it as code.
+export function stripCodeFenceFromArtifact(content: string): string {
+  if (!content.includes('__boltArtifact__')) {
+    return content;
+  }
+
+  const lines = content.split('\n');
+  const artifactLineIndex = lines.findIndex((line) => line.includes('__boltArtifact__'));
+
+  if (/^```\w*$/.test(lines[artifactLineIndex - 1]?.trim() ?? '')) {
+    lines[artifactLineIndex - 1] = '';
+  }
+
+  if (/^```$/.test(lines[artifactLineIndex + 1]?.trim() ?? '')) {
+    lines[artifactLineIndex + 1] = '';
+  }
+
+  return lines.join('\n');
+}
+
 export const allowedHTMLElements = [
   'a',
   'b',

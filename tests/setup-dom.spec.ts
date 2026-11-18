@@ -1,64 +1,51 @@
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { globSync } from 'fast-glob';
 import { describe, expect, it } from 'vitest';
-import { DOM_PROJECT, NODE_PROJECT, SHARED_EXCLUDE } from '../vitest.config';
+import { DOM_PROJECT, NODE_PROJECT } from '../vitest.config';
 
-/**
- * Guards the project split.
- *
- * A `**` pattern in the `dom` project's `include` that matches nothing fails
- * open: the file list silently shrinks and the suite still reports green. That
- * is not hypothetical — an earlier version of this config used
- * `tests/unit/**` style globs and quietly dropped 11 files and 116 tests while
- * still printing "All tests passed". These assertions make the inventory
- * explicit so the next edit cannot lose coverage without something failing.
- */
-
-/** Excluded by both projects, matching the previous behaviour exactly. */
-const LONG_EXCLUDED = ['app/components/chat/Markdown.spec.ts', 'app/lib/stores/workbench.spec.ts'];
+const root = fileURLToPath(new URL('../', import.meta.url));
+const require = createRequire(import.meta.url);
+const vitest = join(dirname(require.resolve('vitest/package.json')), 'vitest.mjs');
 
 describe('vitest project split', () => {
-  it('defines a node and a dom project', () => {
-    expect(NODE_PROJECT.name).toBe('node');
-    expect(NODE_PROJECT.environment).toBe('node');
-    expect(DOM_PROJECT.name).toBe('dom');
-    expect(DOM_PROJECT.environment).toBe('jsdom');
+  it('defines separate Node and DOM environments', () => {
+    expect(NODE_PROJECT).toMatchObject({
+      name: 'node',
+      environment: 'node',
+      setupFiles: ['./tests/setup-base.ts'],
+    });
+    expect(DOM_PROJECT).toMatchObject({
+      name: 'dom',
+      environment: 'jsdom',
+      setupFiles: ['./tests/setup-base.ts', './tests/setup-dom.ts'],
+    });
   });
 
-  it('uses only concrete paths in the dom project include', () => {
-    /*
-     * The exact defect this guards against: a glob that resolves to no files
-     * reports success. A non-empty, glob-free list is the cheap precondition.
-     */
-    expect(DOM_PROJECT.include.length).toBeGreaterThan(0);
-    expect(DOM_PROJECT.include.filter((pattern: string) => pattern.includes('*'))).toEqual([]);
-  });
+  it('discovers every source test in exactly one project', () => {
+    const sourceTests = globSync(
+      ['*.{test,spec}.{ts,tsx,js,jsx}', '{app,electron,scripts,tests,types,workers}/**/*.{test,spec}.{ts,tsx,js,jsx}'],
+      { cwd: root, dot: true, ignore: ['tests/e2e/**', 'tests/preview/**'] },
+    );
+    const output = execFileSync(process.execPath, [vitest, 'list', '--filesOnly', '--json'], {
+      cwd: root,
+      encoding: 'utf8',
+      timeout: 15_000,
+    });
+    const discovered = JSON.parse(output) as { file: string; projectName: string }[];
+    const relativeFiles = (files: { file: string }[]) =>
+      files.map(({ file }) => relative(root, file).replaceAll('\\', '/')).sort();
 
-  it('subtracts every dom test from the node project', () => {
-    for (const pattern of DOM_PROJECT.include) {
-      expect(NODE_PROJECT.exclude, `${pattern} must be excluded from node`).toContain(pattern);
-    }
-  });
-
-  it('keeps both projects in agreement about the shared excludes', () => {
-    for (const pattern of LONG_EXCLUDED) {
-      expect(NODE_PROJECT.exclude).toContain(pattern);
-      expect(DOM_PROJECT.exclude).toContain(pattern);
-    }
-
-    expect(SHARED_EXCLUDE).toContain('**/tests/e2e/**');
-    expect(SHARED_EXCLUDE).toContain('**/tests/preview/**');
-  });
-
-  it('loads the DOM-free base setup in node and both layers in dom', () => {
-    expect(NODE_PROJECT.setupFiles).toEqual(['./tests/setup-base.ts']);
-    expect(DOM_PROJECT.setupFiles).toEqual(['./tests/setup-base.ts', './tests/setup-dom.ts']);
-  });
+    expect(relativeFiles(discovered)).toEqual(sourceTests.sort());
+    expect(relativeFiles(discovered.filter(({ projectName }) => projectName === 'dom'))).toEqual(
+      [...DOM_PROJECT.include].sort(),
+    );
+  }, 20_000);
 
   it('preserves the benchmark globs in the node project', () => {
     expect(NODE_PROJECT.benchmark.include).toContain('**/*.bench.{ts,tsx,js,jsx}');
     expect(NODE_PROJECT.benchmark.include).toContain('**/tests/performance/**/*.bench.{ts,tsx,js,jsx}');
-  });
-
-  it('still collects the .test and .spec patterns the suite used before', () => {
-    expect(NODE_PROJECT.include).toContain('**/*.{test,spec}.{ts,tsx,js,jsx}');
   });
 });

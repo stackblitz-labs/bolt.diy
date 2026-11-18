@@ -23,7 +23,11 @@ import { isGitLabConnected } from '~/lib/stores/gitlabConnection';
 import { useMCPStore, type ConnectorId } from '~/lib/stores/mcp';
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
-import { supabaseConnection } from '~/lib/stores/supabase';
+import {
+  checkSupabaseServerCredential,
+  supabaseConnection,
+  supabaseServerCredentialAvailable,
+} from '~/lib/stores/supabase';
 import { terminalContextAttachments } from '~/lib/stores/terminalContext';
 import { vercelConnection } from '~/lib/stores/vercel';
 import type { DesignScheme } from '~/types/design-scheme';
@@ -86,6 +90,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const serverTools = useMCPStore((state) => state.serverTools);
   const supabaseConnectionState = useStore(supabaseConnection);
   const supabaseConnected = !!supabaseConnectionState.isConnected;
+  const supabaseServerAvailable = useStore(supabaseServerCredentialAvailable);
   const githubConnected = useStore(isGitHubConnected);
   const gitlabConnected = useStore(isGitLabConnected);
   const vercelConnected = !!useStore(vercelConnection).user;
@@ -117,7 +122,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         id: 'supabase',
         name: 'Supabase',
         icon: <img className="w-4 h-4" height="16" width="16" src="https://cdn.simpleicons.org/supabase" alt="" />,
-        available: supabaseConnected,
+        available: supabaseConnected || supabaseServerAvailable === true,
       },
       {
         id: 'browserUseCloud',
@@ -134,12 +139,18 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     }));
 
   React.useEffect(() => {
+    if (mcpSettings.connectorEnabled.supabase && !supabaseConnected && supabaseServerAvailable === undefined) {
+      void checkSupabaseServerCredential();
+    }
+
     const availability: Record<ConnectorId, boolean> = {
       github: githubConnected,
       gitlab: gitlabConnected,
       vercel: vercelConnected,
       netlify: netlifyConnected,
-      supabase: supabaseConnected,
+
+      // Keep the saved toggle while a server-only credential is being checked.
+      supabase: supabaseConnected || supabaseServerAvailable !== false,
       browserUseCloud: browserUseCloudAvailable,
     };
 
@@ -158,6 +169,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     mcpSettings.connectorEnabled,
     setConnectorEnabled,
     supabaseConnected,
+    supabaseServerAvailable,
   ]);
 
   return (

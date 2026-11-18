@@ -2,7 +2,7 @@ import { githubConnectionStore } from '~/lib/stores/githubConnection';
 import { gitlabConnection, gitlabConnectionStore } from '~/lib/stores/gitlabConnection';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { netlifyConnection, updateNetlifyConnection } from '~/lib/stores/netlify';
-import { supabaseConnection, updateSupabaseConnection } from '~/lib/stores/supabase';
+import { checkSupabaseServerCredential, supabaseConnection, updateSupabaseConnection } from '~/lib/stores/supabase';
 import { updateVercelConnection, vercelConnection } from '~/lib/stores/vercel';
 import type { NetlifyUser } from '~/types/netlify';
 import type { SupabaseStats, SupabaseUser } from '~/types/supabase';
@@ -126,7 +126,9 @@ export async function activateConnector(connector: ConnectorActivationId, entere
       const token = apiKey || supabaseConnection.get().token || import.meta.env?.VITE_SUPABASE_ACCESS_TOKEN;
 
       if (!token) {
-        await ensureServerCredential('/api/supabase-user');
+        if (!(await checkSupabaseServerCredential())) {
+          throw new Error('No valid API key is configured. Add a key to enable this connector.');
+        }
 
         return;
       }
