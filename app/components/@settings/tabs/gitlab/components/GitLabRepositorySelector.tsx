@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Search, RefreshCw, GitBranch, Calendar, Filter } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
-import { RepositoryCard } from './RepositoryCard';
+import { RepositoryCard } from '~/components/@settings/shared/RepositoryCard';
 import { BranchSelector } from '~/components/ui/BranchSelector';
 import { Button } from '~/components/ui/Button';
 import { useGitLabConnection } from '~/lib/hooks';

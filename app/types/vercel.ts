@@ -1,3 +1,5 @@
+import type { ServiceConnectionState, ServiceStats } from '~/lib/stores/base';
+
 export interface VercelUserResponse {
   user?: {
     id: string;
@@ -46,16 +48,16 @@ export interface VercelProject {
   }>;
 }
 
-export interface VercelStats {
+export interface VercelStats extends ServiceStats {
   projects: VercelProject[];
   totalProjects: number;
+  lastUpdated?: string;
 }
 
-export interface VercelConnection {
-  user: VercelUser | null;
-  token: string;
-  stats?: VercelStats;
-}
+export interface VercelConnectionState extends ServiceConnectionState<VercelUser, VercelStats> {}
+
+// Backward compatibility alias
+export type VercelConnection = VercelConnectionState;
 
 export interface VercelProjectInfo {
   id: string;

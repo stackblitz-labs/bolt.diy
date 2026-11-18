@@ -51,11 +51,11 @@ export function useGitHubStats(
     // Configure the singleton instance with the current connection
     gitHubApiService.configure({
       token: connection.token,
-      tokenType: connection.tokenType,
+      tokenType: connection.metadata?.tokenType || 'classic',
     });
 
     return gitHubApiService;
-  }, [connection?.token, connection?.tokenType]);
+  }, [connection?.token, connection?.metadata?.tokenType]);
 
   // Check if stats are stale
   const isStale = useMemo(() => {
@@ -283,11 +283,11 @@ export function useGitHubRepositories(connection: GitHubConnection | null) {
     // Configure the singleton instance with the current connection
     gitHubApiService.configure({
       token: connection.token,
-      tokenType: connection.tokenType,
+      tokenType: connection.metadata?.tokenType || 'classic',
     });
 
     return gitHubApiService;
-  }, [connection?.token, connection?.tokenType]);
+  }, [connection?.token, connection?.metadata?.tokenType]);
 
   const fetchRepositories = useCallback(async () => {
     if (!apiService) {

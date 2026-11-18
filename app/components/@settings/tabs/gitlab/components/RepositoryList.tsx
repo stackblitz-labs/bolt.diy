@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { RepositoryCard } from './RepositoryCard';
+import { RepositoryCard } from '~/components/@settings/shared/RepositoryCard';
 import { Button } from '~/components/ui/Button';
 import type { GitLabProjectInfo } from '~/types/GitLab';
 

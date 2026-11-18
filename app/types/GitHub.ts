@@ -1,3 +1,5 @@
+import type { ServiceConnectionState, ServiceStats } from '~/lib/stores/base';
+
 export interface GitHubUserResponse {
   login: string;
   avatar_url: string;
@@ -113,7 +115,7 @@ export interface GitHubLanguageStats {
   [key: string]: number;
 }
 
-export interface GitHubStats {
+export interface GitHubStats extends ServiceStats {
   repos: GitHubRepoInfo[];
   totalStars: number;
   totalForks: number;
@@ -140,13 +142,19 @@ export interface GitHubStats {
   }>;
 }
 
-export interface GitHubConnection {
-  user: GitHubUserResponse | null;
-  token: string;
+export interface GitHubMetadata extends Record<string, unknown> {
   tokenType: 'classic' | 'fine-grained';
-  stats?: GitHubStats;
   rateLimit?: GitHubRateLimits;
 }
+
+export interface GitHubConnectionState extends ServiceConnectionState<
+  GitHubUserResponse,
+  GitHubStats,
+  GitHubMetadata
+> {}
+
+// Backward compatibility alias
+export type GitHubConnection = GitHubConnectionState;
 
 export interface GitHubTokenInfo {
   token: string;

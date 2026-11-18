@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Search, RefreshCw, GitBranch, Calendar, Filter } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
-import { GitHubRepositoryCard } from './GitHubRepositoryCard';
+import { RepositoryCard } from '~/components/@settings/shared/RepositoryCard';
 import { BranchSelector } from '~/components/ui/BranchSelector';
 import { Button } from '~/components/ui/Button';
 import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
@@ -253,7 +253,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {currentRepositories.map((repo) => (
-              <GitHubRepositoryCard key={repo.id} repo={repo} onClone={() => handleCloneRepository(repo)} />
+              <RepositoryCard key={repo.id} repo={repo} onClone={() => handleCloneRepository(repo)} />
             ))}
           </div>
 

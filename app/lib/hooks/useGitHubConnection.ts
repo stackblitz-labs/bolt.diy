@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { useGitHubAPI } from './useGitHubAPI';
 import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { githubConnection, isConnecting, updateGitHubConnection } from '~/lib/stores/github';
-import type { GitHubUserResponse, GitHubConnection } from '~/types/GitHub';
+import type { GitHubUserResponse, GitHubConnection, GitHubConnectionState } from '~/types/GitHub';
 
 export interface ConnectionState {
   isConnected: boolean;
@@ -75,7 +75,7 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
       const response = await fetch('https://api.github.com/user', {
         headers: {
           Accept: 'application/vnd.github.v3+json',
-          Authorization: `${connection.tokenType === 'classic' ? 'token' : 'Bearer'} ${connection.token}`,
+          Authorization: `${connection.metadata?.tokenType === 'classic' ? 'token' : 'Bearer'} ${connection.token}`,
           'User-Agent': 'Bolt.diy',
         },
       });
@@ -132,10 +132,12 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
       const userData = (await response.json()) as GitHubUserResponse;
 
       // Create connection object
-      const connectionData: GitHubConnection = {
+      const connectionData: GitHubConnectionState = {
         user: userData,
         token,
-        tokenType,
+        metadata: {
+          tokenType,
+        },
       };
 
       // Set cookies for API requests
@@ -179,7 +181,9 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
     updateGitHubConnection({
       user: null,
       token: '',
-      tokenType: 'classic',
+      metadata: {
+        tokenType: 'classic',
+      },
     });
 
     setError(null);
@@ -223,7 +227,7 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
       const response = await fetch('https://api.github.com/user', {
         headers: {
           Accept: 'application/vnd.github.v3+json',
-          Authorization: `${connection.tokenType === 'classic' ? 'token' : 'Bearer'} ${connection.token}`,
+          Authorization: `${connection.metadata?.tokenType === 'classic' ? 'token' : 'Bearer'} ${connection.token}`,
           'User-Agent': 'Bolt.diy',
         },
       });

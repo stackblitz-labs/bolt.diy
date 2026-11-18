@@ -1,4 +1,4 @@
-export { RepositoryCard } from './RepositoryCard';
+export { RepositoryCard } from '~/components/@settings/shared/RepositoryCard';
 
 // GitHubDialog components not yet implemented
 export {

@@ -172,7 +172,10 @@ export async function fetchSupabaseStats(token: string) {
 
     updateSupabaseConnection({
       user: data.user,
-      stats: data.stats,
+      stats: {
+        ...data.stats,
+        lastUpdated: new Date().toISOString(),
+      },
     });
   } catch (error) {
     console.error('Failed to fetch Supabase stats:', error);

@@ -1,7 +1,7 @@
 import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { logStore } from './logs';
-import type { NetlifyConnection, NetlifyUser } from '~/types/netlify';
+import type { NetlifyConnection, NetlifyConnectionState, NetlifyUser } from '~/types/netlify';
 
 // Initialize with stored connection or environment variable
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('netlify_connection') : null;
@@ -9,7 +9,7 @@ const envToken = import.meta.env.VITE_NETLIFY_ACCESS_TOKEN;
 console.log('Netlify store: envToken loaded:', envToken ? '[TOKEN_EXISTS]' : '[NO_TOKEN]');
 
 // If we have an environment token but no stored connection, initialize with the env token
-const initialConnection: NetlifyConnection = storedConnection
+const initialConnection: NetlifyConnectionState = storedConnection
   ? JSON.parse(storedConnection)
   : {
       user: null,
@@ -17,7 +17,7 @@ const initialConnection: NetlifyConnection = storedConnection
       stats: undefined,
     };
 
-export const netlifyConnection = atom<NetlifyConnection>(initialConnection);
+export const netlifyConnection = atom<NetlifyConnectionState>(initialConnection);
 export const isConnecting = atom<boolean>(false);
 export const isFetchingStats = atom<boolean>(false);
 
@@ -70,7 +70,7 @@ export async function initializeNetlifyConnection() {
   }
 }
 
-export const updateNetlifyConnection = (updates: Partial<NetlifyConnection>) => {
+export const updateNetlifyConnection = (updates: Partial<NetlifyConnectionState>) => {
   const currentState = netlifyConnection.get();
   const newState = { ...currentState, ...updates };
   netlifyConnection.set(newState);
@@ -104,6 +104,7 @@ export async function fetchNetlifyStats(token: string) {
       stats: {
         sites,
         totalSites: sites.length,
+        lastUpdated: new Date().toISOString(),
       },
     });
   } catch (error) {
@@ -114,3 +115,6 @@ export async function fetchNetlifyStats(token: string) {
     isFetchingStats.set(false);
   }
 }
+
+// Export alias for consistency with other stores
+export const fetchNetlifyStatsViaAPI = fetchNetlifyStats;
