@@ -1,4 +1,4 @@
-import type { ServiceStats } from '~/lib/stores/base';
+import type { ServiceConnectionState, ServiceStats } from '~/lib/stores/base';
 
 export interface NetlifySite {
   id: string;
@@ -81,11 +81,10 @@ export interface NetlifyStats extends ServiceStats {
   lastUpdated?: string;
 }
 
-export interface NetlifyConnection {
-  user: NetlifyUser | null;
-  token: string;
-  stats?: NetlifyStats;
-}
+export interface NetlifyConnectionState extends ServiceConnectionState<NetlifyUser, NetlifyStats> {}
+
+// Backward compatibility alias
+export type NetlifyConnection = NetlifyConnectionState;
 
 export interface NetlifySiteInfo {
   id: string;

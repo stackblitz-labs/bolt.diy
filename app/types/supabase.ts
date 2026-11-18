@@ -1,4 +1,4 @@
-import type { ServiceStats } from '~/lib/stores/base';
+import type { SelectableResourceConnectionState, ServiceStats } from '~/lib/stores/base';
 
 export interface SupabaseUser {
   id: string;
@@ -54,4 +54,27 @@ export interface SupabaseApiKey {
 export interface SupabaseCredentials {
   anonKey?: string;
   supabaseUrl?: string;
+}
+
+export interface SupabaseMetadata extends Record<string, unknown> {
+  credentials?: SupabaseCredentials;
+}
+
+export interface SupabaseConnectionStateNew
+  extends SelectableResourceConnectionState<
+    SupabaseUser,
+    SupabaseStats,
+    SupabaseProject,
+    SupabaseMetadata
+  > {}
+
+// Keep existing interface for backward compatibility during migration
+export interface SupabaseConnectionState {
+  user: SupabaseUser | null;
+  token: string;
+  stats?: SupabaseStats;
+  selectedProjectId?: string;
+  isConnected?: boolean;
+  project?: SupabaseProject;
+  credentials?: SupabaseCredentials;
 }

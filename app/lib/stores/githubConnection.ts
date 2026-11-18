@@ -2,20 +2,22 @@ import { atom, computed } from 'nanostores';
 import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { gitHubApiService } from '~/lib/services/githubApiService';
 import { logStore } from '~/lib/stores/logs';
-import type { GitHubConnection } from '~/types/GitHub';
+import type { GitHubConnection, GitHubConnectionState } from '~/types/GitHub';
 import { calculateStatsSummary } from '~/utils/githubStats';
 
 // Auto-connect using environment variable
 const envToken = import.meta.env?.VITE_GITHUB_ACCESS_TOKEN;
 const envTokenType = import.meta.env?.VITE_GITHUB_TOKEN_TYPE;
 
-const githubConnectionAtom = atom<GitHubConnection>({
+const githubConnectionAtom = atom<GitHubConnectionState>({
   user: null,
   token: envToken || '',
-  tokenType:
-    envTokenType === 'classic' || envTokenType === 'fine-grained'
-      ? (envTokenType as 'classic' | 'fine-grained')
-      : 'classic',
+  metadata: {
+    tokenType:
+      envTokenType === 'classic' || envTokenType === 'fine-grained'
+        ? (envTokenType as 'classic' | 'fine-grained')
+        : 'classic',
+  },
 });
 
 // Initialize connection from localStorage on startup
@@ -26,9 +28,20 @@ function initializeConnection() {
     if (savedConnection) {
       const parsed = JSON.parse(savedConnection);
 
-      // Ensure tokenType is set
-      if (!parsed.tokenType) {
-        parsed.tokenType = 'classic';
+      // Migrate old format: move tokenType to metadata
+      if (parsed.tokenType && !parsed.metadata) {
+        parsed.metadata = {
+          tokenType: parsed.tokenType,
+        };
+        delete parsed.tokenType;
+      }
+
+      // Ensure metadata.tokenType is set
+      if (!parsed.metadata?.tokenType) {
+        parsed.metadata = {
+          ...parsed.metadata,
+          tokenType: 'classic',
+        };
       }
 
       // Only set if we have a valid user
@@ -81,11 +94,13 @@ export const githubConnectionStore = {
       const { user, rateLimit } = await gitHubApiService.fetchUser(token, tokenType);
 
       // Create connection object
-      const connection: GitHubConnection = {
+      const connection: GitHubConnectionState = {
         user,
         token,
-        tokenType,
-        rateLimit,
+        metadata: {
+          tokenType,
+          rateLimit,
+        },
       };
 
       // Set cookies for client-side access
@@ -126,7 +141,9 @@ export const githubConnectionStore = {
     githubConnectionAtom.set({
       user: null,
       token: '',
-      tokenType: 'classic',
+      metadata: {
+        tokenType: 'classic',
+      },
     });
 
     // Clear localStorage
@@ -161,10 +178,13 @@ export const githubConnectionStore = {
     isGitHubLoadingStats.set(true);
 
     try {
-      const stats = await gitHubApiService.fetchStats(connection.token, connection.tokenType);
+      const stats = await gitHubApiService.fetchStats(
+        connection.token,
+        connection.metadata?.tokenType || 'classic',
+      );
 
       // Update connection with stats
-      const updatedConnection: GitHubConnection = {
+      const updatedConnection: GitHubConnectionState = {
         ...connection,
         stats,
       };
@@ -201,9 +221,12 @@ export const githubConnectionStore = {
   updateTokenType(tokenType: 'classic' | 'fine-grained'): void {
     const connection = githubConnectionAtom.get();
 
-    const updatedConnection = {
+    const updatedConnection: GitHubConnectionState = {
       ...connection,
-      tokenType,
+      metadata: {
+        ...connection.metadata,
+        tokenType,
+      },
     };
 
     githubConnectionAtom.set(updatedConnection);

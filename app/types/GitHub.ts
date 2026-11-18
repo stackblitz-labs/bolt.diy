@@ -1,4 +1,4 @@
-import type { ServiceStats } from '~/lib/stores/base';
+import type { ServiceConnectionState, ServiceStats } from '~/lib/stores/base';
 
 export interface GitHubUserResponse {
   login: string;
@@ -142,13 +142,16 @@ export interface GitHubStats extends ServiceStats {
   }>;
 }
 
-export interface GitHubConnection {
-  user: GitHubUserResponse | null;
-  token: string;
+export interface GitHubMetadata extends Record<string, unknown> {
   tokenType: 'classic' | 'fine-grained';
-  stats?: GitHubStats;
   rateLimit?: GitHubRateLimits;
 }
+
+export interface GitHubConnectionState
+  extends ServiceConnectionState<GitHubUserResponse, GitHubStats, GitHubMetadata> {}
+
+// Backward compatibility alias
+export type GitHubConnection = GitHubConnectionState;
 
 export interface GitHubTokenInfo {
   token: string;

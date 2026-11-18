@@ -1,19 +1,21 @@
 import { atom } from 'nanostores';
-import type { GitHubConnection } from '~/types/GitHub';
+import type { GitHubConnection, GitHubConnectionState } from '~/types/GitHub';
 import { logStore } from './logs';
 
 // Initialize with stored connection or defaults
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('github_connection') : null;
 
-const initialConnection: GitHubConnection = storedConnection
+const initialConnection: GitHubConnectionState = storedConnection
   ? JSON.parse(storedConnection)
   : {
       user: null,
       token: '',
-      tokenType: 'classic',
+      metadata: {
+        tokenType: 'classic',
+      },
     };
 
-export const githubConnection = atom<GitHubConnection>(initialConnection);
+export const githubConnection = atom<GitHubConnectionState>(initialConnection);
 export const isConnecting = atom<boolean>(false);
 export const isFetchingStats = atom<boolean>(false);
 
@@ -43,10 +45,12 @@ export async function initializeGitHubConnection() {
     const userData = await response.json();
 
     // Update the connection state (no token stored client-side)
-    const connectionData: Partial<GitHubConnection> = {
+    const connectionData: Partial<GitHubConnectionState> = {
       user: userData as any,
       token: '', // Token stored server-side only
-      tokenType: 'classic',
+      metadata: {
+        tokenType: 'classic',
+      },
     };
 
     // Store in localStorage for persistence
@@ -125,7 +129,7 @@ export async function fetchGitHubStatsViaAPI() {
   }
 }
 
-export const updateGitHubConnection = (updates: Partial<GitHubConnection>) => {
+export const updateGitHubConnection = (updates: Partial<GitHubConnectionState>) => {
   const currentState = githubConnection.get();
   const newState = { ...currentState, ...updates };
   githubConnection.set(newState);

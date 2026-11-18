@@ -1,13 +1,6 @@
 import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import React, { useState } from 'react';
-import { GitHubCacheManager } from './components/GitHubCacheManager';
-import { GitHubConnection } from './components/GitHubConnection';
-import { GitHubErrorBoundary } from './components/GitHubErrorBoundary';
-import { GitHubProgressiveLoader } from './components/GitHubProgressiveLoader';
-import { GitHubStats } from './components/GitHubStats';
-import { GitHubUserProfile } from './components/GitHubUserProfile';
-import { LoadingState, ErrorState, ConnectionTestIndicator, RepositoryCard } from './components/shared';
 import {
   ConnectorActionPermissions,
   getConnectorPermissionKey,
@@ -17,6 +10,13 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/component
 import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { classNames } from '~/utils/classNames';
+import { GitHubCacheManager } from './components/GitHubCacheManager';
+import { GitHubConnection } from './components/GitHubConnection';
+import { GitHubErrorBoundary } from './components/GitHubErrorBoundary';
+import { GitHubProgressiveLoader } from './components/GitHubProgressiveLoader';
+import { GitHubStats } from './components/GitHubStats';
+import { GitHubUserProfile } from './components/GitHubUserProfile';
+import { LoadingState, ErrorState, ConnectionTestIndicator, RepositoryCard } from './components/shared';
 
 interface ConnectionTestResult {
   status: 'success' | 'error' | 'testing';
@@ -178,11 +178,11 @@ export default function GitHubTab() {
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            {connection?.rateLimit && (
+            {connection?.metadata?.rateLimit && (
               <div className="flex items-center gap-2 px-3 py-1 bg-bolt-elements-background-depth-1 rounded-lg text-xs">
                 <div className="i-ph:cloud w-4 h-4 text-bolt-elements-textSecondary" />
                 <span className="text-bolt-elements-textSecondary">
-                  API: {connection.rateLimit.remaining}/{connection.rateLimit.limit}
+                  API: {connection.metadata.rateLimit.remaining}/{connection.metadata.rateLimit.limit}
                 </span>
               </div>
             )}

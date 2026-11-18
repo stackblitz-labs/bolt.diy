@@ -1,6 +1,6 @@
 import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
-import type { VercelConnection } from '~/types/vercel';
+import type { VercelConnection, VercelConnectionState } from '~/types/vercel';
 import { logStore } from './logs';
 
 // Auto-connect using environment variable
@@ -9,7 +9,7 @@ const envToken = import.meta.env?.VITE_VERCEL_ACCESS_TOKEN;
 // Initialize with stored connection or defaults
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('vercel_connection') : null;
 
-let initialConnection: VercelConnection;
+let initialConnection: VercelConnectionState;
 
 if (storedConnection) {
   try {
@@ -47,11 +47,11 @@ if (storedConnection) {
   };
 }
 
-export const vercelConnection = atom<VercelConnection>(initialConnection);
+export const vercelConnection = atom<VercelConnectionState>(initialConnection);
 export const isConnecting = atom<boolean>(false);
 export const isFetchingStats = atom<boolean>(false);
 
-export const updateVercelConnection = (updates: Partial<VercelConnection>) => {
+export const updateVercelConnection = (updates: Partial<VercelConnectionState>) => {
   const currentState = vercelConnection.get();
   const newState = { ...currentState, ...updates };
   vercelConnection.set(newState);

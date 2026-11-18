@@ -39,7 +39,7 @@ export async function activateConnector(connector: ConnectorActivationId, entere
       const token = apiKey || connection.token;
 
       if (token) {
-        await githubConnectionStore.connect(token, connection.tokenType);
+        await githubConnectionStore.connect(token, connection.metadata?.tokenType || 'classic');
       } else {
         await ensureServerCredential('/api/github-user');
       }
