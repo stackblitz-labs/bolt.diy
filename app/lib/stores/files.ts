@@ -56,11 +56,6 @@ export class FilesStore {
   #webcontainer: Promise<WebContainer>;
 
   /**
-   * Tracks the number of files without folders.
-   */
-  #size = 0;
-
-  /**
    * @note Keeps track all modified files with their original content since the last user message.
    * Needs to be reset when the user sends another message and all changes have to be submitted
    * for the model to be aware of the changes.
@@ -78,7 +73,7 @@ export class FilesStore {
   files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
 
   get filesCount() {
-    return this.#size;
+    return Object.values(this.files.get()).filter((entry) => entry?.type === 'file').length;
   }
 
   constructor(webcontainerPromise: Promise<WebContainer>) {
@@ -606,7 +601,6 @@ export class FilesStore {
    */
   async reset() {
     this.files.set({});
-    this.#size = 0;
     this.#modifiedFiles.clear();
     this.#deletedPaths.clear();
     this.#persistDeletedPaths();
@@ -761,8 +755,6 @@ export class FilesStore {
         updates[pathToDelete] = undefined; // Mark for deletion in the map update
 
         if (dirent?.type === 'file') {
-          this.#size--;
-
           if (this.#modifiedFiles.has(pathToDelete)) {
             this.#modifiedFiles.delete(pathToDelete);
           }
@@ -775,24 +767,40 @@ export class FilesStore {
   }
 
   #processEventBuffer(events: Array<[events: PathWatcherEvent[]]>) {
-    const watchEvents = events.flat(2);
+    const currentFiles = this.files.get();
 
-    for (const { type, path, buffer } of watchEvents) {
+    let nextFiles: FileMap | undefined;
+
+    const update = (path: string, value?: Dirent) => {
+      nextFiles ??= { ...currentFiles };
+
+      if (value === undefined) {
+        delete nextFiles[path];
+      } else {
+        nextFiles[path] = value;
+      }
+    };
+
+    for (const { type, path, buffer } of events.flat(2)) {
       // remove any trailing slashes
       const sanitizedPath = path.replace(/\/+$/g, '');
+      const files = nextFiles ?? currentFiles;
+      const previous = files[sanitizedPath];
 
       switch (type) {
         case 'add_dir': {
-          // we intentionally add a trailing slash so we can distinguish files from folders in the file tree
-          this.files.setKey(sanitizedPath, { type: 'folder' });
+          if (previous?.type !== 'folder') {
+            update(sanitizedPath, { type: 'folder' });
+          }
+
           break;
         }
         case 'remove_dir': {
-          this.files.setKey(sanitizedPath, undefined);
+          const prefix = sanitizedPath + '/';
 
-          for (const [direntPath] of Object.entries(this.files)) {
-            if (direntPath.startsWith(sanitizedPath)) {
-              this.files.setKey(direntPath, undefined);
+          for (const direntPath of Object.keys(files)) {
+            if (direntPath === sanitizedPath || direntPath.startsWith(prefix)) {
+              update(direntPath);
             }
           }
 
@@ -800,12 +808,6 @@ export class FilesStore {
         }
         case 'add_file':
         case 'change': {
-          if (type === 'add_file') {
-            this.#size++;
-          }
-
-          let content = '';
-
           /**
            * @note This check is purely for the editor. The way we detect this is not
            * bullet-proof and it's a best guess so there might be false-positives.
@@ -813,19 +815,24 @@ export class FilesStore {
            * in the editor nor allow to edit them.
            */
           const isBinary = isBinaryFile(buffer);
+          const content = isBinary ? '' : this.#decodeFileContent(buffer);
 
-          if (!isBinary) {
-            content = this.#decodeFileContent(buffer);
+          if (previous?.type !== 'file' || previous.content !== content || previous.isBinary !== isBinary) {
+            update(sanitizedPath, {
+              ...previous,
+              type: 'file',
+              content,
+              isBinary,
+            });
           }
-
-          this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
 
           break;
         }
         case 'remove_file': {
-          // Clamped: emptying the working directory removes files the map no longer tracks.
-          this.#size = Math.max(0, this.#size - 1);
-          this.files.setKey(sanitizedPath, undefined);
+          if (sanitizedPath in files) {
+            update(sanitizedPath);
+          }
+
           break;
         }
         case 'update_directory': {
@@ -833,6 +840,10 @@ export class FilesStore {
           break;
         }
       }
+    }
+
+    if (nextFiles) {
+      this.files.set(nextFiles);
     }
   }
 
@@ -939,7 +950,6 @@ export class FilesStore {
       this.#deletedPaths.add(filePath);
 
       this.files.setKey(filePath, undefined);
-      this.#size--;
 
       if (this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.delete(filePath);
@@ -979,10 +989,6 @@ export class FilesStore {
           this.files.setKey(path, undefined);
 
           this.#deletedPaths.add(path);
-
-          if (dirent?.type === 'file') {
-            this.#size--;
-          }
 
           if (dirent?.type === 'file' && this.#modifiedFiles.has(path)) {
             this.#modifiedFiles.delete(path);

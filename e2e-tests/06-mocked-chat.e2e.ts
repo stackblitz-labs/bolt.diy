@@ -1,6 +1,11 @@
 import { test, expect, textStream } from './helpers/fixtures';
 
 test('sends a structured chat message and displays the streamed assistant reply', async ({ readyPage: page }) => {
+  await page.addInitScript(() => {
+    if (window === window.top) {
+      localStorage.setItem('autoSelectTemplate', 'false');
+    }
+  });
   let requestBody: any;
   await page.route('**/api/chat', async (route) => {
     requestBody = route.request().postDataJSON();
@@ -11,8 +16,6 @@ test('sends a structured chat message and displays the streamed assistant reply'
     });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Agent' }).click();
-  await page.getByText('Discuss', { exact: false }).click();
   const input = page.locator('textarea').first();
   await input.fill('Say hello from the test');
   await input.press('Enter');

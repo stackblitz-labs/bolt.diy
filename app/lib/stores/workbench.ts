@@ -308,7 +308,7 @@ export class WorkbenchStore {
   setDocuments(files: FileMap) {
     this.#editorStore.setDocuments(files);
 
-    if (this.#filesStore.filesCount > 0 && this.currentDocument.get() === undefined) {
+    if (this.currentDocument.get() === undefined) {
       // we find the first file and select it
       for (const [filePath, dirent] of Object.entries(files)) {
         if (dirent?.type === 'file') {

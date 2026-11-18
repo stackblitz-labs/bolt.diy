@@ -1,5 +1,5 @@
 import type { UIMessage } from 'ai';
-import { forwardRef, Fragment, useMemo, type ForwardedRef } from 'react';
+import { forwardRef, Fragment, memo, useCallback, useMemo, type ForwardedRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
@@ -36,7 +36,7 @@ interface MessagesProps {
 
 const ignoreArchivedToolResult = () => undefined;
 
-export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
+const MessagesWithRef = forwardRef<HTMLDivElement, MessagesProps>(
   (props: MessagesProps, ref: ForwardedRef<HTMLDivElement> | undefined) => {
     const { id, isStreaming = false, messages = [], archivedMessages } = props;
     const location = useLocation();
@@ -59,25 +59,31 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
 
     const transcript = [...archivedTranscript, ...messages];
 
-    const handleRewind = (messageId: string) => {
-      const searchParams = new URLSearchParams(location.search);
-      searchParams.set('rewindTo', messageId);
-      window.location.search = searchParams.toString();
-    };
+    const handleRewind = useCallback(
+      (messageId: string) => {
+        const searchParams = new URLSearchParams(location.search);
+        searchParams.set('rewindTo', messageId);
+        window.location.search = searchParams.toString();
+      },
+      [location.search],
+    );
 
-    const handleFork = async (messageId: string) => {
-      try {
-        if (!db || !chatId.get()) {
-          toast.error('Chat persistence is not available');
-          return;
+    const handleFork = useCallback(
+      async (messageId: string) => {
+        try {
+          if (!db || !chatId.get()) {
+            toast.error('Chat persistence is not available');
+            return;
+          }
+
+          const urlId = await forkChat(db, chatId.get()!, messageId);
+          navigate(`/chat/${urlId}`);
+        } catch (error) {
+          toast.error('Failed to fork chat: ' + (error as Error).message);
         }
-
-        const urlId = await forkChat(db, chatId.get()!, messageId);
-        navigate(`/chat/${urlId}`);
-      } catch (error) {
-        toast.error('Failed to fork chat: ' + (error as Error).message);
-      }
-    };
+      },
+      [navigate],
+    );
 
     return (
       <div id={id} className={props.className} ref={ref}>
@@ -135,3 +141,5 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
     );
   },
 );
+
+export const Messages = memo(MessagesWithRef);
