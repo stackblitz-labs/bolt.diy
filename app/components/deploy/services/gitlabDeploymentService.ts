@@ -1,8 +1,7 @@
 import { GitLabAuthDialog } from '~/components/@settings/tabs/gitlab/components/GitLabAuthDialog';
+import type { DeploymentService, BaseRepository, DeploymentConnection } from '~/components/deploy/shared/types';
 import { getLocalStorage } from '~/lib/persistence/localStorage';
 import { GitLabApiService } from '~/lib/services/gitlabApiService';
-import type { GitLabProjectInfo } from '~/types/GitLab';
-import type { DeploymentService, BaseRepository, DeploymentConnection } from '../shared/types';
 
 interface GitLabRepository extends BaseRepository {
   name: string;
@@ -47,10 +46,11 @@ export class GitLabDeploymentService implements DeploymentService<GitLabReposito
   async createRepository(name: string, isPrivate: boolean, token: string): Promise<GitLabRepository> {
     const connection = this.getConnection();
     const gitlabUrl = connection?.gitlabUrl || 'https://gitlab.com';
-    const apiService = new GitLabApiService(token, gitlabUrl);
 
-    // GitLab's createProjectWithFiles will create the project
-    // We'll create an empty project first, then push files separately
+    /*
+     * GitLab's createProjectWithFiles will create the project
+     * We'll create an empty project first, then push files separately
+     */
     const response = await fetch(`${gitlabUrl}/api/v4/projects`, {
       method: 'POST',
       headers: {
@@ -135,8 +135,10 @@ export class GitLabDeploymentService implements DeploymentService<GitLabReposito
     const gitlabUrl = connection.gitlabUrl || 'https://gitlab.com';
     const apiService = new GitLabApiService(token, gitlabUrl);
 
-    // Extract project ID from the repo URL or get it from the existing project
-    // The repoUrl is the http_url_to_repo, we need to find the project
+    /*
+     * Extract project ID from the repo URL or get it from the existing project
+     * The repoUrl is the http_url_to_repo, we need to find the project
+     */
     const repoName = repoUrl.split('/').pop()?.replace('.git', '') || '';
     const projectPath = `${connection.user.username}/${repoName}`;
 

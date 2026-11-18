@@ -1,7 +1,5 @@
 import type { UIMessage } from 'ai';
-import { Fragment } from 'react';
-import { forwardRef } from 'react';
-import type { ForwardedRef } from 'react';
+import { forwardRef, Fragment, useMemo, type ForwardedRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
@@ -10,6 +8,7 @@ import { UserMessage } from './UserMessage';
 import { forkChat } from '~/lib/persistence/db';
 import { getMessageText, hasMessageFlag } from '~/lib/persistence/messageMigration';
 import { db, chatId } from '~/lib/persistence/useChatHistory';
+import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 
@@ -26,6 +25,7 @@ interface MessagesProps {
   className?: string;
   isStreaming?: boolean;
   messages?: DisplayMessage[];
+  archivedMessages?: UIMessage[];
   append?: (message: UIMessage) => void;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
@@ -34,11 +34,30 @@ interface MessagesProps {
   addToolResult: (options: { tool: string; toolCallId: string; output: unknown }) => void;
 }
 
+const ignoreArchivedToolResult = () => undefined;
+
 export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
   (props: MessagesProps, ref: ForwardedRef<HTMLDivElement> | undefined) => {
-    const { id, isStreaming = false, messages = [] } = props;
+    const { id, isStreaming = false, messages = [], archivedMessages } = props;
     const location = useLocation();
     const navigate = useNavigate();
+
+    const archivedTranscript = useMemo<DisplayMessage[]>(() => {
+      if (!archivedMessages?.length) {
+        return [];
+      }
+
+      // The snapshot already includes these actions. Parse their text without running workbench callbacks.
+      const parser = new EnhancedStreamingMessageParser({ artifactElement: () => '' });
+
+      return archivedMessages.map((message) =>
+        message.role === 'assistant'
+          ? { ...message, parsedContent: parser.parse(message.id, getMessageText(message), true) }
+          : message,
+      );
+    }, [archivedMessages]);
+
+    const transcript = [...archivedTranscript, ...messages];
 
     const handleRewind = (messageId: string) => {
       const searchParams = new URLSearchParams(location.search);
@@ -62,8 +81,8 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
 
     return (
       <div id={id} className={props.className} ref={ref}>
-        {messages.length > 0
-          ? messages.map((message, index) => {
+        {transcript.length > 0
+          ? transcript.map((message, index) => {
               const { role, id: messageId, parts, parsedContent } = message;
               const isUserMessage = role === 'user';
               const isFirst = index === 0;
@@ -92,7 +111,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                       <AssistantMessage
                         content={parsedContent ?? getMessageText(message)}
                         messageId={messageId}
-                        isStreaming={isStreaming && index === messages.length - 1}
+                        isStreaming={isStreaming && index === transcript.length - 1}
                         onRewind={handleRewind}
                         onFork={handleFork}
                         append={props.append}
@@ -101,7 +120,9 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                         model={props.model}
                         provider={props.provider}
                         parts={parts}
-                        addToolResult={props.addToolResult}
+                        addToolResult={
+                          index < archivedTranscript.length ? ignoreArchivedToolResult : props.addToolResult
+                        }
                       />
                     )}
                   </div>

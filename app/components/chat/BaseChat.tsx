@@ -48,6 +48,7 @@ interface BaseChatProps {
   isStreaming?: boolean;
   onStreamingChange?: (streaming: boolean) => void;
   messages?: DisplayMessage[];
+  archivedMessages?: UIMessage[];
   description?: string;
   enhancingPrompt?: boolean;
   promptEnhanced?: boolean;
@@ -114,6 +115,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       imageDataList = [],
       setImageDataList,
       messages,
+      archivedMessages,
       actionAlert,
       clearAlert,
       deployAlert,
@@ -407,6 +409,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <Messages
                         className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
                         messages={messages}
+                        archivedMessages={archivedMessages}
                         isStreaming={isStreaming}
                         append={append}
                         chatMode={chatMode}

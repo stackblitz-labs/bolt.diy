@@ -33,16 +33,16 @@ export interface DeploymentConnection {
   [key: string]: any;
 }
 
-export interface DeploymentService<TRepo extends BaseRepository = BaseRepository, TUser = any> {
+export interface DeploymentService<TRepo extends BaseRepository = BaseRepository> {
   // Connection
   getConnection: () => DeploymentConnection | null;
   isConnected: () => boolean;
-  
+
   // Repository operations
   fetchRepositories: (token: string) => Promise<TRepo[]>;
   createRepository: (name: string, isPrivate: boolean, token: string) => Promise<TRepo>;
   repositoryExists: (name: string, token: string) => Promise<TRepo | null>;
-  
+
   // File operations
   pushFiles: (
     repoUrl: string,
@@ -50,7 +50,7 @@ export interface DeploymentService<TRepo extends BaseRepository = BaseRepository
     token: string,
     onProgress?: (current: number, total: number) => void,
   ) => Promise<Array<{ path: string; size: number }>>;
-  
+
   // Utility
   sanitizeRepoName: (name: string) => string;
   getAuthDialogComponent: () => React.ComponentType<any>;

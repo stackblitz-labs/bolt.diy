@@ -38,11 +38,7 @@ function isGitHubRepo(repo: Repository): repo is GitHubRepository {
   return 'html_url' in repo;
 }
 
-export function RepositoryCard<T extends Repository = Repository>({
-  repo,
-  onClone,
-  variant = 'github',
-}: RepositoryCardProps<T>) {
+export function RepositoryCard<T extends Repository = Repository>({ repo, onClone }: RepositoryCardProps<T>) {
   const isGitHub = isGitHubRepo(repo);
   const url = isGitHub ? repo.html_url : (repo as GitLabRepository).http_url_to_repo;
   const stars = isGitHub ? repo.stargazers_count : (repo as GitLabRepository).star_count;
@@ -73,10 +69,7 @@ export function RepositoryCard<T extends Repository = Repository>({
                     <div className="i-ph:lock w-3 h-3 text-bolt-elements-textTertiary" title="Private repository" />
                   )}
                   {repo.fork && (
-                    <div
-                      className="i-ph:git-fork w-3 h-3 text-bolt-elements-textTertiary"
-                      title="Forked repository"
-                    />
+                    <div className="i-ph:git-fork w-3 h-3 text-bolt-elements-textTertiary" title="Forked repository" />
                   )}
                   {repo.archived && (
                     <div className="i-ph:archive w-3 h-3 text-bolt-elements-textTertiary" title="Archived repository" />

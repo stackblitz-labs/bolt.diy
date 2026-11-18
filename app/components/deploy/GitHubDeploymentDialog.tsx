@@ -1,8 +1,8 @@
 import React from 'react';
-import { DeploymentDialog } from './shared/DeploymentDialog';
-import { useDeployment } from './shared/useDeployment';
 import { githubDeploymentService } from './services/githubDeploymentService';
+import { DeploymentDialog } from './shared/DeploymentDialog';
 import type { DeploymentDialogProps } from './shared/types';
+import { useDeployment } from './shared/useDeployment';
 
 const GitHubIcon = () => (
   <svg viewBox="0 0 24 24" className="w-6 h-6">

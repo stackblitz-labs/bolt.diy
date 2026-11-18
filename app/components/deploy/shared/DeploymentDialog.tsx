@@ -1,9 +1,8 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import React from 'react';
-import { SearchInput, EmptyState, StatusIndicator, Badge } from '~/components/ui';
-import { classNames } from '~/utils/classNames';
 import type { BaseRepository, DeploymentState } from './types';
+import { SearchInput, EmptyState, Badge } from '~/components/ui';
 import { formatSize } from '~/utils/formatSize';
 
 interface DeploymentDialogProps<TRepo extends BaseRepository> {
@@ -28,15 +27,16 @@ export function DeploymentDialog<TRepo extends BaseRepository>({
   serviceName,
   serviceIcon,
   state,
-  user,
   repositories,
   isConnected,
   onStateChange,
   onDeploy,
   onShowAuth,
-  AuthDialogComponent,
+  AuthDialogComponent: authDialogComponent,
   renderRepositoryItem,
 }: DeploymentDialogProps<TRepo>) {
+  const AuthDialog = authDialogComponent;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onDeploy();
@@ -282,10 +282,7 @@ export function DeploymentDialog<TRepo extends BaseRepository>({
       </Dialog.Root>
 
       {/* Auth Dialog */}
-      <AuthDialogComponent
-        isOpen={state.showAuthDialog}
-        onClose={() => onStateChange({ showAuthDialog: false })}
-      />
+      <AuthDialog isOpen={state.showAuthDialog} onClose={() => onStateChange({ showAuthDialog: false })} />
     </>
   );
 }

@@ -77,7 +77,9 @@ const SMOKE_TEST_PROVIDER: ProviderInfo = {
 export function Chat() {
   renderLogger.trace('Chat');
 
-  const { ready, initialMessages, chatChanged, storeMessageHistory, importChat, exportChat } = useChatHistory();
+  const { ready, initialMessages, archivedMessages, chatChanged, storeMessageHistory, importChat, exportChat } =
+    useChatHistory();
+
   const title = useStore(description);
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
@@ -89,6 +91,7 @@ export function Chat() {
         <ChatImpl
           description={title}
           initialMessages={initialMessages}
+          archivedMessages={archivedMessages}
           chatChanged={chatChanged}
           exportChat={exportChat}
           storeMessageHistory={storeMessageHistory}
@@ -129,6 +132,7 @@ const processSampledMessages = createSampler(
 
 interface ChatProps {
   initialMessages: UIMessage[];
+  archivedMessages: UIMessage[];
 
   /** True when `initialMessages` belong to a different chat than the ones they replace. */
   chatChanged: boolean;
@@ -140,12 +144,21 @@ interface ChatProps {
 }
 
 export const ChatImpl = memo(
-  ({ description, initialMessages, chatChanged, storeMessageHistory, importChat, exportChat }: ChatProps) => {
+  ({
+    description,
+    initialMessages,
+    archivedMessages,
+    chatChanged,
+    storeMessageHistory,
+    importChat,
+    exportChat,
+  }: ChatProps) => {
     useShortcuts();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const hasAppliedInitialMessagesRef = useRef(false);
-    const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
+    const hasStoredMessages = initialMessages.length > 0 || archivedMessages.length > 0;
+    const [chatStarted, setChatStarted] = useState(hasStoredMessages);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [imageDataList, setImageDataList] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
@@ -700,13 +713,12 @@ export const ChatImpl = memo(
 
       setMessages(initialMessages);
 
-      const hasMessages = initialMessages.length > 0;
-      setChatStarted(hasMessages);
-      chatStore.setKey('started', hasMessages);
+      setChatStarted(hasStoredMessages);
+      chatStore.setKey('started', hasStoredMessages);
       setProgressAnnotations([]);
       resetEnhancer();
 
-      if (!hasMessages) {
+      if (!hasStoredMessages) {
         setInput('');
       }
 
@@ -725,7 +737,7 @@ export const ChatImpl = memo(
       if (initialMessages.length > 0) {
         hasAppliedInitialMessagesRef.current = true;
       }
-    }, [initialMessages, chatChanged]);
+    }, [initialMessages, chatChanged, hasStoredMessages]);
 
     useEffect(() => {
       const starterSetupMessage = initialMessages.find((message) =>
@@ -1220,6 +1232,7 @@ export const ChatImpl = memo(
         description={description}
         importChat={importChat}
         exportChat={exportChat}
+        archivedMessages={archivedMessages}
         messages={messages.map((message, i) => {
           if (message.role === 'user') {
             return message;

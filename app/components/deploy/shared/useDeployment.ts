@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { logStore } from '~/lib/stores/logs';
 import type { BaseRepository, DeploymentService, DeploymentState } from './types';
+import { logStore } from '~/lib/stores/logs';
 
 export function useDeployment<TRepo extends BaseRepository = BaseRepository>(
   service: DeploymentService<TRepo>,
@@ -29,7 +29,7 @@ export function useDeployment<TRepo extends BaseRepository = BaseRepository>(
     if (isOpen) {
       const connection = service.getConnection();
       const sanitizedName = service.sanitizeRepoName(projectName);
-      
+
       setState((prev) => ({ ...prev, repoName: sanitizedName }));
 
       if (connection?.user && connection?.token) {
@@ -55,10 +55,10 @@ export function useDeployment<TRepo extends BaseRepository = BaseRepository>(
     }
 
     const query = state.repoSearchQuery.toLowerCase().trim();
+
     const filtered = recentRepos.filter(
       (repo) =>
-        repo.name.toLowerCase().includes(query) ||
-        (repo.description && repo.description.toLowerCase().includes(query)),
+        repo.name.toLowerCase().includes(query) || (repo.description && repo.description.toLowerCase().includes(query)),
     );
 
     setFilteredRepos(filtered);
@@ -69,11 +69,13 @@ export function useDeployment<TRepo extends BaseRepository = BaseRepository>(
       if (!token) {
         logStore.logError(`No ${service.getServiceName()} token available`);
         toast.error(`${service.getServiceName()} authentication required`);
+
         return;
       }
 
       try {
         setState((prev) => ({ ...prev, isFetchingRepos: true }));
+
         const repos = await service.fetchRepositories(token);
         setRecentRepos(repos);
       } catch (error) {
@@ -112,7 +114,9 @@ export function useDeployment<TRepo extends BaseRepository = BaseRepository>(
 
         // Warn if name was changed
         if (sanitizedName !== state.repoName && sanitizedName !== state.repoName.toLowerCase()) {
-          toast.info(`Repository name sanitized to "${sanitizedName}" to meet ${service.getServiceName()} requirements`);
+          toast.info(
+            `Repository name sanitized to "${sanitizedName}" to meet ${service.getServiceName()} requirements`,
+          );
         }
 
         // Check if repository exists
@@ -155,11 +159,12 @@ export function useDeployment<TRepo extends BaseRepository = BaseRepository>(
       } catch (error) {
         console.error('Deployment failed:', error);
         logStore.logError('Deployment failed', { error });
-        
+
         const errorMessage = error instanceof Error ? error.message : 'Deployment failed';
         toast.error(errorMessage);
-        
+
         setState((prev) => ({ ...prev, isLoading: false }));
+
         return { success: false, error: errorMessage };
       }
     },

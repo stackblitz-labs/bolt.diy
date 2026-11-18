@@ -1,8 +1,8 @@
 import React from 'react';
-import { DeploymentDialog } from './shared/DeploymentDialog';
-import { useDeployment } from './shared/useDeployment';
 import { gitlabDeploymentService } from './services/gitlabDeploymentService';
+import { DeploymentDialog } from './shared/DeploymentDialog';
 import type { DeploymentDialogProps } from './shared/types';
+import { useDeployment } from './shared/useDeployment';
 
 const GitLabIcon = () => (
   <svg viewBox="0 0 40 40" className="w-6 h-6">

@@ -1,8 +1,8 @@
 import { Octokit } from '@octokit/rest';
 import { GitHubAuthDialog } from '~/components/@settings/tabs/github/components/GitHubAuthDialog';
+import type { DeploymentService, BaseRepository, DeploymentConnection } from '~/components/deploy/shared/types';
 import { getLocalStorage } from '~/lib/persistence/localStorage';
 import type { GitHubRepoInfo } from '~/types/GitHub';
-import type { DeploymentService, BaseRepository, DeploymentConnection } from '../shared/types';
 
 interface GitHubRepository extends BaseRepository {
   name: string;
@@ -27,6 +27,7 @@ export class GitHubDeploymentService implements DeploymentService<GitHubReposito
 
   async fetchRepositories(token: string): Promise<GitHubRepository[]> {
     const allRepos: GitHubRepoInfo[] = [];
+
     let page = 1;
     let hasMore = true;
 
@@ -102,6 +103,7 @@ export class GitHubDeploymentService implements DeploymentService<GitHubReposito
       }
 
       const octokit = new Octokit({ auth: token });
+
       const { data } = await octokit.repos.get({
         owner: connection.user.login,
         repo: name,
@@ -262,13 +264,15 @@ export class GitHubDeploymentService implements DeploymentService<GitHubReposito
   }
 
   sanitizeRepoName(name: string): string {
-    return name
-      .toLowerCase()
-      .replace(/[\s_]+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .substring(0, 100) || 'my-project';
+    return (
+      name
+        .toLowerCase()
+        .replace(/[\s_]+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 100) || 'my-project'
+    );
   }
 
   getAuthDialogComponent() {
