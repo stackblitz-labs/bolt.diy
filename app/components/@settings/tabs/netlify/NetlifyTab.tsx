@@ -322,7 +322,7 @@ export default function NetlifyTab() {
         <div className="text-center py-12">
           <div className="i-ph:globe w-12 h-12 mx-auto mb-4 text-bolt-elements-textTertiary" />
           <p className="text-bolt-elements-textSecondary">No sites found in your Netlify account</p>
-          <Button onClick={handleRefreshStats} className="mt-4">
+          <Button variant="secondary" onClick={handleRefreshStats} className="mt-4">
             Refresh Stats
           </Button>
         </div>

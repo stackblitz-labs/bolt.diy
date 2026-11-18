@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ConnectionTestResult } from './service-integration';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
@@ -45,6 +45,7 @@ export function ServiceConnectionCard({
   description,
   documentationUrl,
 }: ServiceConnectionCardProps) {
+  const tokenInputId = useId();
   const [showToken, setShowToken] = useState(false);
 
   return (
@@ -56,7 +57,7 @@ export function ServiceConnectionCard({
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-bolt-elements-bg-depth-3 rounded-lg">{serviceIcon}</div>
+          <div className="p-2 bg-bolt-elements-background-depth-3 rounded-lg">{serviceIcon}</div>
           <div>
             <h2 className="text-xl font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
               {serviceName}
@@ -84,7 +85,7 @@ export function ServiceConnectionCard({
 
       {/* Connection Status */}
       {isConnected && user && (
-        <div className="mb-6 p-4 bg-bolt-elements-bg-depth-1 rounded-lg">
+        <div className="mb-6 p-4 bg-bolt-elements-background-depth-1 rounded-lg">
           <div className="flex items-center gap-3">
             {user.avatar && (
               <img src={user.avatar} alt={user.name || user.username} className="w-10 h-10 rounded-full" />
@@ -102,22 +103,26 @@ export function ServiceConnectionCard({
       {/* Token Input */}
       {!isConnected && (
         <div className="mb-6">
-          <label className="block text-sm font-medium text-bolt-elements-textPrimary mb-2">Access Token</label>
+          <label htmlFor={tokenInputId} className="block text-sm font-medium text-bolt-elements-textPrimary mb-2">
+            Access Token
+          </label>
           <div className="relative">
             <input
+              id={tokenInputId}
               type={showToken ? 'text' : tokenInputType}
               value={tokenValue}
               onChange={(e) => onTokenChange(e.target.value)}
               placeholder={tokenPlaceholder}
-              className="w-full px-4 py-2 pr-10 bg-bolt-elements-bg-depth-1 border border-bolt-elements-borderColor rounded-lg text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
+              className="w-full px-4 py-2 pr-10 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-lg text-bolt-elements-textPrimary placeholder:text-bolt-elements-textSecondary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
             />
             {tokenInputType === 'password' && (
               <button
                 type="button"
                 onClick={() => setShowToken(!showToken)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                aria-label={showToken ? 'Hide access token' : 'Show access token'}
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded bg-transparent text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
               >
-                <span className={classNames(showToken ? 'i-ph:eye-slash' : 'i-ph:eye', 'text-xl')} />
+                <span aria-hidden="true" className={classNames(showToken ? 'i-ph:eye-slash' : 'i-ph:eye', 'text-xl')} />
               </button>
             )}
           </div>
@@ -146,9 +151,9 @@ export function ServiceConnectionCard({
             <p
               className={classNames(
                 'text-sm font-medium',
-                connectionTest.status === 'success' && 'text-green-600',
-                connectionTest.status === 'error' && 'text-red-600',
-                connectionTest.status === 'testing' && 'text-blue-600',
+                connectionTest.status === 'success' && 'text-green-800 dark:text-green-300',
+                connectionTest.status === 'error' && 'text-red-800 dark:text-red-300',
+                connectionTest.status === 'testing' && 'text-blue-800 dark:text-blue-300',
               )}
             >
               {connectionTest.message}
@@ -166,7 +171,13 @@ export function ServiceConnectionCard({
       <div className="flex gap-3">
         {!isConnected ? (
           <>
-            <Button onClick={onConnect} disabled={!tokenValue.trim() || isConnecting} className="flex-1">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onConnect}
+              disabled={!tokenValue.trim() || isConnecting}
+              className="flex-1 border border-bolt-elements-borderColor focus-visible:ring-bolt-elements-borderColorActive disabled:bg-bolt-elements-background-depth-3 disabled:text-bolt-elements-textSecondary disabled:!opacity-100"
+            >
               {isConnecting ? (
                 <>
                   <span className="i-ph:spinner animate-spin mr-2" />

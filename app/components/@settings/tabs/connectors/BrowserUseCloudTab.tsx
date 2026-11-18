@@ -152,7 +152,7 @@ export default function BrowserUseCloudTab() {
             value={apiKey}
             onChange={(event) => setApiKey(event.target.value)}
             placeholder="bu_…"
-            className="w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            className="w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textSecondary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
           />
           <p className="mt-2 text-xs text-bolt-elements-textSecondary">
             Create a key with browser read and write permissions in{' '}
@@ -160,7 +160,7 @@ export default function BrowserUseCloudTab() {
               href="https://cloud.browser-use.com/settings"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-bolt-elements-link hover:underline"
+              className="text-bolt-elements-textPrimary underline underline-offset-2"
             >
               Browser Use settings
             </a>
@@ -177,9 +177,10 @@ export default function BrowserUseCloudTab() {
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
+            variant="secondary"
             onClick={connect}
             disabled={!isInitialized || isUpdatingConfig || !apiKey.trim()}
-            className="bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundActive"
+            className="border border-bolt-elements-borderColor focus-visible:ring-bolt-elements-borderColorActive disabled:bg-bolt-elements-background-depth-3 disabled:text-bolt-elements-textSecondary disabled:!opacity-100"
           >
             {isUpdatingConfig ? 'Connecting…' : connected ? 'Save and reconnect' : 'Connect'}
           </Button>
