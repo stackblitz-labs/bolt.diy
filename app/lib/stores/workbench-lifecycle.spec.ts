@@ -22,6 +22,7 @@ vi.mock('./editor', () => ({
     currentDocument = atom(undefined);
     selectedFile = atom(undefined);
     updateFile = vi.fn();
+    setDocuments = vi.fn();
     setSelectedFile = vi.fn();
   },
 }));

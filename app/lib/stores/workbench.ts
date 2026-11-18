@@ -274,6 +274,7 @@ export class WorkbenchStore {
     this.userSelectedView.set(undefined);
     this.unsavedFiles.set(new Set<string>());
     this.setSelectedFile(undefined);
+    this.#editorStore.setDocuments({});
     this.clearAlert();
     this.clearSupabaseAlert();
     this.clearDeployAlert();

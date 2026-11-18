@@ -11,6 +11,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
 import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { isServerAgentTool } from '~/lib/common/agentLoop';
+import { getChatRequestFiles } from '~/lib/common/chatRequestFiles';
 import { STARTER_BUILD_FLAG } from '~/lib/common/starterBuild';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
@@ -278,7 +279,17 @@ export const ChatImpl = memo(
           api: '/api/chat',
 
           // Read the latest project files on send without subscribing the chat UI to file updates.
-          body: () => ({ ...requestSettingsRef.current, files: workbenchStore.files.get() }),
+          body: () => {
+            const settings = requestSettingsRef.current;
+
+            return {
+              ...settings,
+              files: getChatRequestFiles(
+                workbenchStore.files.get(),
+                settings.chatMode === 'build' && settings.agentMode,
+              ),
+            };
+          },
         }),
     );
 

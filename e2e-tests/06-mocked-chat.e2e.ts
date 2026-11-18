@@ -89,4 +89,23 @@ test('shows the saved transcript when opening and reloading a chat with a projec
   await expect(page.getByText('Original saved prompt', { exact: true })).toBeVisible();
   await expect(page.getByText('Original saved reply', { exact: true })).toBeVisible();
   await expect(page.getByText('Follow-up saved prompt', { exact: true })).toBeVisible();
+  await expect(page.getByText('saved.txt', { exact: true }).first()).toBeVisible();
+
+  await page.route('**/api/chat', (route) =>
+    route.fulfill({
+      headers: { 'content-type': 'text/event-stream', 'x-vercel-ai-ui-message-stream': 'v1' },
+      body: textStream('Native agent response'),
+    }),
+  );
+  await page.getByRole('button', { name: 'Agent', exact: true }).click();
+  await page.getByRole('menuitem', { name: /Agent Plans/ }).click();
+  const composer = page.locator('textarea').first();
+  await composer.fill('Explain this project');
+
+  const outgoingRequest = page.waitForRequest((request) => request.url().endsWith('/api/chat'));
+  await composer.press('Enter');
+  const requestBody = (await outgoingRequest).postDataJSON();
+  expect(requestBody).toMatchObject({ chatMode: 'build', agentMode: true });
+  expect(requestBody.files).toEqual({});
+  await expect(page.getByText('Native agent response', { exact: true })).toBeVisible();
 });

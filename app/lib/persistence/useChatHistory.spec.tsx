@@ -465,6 +465,82 @@ describe('useChatHistory chat switching', () => {
     expect(setSnapshot).not.toHaveBeenCalled();
   });
 
+  it('checkpoints streaming history and immediately saves the finished response', async () => {
+    const useChatHistory = await importHook();
+    const { result } = renderHook(() => useChatHistory());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const messages = (text: string): UIMessage[] => [
+      { id: 'streamed-reply', role: 'assistant', parts: [{ type: 'text', text }] },
+    ];
+
+    vi.useFakeTimers();
+
+    try {
+      await act(async () => {
+        const saves: Promise<void>[] = [];
+
+        for (let sample = 0; sample < 100; sample++) {
+          saves.push(result.current.storeMessageHistory(messages(`Sample ${sample}`), true));
+          await vi.advanceTimersByTimeAsync(50);
+        }
+
+        await result.current.storeMessageHistory(messages('Complete'));
+        await Promise.all(saves);
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+
+      expect(setMessages).toHaveBeenCalledTimes(8);
+      expect(setMessages).toHaveBeenLastCalledWith(
+        {},
+        '1',
+        messages('Complete'),
+        'chat-a',
+        'chat-a',
+        undefined,
+        undefined,
+      );
+      expect(setSnapshot).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('discards a delayed checkpoint and samples from the outgoing route', async () => {
+    const useChatHistory = await importHook();
+    const { rerender, result } = renderHook(() => useChatHistory());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const messages: UIMessage[] = [
+      { id: 'reply', role: 'assistant', parts: [{ type: 'text', text: 'Partial reply' }] },
+    ];
+
+    const saveOutgoing = result.current.storeMessageHistory;
+
+    vi.useFakeTimers();
+
+    try {
+      await act(async () => {
+        await saveOutgoing(messages, true);
+      });
+
+      const delayedSave = saveOutgoing(messages, true);
+      routeId = 'chat-b';
+      rerender();
+
+      await act(async () => {
+        await delayedSave;
+        await saveOutgoing(messages);
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+
+      expect(setMessages).toHaveBeenCalledTimes(1);
+      expect(setSnapshot).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('should clear the previous chat switch when a fresh chat is persisted', async () => {
     const useChatHistory = await importHook();
     const { rerender, result } = renderHook(() => useChatHistory());
