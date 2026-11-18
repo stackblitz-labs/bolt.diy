@@ -1,14 +1,12 @@
+import { useStore } from '@nanostores/react';
 import { motion } from 'framer-motion';
-import React, { useState } from 'react';
-import GitLabConnection from './components/GitLabConnection';
-import { RepositoryList } from './components/RepositoryList';
-import { StatsDisplay } from './components/StatsDisplay';
-import {
-  ConnectorActionPermissions,
-  getConnectorPermissionKey,
-} from '~/components/@settings/shared/ConnectorActionPermissions';
-import { useGitLabConnection } from '~/lib/hooks';
-import { useMCPStore } from '~/lib/stores/mcp';
+import React, { useState, useEffect, useMemo } from 'react';
+import { toast } from 'react-toastify';
+import { ServiceConnectionCard } from '~/components/@settings/shared/ServiceConnectionCard';
+import { ServiceResourceList } from '~/components/@settings/shared/ServiceResourceList';
+import { ServiceStatsPanel } from '~/components/@settings/shared/ServiceStatsPanel';
+import { Button } from '~/components/ui/Button';
+import { gitlabConnectionStore, gitlabConnection } from '~/lib/stores/gitlabConnection';
 
 // GitLab logo SVG component
 const GitLabLogo = () => (
@@ -20,28 +18,77 @@ const GitLabLogo = () => (
   </svg>
 );
 
-interface ConnectionTestResult {
-  status: 'success' | 'error' | 'testing';
-  message: string;
-  timestamp?: number;
-}
-
 export default function GitLabTab() {
-  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
-  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
+  const connection = useStore(gitlabConnection);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
-  const canReadProjects =
-    permissionsInitialized && toolEnabled[getConnectorPermissionKey('gitlab', 'read_projects')] !== false;
+  // Local state for UI
+  const [isStatsExpanded, setIsStatsExpanded] = useState(true);
+  const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
+  const [tokenInput, setTokenInput] = useState('');
 
-  const { connection, isConnected, isLoading, error, testConnection, refreshStats } = useGitLabConnection();
-  const [connectionTest, setConnectionTest] = useState<ConnectionTestResult | null>(null);
-  const [isRefreshingStats, setIsRefreshingStats] = useState(false);
+  const [connectionTest, setConnectionTest] = useState<{
+    status: 'success' | 'error' | 'testing';
+    message: string;
+    timestamp?: number;
+  } | null>(null);
 
-  const handleTestConnection = async () => {
-    if (!connection?.user) {
+  // Service-specific connection logic
+  const handleConnect = async (): Promise<void> => {
+    if (!tokenInput.trim()) {
+      toast.error('Please provide a valid GitLab token');
+      return;
+    }
+
+    setIsConnecting(true);
+
+    try {
+      const result = await gitlabConnectionStore.connect(tokenInput);
+
+      if (result.success) {
+        toast.success(`Connected to GitLab`);
+        setTokenInput(''); // Clear input after successful connection
+      } else {
+        throw new Error(result.error || 'Connection failed');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect to GitLab';
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async (): Promise<void> => {
+    gitlabConnectionStore.disconnect();
+    toast.success('Disconnected from GitLab');
+  };
+
+  const handleRefreshStats = async (): Promise<void> => {
+    setIsLoadingStats(true);
+
+    try {
+      const result = await gitlabConnectionStore.fetchStats(true);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch stats');
+      }
+
+      toast.success('GitLab stats refreshed');
+    } catch {
+      toast.error('Failed to refresh stats');
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
+  const handleTestConnection = async (): Promise<void> => {
+    if (!connection.token) {
       setConnectionTest({
         status: 'error',
-        message: 'No connection established',
+        message: 'No token available',
         timestamp: Date.now(),
       });
       return;
@@ -53,292 +100,193 @@ export default function GitLabTab() {
     });
 
     try {
-      const isValid = await testConnection();
+      const response = await fetch('https://gitlab.com/api/v4/user', {
+        headers: {
+          'PRIVATE-TOKEN': connection.token,
+        },
+      });
 
-      if (isValid) {
+      if (response.ok) {
         setConnectionTest({
           status: 'success',
-          message: `Connected successfully as ${connection.user.username}`,
+          message: 'Connection successful',
           timestamp: Date.now(),
         });
       } else {
         setConnectionTest({
           status: 'error',
-          message: 'Connection test failed',
+          message: `Connection failed: ${response.status}`,
           timestamp: Date.now(),
         });
       }
-    } catch (error) {
+    } catch {
       setConnectionTest({
         status: 'error',
-        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: 'Connection test failed',
         timestamp: Date.now(),
       });
     }
   };
 
-  // Loading state for initial connection check
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <GitLabLogo />
-          <h2 className="text-lg font-medium text-bolt-elements-textPrimary">GitLab Integration</h2>
-        </div>
-        <div className="flex items-center justify-center p-4">
-          <div className="flex items-center gap-2">
-            <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
-            <span className="text-bolt-elements-textSecondary">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Initialize on mount
+  useEffect(() => {
+    // GitLab store auto-initializes
+  }, []);
 
-  // Error state for connection issues
-  if (error && !connection) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <GitLabLogo />
-          <h2 className="text-lg font-medium text-bolt-elements-textPrimary">GitLab Integration</h2>
-        </div>
-        <div className="text-sm text-red-600 dark:text-red-400 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-          {error}
-        </div>
-      </div>
-    );
-  }
+  // Prepare stats for display
+  const stats = useMemo(() => {
+    if (!connection.stats) {
+      return [];
+    }
 
-  // Not connected state
-  if (!isConnected || !connection) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <GitLabLogo />
-          <h2 className="text-lg font-medium text-bolt-elements-textPrimary">GitLab Integration</h2>
-        </div>
-        <p className="text-sm text-bolt-elements-textSecondary">
-          Connect your GitLab account to enable advanced repository management features, statistics, and seamless
-          integration.
-        </p>
-        <GitLabConnection
-          connectionTest={connectionTest}
-          onTestConnection={handleTestConnection}
-          fetchStatsOnConnect={canReadProjects}
-        />
-        <ConnectorActionPermissions
-          connector="gitlab"
-          actions={[
-            {
-              id: 'read_projects',
-              name: 'Read projects and statistics',
-              description: 'Fetch GitLab projects and account statistics.',
-            },
-          ]}
-        />
-      </div>
-    );
-  }
+    return [
+      {
+        label: 'Total Projects',
+        value: connection.stats.projects?.length || 0,
+        icon: 'i-ph:folder',
+      },
+      {
+        label: 'Public Projects',
+        value: connection.stats.publicProjects || 0,
+        icon: 'i-ph:globe',
+      },
+      {
+        label: 'Private Projects',
+        value: connection.stats.privateProjects || 0,
+        icon: 'i-ph:lock',
+      },
+    ];
+  }, [connection.stats]);
+
+  // Prepare projects for resource list
+  const projectResources = useMemo(() => {
+    if (!connection.stats?.projects) {
+      return [];
+    }
+
+    return connection.stats.projects.map((project: any) => ({
+      id: project.id.toString(),
+      name: project.name,
+      description: project.description || 'No description',
+      status: project.archived ? 'archived' : project.visibility,
+      statusVariant: (project.archived ? 'default' : project.visibility === 'public' ? 'success' : 'warning') as
+        'default' | 'success' | 'warning',
+      url: project.web_url,
+      updatedAt: project.last_activity_at,
+      metadata: project,
+    }));
+  }, [connection.stats?.projects]);
+
+  // Define actions for projects
+  const projectActions = useMemo(
+    () => [
+      {
+        name: 'View Project',
+        icon: 'i-ph:eye',
+        permissionId: 'view_project',
+        action: async (resource: (typeof projectResources)[0]) => {
+          window.open(resource.url, '_blank');
+        },
+      },
+      {
+        name: 'View Issues',
+        icon: 'i-ph:list-bullets',
+        permissionId: 'view_issues',
+        action: async (resource: (typeof projectResources)[0]) => {
+          window.open(`${resource.url}/-/issues`, '_blank');
+        },
+      },
+      {
+        name: 'View Merge Requests',
+        icon: 'i-ph:git-merge',
+        permissionId: 'view_mrs',
+        action: async (resource: (typeof projectResources)[0]) => {
+          window.open(`${resource.url}/-/merge_requests`, '_blank');
+        },
+      },
+    ],
+    [],
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <motion.div
-        className="flex items-center justify-between gap-2"
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        className="flex items-center justify-between"
       >
-        <div className="flex items-center gap-2">
-          <GitLabLogo />
-          <h2 className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-            GitLab Integration
-          </h2>
+        <div>
+          <h2 className="text-lg font-medium text-bolt-elements-textPrimary">GitLab Integration</h2>
         </div>
         <div className="flex items-center gap-2">
-          {connection?.rateLimit && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-bolt-elements-background-depth-1 rounded-lg text-xs">
-              <div className="i-ph:cloud w-4 h-4 text-bolt-elements-textSecondary" />
-              <span className="text-bolt-elements-textSecondary">
-                API: {connection.rateLimit.remaining}/{connection.rateLimit.limit}
-              </span>
-            </div>
-          )}
+          <GitLabLogo />
         </div>
       </motion.div>
 
-      <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-        Manage your GitLab integration with advanced repository features and comprehensive statistics
+      <p className="text-sm text-bolt-elements-textSecondary">
+        Connect your GitLab account to access projects and manage your repositories directly from bolt.diy
       </p>
 
-      <ConnectorActionPermissions
-        connector="gitlab"
-        actions={[
-          {
-            id: 'read_projects',
-            name: 'Read projects and statistics',
-            description: 'Fetch GitLab projects and account statistics.',
-          },
-        ]}
-      />
-
-      {/* Connection Test Results */}
-      {connectionTest && (
-        <div
-          className={`p-3 rounded-lg border ${
-            connectionTest.status === 'success'
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-              : connectionTest.status === 'error'
-                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-4 h-4 ${
-                connectionTest.status === 'success'
-                  ? 'text-green-600'
-                  : connectionTest.status === 'error'
-                    ? 'text-red-600'
-                    : 'text-blue-600'
-              }`}
-            >
-              {connectionTest.status === 'success' ? (
-                <div className="i-ph:check-circle" />
-              ) : connectionTest.status === 'error' ? (
-                <div className="i-ph:x-circle" />
-              ) : (
-                <div className="i-ph:spinner animate-spin" />
-              )}
-            </div>
-            <span
-              className={`text-sm ${
-                connectionTest.status === 'success'
-                  ? 'text-green-800 dark:text-green-200'
-                  : connectionTest.status === 'error'
-                    ? 'text-red-800 dark:text-red-200'
-                    : 'text-blue-800 dark:text-blue-200'
-              }`}
-            >
-              {connectionTest.message}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* GitLab Connection Component */}
-      <GitLabConnection
-        connectionTest={connectionTest}
+      {/* Connection Card */}
+      <ServiceConnectionCard
+        serviceName="GitLab"
+        serviceIcon={<GitLabLogo />}
+        user={
+          connection.user
+            ? {
+                name: connection.user.name,
+                username: connection.user.username,
+                avatar: connection.user.avatar_url,
+              }
+            : undefined
+        }
+        isConnected={!!connection.user}
+        isConnecting={isConnecting}
+        tokenValue={tokenInput}
+        onTokenChange={setTokenInput}
+        onConnect={handleConnect}
+        onDisconnect={handleDisconnect}
         onTestConnection={handleTestConnection}
-        fetchStatsOnConnect={canReadProjects}
+        connectionTest={connectionTest}
+        tokenPlaceholder="Enter your GitLab Personal Access Token"
+        description="Generate a token from your GitLab account settings"
       />
 
-      {/* User Profile Section */}
-      {connection?.user && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="border-t border-bolt-elements-borderColor pt-6"
-        >
-          <div className="flex items-center gap-4 p-4 bg-bolt-elements-background-depth-1 rounded-lg">
-            <div className="w-12 h-12 rounded-full border-2 border-bolt-elements-item-contentAccent flex items-center justify-center bg-bolt-elements-background-depth-2 overflow-hidden">
-              {connection.user.avatar_url &&
-              connection.user.avatar_url !== 'null' &&
-              connection.user.avatar_url !== '' ? (
-                <img
-                  src={connection.user.avatar_url}
-                  alt={connection.user.username}
-                  className="w-full h-full rounded-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-
-                    const parent = target.parentElement;
-
-                    if (parent) {
-                      parent.innerHTML = (connection.user?.name || connection.user?.username || 'U')
-                        .charAt(0)
-                        .toUpperCase();
-                      parent.classList.add(
-                        'text-white',
-                        'font-semibold',
-                        'text-sm',
-                        'flex',
-                        'items-center',
-                        'justify-center',
-                      );
-                    }
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full rounded-full bg-bolt-elements-item-contentAccent flex items-center justify-center text-white font-semibold text-sm">
-                  {(connection.user?.name || connection.user?.username || 'U').charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-bolt-elements-textPrimary">
-                {connection.user?.name || connection.user?.username}
-              </h4>
-              <p className="text-sm text-bolt-elements-textSecondary">{connection.user?.username}</p>
-            </div>
-          </div>
-        </motion.div>
+      {/* Stats Panel */}
+      {connection.user && connection.stats && (
+        <ServiceStatsPanel
+          title="Statistics"
+          stats={stats}
+          lastUpdated={connection.stats.lastUpdated}
+          isExpanded={isStatsExpanded}
+          onToggle={() => setIsStatsExpanded(!isStatsExpanded)}
+          isLoading={isLoadingStats}
+        />
       )}
 
-      {/* GitLab Stats Section */}
-      {canReadProjects && connection?.stats && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="border-t border-bolt-elements-borderColor pt-6"
-        >
-          <h3 className="text-base font-medium text-bolt-elements-textPrimary mb-4">Statistics</h3>
-          <StatsDisplay
-            stats={connection.stats}
-            onRefresh={async () => {
-              setIsRefreshingStats(true);
-
-              try {
-                await refreshStats();
-              } catch (error) {
-                console.error('Failed to refresh stats:', error);
-              } finally {
-                setIsRefreshingStats(false);
-              }
-            }}
-            isRefreshing={isRefreshingStats}
-          />
-        </motion.div>
+      {/* Projects List */}
+      {connection.user && projectResources.length > 0 && (
+        <ServiceResourceList
+          title="Projects"
+          resources={projectResources}
+          actions={projectActions}
+          isExpanded={isProjectsExpanded}
+          onToggle={() => setIsProjectsExpanded(!isProjectsExpanded)}
+          emptyMessage="No projects found"
+          permissionEnabled={() => true}
+        />
       )}
 
-      {/* GitLab Repositories Section */}
-      {canReadProjects && connection?.stats?.projects && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="border-t border-bolt-elements-borderColor pt-6"
-        >
-          <RepositoryList
-            repositories={connection.stats.projects}
-            onRefresh={async () => {
-              setIsRefreshingStats(true);
-
-              try {
-                await refreshStats();
-              } catch (error) {
-                console.error('Failed to refresh repositories:', error);
-              } finally {
-                setIsRefreshingStats(false);
-              }
-            }}
-            isRefreshing={isRefreshingStats}
-          />
-        </motion.div>
+      {/* Empty State */}
+      {connection.user && (!connection.stats || projectResources.length === 0) && !isLoadingStats && (
+        <div className="text-center py-12">
+          <div className="i-ph:folder-open w-12 h-12 mx-auto mb-4 text-bolt-elements-textTertiary" />
+          <p className="text-bolt-elements-textSecondary">No projects found in your GitLab account</p>
+          <Button onClick={handleRefreshStats} className="mt-4">
+            Refresh Stats
+          </Button>
+        </div>
       )}
     </div>
   );
