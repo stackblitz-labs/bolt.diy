@@ -10,6 +10,25 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+// Shiki streams its compressed Wasm through Blob.stream(), which jsdom lacks.
+if (typeof Blob.prototype.stream !== 'function') {
+  Blob.prototype.stream = function (this: Blob) {
+    const reader = new FileReader();
+
+    return new ReadableStream<Uint8Array<ArrayBuffer>>({
+      start: (controller) => {
+        reader.onload = () => {
+          controller.enqueue(new Uint8Array(reader.result as ArrayBuffer));
+          controller.close();
+        };
+        reader.onerror = () => controller.error(reader.error);
+        reader.readAsArrayBuffer(this);
+      },
+      cancel: () => reader.abort(),
+    });
+  };
+}
+
 // RTL cleanup + storage reset. Storage is cleared here rather than in the base
 // file because `localStorage` only exists in this environment.
 afterEach(() => {
