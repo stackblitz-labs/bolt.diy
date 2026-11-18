@@ -1,7 +1,7 @@
 import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
-import { logStore } from './logs';
 import type { NetlifyConnection, NetlifyUser } from '~/types/netlify';
+import { logStore } from './logs';
 
 // Initialize with stored connection or environment variable
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('netlify_connection') : null;
@@ -104,6 +104,7 @@ export async function fetchNetlifyStats(token: string) {
       stats: {
         sites,
         totalSites: sites.length,
+        lastUpdated: new Date().toISOString(),
       },
     });
   } catch (error) {

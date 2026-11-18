@@ -1,3 +1,5 @@
+import type { ServiceStats } from '~/lib/stores/base';
+
 export interface GitHubUserResponse {
   login: string;
   avatar_url: string;
@@ -113,7 +115,7 @@ export interface GitHubLanguageStats {
   [key: string]: number;
 }
 
-export interface GitHubStats {
+export interface GitHubStats extends ServiceStats {
   repos: GitHubRepoInfo[];
   totalStars: number;
   totalForks: number;

@@ -1,3 +1,5 @@
+import type { ServiceStats } from '~/lib/stores/base';
+
 export interface SupabaseUser {
   id: string;
   email: string;
@@ -38,9 +40,10 @@ export interface SupabaseProject {
   };
 }
 
-export interface SupabaseStats {
+export interface SupabaseStats extends ServiceStats {
   projects: SupabaseProject[];
   totalProjects: number;
+  lastUpdated?: string;
 }
 
 export interface SupabaseApiKey {

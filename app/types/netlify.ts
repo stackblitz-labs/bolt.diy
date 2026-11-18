@@ -1,3 +1,5 @@
+import type { ServiceStats } from '~/lib/stores/base';
+
 export interface NetlifySite {
   id: string;
   name: string;
@@ -68,7 +70,7 @@ export interface NetlifyUser {
   avatar_url: string;
 }
 
-export interface NetlifyStats {
+export interface NetlifyStats extends ServiceStats {
   sites: NetlifySite[];
   totalSites: number;
   deploys?: NetlifyDeploy[];
@@ -76,6 +78,7 @@ export interface NetlifyStats {
   lastDeployTime?: string;
   totalDeploys?: number;
   totalBuilds?: number;
+  lastUpdated?: string;
 }
 
 export interface NetlifyConnection {

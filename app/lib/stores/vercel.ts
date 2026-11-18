@@ -1,7 +1,7 @@
 import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
-import { logStore } from './logs';
 import type { VercelConnection } from '~/types/vercel';
+import { logStore } from './logs';
 
 // Auto-connect using environment variable
 const envToken = import.meta.env?.VITE_VERCEL_ACCESS_TOKEN;
@@ -196,6 +196,7 @@ export async function fetchVercelStats(token: string) {
       stats: {
         projects: projectsWithDeployments,
         totalProjects: projectsWithDeployments.length,
+        lastUpdated: new Date().toISOString(),
       },
     });
   } catch (error) {

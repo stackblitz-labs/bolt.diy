@@ -1,3 +1,5 @@
+import type { ServiceStats } from '~/lib/stores/base';
+
 export interface VercelUserResponse {
   user?: {
     id: string;
@@ -46,9 +48,10 @@ export interface VercelProject {
   }>;
 }
 
-export interface VercelStats {
+export interface VercelStats extends ServiceStats {
   projects: VercelProject[];
   totalProjects: number;
+  lastUpdated?: string;
 }
 
 export interface VercelConnection {
