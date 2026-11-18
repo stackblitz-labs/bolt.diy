@@ -81,6 +81,26 @@ if (savedCredentials && !initialState.credentials) {
 }
 
 export const supabaseConnection = atom<SupabaseConnectionState>(initialState);
+export const supabaseServerCredentialAvailable = atom<boolean | undefined>(undefined);
+
+let serverCredentialCheck: Promise<boolean> | undefined;
+
+export function checkSupabaseServerCredential(): Promise<boolean> {
+  serverCredentialCheck ??= fetch('/api/supabase')
+    .then(
+      (response) => response.status === 204,
+      () => false,
+    )
+    .then((available) => {
+      supabaseServerCredentialAvailable.set(available);
+      return available;
+    })
+    .finally(() => {
+      serverCredentialCheck = undefined;
+    });
+
+  return serverCredentialCheck;
+}
 
 export const isConnecting = atom(false);
 export const isFetchingStats = atom(false);

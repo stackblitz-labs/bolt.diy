@@ -24,16 +24,6 @@ jobs:
       - name: Setup and Build
         uses: ./.github/actions/setup-and-build
 
-      - name: Cache TypeScript compilation
-        uses: actions/cache@v4
-        with:
-          path: |
-            .tsbuildinfo
-            node_modules/.cache
-          key: ${{ runner.os }}-typescript-${{ hashFiles('**/tsconfig.json', 'app/**/*.ts', 'app/**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-typescript-
-
       - name: Run type check
         run: pnpm run typecheck
 
@@ -41,15 +31,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules/.cache/eslint
-          key: ${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'app/**/*.ts', 'app/**/*.tsx') }}
+          key: ${{ runner.os }}-eslint-${{ hashFiles('eslint.config.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('app/**/*.ts', 'app/**/*.tsx') }}
           restore-keys: |
-            ${{ runner.os }}-eslint-
+            ${{ runner.os }}-eslint-${{ hashFiles('eslint.config.mjs', 'pnpm-lock.yaml') }}-
 
       - name: Run ESLint
         run: pnpm run lint
 
-      - name: Run tests
-        run: pnpm run test
+      - name: Run tests with coverage
+        run: pnpm run test:coverage
 
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium

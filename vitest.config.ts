@@ -16,7 +16,7 @@
  * - **dom** — anything rendering React or touching `localStorage`,
  *   `window.history`, `indexedDB` or the Worker API.
  *
- * Assignment is by explicit glob, not by sniffing imports, so adding a test
+ * Assignment is explicit, so adding a test
  * never silently changes its environment. `DOM_TESTS` below is the complete
  * list of files that genuinely need a DOM; everything else runs in node. If a
  * node test starts failing on a missing global, that is the signal to move it
@@ -46,7 +46,6 @@ const DOM_TESTS = [
   'app/lib/api/cookies.spec.ts',
   'app/lib/persistence/chatCache.spec.ts',
   'app/lib/services/importExportService.spec.ts',
-  'app/lib/stores/workbench.spec.ts',
 
   /*
    * tests/ — every suite here is UI-facing.
@@ -55,8 +54,8 @@ const DOM_TESTS = [
    * used directory globs, and they were silently dropped: the `dom` project's
    * `include` needs concrete paths, and a `**` pattern that matches nothing
    * fails open. That quietly cut 11 files and 116 tests from the run while the
-   * suite still reported green — the exact failure mode this config is meant to
-   * prevent. `tests/setup-dom.spec.ts` below asserts the count instead.
+   * suite still reported green. `tests/setup-dom.spec.ts` checks the discovered
+   * files against the source inventory.
    */
   'tests/integration/layout-stability.test.tsx',
   'tests/integration/performance-monitoring.test.ts',
@@ -71,14 +70,7 @@ const DOM_TESTS = [
   'tests/unit/syntax-highlighter-client.test.ts',
 ];
 
-/**
- * Shared excludes.
- *
- * `Markdown.spec.ts` and `workbench.spec.ts` pull in `import.meta.hot`, which
- * only the app config defines (`import.meta.hot: 'undefined'`). They are listed
- * in DOM_TESTS-adjacent positions but excluded here for both projects, matching
- * the previous behaviour exactly.
- */
+/** Shared excludes for build output and suites owned by other runners. */
 const EXCLUDE = [
   '**/node_modules/**',
   '**/dist/**',
@@ -87,8 +79,6 @@ const EXCLUDE = [
   '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
   '**/tests/preview/**', // Exclude preview tests that require Playwright
   '**/tests/e2e/**', // Exclude e2e tests that require Playwright
-  'app/components/chat/Markdown.spec.ts', // Exclude - imports cause issues with import.meta.hot
-  'app/lib/stores/workbench.spec.ts', // Exclude - imports cause issues with import.meta.hot
 ];
 
 const SHARED = {
@@ -136,9 +126,6 @@ export const DOM_PROJECT = {
   exclude: EXCLUDE,
 };
 
-/** Excluded by both projects, matching the previous behaviour exactly. */
-export const SHARED_EXCLUDE = EXCLUDE;
-
 export default defineConfig({
   test: {
     projects: [
@@ -148,14 +135,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'tests/',
-        '**/*.test.{ts,tsx}',
-        '**/*.spec.{ts,tsx}',
-        '**/types.ts',
-        '**/*.d.ts',
-      ],
+      exclude: ['node_modules/', 'tests/', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}', '**/types.ts', '**/*.d.ts'],
     },
   },
 });

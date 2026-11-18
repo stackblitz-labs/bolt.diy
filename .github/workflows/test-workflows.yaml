@@ -102,23 +102,13 @@ jobs:
       - name: Setup and Build
         uses: ./.github/actions/setup-and-build
 
-      - name: Test TypeScript cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            .tsbuildinfo
-            node_modules/.cache
-          key: test-${{ runner.os }}-typescript-${{ hashFiles('**/tsconfig.json', 'app/**/*.ts', 'app/**/*.tsx') }}
-          restore-keys: |
-            test-${{ runner.os }}-typescript-
-
       - name: Test ESLint cache
         uses: actions/cache@v6
         with:
           path: node_modules/.cache/eslint
-          key: test-${{ runner.os }}-eslint-${{ hashFiles('.eslintrc*', 'app/**/*.ts', 'app/**/*.tsx') }}
+          key: test-${{ runner.os }}-eslint-${{ hashFiles('eslint.config.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('app/**/*.ts', 'app/**/*.tsx') }}
           restore-keys: |
-            test-${{ runner.os }}-eslint-
+            test-${{ runner.os }}-eslint-${{ hashFiles('eslint.config.mjs', 'pnpm-lock.yaml') }}-
 
       - name: Verify caching works
         run: |
@@ -138,7 +128,7 @@ jobs:
           node-version: '22'
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

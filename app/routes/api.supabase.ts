@@ -1,5 +1,48 @@
 import type { ActionFunction } from 'react-router';
+import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { withSecurity } from '~/lib/security';
 import type { SupabaseProject } from '~/types/supabase';
+
+export const loader = withSecurity(
+  async ({ request, context }) => {
+    const apiKeys = getApiKeysFromCookie(request.headers.get('Cookie'));
+    const env = context?.cloudflare?.env as { VITE_SUPABASE_ACCESS_TOKEN?: string } | undefined;
+
+    const token = [
+      apiKeys?.VITE_SUPABASE_ACCESS_TOKEN,
+      env?.VITE_SUPABASE_ACCESS_TOKEN,
+      process.env.VITE_SUPABASE_ACCESS_TOKEN,
+    ]
+      .find((value) => typeof value === 'string' && value.trim())
+      ?.trim();
+
+    const headers = { 'Cache-Control': 'no-store' };
+
+    if (!token) {
+      return Response.json({ error: 'Supabase token not found' }, { status: 401, headers });
+    }
+
+    try {
+      const response = await fetch('https://api.supabase.com/v1/projects', {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: request.signal,
+      });
+
+      if (response.ok) {
+        return new Response(null, { status: 204, headers });
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        return Response.json({ error: 'Invalid Supabase token' }, { status: 401, headers });
+      }
+    } catch {
+      // Report upstream failures without including request or credential details.
+    }
+
+    return Response.json({ error: 'Unable to validate the Supabase token' }, { status: 502, headers });
+  },
+  { allowedMethods: ['GET'] },
+);
 
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== 'POST') {

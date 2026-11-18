@@ -28,7 +28,8 @@ vi.mock('~/lib/stores/netlify', () => ({
   netlifyConnection: { get: () => ({ token: '' }) },
   updateNetlifyConnection: mocks.netlifyUpdate,
 }));
-vi.mock('~/lib/stores/supabase', () => ({
+vi.mock('~/lib/stores/supabase', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('~/lib/stores/supabase')>()),
   supabaseConnection: { get: () => ({ token: '' }) },
   updateSupabaseConnection: mocks.supabaseUpdate,
 }));
@@ -37,12 +38,14 @@ vi.mock('~/lib/stores/mcp', () => ({
 }));
 
 import { activateConnector } from './connectorActivation';
+import { supabaseServerCredentialAvailable } from '~/lib/stores/supabase';
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ error: 'Invalid token' }, { status: 401 })));
   mocks.mcp.settings = { mcpConfig: { mcpServers: {} } };
   mocks.mcp.serverTools = {};
+  supabaseServerCredentialAvailable.set(undefined);
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -82,6 +85,23 @@ describe('connector activation', () => {
     for (const update of [mocks.vercelUpdate, mocks.netlifyUpdate, mocks.supabaseUpdate]) {
       expect(update).toHaveBeenCalledWith(expect.objectContaining({ token: 'validated-test-token' }));
     }
+  });
+
+  it('shares server-only Supabase validation and records availability without storing credentials', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    await Promise.all([activateConnector('supabase'), activateConnector('supabase')]);
+
+    expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/supabase');
+    expect(supabaseServerCredentialAvailable.get()).toBe(true);
+    expect(mocks.supabaseUpdate).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unrelated successful response to the Supabase credential check', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response('Unexpected page'));
+
+    await expect(activateConnector('supabase')).rejects.toThrow('No valid API key');
+    expect(supabaseServerCredentialAvailable.get()).toBe(false);
   });
 
   it('rolls back Browser Use configuration when validation fails', async () => {
