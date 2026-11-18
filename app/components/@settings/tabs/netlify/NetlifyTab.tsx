@@ -5,10 +5,7 @@ import { toast } from 'react-toastify';
 import { ServiceConnectionCard } from '~/components/@settings/shared/ServiceConnectionCard';
 import { ServiceResourceList } from '~/components/@settings/shared/ServiceResourceList';
 import { ServiceStatsPanel } from '~/components/@settings/shared/ServiceStatsPanel';
-import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
-import { useServiceConnection } from '~/lib/hooks/useServiceConnection';
-import { useMCPStore } from '~/lib/stores/mcp';
 import {
   netlifyConnection,
   updateNetlifyConnection,
@@ -17,7 +14,7 @@ import {
   isFetchingStats,
   fetchNetlifyStatsViaAPI,
 } from '~/lib/stores/netlify';
-import type { NetlifySite, NetlifyUser, NetlifyStats } from '~/types/netlify';
+import type { NetlifySite, NetlifyUser } from '~/types/netlify';
 
 // Netlify logo SVG component
 const NetlifyLogo = () => (
@@ -30,8 +27,6 @@ const NetlifyLogo = () => (
 );
 
 export default function NetlifyTab() {
-  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
-  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
   const connection = useStore(netlifyConnection);
   const isConnecting = useStore(netlifyConnecting);
   const isLoadingStats = useStore(isFetchingStats);
@@ -40,7 +35,12 @@ export default function NetlifyTab() {
   const [isStatsExpanded, setIsStatsExpanded] = useState(true);
   const [isSitesExpanded, setIsSitesExpanded] = useState(true);
   const [tokenInput, setTokenInput] = useState('');
-  const [connectionTest, setConnectionTest] = useState<{ status: 'success' | 'error' | 'testing'; message: string; timestamp?: number } | null>(null);
+
+  const [connectionTest, setConnectionTest] = useState<{
+    status: 'success' | 'error' | 'testing';
+    message: string;
+    timestamp?: number;
+  } | null>(null);
 
   // Service-specific connection logic
   const handleConnect = async (): Promise<void> => {
@@ -140,7 +140,7 @@ export default function NetlifyTab() {
           timestamp: Date.now(),
         });
       }
-    } catch (error) {
+    } catch {
       setConnectionTest({
         status: 'error',
         message: 'Connection test failed',
@@ -191,10 +191,7 @@ export default function NetlifyTab() {
       description: site.custom_domain || site.ssl_url || site.url,
       status: site.published_deploy?.state || site.state || 'unknown',
       statusVariant: (site.published_deploy?.state === 'ready' ? 'success' : 'default') as
-        | 'default'
-        | 'success'
-        | 'warning'
-        | 'danger',
+        'default' | 'success' | 'warning' | 'danger',
       url: site.admin_url,
       updatedAt: site.updated_at,
       metadata: site,
@@ -248,33 +245,6 @@ export default function NetlifyTab() {
       },
     ],
     [connection.token],
-  );
-
-  // Define permissions
-  const permissions = useMemo(
-    () => [
-      {
-        id: 'view_site',
-        name: 'View Sites',
-        description: 'Allow viewing site details and URLs',
-      },
-      {
-        id: 'view_live_site',
-        name: 'View Live Sites',
-        description: 'Allow opening live site URLs',
-      },
-      {
-        id: 'trigger_deploy',
-        name: 'Trigger Deploys',
-        description: 'Allow triggering site deployments',
-      },
-      {
-        id: 'view_deploys',
-        name: 'View Deploys',
-        description: 'Allow viewing deployment history',
-      },
-    ],
-    [],
   );
 
   return (

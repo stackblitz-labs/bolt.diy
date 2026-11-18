@@ -60,13 +60,12 @@ export interface SupabaseMetadata extends Record<string, unknown> {
   credentials?: SupabaseCredentials;
 }
 
-export interface SupabaseConnectionStateNew
-  extends SelectableResourceConnectionState<
-    SupabaseUser,
-    SupabaseStats,
-    SupabaseProject,
-    SupabaseMetadata
-  > {}
+export interface SupabaseConnectionStateNew extends SelectableResourceConnectionState<
+  SupabaseUser,
+  SupabaseStats,
+  SupabaseProject,
+  SupabaseMetadata
+> {}
 
 // Keep existing interface for backward compatibility during migration
 export interface SupabaseConnectionState {

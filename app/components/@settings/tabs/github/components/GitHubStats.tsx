@@ -1,10 +1,10 @@
 import React from 'react';
+import { GitHubErrorBoundary } from './GitHubErrorBoundary';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { useGitHubStats } from '~/lib/hooks';
 import type { GitHubConnection, GitHubStats as GitHubStatsType } from '~/types/GitHub';
 import { classNames } from '~/utils/classNames';
-import { GitHubErrorBoundary } from './GitHubErrorBoundary';
 
 interface GitHubStatsProps {
   connection: GitHubConnection;

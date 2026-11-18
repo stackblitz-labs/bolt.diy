@@ -2,7 +2,7 @@ import { atom, computed } from 'nanostores';
 import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { gitHubApiService } from '~/lib/services/githubApiService';
 import { logStore } from '~/lib/stores/logs';
-import type { GitHubConnection, GitHubConnectionState } from '~/types/GitHub';
+import type { GitHubConnectionState } from '~/types/GitHub';
 import { calculateStatsSummary } from '~/utils/githubStats';
 
 // Auto-connect using environment variable
@@ -178,10 +178,7 @@ export const githubConnectionStore = {
     isGitHubLoadingStats.set(true);
 
     try {
-      const stats = await gitHubApiService.fetchStats(
-        connection.token,
-        connection.metadata?.tokenType || 'classic',
-      );
+      const stats = await gitHubApiService.fetchStats(connection.token, connection.metadata?.tokenType || 'classic');
 
       // Update connection with stats
       const updatedConnection: GitHubConnectionState = {

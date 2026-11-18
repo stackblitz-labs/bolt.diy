@@ -147,8 +147,11 @@ export interface GitHubMetadata extends Record<string, unknown> {
   rateLimit?: GitHubRateLimits;
 }
 
-export interface GitHubConnectionState
-  extends ServiceConnectionState<GitHubUserResponse, GitHubStats, GitHubMetadata> {}
+export interface GitHubConnectionState extends ServiceConnectionState<
+  GitHubUserResponse,
+  GitHubStats,
+  GitHubMetadata
+> {}
 
 // Backward compatibility alias
 export type GitHubConnection = GitHubConnectionState;

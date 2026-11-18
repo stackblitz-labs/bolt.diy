@@ -1,6 +1,6 @@
 import { atom } from 'nanostores';
-import type { GitHubConnection, GitHubConnectionState } from '~/types/GitHub';
 import { logStore } from './logs';
+import type { GitHubConnectionState } from '~/types/GitHub';
 
 // Initialize with stored connection or defaults
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('github_connection') : null;

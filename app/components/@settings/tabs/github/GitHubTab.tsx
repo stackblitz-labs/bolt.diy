@@ -6,7 +6,6 @@ import { ServiceConnectionCard } from '~/components/@settings/shared/ServiceConn
 import { ServiceResourceList } from '~/components/@settings/shared/ServiceResourceList';
 import { ServiceStatsPanel } from '~/components/@settings/shared/ServiceStatsPanel';
 import { Button } from '~/components/ui/Button';
-import { useMCPStore } from '~/lib/stores/mcp';
 import {
   githubConnection,
   updateGitHubConnection,
@@ -28,8 +27,6 @@ const GithubLogo = () => (
 );
 
 export default function GitHubTab() {
-  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
-  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
   const connection = useStore(githubConnection);
   const isConnecting = useStore(githubConnecting);
   const isLoadingStats = useStore(isFetchingStats);
@@ -38,6 +35,7 @@ export default function GitHubTab() {
   const [isStatsExpanded, setIsStatsExpanded] = useState(true);
   const [isReposExpanded, setIsReposExpanded] = useState(true);
   const [tokenInput, setTokenInput] = useState('');
+
   const [connectionTest, setConnectionTest] = useState<{
     status: 'success' | 'error' | 'testing';
     message: string;
@@ -168,7 +166,7 @@ export default function GitHubTab() {
           });
         }
       }
-    } catch (error) {
+    } catch {
       setConnectionTest({
         status: 'error',
         message: 'Connection test failed',
@@ -223,11 +221,8 @@ export default function GitHubTab() {
       name: repo.name,
       description: repo.description || 'No description',
       status: repo.archived ? 'archived' : repo.private ? 'private' : 'public',
-      statusVariant: (repo.archived
-        ? 'default'
-        : repo.private
-          ? 'warning'
-          : 'success') as 'default' | 'success' | 'warning',
+      statusVariant: (repo.archived ? 'default' : repo.private ? 'warning' : 'success') as
+        'default' | 'success' | 'warning',
       url: repo.html_url,
       updatedAt: repo.updated_at,
       metadata: repo,

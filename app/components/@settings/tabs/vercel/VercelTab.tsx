@@ -6,7 +6,6 @@ import { ServiceConnectionCard } from '~/components/@settings/shared/ServiceConn
 import { ServiceResourceList } from '~/components/@settings/shared/ServiceResourceList';
 import { ServiceStatsPanel } from '~/components/@settings/shared/ServiceStatsPanel';
 import { Button } from '~/components/ui/Button';
-import { useMCPStore } from '~/lib/stores/mcp';
 import {
   vercelConnection,
   updateVercelConnection,
@@ -25,8 +24,6 @@ const VercelLogo = () => (
 );
 
 export default function VercelTab() {
-  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
-  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
   const connection = useStore(vercelConnection);
   const isConnecting = useStore(vercelConnecting);
   const isLoadingStats = useStore(isFetchingStats);
@@ -35,6 +32,7 @@ export default function VercelTab() {
   const [isStatsExpanded, setIsStatsExpanded] = useState(true);
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
   const [tokenInput, setTokenInput] = useState('');
+
   const [connectionTest, setConnectionTest] = useState<{
     status: 'success' | 'error' | 'testing';
     message: string;
@@ -150,7 +148,7 @@ export default function VercelTab() {
           timestamp: Date.now(),
         });
       }
-    } catch (error) {
+    } catch {
       setConnectionTest({
         status: 'error',
         message: 'Connection test failed',
@@ -179,8 +177,7 @@ export default function VercelTab() {
       {
         label: 'Active Deployments',
         value:
-          connection.stats.projects?.filter((p: VercelProject) => (p.latestDeployments?.length || 0) > 0).length ||
-          0,
+          connection.stats.projects?.filter((p: VercelProject) => (p.latestDeployments?.length || 0) > 0).length || 0,
         icon: 'i-ph:rocket-launch',
       },
     ];

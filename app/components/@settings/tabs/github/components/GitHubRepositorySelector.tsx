@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
 import { Search, RefreshCw, GitBranch, Calendar, Filter } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
+import { GitHubRepositoryCard } from './GitHubRepositoryCard';
 import { BranchSelector } from '~/components/ui/BranchSelector';
 import { Button } from '~/components/ui/Button';
 import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
 import type { GitHubRepoInfo } from '~/types/GitHub';
 import { classNames } from '~/utils/classNames';
-import { GitHubRepositoryCard } from './GitHubRepositoryCard';
 
 interface GitHubRepositorySelectorProps {
   onClone?: (repoUrl: string, branch?: string) => void;

@@ -5,9 +5,8 @@ import { toast } from 'react-toastify';
 import { ServiceConnectionCard } from '~/components/@settings/shared/ServiceConnectionCard';
 import { ServiceResourceList } from '~/components/@settings/shared/ServiceResourceList';
 import { ServiceStatsPanel } from '~/components/@settings/shared/ServiceStatsPanel';
-import { Button } from '~/components/ui/Button';
 import { Badge } from '~/components/ui/Badge';
-import { useMCPStore } from '~/lib/stores/mcp';
+import { Button } from '~/components/ui/Button';
 import {
   supabaseConnection,
   updateSupabaseConnection,
@@ -18,7 +17,6 @@ import {
   fetchProjectApiKeys,
   type SupabaseProject,
 } from '~/lib/stores/supabase';
-import type { SupabaseUser } from '~/types/supabase';
 
 // Supabase logo SVG component
 const SupabaseLogo = () => (
@@ -40,8 +38,6 @@ const SupabaseLogo = () => (
 );
 
 export default function SupabaseTab() {
-  const toolEnabled = useMCPStore((state) => state.settings.toolEnabled);
-  const permissionsInitialized = useMCPStore((state) => state.isInitialized);
   const connection = useStore(supabaseConnection);
   const isConnecting = useStore(supabaseConnecting);
   const isLoadingStats = useStore(isFetchingStats);
@@ -50,6 +46,7 @@ export default function SupabaseTab() {
   const [isStatsExpanded, setIsStatsExpanded] = useState(true);
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
   const [tokenInput, setTokenInput] = useState('');
+
   const [connectionTest, setConnectionTest] = useState<{
     status: 'success' | 'error' | 'testing';
     message: string;
@@ -160,7 +157,7 @@ export default function SupabaseTab() {
           timestamp: Date.now(),
         });
       }
-    } catch (error) {
+    } catch {
       setConnectionTest({
         status: 'error',
         message: 'Connection test failed',
@@ -189,7 +186,7 @@ export default function SupabaseTab() {
         });
         toast.success('Project credentials fetched successfully');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch project credentials');
     }
   };
