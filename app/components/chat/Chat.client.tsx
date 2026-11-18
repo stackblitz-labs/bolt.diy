@@ -3,7 +3,7 @@ import { useStore } from '@nanostores/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
@@ -11,6 +11,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
 import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
 import { isServerAgentTool } from '~/lib/common/agentLoop';
+import { getChatRequestFiles } from '~/lib/common/chatRequestFiles';
 import { STARTER_BUILD_FLAG } from '~/lib/common/starterBuild';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
@@ -163,7 +164,6 @@ export const ChatImpl = memo(
     const [imageDataList, setImageDataList] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
     const [fakeLoading, setFakeLoading] = useState(false);
-    const files = useStore(workbenchStore.files);
     const [designScheme, setDesignScheme] = useState<DesignScheme>(defaultDesignScheme);
     const actionAlert = useStore(workbenchStore.alert);
     const deployAlert = useStore(workbenchStore.deployAlert);
@@ -234,9 +234,22 @@ export const ChatImpl = memo(
       () => undefined,
     );
 
-    const bodyRef = useRef({
+    const activePlugins = useMemo(
+      () =>
+        installedPlugins
+          .filter((plugin) => plugin.enabled)
+          .map((plugin) => {
+            const manifest = plugin.manifest as PluginManifest;
+            const tools = manifest.tools.filter((tool) => plugin.configuration[`toolDisabled:${tool}`] !== true);
+
+            return { id: plugin.id, adapter: manifest.contribution.adapter, tools };
+          })
+          .filter((plugin) => plugin.tools.length > 0),
+      [installedPlugins],
+    );
+
+    const requestSettings = {
       apiKeys,
-      files,
       promptId,
       contextOptimization: contextOptimizationEnabled,
       chatMode,
@@ -254,47 +267,31 @@ export const ChatImpl = memo(
       webSearchEnabled: mcpSettings.webSearchEnabled,
       connectorEnabled: mcpSettings.connectorEnabled,
       toolEnabled: mcpSettings.toolEnabled,
-      plugins: installedPlugins
-        .filter((plugin) => plugin.enabled)
-        .map((plugin) => {
-          const manifest = plugin.manifest as PluginManifest;
-          const tools = manifest.tools.filter((tool) => plugin.configuration[`toolDisabled:${tool}`] !== true);
-
-          return { id: plugin.id, adapter: manifest.contribution.adapter, tools };
-        })
-        .filter((plugin) => plugin.tools.length > 0),
-    });
-
-    bodyRef.current = {
-      apiKeys,
-      files,
-      promptId,
-      contextOptimization: contextOptimizationEnabled,
-      chatMode,
-      agentMode,
-      designScheme,
-      supabase: {
-        isConnected: mcpSettings.connectorEnabled.supabase && supabaseConn.isConnected,
-        hasSelectedProject: mcpSettings.connectorEnabled.supabase && !!selectedProject,
-        credentials: {
-          supabaseUrl: mcpSettings.connectorEnabled.supabase ? supabaseConn?.credentials?.supabaseUrl : undefined,
-          anonKey: mcpSettings.connectorEnabled.supabase ? supabaseConn?.credentials?.anonKey : undefined,
-        },
-      },
-      maxLLMSteps: mcpSettings.maxLLMSteps,
-      webSearchEnabled: mcpSettings.webSearchEnabled,
-      connectorEnabled: mcpSettings.connectorEnabled,
-      toolEnabled: mcpSettings.toolEnabled,
-      plugins: installedPlugins
-        .filter((plugin) => plugin.enabled)
-        .map((plugin) => {
-          const manifest = plugin.manifest as PluginManifest;
-          const tools = manifest.tools.filter((tool) => plugin.configuration[`toolDisabled:${tool}`] !== true);
-
-          return { id: plugin.id, adapter: manifest.contribution.adapter, tools };
-        })
-        .filter((plugin) => plugin.tools.length > 0),
+      plugins: activePlugins,
     };
+
+    const requestSettingsRef = useRef(requestSettings);
+    requestSettingsRef.current = requestSettings;
+
+    const [transport] = useState(
+      () =>
+        new DefaultChatTransport({
+          api: '/api/chat',
+
+          // Read the latest project files on send without subscribing the chat UI to file updates.
+          body: () => {
+            const settings = requestSettingsRef.current;
+
+            return {
+              ...settings,
+              files: getChatRequestFiles(
+                workbenchStore.files.get(),
+                settings.chatMode === 'build' && settings.agentMode,
+              ),
+            };
+          },
+        }),
+    );
 
     const {
       messages,
@@ -305,18 +302,7 @@ export const ChatImpl = memo(
       error,
       addToolOutput,
     } = useChat({
-      transport: new DefaultChatTransport({
-        api: '/api/chat',
-
-        /*
-         * body is resolved per request, but only if it is a function. Passing a
-         * plain object froze every value here at first render, which silently
-         * staled the API keys, chat mode and step limit. Without this the
-         * server received no chatMode at all and answered with discussPrompt()
-         * instead of the build prompt, so no artifacts were ever produced.
-         */
-        body: () => bodyRef.current,
-      }),
+      transport,
 
       /*
        * v5 removed useChat's `data` array. data-progress parts now arrive here
@@ -1205,6 +1191,16 @@ export const ChatImpl = memo(
       setSecureCookie('selectedProvider', newProvider.name, { expires: 30 });
     };
 
+    const append = useCallback((message: UIMessage) => sendChatMessage(message), [sendChatMessage]);
+
+    const displayMessages = useMemo(
+      () =>
+        messages.map((message, index) =>
+          message.role === 'user' ? message : { ...message, parsedContent: parsedMessages[index] || '' },
+        ),
+      [messages, parsedMessages],
+    );
+
     return (
       <BaseChat
         ref={animationScope}
@@ -1213,9 +1209,7 @@ export const ChatImpl = memo(
         showChat={showChat}
         chatStarted={chatStarted}
         isStreaming={isLoading || fakeLoading}
-        onStreamingChange={(streaming) => {
-          streamingState.set(streaming);
-        }}
+        onStreamingChange={streamingState.set}
         enhancingPrompt={enhancingPrompt}
         promptEnhanced={promptEnhanced}
         sendMessage={sendMessage}
@@ -1233,22 +1227,13 @@ export const ChatImpl = memo(
         importChat={importChat}
         exportChat={exportChat}
         archivedMessages={archivedMessages}
-        messages={messages.map((message, i) => {
-          if (message.role === 'user') {
-            return message;
-          }
-
-          return {
-            ...message,
-            parsedContent: parsedMessages[i] || '',
-          };
-        })}
+        messages={displayMessages}
 
         /*
          * Markdown's quick-action buttons (__boltQuickAction__) call append to
          * re-send a message. Without this they rendered but did nothing.
          */
-        append={(message) => sendChatMessage(message as UIMessage)}
+        append={append}
         enhancePrompt={() => {
           enhancePrompt(
             input,

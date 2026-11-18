@@ -4,6 +4,7 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react
 import { useLoaderData, useNavigate, useParams, useSearchParams, type NavigateFunction } from 'react-router';
 import { toast } from 'react-toastify';
 import { getCachedMessages, getCachedSnapshot, invalidateChatCache } from './chatCache';
+import { createChatSaveQueue } from './chatSaveQueue';
 import {
   getMessagesByIdRaw,
   getMessagesByUrlIdRaw,
@@ -83,16 +84,28 @@ export function useChatHistory({ loadHistory = true }: { loadHistory?: boolean }
   const routeHandoffChatIdRef = useRef<string | undefined>(undefined);
   const pendingChatCreationRef = useRef<Promise<{ id: string; urlId?: string }> | undefined>(undefined);
   const pendingChatNavigationRef = useRef<{ id: string; urlId?: string } | undefined>(undefined);
-  const messageHistoryQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const [messageHistoryQueue] = useState(createChatSaveQueue);
   const messageHistoryGenerationRef = useRef(0);
   const persistenceRouteRef = useRef(mixedId);
+  const persistenceMountedRef = useRef(false);
+
+  useLayoutEffect(() => {
+    persistenceMountedRef.current = true;
+
+    return () => {
+      persistenceMountedRef.current = false;
+      messageHistoryGenerationRef.current++;
+      messageHistoryQueue.discardCheckpoint();
+    };
+  }, [messageHistoryQueue]);
 
   useLayoutEffect(() => {
     if (persistenceRouteRef.current !== mixedId) {
       persistenceRouteRef.current = mixedId;
       messageHistoryGenerationRef.current++;
+      messageHistoryQueue.discardCheckpoint();
     }
-  }, [mixedId]);
+  }, [mixedId, messageHistoryQueue]);
 
   useEffect(() => {
     let cleanup: () => void = () => undefined;
@@ -540,6 +553,10 @@ ${value.content}
       }
     },
     storeMessageHistory: (messages: UIMessage[], isStreaming = false) => {
+      if (!persistenceMountedRef.current || persistenceRouteRef.current !== mixedId) {
+        return Promise.resolve();
+      }
+
       const messageHistoryGeneration = messageHistoryGenerationRef.current;
 
       const persistMessageHistory = async () => {
@@ -696,13 +713,7 @@ ${value.content}
         }
       };
 
-      const queuedPersistence = messageHistoryQueueRef.current.then(persistMessageHistory, persistMessageHistory);
-      messageHistoryQueueRef.current = queuedPersistence.then(
-        () => undefined,
-        () => undefined,
-      );
-
-      return queuedPersistence;
+      return messageHistoryQueue.submit(persistMessageHistory, isStreaming);
     },
     duplicateCurrentChat: async (listItemId: string) => {
       if (!db || (!mixedId && !listItemId)) {

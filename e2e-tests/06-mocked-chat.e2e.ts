@@ -1,6 +1,11 @@
 import { test, expect, textStream } from './helpers/fixtures';
 
 test('sends a structured chat message and displays the streamed assistant reply', async ({ readyPage: page }) => {
+  await page.addInitScript(() => {
+    if (window === window.top) {
+      localStorage.setItem('autoSelectTemplate', 'false');
+    }
+  });
   let requestBody: any;
   await page.route('**/api/chat', async (route) => {
     requestBody = route.request().postDataJSON();
@@ -11,8 +16,6 @@ test('sends a structured chat message and displays the streamed assistant reply'
     });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Agent' }).click();
-  await page.getByText('Discuss', { exact: false }).click();
   const input = page.locator('textarea').first();
   await input.fill('Say hello from the test');
   await input.press('Enter');
@@ -86,4 +89,23 @@ test('shows the saved transcript when opening and reloading a chat with a projec
   await expect(page.getByText('Original saved prompt', { exact: true })).toBeVisible();
   await expect(page.getByText('Original saved reply', { exact: true })).toBeVisible();
   await expect(page.getByText('Follow-up saved prompt', { exact: true })).toBeVisible();
+  await expect(page.getByText('saved.txt', { exact: true }).first()).toBeVisible();
+
+  await page.route('**/api/chat', (route) =>
+    route.fulfill({
+      headers: { 'content-type': 'text/event-stream', 'x-vercel-ai-ui-message-stream': 'v1' },
+      body: textStream('Native agent response'),
+    }),
+  );
+  await page.getByRole('button', { name: 'Agent', exact: true }).click();
+  await page.getByRole('menuitem', { name: /Agent Plans/ }).click();
+  const composer = page.locator('textarea').first();
+  await composer.fill('Explain this project');
+
+  const outgoingRequest = page.waitForRequest((request) => request.url().endsWith('/api/chat'));
+  await composer.press('Enter');
+  const requestBody = (await outgoingRequest).postDataJSON();
+  expect(requestBody).toMatchObject({ chatMode: 'build', agentMode: true });
+  expect(requestBody.files).toEqual({});
+  await expect(page.getByText('Native agent response', { exact: true })).toBeVisible();
 });

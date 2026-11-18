@@ -540,19 +540,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
             </div>
           </div>
-          <ClientOnly>
-            {() => (
-              <Suspense fallback={null}>
-                <LazyWorkbench
-                  chatStarted={chatStarted}
-                  isStreaming={isStreaming}
-                  selectedElement={selectedElement}
-                  setSelectedElement={setSelectedElement}
-                  exportChat={exportChat}
-                />
-              </Suspense>
-            )}
-          </ClientOnly>
+          {chatStarted && (
+            <ClientOnly>
+              {() => (
+                <Suspense fallback={null}>
+                  <LazyWorkbench
+                    chatStarted={chatStarted}
+                    isStreaming={isStreaming}
+                    selectedElement={selectedElement}
+                    setSelectedElement={setSelectedElement}
+                    exportChat={exportChat}
+                  />
+                </Suspense>
+              )}
+            </ClientOnly>
+          )}
         </div>
       </div>
     );

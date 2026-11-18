@@ -67,6 +67,8 @@ export function useMessageParser() {
 
   const parseMessages = useCallback(
     (messages: { id: string; role?: string }[], isLoading: boolean, allowCodeActions = true) => {
+      const additions: [number, string][] = [];
+
       for (const [index, message] of messages.entries()) {
         if (message.role === 'assistant' || message.role === 'user') {
           const messageText = getMessageText(message);
@@ -81,11 +83,23 @@ export function useMessageParser() {
             parserText,
             message.role === 'assistant' && !isLoading,
           );
-          setParsedMessages((prevParsed) => ({
-            ...prevParsed,
-            [index]: (prevParsed[index] || '') + newParsedContent,
-          }));
+
+          if (newParsedContent) {
+            additions.push([index, newParsedContent]);
+          }
         }
+      }
+
+      if (additions.length > 0) {
+        setParsedMessages((previous) => {
+          const next = { ...previous };
+
+          for (const [index, content] of additions) {
+            next[index] = (next[index] || '') + content;
+          }
+
+          return next;
+        });
       }
     },
     [],

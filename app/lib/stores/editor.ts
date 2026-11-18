@@ -11,6 +11,7 @@ const logger = createScopedLogger('EditorStore');
 
 export class EditorStore {
   #filesStore: FilesStore;
+  #previousFiles: FileMap = {};
 
   selectedFile: SelectedFile = import.meta.hot?.data.selectedFile ?? atom<string | undefined>();
   documents: MapStore<EditorDocuments> = import.meta.hot?.data.documents ?? map({});
@@ -33,31 +34,56 @@ export class EditorStore {
   }
 
   setDocuments(files: FileMap) {
-    const previousDocuments = this.documents.value;
+    const previousFiles = this.#previousFiles;
 
-    this.documents.set(
-      Object.fromEntries<EditorDocument>(
-        Object.entries(files)
-          .map(([filePath, dirent]) => {
-            if (dirent === undefined || dirent.type !== 'file') {
-              return undefined;
-            }
+    if (files === previousFiles) {
+      return;
+    }
 
-            const previousDocument = previousDocuments?.[filePath];
+    this.#previousFiles = files;
 
-            return [
-              filePath,
-              {
-                value: dirent.content,
-                filePath,
-                isBinary: dirent.isBinary, // Add this line
-                scroll: previousDocument?.scroll,
-              },
-            ] as [string, EditorDocument];
-          })
-          .filter(Boolean) as Array<[string, EditorDocument]>,
-      ),
-    );
+    const documents = this.documents.get();
+    const nextDocuments: EditorDocuments = {};
+
+    let changed = false;
+    let fileCount = 0;
+
+    for (const filePath of Object.keys(files)) {
+      const file = files[filePath];
+
+      if (file?.type !== 'file') {
+        continue;
+      }
+
+      const previousDocument = documents[filePath];
+      const previousFile = previousFiles[filePath];
+      fileCount++;
+
+      // Keep a draft and its selection when the persisted file is unchanged.
+      if (
+        previousDocument &&
+        (previousFile === file ||
+          (previousFile?.type === 'file' &&
+            previousFile.content === file.content &&
+            previousFile.isBinary === file.isBinary) ||
+          (previousDocument.value === file.content && previousDocument.isBinary === file.isBinary))
+      ) {
+        nextDocuments[filePath] = previousDocument;
+        continue;
+      }
+
+      changed = true;
+      nextDocuments[filePath] = {
+        value: file.content,
+        filePath,
+        isBinary: file.isBinary,
+        scroll: previousDocument?.scroll,
+      };
+    }
+
+    if (changed || fileCount !== Object.keys(documents).length) {
+      this.documents.set(nextDocuments);
+    }
   }
 
   setSelectedFile(filePath: string | undefined) {

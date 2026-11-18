@@ -25,6 +25,21 @@ const value = 1;
   </boltAction>
 </boltArtifact>`;
 
+it('keeps parsed state stable when a stream update adds no display text', () => {
+  const { result } = renderHook(() => useMessageParser());
+  const message = { id: 'unchanged-message', role: 'assistant', content: 'Hello' };
+
+  act(() => result.current.parseMessages([message], true));
+
+  const parsed = result.current.parsedMessages;
+
+  act(() => result.current.parseMessages([message], false));
+  expect(result.current.parsedMessages).toBe(parsed);
+
+  act(() => result.current.parseMessages([{ ...message, content: 'Hello world' } as typeof message], false));
+  expect(result.current.parsedMessages[0]).toBe('Hello world');
+});
+
 describe('useMessageParser.resetParsedMessages', () => {
   beforeEach(() => {
     addArtifact.mockClear();
