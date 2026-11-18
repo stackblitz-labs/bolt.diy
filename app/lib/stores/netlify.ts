@@ -115,3 +115,6 @@ export async function fetchNetlifyStats(token: string) {
     isFetchingStats.set(false);
   }
 }
+
+// Export alias for consistency with other stores
+export const fetchNetlifyStatsViaAPI = fetchNetlifyStats;
