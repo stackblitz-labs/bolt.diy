@@ -13,46 +13,63 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
-  deployments: write
+
+env:
+  PREVIEW_NAME: preview-pr-${{ github.event.pull_request.number }}
 
 jobs:
   deploy-preview:
     name: Deploy Preview
     runs-on: ubuntu-latest
-    if: github.event.action != 'closed'
-    
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+
     steps:
       - name: Check if preview deployment is configured
         id: check-secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [[ -n "${{ secrets.CLOUDFLARE_API_TOKEN }}" && -n "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]]; then
-            echo "configured=true" >> $GITHUB_OUTPUT
+          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           else
-            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "configured=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout
         if: steps.check-secrets.outputs.configured == 'true'
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup and Build
         if: steps.check-secrets.outputs.configured == 'true'
         uses: ./.github/actions/setup-and-build
-
-      - name: Build for production
-        if: steps.check-secrets.outputs.configured == 'true'
-        run: pnpm run build
         env:
           NODE_ENV: production
 
       - name: Deploy preview to Cloudflare Workers
         if: steps.check-secrets.outputs.configured == 'true'
         id: deploy
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env-name=preview-${{ github.head_ref }} --branch=${{ github.head_ref }}
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          result="$(pnpm exec wrangler preview --name "$PREVIEW_NAME" --json)"
+          # Wrangler prints Vite config and asset logs before the JSON object.
+          preview_url="$(sed -n '/^{/,/^}$/p' <<< "$result" |
+            jq -er '.preview.urls[0] | strings | select(test("^https://[^[:space:]]+$"))')"
+          echo "deployment-url=$preview_url" >> "$GITHUB_OUTPUT"
+
+      - name: Run smoke test on preview
+        if: steps.check-secrets.outputs.configured == 'true'
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          echo "Checking $PREVIEW_URL"
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
+            --max-time 30 --output /dev/null -- "$PREVIEW_URL"
 
       - name: Preview deployment not configured
         if: steps.check-secrets.outputs.configured == 'false'
@@ -62,28 +79,30 @@ jobs:
           echo "- CLOUDFLARE_API_TOKEN"
           echo "- CLOUDFLARE_ACCOUNT_ID"
           echo "This is optional and the workflow will pass without it."
-          echo "url=https://preview-not-configured.example.com" >> $GITHUB_OUTPUT
 
       - name: Add preview URL comment to PR
         uses: actions/github-script@v9
         continue-on-error: true
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url }}
         with:
           script: |
-            const { data: comments } = await github.rest.issues.listComments({
+            const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
 
-            const previewComment = comments.find(comment => 
-              comment.body.includes('🚀 Preview deployment')
+            const previewComment = comments.find(comment =>
+              comment.user?.login === 'github-actions[bot]' &&
+              (comment.body?.startsWith('🚀 Preview deployment') ||
+                comment.body?.startsWith('ℹ️ Preview deployment'))
             );
 
-            const isConfigured = '${{ steps.check-secrets.outputs.configured }}' === 'true';
-            const deployUrl = '${{ steps.deploy.outputs.deployment-url }}' || 'https://preview-not-configured.example.com';
+            const deployUrl = process.env.PREVIEW_URL;
 
             let commentBody;
-            if (isConfigured) {
+            if (deployUrl) {
               commentBody = `🚀 Preview deployment is ready!
 
               | Name | Link |
@@ -110,14 +129,14 @@ jobs:
             }
 
             if (previewComment) {
-              github.rest.issues.updateComment({
+              await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: previewComment.id,
                 body: commentBody
               });
             } else {
-              github.rest.issues.createComment({
+              await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
@@ -125,66 +144,74 @@ jobs:
               });
             }
 
-      - name: Run smoke tests on preview
+      - name: Record preview URL
+        if: steps.check-secrets.outputs.configured == 'true'
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url }}
         run: |
-          if [[ "${{ steps.check-secrets.outputs.configured }}" == "true" ]]; then
-            echo "Running smoke tests on preview deployment..."
-            echo "Preview URL: ${{ steps.deploy.outputs.url }}"
-            # Basic HTTP check instead of Playwright tests
-            curl -f ${{ steps.deploy.outputs.url }} || echo "Preview environment check completed"
-          else
-            echo "✅ Smoke tests skipped - preview deployment not configured"
-            echo "This is normal and expected when Cloudflare secrets are not available"
-          fi
-
-      - name: Preview workflow summary
-        run: |
-          echo "✅ Preview deployment workflow completed successfully"
-          if [[ "${{ steps.check-secrets.outputs.configured }}" == "true" ]]; then
-            echo "🚀 Preview deployed to: ${{ steps.deploy.outputs.url }}"
-          else
-            echo "ℹ️ Preview deployment not configured (this is normal)"
-          fi
+          printf 'Preview deployed to %s\n' "$PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
 
   cleanup-preview:
     name: Cleanup Preview
     runs-on: ubuntu-latest
-    if: github.event.action == 'closed'
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
-      - name: Delete preview environment
-        uses: actions/github-script@v9
-        continue-on-error: true
-        with:
-          script: |
-            const deployments = await github.rest.repos.listDeployments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              environment: `preview-pr-${{ github.event.pull_request.number }}`,
-            });
+      - name: Check if preview deployment is configured
+        id: check-secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
 
-            for (const deployment of deployments.data) {
-              await github.rest.repos.createDeploymentStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                deployment_id: deployment.id,
-                state: 'inactive',
-              });
-            }
+      - name: Checkout base commit
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Set up pnpm
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: pnpm/action-setup@v5
+
+      - name: Set up Node.js
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.check-secrets.outputs.configured == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Delete Cloudflare preview
+        if: steps.check-secrets.outputs.configured == 'true'
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler preview delete --name "$PREVIEW_NAME" --skip-confirmation
 
       - name: Remove preview comment
         uses: actions/github-script@v9
         continue-on-error: true
         with:
           script: |
-            const { data: comments } = await github.rest.issues.listComments({
+            const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
 
             for (const comment of comments) {
-              if (comment.body.includes('🚀 Preview deployment')) {
+              if (comment.user?.login === 'github-actions[bot]' &&
+                  (comment.body?.startsWith('🚀 Preview deployment') ||
+                    comment.body?.startsWith('ℹ️ Preview deployment'))) {
                 await github.rest.issues.deleteComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
