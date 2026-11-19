@@ -23,6 +23,7 @@ export default [
   { file: 'routes/api.chat.ts', path: '/api/chat' },
   { file: 'routes/api.check-env-key.ts', path: '/api/check-env-key' },
   { file: 'routes/api.configured-providers.ts', path: '/api/configured-providers' },
+  { file: 'routes/api.deedpage-deploy.ts', path: '/api/deedpage-deploy' },
   { file: 'routes/api.enhancer.ts', path: '/api/enhancer' },
   { file: 'routes/api.export-api-keys.ts', path: '/api/export-api-keys' },
   { file: 'routes/api.git-info.ts', path: '/api/git-info' },

@@ -3,6 +3,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useState } from 'react';
 import { NetlifyDeploymentLink } from '~/components/chat/NetlifyDeploymentLink.client';
 import { VercelDeploymentLink } from '~/components/chat/VercelDeploymentLink.client';
+import { useDeedPageDeploy } from '~/components/deploy/DeedPageDeploy.client';
 import { useGitHubDeploy } from '~/components/deploy/GitHubDeploy.client';
 import { GitHubDeploymentDialog } from '~/components/deploy/GitHubDeploymentDialog';
 import { useGitLabDeploy } from '~/components/deploy/GitLabDeploy.client';
@@ -21,6 +22,7 @@ interface DeployButtonProps {
   onNetlifyDeploy?: () => Promise<void>;
   onGitHubDeploy?: () => Promise<void>;
   onGitLabDeploy?: () => Promise<void>;
+  onDeedPageDeploy?: () => Promise<void>;
 }
 
 export const DeployButton = ({
@@ -28,6 +30,7 @@ export const DeployButton = ({
   onNetlifyDeploy,
   onGitHubDeploy,
   onGitLabDeploy,
+  onDeedPageDeploy,
 }: DeployButtonProps) => {
   const netlifyConn = useStore(netlifyConnection);
   const vercelConn = useStore(vercelConnection);
@@ -36,12 +39,13 @@ export const DeployButton = ({
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployingTo, setDeployingTo] = useState<'netlify' | 'vercel' | 'github' | 'gitlab' | null>(null);
+  const [deployingTo, setDeployingTo] = useState<'netlify' | 'vercel' | 'github' | 'gitlab' | 'deed.page' | null>(null);
   const isStreaming = useStore(streamingState);
   const { handleVercelDeploy } = useVercelDeploy();
   const { handleNetlifyDeploy } = useNetlifyDeploy();
   const { handleGitHubDeploy } = useGitHubDeploy();
   const { handleGitLabDeploy } = useGitLabDeploy();
+  const { handleDeedPageDeploy } = useDeedPageDeploy();
   const [showGitHubDeploymentDialog, setShowGitHubDeploymentDialog] = useState(false);
   const [showGitLabDeploymentDialog, setShowGitLabDeploymentDialog] = useState(false);
   const [githubDeploymentFiles, setGithubDeploymentFiles] = useState<Record<string, string> | null>(null);
@@ -118,6 +122,22 @@ export const DeployButton = ({
           setGitlabProjectName(result.projectName);
           setShowGitLabDeploymentDialog(true);
         }
+      }
+    } finally {
+      setIsDeploying(false);
+      setDeployingTo(null);
+    }
+  };
+
+  const handleDeedPageDeployClick = async () => {
+    setIsDeploying(true);
+    setDeployingTo('deed.page');
+
+    try {
+      if (onDeedPageDeploy) {
+        await onDeedPageDeploy();
+      } else {
+        await handleDeedPageDeploy();
       }
     } finally {
       setIsDeploying(false);
@@ -233,6 +253,20 @@ export const DeployButton = ({
                 alt="gitlab"
               />
               <span className="mx-auto">{!gitlabIsConnected ? 'No GitLab Account Connected' : 'Deploy to GitLab'}</span>
+            </DropdownMenu.Item>
+
+            <DropdownMenu.Item
+              className={classNames(
+                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                {
+                  'opacity-60 cursor-not-allowed': isDeploying || !activePreview,
+                },
+              )}
+              disabled={isDeploying || !activePreview}
+              onClick={handleDeedPageDeployClick}
+            >
+              <div className="i-ph:globe-simple w-5 h-5" />
+              <span className="mx-auto">Deploy to deed.page</span>
             </DropdownMenu.Item>
 
             <DropdownMenu.Item

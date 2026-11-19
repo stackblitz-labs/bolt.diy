@@ -12,7 +12,7 @@ For the current feature summary and command reference, see the [repository READM
 - Project workflows including GitHub import/push, ZIP export, snapshots, and visual diffs
 - MCP tools that can be selected for a prompt
 - Supabase integration for connected projects
-- Deployment integrations for Netlify, Vercel, and GitHub Pages
+- Deployment integrations for Netlify, Vercel, GitHub Pages, and deed.page
 - Electron desktop app and Docker-based development/deployment options
 - Prompt library, voice prompting, and configurable workspace settings
 
