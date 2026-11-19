@@ -22,6 +22,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import { WorkbenchReopenButton } from '~/components/workbench/WorkbenchReopenButton';
 import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
 import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
+import { fetchModelsForProviders } from '~/lib/api/modelList';
 
 const LazyWorkbench = lazy(() =>
   import('~/components/workbench/Workbench.client').then((m) => ({ default: m.Workbench })),
@@ -218,14 +219,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
-        const activeProviderNames = providerList.map((activeProvider) => activeProvider.name).join(',');
-
-        fetch(`/api/models?providers=${encodeURIComponent(activeProviderNames)}`)
-          .then((response) => response.json())
-          .then((data) => {
-            const typedData = data as { modelList: ModelInfo[] };
-            setModelList(typedData.modelList);
-          })
+        fetchModelsForProviders(providerList.map((activeProvider) => activeProvider.name))
+          .then((modelList) => setModelList(modelList))
           .catch((error) => {
             console.error('Error fetching model list:', error);
           })
