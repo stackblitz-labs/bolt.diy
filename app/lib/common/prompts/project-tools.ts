@@ -11,47 +11,16 @@ Preserve the existing framework, dependencies and project structure. Prefer Vite
 </project_environment>
 
 <project_mcp_workflow>
-Use the supplied native tools interface for every file read, edit and command. Follow the input schemas exactly; printed JSON, function calls and XML actions do not execute tools.
-
-CRITICAL FILE EDITING RULES:
-1. ALWAYS read files with project_read_file BEFORE editing them
-2. For project_patch_file: Read the file first. Include its "revision" as expectedRevision when available; if omitted, the tool checks the latest revision read for that path.
-3. Use project_patch_file for targeted changes (recommended for most edits)
-4. Use project_write_file with replacementReason ONLY when completely rewriting a file
-5. If you get "Read the file first, then supply its revision" - you forgot step 1 or 2 above
-
-FILE PATCHING WORKFLOW:
-Step 1: Read the file
-  project_read_file({ path: "path/to/file.tsx" })
-  → Returns: { content: "...", revision: "abc123..." }
-
-Step 2: Patch with exact oldText and the revision
-  project_patch_file({
-    path: "path/to/file.tsx",
-    expectedRevision: "abc123...",  ← Include when available; the tool checks the latest read revision if omitted
-    oldText: "exact text to replace",  ← Must match exactly once
-    newText: "replacement text"
-  })
-
-NEVER:
-- Skip reading files before patching
-- Use expectedContent (it's for emergencies only)
-- Repeat failed patches without reading again
-- Copy entire file content into expectedContent
-- Patch without reading the file first
-
-FILE REPLACEMENT (use sparingly):
-project_write_file({
-  path: "path/to/file.tsx",
-  content: "complete new content",
-  replacementReason: "Explain why patch was insufficient (e.g., 'Complete restructure', 'Generated from scratch')"
-})
-
-Inspect relevant files before editing. For project_patch_file, use one exact unique oldText. The tool checks the latest read revision for that path, even when expectedRevision is omitted. Do not copy the entire file into expectedContent. On a conflict, read the file again before retrying; never repeat a stale patch.
-Create or replace a complete file only when necessary. For project_write_file replacing an existing starter page, include replacementReason explaining the requested redesign. Preserve real line breaks in source strings: imports and declarations need valid separators. Invalid JS/TS syntax is rejected without changing the file; repair the code and retry.
-Keep file contents as plain text. Reference existing assets or valid image URLs; do not write binary or base64 assets. For JS, TS, JSX, and TSX, put imports and declarations on separate lines and use real newline characters in file content; never put the two-character sequence \\n between declarations. If a write or patch tool returns an error, treat the file as unchanged, fix that exact error, and retry once. Do not repeat an unchanged write.
-Install required dependencies before running dependent commands. Reuse a running development server. Inspect command output and process status; a started process is not a passed check.
-Follow the current agent-loop instructions and completion criteria. Do not claim a change, running preview or passing check without successful tool results.
+Use the supplied native tools interface for every file read, edit, and command. Pass one JSON object per call using the declared field names and types. Omit optional fields you do not need. Tool calls printed in chat do not execute.
+Start each targeted edit with project_read_file and numbered: true. Use project_replace_lines with path, numeric startLine and endLine from the read, its revision as expectedRevision, and complete replacement lines as newText without number prefixes. Both endpoints are inclusive. Set them to the same number for a one-line edit.
+Use project_patch_file with oldText only as a fallback when a numbered read is unavailable. Copy a small, unique match from the raw read.
+Use project_write_file for new files and full-file replacements. Supply complete plain-text content, including real line breaks. Read an existing file before replacing it. You may include replacementReason to explain a full-file replacement. Reference existing assets or valid image URLs.
+Put path and the complete source in each project_write_file call. Put imports and declarations on separate lines. If a long write is cut off, split the implementation into smaller complete files. If a new-file write fails validation, retry with project_write_file. Use a patch only after the file exists and a numbered read succeeds.
+Use package.json and the project lockfile for dependency information. Let the package manager create node_modules.
+Keep JSX list rendering inside one expression, for example {items.map(item => <li key={item.id}>{item.name}</li>)}. Parenthesize TypeScript assertions before calling .map().
+Wait for tool results before making dependent calls. Submit an install by itself and poll it to exit code 0 before running the app or checks. Use the actual paths and revisions returned by reads. After any edit to a file, reread it with numbered: true before using numbered edits again.
+Reuse a running development server. Use the processId returned by project_run_command with project_get_process_output. Confirm exitCode 0 for a successful check and previewReady for a usable preview.
+Follow any active agent-loop instructions and report only changes and checks confirmed by tool results.
 </project_mcp_workflow>
 
 <scope_and_design>

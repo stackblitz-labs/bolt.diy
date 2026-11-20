@@ -1,132 +1,156 @@
-const MAX_LIST_RESULTS = 500;
+import { z } from 'zod';
 
-export const PROJECT_TOOL_NAMES = [
-  'project_read_file',
-  'project_write_file',
-  'project_patch_file',
-  'project_delete_path',
-  'project_create_directory',
-  'project_list_paths',
-  'project_search_content',
-  'project_find_related_files',
-  'project_run_command',
-  'project_get_process_output',
-  'project_stop_process',
-  'web_search',
-  'web_fetch',
-] as const;
+export const MAX_LIST_RESULTS = 500;
+
+const projectPath = z.string().min(1).describe('Path relative to the active project root.');
+const optionalSearchPath = z.string().describe('Project-relative path. Omit it or use "." for the root.').optional();
+const processId = z.string().min(1).describe('Use the processId returned by project_run_command.');
+const revision = z.string().regex(/^[a-f0-9]{64}$/);
+const lineNumber = z.number().int().min(1);
+
+export const projectToolDefinitions = {
+  project_read_file: {
+    description: 'Read a UTF-8 project file. Returns content and revision for a subsequent patch.',
+    inputSchema: z.strictObject({
+      path: projectPath,
+      numbered: z
+        .boolean()
+        .describe('Set true before editing. Prefixes content with 1-based line numbers for project_replace_lines.')
+        .optional(),
+    }),
+  },
+  project_write_file: {
+    description: 'Create or fully replace a UTF-8 text file. Use project_replace_lines for targeted edits.',
+    inputSchema: z.strictObject({
+      path: projectPath,
+      content: z
+        .string()
+        .describe(
+          'Complete file contents in one call. Use real line breaks between source statements. For large features, write smaller complete modules as separate files.',
+        ),
+      overwrite: z.boolean().describe('Set false to require a new path.').optional(),
+      replacementReason: z.string().trim().max(500).describe('Optional reason for a full-file replacement.').optional(),
+    }),
+  },
+  project_replace_lines: {
+    description: 'Edit an existing file using line numbers and revision from project_read_file with numbered: true.',
+    inputSchema: z.strictObject({
+      path: projectPath,
+      startLine: lineNumber.describe('First line to replace, inclusive.'),
+      endLine: lineNumber.describe('Last line to replace, inclusive. Use the same number for a one-line edit.'),
+      expectedRevision: revision.describe('Copy the revision from the numbered read.'),
+      newText: z
+        .string()
+        .describe(
+          'Complete replacement lines without number prefixes. Use an empty string to delete the selected lines.',
+        ),
+    }),
+  },
+  project_patch_file: {
+    description: 'Fallback for an exact unique text replacement. Prefer project_replace_lines for numbered edits.',
+    inputSchema: z
+      .strictObject({
+        path: projectPath,
+        expectedContent: z
+          .string()
+          .describe('Legacy full-file concurrency check. Omit this field in normal use.')
+          .optional(),
+        expectedRevision: revision
+          .describe(
+            'Exact revision returned by project_read_file. Required with lineRange. Text matches can use the latest read revision.',
+          )
+          .optional(),
+        lineRange: z
+          .strictObject({ start: lineNumber, end: lineNumber })
+          .describe('Optional legacy range, as an object like {"start": 3, "end": 5}. Prefer project_replace_lines.')
+          .optional(),
+        oldText: z
+          .string()
+          .min(1)
+          .describe('Fallback exact unique match from a raw read. Omit when using lineRange.')
+          .optional(),
+        newText: z
+          .string()
+          .describe(
+            'Replacement source without line number prefixes. Use an empty string to delete the match or range.',
+          ),
+      })
+      .refine(({ oldText, lineRange }) => (oldText === undefined) !== (lineRange === undefined), {
+        message: 'Supply exactly one of oldText or lineRange.',
+      })
+      .refine(({ expectedRevision, lineRange }) => !lineRange || expectedRevision !== undefined, {
+        path: ['expectedRevision'],
+        message: 'Copy the revision from the numbered read when using lineRange.',
+      }),
+  },
+  project_delete_path: {
+    description: 'Delete a file or an explicitly selected directory in the active project.',
+    inputSchema: z.strictObject({
+      path: projectPath,
+      recursive: z.boolean().describe('Set true to delete a directory and its contents.').optional(),
+    }),
+  },
+  project_create_directory: {
+    description: 'Create a directory in the active project.',
+    inputSchema: z.strictObject({ path: projectPath }),
+  },
+  project_list_paths: {
+    description:
+      'List active project files and folders. Generated node_modules files are excluded. Example directory prefix: src.',
+    inputSchema: z.strictObject({
+      path: optionalSearchPath,
+      limit: z.number().int().min(1).max(MAX_LIST_RESULTS).optional(),
+    }),
+  },
+  project_search_content: {
+    description: 'Search project file contents using ripgrep.',
+    inputSchema: z.strictObject({
+      query: z.string().min(1),
+      path: optionalSearchPath,
+      limit: z.number().int().min(1).max(200).optional(),
+    }),
+  },
+  project_find_related_files: {
+    description: 'Find files related by shared directory or filename stem. Each result includes the matching evidence.',
+    inputSchema: z.strictObject({ path: projectPath, limit: z.number().int().min(1).max(100).optional() }),
+  },
+  project_run_command: {
+    description:
+      'Run a shell command in the project and stream its output to Bolt Terminal. Run dependency installs separately and poll them to exit code 0 before starting the app or checks. Commands require approval.',
+    inputSchema: z.strictObject({
+      command: z.string().min(1).max(4000),
+      purpose: z
+        .enum(['run', 'test', 'install', 'other'])
+        .describe('Use run for dev servers, test for checks, and install for dependencies. Defaults to other.')
+        .optional(),
+    }),
+  },
+  project_get_process_output: {
+    description:
+      'Get combined output, exit status, and previewReady for a project command. Check running installs before dependent commands and check dev servers for readiness.',
+    inputSchema: z.strictObject({ processId }),
+  },
+  project_stop_process: {
+    description: 'Stop a running project command.',
+    inputSchema: z.strictObject({ processId }),
+  },
+  web_search: {
+    description: 'Search the public web and return sourced result snippets.',
+    inputSchema: z.strictObject({
+      query: z.string().min(1).max(1000),
+      limit: z.number().int().min(1).max(10).optional(),
+    }),
+  },
+  web_fetch: {
+    description: 'Fetch readable public content at a URL.',
+    inputSchema: z.strictObject({ url: z.string().min(1).max(2048) }),
+  },
+};
+
+type ProjectToolName = keyof typeof projectToolDefinitions;
+
+export const PROJECT_TOOL_NAMES = Object.keys(projectToolDefinitions) as ProjectToolName[];
 
 export function getProjectToolNames(webSearchEnabled = true) {
   return PROJECT_TOOL_NAMES.filter((name) => webSearchEnabled || (name !== 'web_search' && name !== 'web_fetch'));
 }
-
-type ProjectToolName = (typeof PROJECT_TOOL_NAMES)[number];
-type JsonSchema = Record<string, unknown>;
-
-const objectSchema = (properties: JsonSchema, required: string[]): JsonSchema => ({
-  type: 'object',
-  properties,
-  required,
-  additionalProperties: false,
-});
-
-/** JSON Schema contracts shared by the server chat route and browser MCP bridge. */
-export const projectToolDefinitions: Record<ProjectToolName, { description: string; inputSchema: JsonSchema }> = {
-  project_read_file: {
-    description:
-      'Read a UTF-8 text file from the active project. Returns content and revision; the latest read revision is checked automatically if expectedRevision is omitted when patching.',
-    inputSchema: objectSchema({ path: { type: 'string', minLength: 1 } }, ['path']),
-  },
-  project_write_file: {
-    description:
-      'Create a UTF-8 text file. For changes to existing files prefer project_patch_file. Replacing an existing file requires replacementReason explaining why a full replacement is necessary. Set overwrite to false to require a new path.',
-    inputSchema: objectSchema(
-      {
-        path: { type: 'string', minLength: 1 },
-        content: { type: 'string' },
-        overwrite: { type: 'boolean' },
-        replacementReason: { type: 'string', minLength: 1, maxLength: 500 },
-      },
-      ['path', 'content'],
-    ),
-  },
-  project_patch_file: {
-    description:
-      'Replace one exact unique oldText in a file. Read the file first; its latest revision is checked automatically when expectedRevision is omitted. Include expectedRevision when available. Do not copy the whole file. On a conflict, read again before retrying. Preserve actual line breaks in newText. Invalid JS/TS syntax is rejected before saving.',
-    inputSchema: objectSchema(
-      {
-        path: { type: 'string', minLength: 1 },
-        expectedContent: { type: 'string' },
-        expectedRevision: { type: 'string', pattern: '^[a-f0-9]{64}$' },
-        oldText: { type: 'string', minLength: 1 },
-        newText: { type: 'string' },
-      },
-      ['path', 'oldText', 'newText'],
-    ),
-  },
-  project_delete_path: {
-    description: 'Delete a file or an explicitly selected directory in the active project.',
-    inputSchema: objectSchema({ path: { type: 'string', minLength: 1 }, recursive: { type: 'boolean' } }, ['path']),
-  },
-  project_create_directory: {
-    description: 'Create a directory in the active project.',
-    inputSchema: objectSchema({ path: { type: 'string', minLength: 1 } }, ['path']),
-  },
-  project_list_paths: {
-    description:
-      'List active project files and folders. Omit path or use "." for the project root; use "src" for a directory prefix. Paths may be relative to the project or absolute within /home/project.',
-    inputSchema: objectSchema(
-      { path: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: MAX_LIST_RESULTS } },
-      [],
-    ),
-  },
-  project_search_content: {
-    description: 'Search project file contents using ripgrep.',
-    inputSchema: objectSchema(
-      {
-        query: { type: 'string', minLength: 1 },
-        path: { type: 'string' },
-        limit: { type: 'integer', minimum: 1, maximum: 200 },
-      },
-      ['query'],
-    ),
-  },
-  project_find_related_files: {
-    description: 'Find files related by shared directory or filename stem. Each result includes the matching evidence.',
-    inputSchema: objectSchema(
-      { path: { type: 'string', minLength: 1 }, limit: { type: 'integer', minimum: 1, maximum: 100 } },
-      ['path'],
-    ),
-  },
-  project_run_command: {
-    description:
-      'Run a shell command in the active WebContainer project and stream its output to Bolt Terminal. Set purpose to run, test, install, or other. A test passes only when it exits with code 0; poll project_get_process_output for running commands before dependent work. Returns process ID, command, purpose, output, exit status, and previewReady. Commands require user approval.',
-    inputSchema: objectSchema(
-      {
-        command: { type: 'string', minLength: 1, maxLength: 4000 },
-        purpose: { type: 'string', enum: ['run', 'test', 'install', 'other'] },
-      },
-      ['command', 'purpose'],
-    ),
-  },
-  project_get_process_output: {
-    description:
-      'Get current or final combined output, exit status, and previewReady for a project command. Poll a running installation before starting dependent commands, and poll a dev server until previewReady is true.',
-    inputSchema: objectSchema({ processId: { type: 'string', minLength: 1 } }, ['processId']),
-  },
-  project_stop_process: {
-    description: 'Stop a running project command.',
-    inputSchema: objectSchema({ processId: { type: 'string', minLength: 1 } }, ['processId']),
-  },
-  web_search: {
-    description: 'Search the public web without an API key and return sourced result snippets.',
-    inputSchema: objectSchema(
-      { query: { type: 'string', minLength: 1, maxLength: 1000 }, limit: { type: 'integer', minimum: 1, maximum: 10 } },
-      ['query'],
-    ),
-  },
-  web_fetch: {
-    description: 'Fetch and summarize the public content at a URL without an API key.',
-    inputSchema: objectSchema({ url: { type: 'string', minLength: 1, maxLength: 2048 } }, ['url']),
-  },
-};

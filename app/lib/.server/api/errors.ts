@@ -1,4 +1,5 @@
 import { InvalidToolInputError, NoSuchToolError, ToolChoiceViolationError } from 'ai';
+import { getProjectPatchInputHint, getProjectWriteInputHint } from '~/lib/.server/llm/project-tool-input';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.errors');
@@ -130,6 +131,28 @@ export function toMissingCredentialError(provider: string, providerMessage?: str
 
 /** Converts a streaming provider error to a client-safe hint without forwarding diagnostics. */
 export function toSafeStreamErrorMessage(error: unknown): string {
+  if (InvalidToolInputError.isInstance(error) && error.toolName === 'project_write_file') {
+    const hint = getProjectWriteInputHint(error.toolInput);
+    logger.warn(`Invalid project file write arguments. ${hint}`);
+
+    return `Invalid file write arguments. ${hint}`;
+  }
+
+  if (InvalidToolInputError.isInstance(error) && error.toolName === 'project_patch_file') {
+    const hint = getProjectPatchInputHint(error.toolInput);
+    logger.warn(`Invalid project patch arguments. ${hint}`);
+
+    return `Invalid patch arguments. ${hint}`;
+  }
+
+  if (InvalidToolInputError.isInstance(error) && error.toolName === 'project_replace_lines') {
+    const hint =
+      'Supply path, numeric startLine and endLine, expectedRevision from the numbered read, and the replacement source as newText.';
+    logger.warn(`Invalid numbered edit arguments. ${hint}`);
+
+    return `Invalid numbered edit arguments. ${hint}`;
+  }
+
   const providerMessage = error instanceof Error ? error.message : String(error);
   const normalizedMessage = providerMessage.toLowerCase();
 

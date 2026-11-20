@@ -1,5 +1,20 @@
+import { isToolUIPart, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai';
 import { getToolName, getToolOutput, getToolState } from '~/lib/persistence/messageMigration';
 import { TOOL_EXECUTION_DENIED, TOOL_EXECUTION_ERROR, TOOL_NO_EXECUTE_FUNCTION } from '~/utils/constants';
+
+export function shouldContinueAfterToolResults({ messages }: { messages: UIMessage[] }) {
+  if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) {
+    return false;
+  }
+
+  // The server can retry invalid calls within its step limit. An error-only step must not start a fresh request.
+  const parts = messages.at(-1)!.parts;
+  const stepStart = parts.findLastIndex((part) => part.type === 'step-start');
+
+  return parts
+    .slice(stepStart + 1)
+    .some((part) => isToolUIPart(part) && !part.providerExecuted && part.state === 'output-available');
+}
 
 export function getToolDisplayState(part: unknown) {
   const state = getToolState(part);

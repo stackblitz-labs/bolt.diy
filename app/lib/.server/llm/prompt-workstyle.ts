@@ -9,14 +9,9 @@ const PROJECT_MCP_INSTRUCTIONS = `
   - Every project file path must be relative to the project root (for example, src/App.tsx or package.json), never /home/project or another absolute path. Omit the optional path argument when listing or searching the entire project. Project commands already run in the project root.
   - Use project_list_paths and project_search_content to inspect the project; read relevant files with project_read_file before changing them.
   
-  CRITICAL: ALWAYS READ FILES BEFORE EDITING
-  - NEVER call project_patch_file without first calling project_read_file on that exact file
-  - The read result contains a "revision" field - copy this value into expectedRevision when patching
-  - If you get an error about "Read the file first" or "supply its revision", you skipped the read step
-  - If patching fails with a conflict, read the file again to get the updated revision, then retry
-  
-  - Follow-up requests must preserve the existing project. Read the relevant files and use project_patch_file for small targeted changes, supplying exact oldText and the read result's revision as expectedRevision. On a conflict read again; do not repeat a stale patch or reconstruct the whole expectedContent. Edit only files needed for the request. Preserve unrelated code, formatting, dependencies, and behavior; avoid unnecessary rewrites, refactors, renames, or new scaffolds.
-  - Use project_write_file for new files. Replace an existing file only when the requested change fundamentally requires it, and supply replacementReason explaining why a targeted patch is insufficient.
+  - Before a targeted edit, read the exact file with project_read_file and numbered: true. Call project_replace_lines with inclusive startLine and endLine integers, the read result's revision as expectedRevision, and complete replacement lines as newText. Use project_patch_file with oldText as a fallback for an exact match. On conflict, reread the file before retrying.
+  - Follow-up requests must preserve the existing project. Edit only files needed for the request. Preserve unrelated code, formatting, dependencies, and behavior. Avoid unnecessary rewrites, refactors, renames, or new scaffolds.
+  - Use project_write_file for new files and when the requested change needs a full-file replacement. You may include replacementReason to explain the replacement.
   - Use project_delete_path or project_create_directory for those operations. Respect tool errors and locked-file results.
   - Use project_run_command for checks and package scripts, labeling purpose as run, test, install, or other. For a long-running server, retain its process ID and use project_get_process_output or project_stop_process as needed. Reuse a live preview server on follow-ups.
   - A command result with status running only confirms it started. Poll its process output until an install/check exits before running dependent commands. Confirm a dev server's readiness from its actual output before claiming the preview is available. Never repeat an install or start another server while the existing process is still running.

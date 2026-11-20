@@ -179,17 +179,20 @@ export function createAgentLoopTools<TaskToolName extends string = never>(
       const editingTools = new Set([
         'project_read_file',
         'project_write_file',
+        'project_replace_lines',
         'project_patch_file',
         'project_create_directory',
         'project_list_paths',
         'project_search_content',
         'project_find_related_files',
+        'project_get_process_output',
+        'project_stop_process',
         'web_search',
         'web_fetch',
       ]);
 
       const activeProjectTools = taskToolNames?.filter((toolName) => {
-        return progress.needsRepair || !progress.edited ? editingTools.has(toolName) : true;
+        return progress.edited || progress.needsCommandRepair || editingTools.has(toolName);
       });
 
       return {

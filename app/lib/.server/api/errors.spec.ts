@@ -29,6 +29,23 @@ describe('toMissingCredentialError', () => {
 });
 
 describe('toSafeStreamErrorMessage', () => {
+  it.each(['{}', '{"content":"unfinished-private-content'])(
+    'gives recovery advice for missing or incomplete file write arguments',
+    (toolInput) => {
+      const error = new InvalidToolInputError({
+        toolName: 'project_write_file',
+        toolInput,
+        cause: new Error('invalid'),
+      });
+
+      const hint = toSafeStreamErrorMessage(error);
+
+      expect(hint).toContain('complete JSON object with path and content');
+      expect(hint).toContain('smaller complete files');
+      expect(hint).not.toContain('unfinished-private-content');
+    },
+  );
+
   it('explains tool validation failures without exposing raw arguments or provider details', () => {
     const invalid = new InvalidToolInputError({
       toolName: 'project_list_paths',

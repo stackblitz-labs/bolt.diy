@@ -55,6 +55,57 @@ const complete = result('agent_complete', { completed: true });
 const verifiedMessages = [user, response(planned, edited, run, test)];
 
 describe('agent build loop', () => {
+  it('polls a running install and returns to verification after a successful retry', () => {
+    const install = result('project_run_command', { purpose: 'install', status: 'running', processId: 'install-1' });
+
+    const waiting = result(
+      'project_run_command',
+      {
+        purpose: 'run',
+        status: 'waiting-for-install',
+        installProcessId: 'install-1',
+      },
+      'waiting',
+    );
+
+    const failing = result('project_get_process_output', { purpose: 'run', exitCode: 127, isError: true });
+
+    const done = result('project_get_process_output', {
+      purpose: 'install',
+      processId: 'install-1',
+      status: 'exited',
+      exitCode: 0,
+    });
+
+    const messages = [user, response(planned, edited, install, waiting)];
+
+    const polling = getAgentLoopProgress(messages, true);
+    expect(getAgentLoopInstructions(polling)).toContain('processId "install-1"');
+    expect(polling.evidence).not.toContain('waiting');
+
+    const recovery = getAgentLoopProgress([...messages, response(done, failing)], true);
+    expect(recovery.installingProcessId).toBeUndefined();
+    expect(getAgentLoopInstructions(recovery)).toContain('Recover the failed command');
+
+    const finished = getAgentLoopProgress([...messages, response(done, failing, run, test, complete)], true);
+    expect(finished.needsCommandRepair).toBe(false);
+    expect(finished.status).toBe('ready');
+  });
+  it('retains the failed creation path after an invalid attempt to patch it', () => {
+    const path = 'src/PomodoroTimer.tsx';
+    const failedWrite = result('project_write_file', { isError: true, retryCreatePath: path });
+    const invalidPatch = { type: 'tool-project_patch_file', state: 'output-error' };
+    const messages = [user, response(planned, failedWrite, invalidPatch)];
+
+    const retry = getAgentLoopProgress(messages, true);
+    expect(getAgentLoopInstructions(retry)).toContain(`Create "${path}" with project_write_file`);
+
+    const saved = result('project_write_file', { path, written: true });
+    const recovered = getAgentLoopProgress([...messages, response(saved)], true);
+    expect(recovered.retryCreatePath).toBeUndefined();
+    expect(recovered.needsRepair).toBe(false);
+  });
+
   it('requires a recorded plan, real execution, passing verification and explicit completion', () => {
     const initial = getAgentLoopProgress([user, response({ type: 'text', text: 'I will build it.' })], true);
     expect(initial.status).toBe('pending');

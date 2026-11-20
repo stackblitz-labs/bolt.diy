@@ -32,10 +32,7 @@ export class PromptLibrary {
     default: {
       label: 'Default Prompt',
       description: 'Optimized prompt with improved tool usage and error recovery',
-      get: (options) =>
-        options.projectTools
-          ? getProjectToolPrompt(options)
-          : getFineTunedPrompt(options.cwd, options.supabase, options.designScheme),
+      get: (options) => getFineTunedPrompt(options.cwd, options.supabase, options.designScheme),
     },
     'tiny-tim': {
       label: 'Tiny Tim',
@@ -70,6 +67,10 @@ export class PromptLibrary {
    * "Prompt Now Found" provider error.
    */
   static getPromptFromLibrary(promptId: string, options: PromptOptions): string {
+    if (options.projectTools) {
+      return getProjectToolPrompt(options);
+    }
+
     const prompt = this.library[promptId] ?? this.library.default;
 
     if (!prompt) {

@@ -1,12 +1,13 @@
 import { useChat } from '@ai-sdk/react';
 import { useStore } from '@nanostores/react';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
+import { shouldContinueAfterToolResults } from './toolActivity';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
 import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
@@ -319,12 +320,7 @@ export const ChatImpl = memo(
         }
       },
 
-      /*
-       * v5's addToolOutput only re-POSTs when sendAutomaticallyWhen says so.
-       * Without this, approving an MCP tool updated the UI locally and never
-       * reached the server, stalling the conversation.
-       */
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+      sendAutomaticallyWhen: shouldContinueAfterToolResults,
       onError: (e) => {
         setFakeLoading(false);
         handleError(e, 'chat');
@@ -553,8 +549,6 @@ export const ChatImpl = memo(
           return;
         }
 
-        executingProjectCallsRef.current.add(toolCallId);
-
         const origin = projectCallGenerationsRef.current.get(toolCallId);
 
         const executionContext = resolveProjectCallContext(
@@ -571,6 +565,8 @@ export const ChatImpl = memo(
           });
           return;
         }
+
+        executingProjectCallsRef.current.add(toolCallId);
 
         const abortController = new AbortController();
         projectToolControllersRef.current.set(toolCallId, abortController);

@@ -70,6 +70,36 @@ describe('agent plan and completion tools', () => {
     expect(loop.prepareStep({ steps: [] }).activeTools).toEqual(['project_read_file', 'agent_plan', 'agent_complete']);
   });
 
+  it('keeps commands available after exit 127 and later unrelated edit errors', () => {
+    const loop = createAgentLoopTools(
+      [
+        user,
+        {
+          role: 'assistant',
+          parts: [
+            part('agent_plan', { plan }),
+            part('project_replace_lines', { patched: true }),
+            part('project_get_process_output', {
+              command: 'npm run dev',
+              purpose: 'run',
+              exitCode: 127,
+              isError: true,
+            }),
+            { type: 'tool-project_replace_lines', state: 'output-error' },
+          ],
+        },
+      ],
+      true,
+      true,
+      ['project_read_file', 'project_run_command', 'project_get_process_output'],
+    );
+
+    const next = loop.prepareStep({ steps: [], initialInstructions: 'Base instructions.' });
+    expect(next.activeTools).toContain('project_run_command');
+    expect(next.activeTools).toContain('project_get_process_output');
+    expect(next.instructions).toContain('Recover the failed command');
+  });
+
   it('rejects completion without actual run and test evidence', async () => {
     const loop = createAgentLoopTools(
       [
