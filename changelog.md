@@ -8,6 +8,7 @@
 
 ### ✨ Features
 
+* add LLMTR as a built-in OpenAI-compatible provider
 * add MCP-backed project and web tools, prompt tool access modes, and improved starter setup ([#2270](https://github.com/stackblitz-labs/bolt.diy/pull/2270)) by @dustinwloring1988
 * add Browser Use Cloud and connector action permissions, with connector menus gated by connection status ([#2271](https://github.com/stackblitz-labs/bolt.diy/pull/2271), [#2272](https://github.com/stackblitz-labs/bolt.diy/pull/2272), [#2273](https://github.com/stackblitz-labs/bolt.diy/pull/2273)) by @dustinwloring1988
 * add a declarative plugin marketplace and lifecycle controls by @dustinwloring1988

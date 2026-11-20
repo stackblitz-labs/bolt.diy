@@ -7,7 +7,7 @@ services:
       target: bolt-ai-production
     ports:
       - '5173:5173'
-    env_file: 
+    env_file:
       - '.env'
       - '.env.local'
     environment:
@@ -20,6 +20,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}
+      - LLMTR_API_KEY=${LLMTR_API_KEY}
       - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
       - OLLAMA_API_BASE_URL=${OLLAMA_API_BASE_URL}
       - XAI_API_KEY=${XAI_API_KEY}
@@ -41,7 +42,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: development
-    env_file: 
+    env_file:
       - '.env'
       - '.env.local'
     environment:
@@ -57,6 +58,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPEN_ROUTER_API_KEY=${OPEN_ROUTER_API_KEY}
+      - LLMTR_API_KEY=${LLMTR_API_KEY}
       - XAI_API_KEY=${XAI_API_KEY}
       - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
       - OLLAMA_API_BASE_URL=${OLLAMA_API_BASE_URL}

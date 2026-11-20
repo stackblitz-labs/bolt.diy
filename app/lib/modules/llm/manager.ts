@@ -13,6 +13,7 @@ const logger = createScopedLogger('LLMManager');
  */
 const ENABLED_PROVIDERS = new Set([
   'OpenRouter',
+  'LLMTR',
   'Anthropic',
   'OpenAI',
   'Google',

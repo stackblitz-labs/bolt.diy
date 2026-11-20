@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getOpenAILikeModel } from './base-provider';
 import GitHubProvider from './providers/github';
 import GroqProvider from './providers/groq';
+import LLMTRProvider from './providers/llmtr';
 import OpenAIProvider from './providers/openai';
 import PerplexityProvider from './providers/perplexity';
 import XAIProvider from './providers/xai';
@@ -154,6 +155,7 @@ describe('real provider instances still target Chat Completions (characterizatio
     ['OpenAI', OpenAIProvider, { OPENAI_API_KEY: 'k' }, 'api.openai.com'],
     ['GitHub', GitHubProvider, { GITHUB_API_KEY: 'k' }, 'models.github.ai'],
     ['Groq', GroqProvider, { GROQ_API_KEY: 'k' }, 'api.groq.com'],
+    ['LLMTR', LLMTRProvider, { LLMTR_API_KEY: 'k' }, 'llmtr.com'],
     ['Perplexity', PerplexityProvider, { PERPLEXITY_API_KEY: 'k' }, 'api.perplexity.ai'],
     ['xAI', XAIProvider, { XAI_API_KEY: 'k' }, 'api.x.ai'],
   ];

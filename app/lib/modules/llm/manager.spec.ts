@@ -53,7 +53,7 @@ describe('LLMManager', () => {
     const manager = LLMManager.getInstance({});
     const names = manager.getAllProviders().map((p) => p.name);
 
-    // All 22 providers should now be registered
+    // All 23 providers should now be registered
     expect(names.sort()).toEqual([
       'AmazonBedrock',
       'Anthropic',
@@ -66,6 +66,7 @@ describe('LLMManager', () => {
       'Groq',
       'HuggingFace',
       'Hyperbolic',
+      'LLMTR',
       'LMStudio',
       'Mistral',
       'Moonshot',
@@ -80,18 +81,19 @@ describe('LLMManager', () => {
     ]);
   });
 
-  it('registers all 22 providers including newly restored ones', () => {
+  it('registers all 23 providers including newly restored ones', () => {
     const manager = LLMManager.getInstance({});
     const names = manager.getAllProviders().map((p) => p.name);
 
     // Verify newly restored providers are registered
+    expect(names).toContain('LLMTR');
     expect(names).toContain('Groq');
     expect(names).toContain('Together');
     expect(names).toContain('Ollama');
     expect(names).toContain('HuggingFace');
     expect(names).toContain('Cohere');
     expect(names).toContain('Mistral');
-    expect(names.length).toBe(22);
+    expect(names.length).toBe(23);
   });
 
   it('exposes each enabled provider via getProvider', () => {

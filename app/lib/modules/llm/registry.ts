@@ -9,6 +9,7 @@ import GoogleProvider from './providers/google';
 import GroqProvider from './providers/groq';
 import HuggingFaceProvider from './providers/huggingface';
 import HyperbolicProvider from './providers/hyperbolic';
+import LLMTRProvider from './providers/llmtr';
 import LMStudioProvider from './providers/lmstudio';
 import MistralProvider from './providers/mistral';
 import MoonshotProvider from './providers/moonshot';
@@ -41,6 +42,7 @@ export {
   XAIProvider,
   TogetherProvider,
   LMStudioProvider,
+  LLMTRProvider,
   AmazonBedrockProvider,
   GithubProvider,
   ZaiProvider,

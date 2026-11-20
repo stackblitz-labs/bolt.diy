@@ -2,7 +2,7 @@
 
 [![bolt.diy: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index(1).jpg)](https://bolt.diy)
 
-Welcome to **bolt.diy**, the open-source AI developer workspace that lets you select your preferred LLM for every prompt. Build full-stack web applications in the browser with support for 22+ model providers (OpenAI, Anthropic, Gemini, Groq, xAI, DeepSeek, Ollama, LM Studio, and more), or extend it with any provider supported by the Vercel AI SDK. OpenRouter, Anthropic, OpenAI, and Google are enabled by default; enable and configure other providers in Settings.
+Welcome to **bolt.diy**, the open-source AI developer workspace that lets you select your preferred LLM for every prompt. Build full-stack web applications in the browser with support for 23+ model providers (OpenAI, Anthropic, Gemini, Groq, LLMTR, xAI, DeepSeek, Ollama, LM Studio, and more), or extend it with any provider supported by the Vercel AI SDK. OpenRouter, Anthropic, OpenAI, and Google are enabled by default; enable and configure other providers in Settings.
 
 [Documentation](https://stackblitz-labs.github.io/bolt.diy/) | [FAQ & Troubleshooting](FAQ.md)
 
@@ -107,6 +107,7 @@ ANTHROPIC_API_KEY=your_key_here
 OPENAI_API_KEY=your_key_here
 GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
 OPEN_ROUTER_API_KEY=your_key_here
+LLMTR_API_KEY=your_key_here
 
 # Local Providers
 OLLAMA_API_BASE_URL=http://127.0.0.1:11434
@@ -120,7 +121,7 @@ Replace only the placeholders you need and remove or comment out the rest. To us
 ## Features
 
 - **In-Browser Web Development**: Full-stack Node.js development environment powered by WebContainers.
-- **22+ AI Providers**: Cloud (Anthropic, OpenAI, Google, DeepSeek, Groq, xAI, Mistral, etc.) and Local (Ollama, LM Studio). OpenRouter, Anthropic, OpenAI, and Google are enabled by default.
+- **23+ AI Providers**: Cloud (Anthropic, OpenAI, Google, DeepSeek, Groq, LLMTR, xAI, Mistral, etc.) and Local (Ollama, LM Studio). OpenRouter, Anthropic, OpenAI, and Google are enabled by default.
 - **Interactive Workbench**: Integrated code editor, terminal, visual diff viewer, and real-time live preview. Opens by default for a started chat and can be reopened after closing.
 - **Starter Setup**: Explicit framework requests select a matching starter in code. Starter files include detected install and development server commands before the first customization request.
 - **Prompt Library**: Choose a system prompt under Settings → Workspace → Features, including Simple Sal for concise guidance and Tiny Tim for smaller models.
@@ -132,7 +133,7 @@ Replace only the placeholders you need and remove or comment out the rest. To us
 
 ## Recent Highlights
 
-- **Expanded AI & Tooling Ecosystem**: 22+ cloud and local LLM providers, Model Context Protocol (MCP) integration, and voice prompting.
+- **Expanded AI & Tooling Ecosystem**: 23+ cloud and local LLM providers, Model Context Protocol (MCP) integration, and voice prompting.
 - **Enhanced Code & Project Workflows**: Visual diff inspection, file conflict locking, codebase search, Git integration, and snapshot restoration.
 - **Cross-Platform & Deployments**: Native Electron desktop app, Expo (React Native) support, and direct deployment to Netlify, Vercel, and GitHub Pages.
 - **Data & Backend Integrations**: Built-in Supabase management, interactive charts, and bulk chat operations.
