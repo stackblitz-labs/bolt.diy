@@ -57,7 +57,7 @@ export function getStarterBuildProgress(messages: AnyMessage[]) {
 
       edited ||=
         (name === 'project_write_file' && output.written === true) ||
-        (name === 'project_patch_file' && output.patched === true);
+        ((name === 'project_patch_file' || name === 'project_replace_lines') && output.patched === true);
       previewReady ||=
         (name === 'project_run_command' || name === 'project_get_process_output') && output.previewReady === true;
     }

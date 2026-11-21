@@ -49,17 +49,20 @@ describe('starter build continuation', () => {
     expect(edited.status).toBe('pending');
   });
 
-  it('allows the final answer after actual edits and a confirmed live preview', () => {
-    const progress = getStarterBuildProgress([
-      handoff,
-      response(
-        result('project_patch_file', { patched: true }),
-        result('project_get_process_output', { status: 'running', previewReady: true }),
-      ),
-    ]);
-    expect(progress.status).toBe('ready');
-    expect(getStarterBuildToolChoice(progress)).toBe('auto');
-  });
+  it.each(['project_patch_file', 'project_replace_lines'])(
+    'allows the final answer after %s and a confirmed live preview',
+    (toolName) => {
+      const progress = getStarterBuildProgress([
+        handoff,
+        response(
+          result(toolName, { patched: true }),
+          result('project_get_process_output', { status: 'running', previewReady: true }),
+        ),
+      ]);
+      expect(progress.status).toBe('ready');
+      expect(getStarterBuildToolChoice(progress)).toBe('auto');
+    },
+  );
 
   it('does not count failed edits or a failed process as completion', () => {
     const progress = getStarterBuildProgress([

@@ -511,13 +511,19 @@ function activityLabel(toolName: string, rawInput: unknown, rawOutput?: unknown,
       return output.blocked === true ? 'Task blocked' : 'Completion criteria not met';
     }
 
-    return `Failed: ${typeof input.command === 'string' ? input.command : shortPath || toolName}`;
+    const command = input.command ?? output.command;
+
+    return `Failed: ${typeof command === 'string' ? command : shortPath || toolName}`;
+  }
+
+  if (output.status === 'waiting-for-install' && typeof output.command === 'string') {
+    return `Waiting for dependencies before ${output.command}`;
   }
 
   if (
     state === 'output-available' &&
     output.changed === false &&
-    ['project_write_file', 'project_patch_file'].includes(toolName)
+    ['project_write_file', 'project_replace_lines', 'project_patch_file'].includes(toolName)
   ) {
     return `Unchanged ${shortPath || 'project file'}`;
   }
@@ -542,6 +548,7 @@ function activityLabel(toolName: string, rawInput: unknown, rawOutput?: unknown,
     case 'project_write_file':
       return `${output.created === true ? 'Created' : output.created === false ? 'Edited' : state === 'output-available' ? 'Wrote' : 'Writing'} ${shortPath || 'project file'}`;
     case 'project_patch_file':
+    case 'project_replace_lines':
       return `${state === 'output-available' ? 'Edited' : 'Editing'} ${shortPath || 'project file'}`;
     case 'project_create_directory':
       return `${state === 'output-available' ? 'Created' : 'Creating'} ${shortPath || 'project directory'}`;
@@ -649,7 +656,7 @@ function ToolActivityRow({
       ? 'i-ph:eye'
       : name === 'project_write_file' || name === 'project_create_directory'
         ? 'i-ph:file-plus'
-        : name === 'project_patch_file'
+        : name === 'project_patch_file' || name === 'project_replace_lines'
           ? 'i-ph:pen'
           : name === 'project_delete_path'
             ? 'i-ph:trash'

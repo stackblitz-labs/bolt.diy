@@ -1,5 +1,6 @@
+import type { UIMessage } from 'ai';
 import { describe, expect, it } from 'vitest';
-import { getToolDisplayError, getToolDisplayState } from './toolActivity';
+import { getToolDisplayError, getToolDisplayState, shouldContinueAfterToolResults } from './toolActivity';
 
 describe('tool activity status', () => {
   it('shows application errors as failures even when the SDK says output-available', () => {
@@ -36,5 +37,33 @@ describe('tool activity status', () => {
     };
     expect(getToolDisplayState(part)).toBe('output-error');
     expect(getToolDisplayError(part)).toBe('Registry unavailable.');
+  });
+});
+
+describe('tool result continuation', () => {
+  const invalid: UIMessage['parts'][number] = {
+    type: 'dynamic-tool',
+    toolName: 'project_read_file',
+    toolCallId: 'invalid',
+    state: 'output-error',
+    input: {},
+    errorText: 'Missing path.',
+  };
+  const completed: UIMessage['parts'][number] = {
+    type: 'tool-project_list_paths',
+    toolCallId: 'completed',
+    state: 'output-available',
+    input: {},
+    output: { entries: [] },
+  };
+  const shouldContinue = (parts: UIMessage['parts']) =>
+    shouldContinueAfterToolResults({ messages: [{ role: 'assistant', id: 'reply', parts }] });
+
+  it('does not restart a request after the server stops on an invalid call', () => {
+    expect(shouldContinue([completed, { type: 'step-start' }, invalid])).toBe(false);
+  });
+
+  it('continues after the browser supplies a result for a valid call in the same step', () => {
+    expect(shouldContinue([invalid, completed])).toBe(true);
   });
 });

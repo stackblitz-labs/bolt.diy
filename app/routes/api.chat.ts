@@ -1,12 +1,4 @@
-import {
-  createUIMessageStreamResponse,
-  generateId,
-  isStepCount,
-  jsonSchema,
-  toUIMessageStream,
-  type JSONSchema7,
-  type UIMessage,
-} from 'ai';
+import { createUIMessageStreamResponse, generateId, isStepCount, toUIMessageStream, type UIMessage } from 'ai';
 import type { ActionFunctionArgs } from 'react-router';
 import { createChatUIMessageStream } from '~/lib/.server/api/chat-stream';
 import { toApiErrorResponse, toMissingCredentialError, toSafeStreamErrorMessage } from '~/lib/.server/api/errors';
@@ -22,8 +14,9 @@ import {
 import { createAgentLoopTools } from '~/lib/.server/llm/agent-loop';
 import { createAgentStreamRecovery } from '~/lib/.server/llm/agent-stream';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
-import { shouldOptimizeRequestContext } from '~/lib/.server/llm/context-optimization';
+import { getRecentChatStart, shouldOptimizeRequestContext } from '~/lib/.server/llm/context-optimization';
 import { createSummary } from '~/lib/.server/llm/create-summary';
+import { repairProjectPatchCall } from '~/lib/.server/llm/project-tool-input';
 import { getWebResearchInstructions } from '~/lib/.server/llm/prompt-web-tools';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { streamText, type StreamingOptions } from '~/lib/.server/llm/stream-text';
@@ -143,7 +136,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         let filteredFiles: FileMap | undefined = undefined;
         let summary: string | undefined = undefined;
-        let messageSliceId = 0;
 
         const isInitialTemplateRequest = messages.some(
           (message) =>
@@ -161,9 +153,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               })
             : messages;
 
-        if (processedMessages.length > 3) {
-          messageSliceId = processedMessages.length - 3;
-        }
+        const messageSliceId = getRecentChatStart(processedMessages);
 
         if (
           shouldOptimizeRequestContext({
@@ -313,13 +303,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const projectTools =
           chatMode === 'build'
             ? Object.fromEntries(
-                getProjectToolNames(webSearchEnabled).map((name) => [
-                  name,
-                  {
-                    description: projectToolDefinitions[name].description,
-                    inputSchema: jsonSchema(projectToolDefinitions[name].inputSchema as JSONSchema7),
-                  },
-                ]),
+                getProjectToolNames(webSearchEnabled).map((name) => [name, projectToolDefinitions[name]]),
               )
             : {};
 
@@ -389,6 +373,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           ...(hasTools
             ? { tools, ...(agentProgress.status !== 'inactive' ? { prepareStep: agentLoop.prepareStep } : {}) }
             : {}),
+          ...(chatMode === 'build' ? { repairToolCall: repairProjectPatchCall } : {}),
 
           /*
            * isStepCount(undefined) can never be true, and supplying it replaces

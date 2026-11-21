@@ -188,7 +188,7 @@ If you need to make changes to functionality, create new files instead of modify
 
   userMessage += `
 ---
-The template files are now in the active project. Inspect and patch only the relevant existing files, and create new files when needed. Use project_patch_file for targeted edits. A full replacement with project_write_file requires replacementReason explaining why a patch is insufficient.
+The template files are now in the active project. Read relevant existing files with numbered: true, then edit them using project_replace_lines with startLine, endLine, and the read revision as expectedRevision. Use project_write_file to create a file or replace its complete contents.
 ---
 Now that the Template is imported please continue with my original request
 

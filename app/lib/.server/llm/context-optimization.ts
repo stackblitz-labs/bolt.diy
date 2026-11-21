@@ -12,3 +12,11 @@ export function shouldOptimizeRequestContext({
 }): boolean {
   return Boolean(enabled && hasFiles && !agentLoopEnabled && !isInitialTemplateRequest);
 }
+
+export function getRecentChatStart(messages: ReadonlyArray<{ role: string }>) {
+  const recentStart = Math.max(0, messages.length - 3);
+  const lastUser = messages.findLastIndex((message) => message.role === 'user');
+
+  // Keep the active user request together with its tool calls and results.
+  return lastUser === -1 ? recentStart : Math.min(recentStart, lastUser);
+}

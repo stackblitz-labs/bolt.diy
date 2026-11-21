@@ -1,9 +1,9 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-import { assertValidProjectSource, getFileRevision } from './projectFileValidation';
-import { PROJECT_TOOL_NAMES, projectToolDefinitions } from './projectMcp.shared';
+import { numberProjectLines, replaceProjectLines, replaceProjectText } from './projectFilePatch';
+import { getFileRevision, validateProjectSource } from './projectFileValidation';
+import { MAX_LIST_RESULTS, PROJECT_TOOL_NAMES, projectToolDefinitions } from './projectMcp.shared';
 export { PROJECT_TOOL_NAMES, projectToolDefinitions } from './projectMcp.shared';
 import { searchWithRipgrep } from './ripgrepClient';
 import { chatId } from '~/lib/persistence/useChatHistory';
@@ -11,10 +11,11 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import { WORK_DIR } from '~/utils/constants';
 import { path } from '~/utils/path';
+import type { ProjectCommands } from '~/utils/projectCommands';
 
 const MAX_TEXT_BYTES = 256_000;
-const MAX_LIST_RESULTS = 500;
 const MAX_OUTPUT_CHARS = 32_000;
+const INSTALL_DEPENDENCY_WAIT_MS = 4_000;
 
 interface ProcessRecord {
   command: string;
@@ -27,25 +28,7 @@ interface ProcessRecord {
   outputDone: boolean;
 }
 
-const processes = new Map<string, ProcessRecord>();
 const MAX_PROCESSES = 50;
-
-workbenchStore.projectGeneration.listen((current, previous) => {
-  if (current === previous) {
-    return;
-  }
-
-  for (const record of processes.values()) {
-    if (record.exitCode === undefined) {
-      try {
-        record.process.kill();
-      } catch {
-        /* process may already have exited */
-      }
-    }
-  }
-  processes.clear();
-});
 
 chatId.listen(() => {
   workbenchStore.projectGeneration.set(workbenchStore.projectGeneration.get() + 1);
@@ -142,6 +125,13 @@ function isNotFoundError(error: unknown): boolean {
   );
 }
 
+const dependencyDiscoveryHint =
+  'Project discovery skips generated node_modules files. Use package.json or the project lockfile for dependency information.';
+
+function isDependencyPath(relative: string): boolean {
+  return /(?:^|\/)node_modules(?:\/|$)/.test(relative);
+}
+
 function success(data: unknown) {
   return {
     content: [{ type: 'text' as const, text: JSON.stringify(data) }],
@@ -149,16 +139,26 @@ function success(data: unknown) {
   };
 }
 
-function failure(error: unknown) {
+function failure(error: unknown, details?: Record<string, unknown>) {
   const message =
     error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
       ? error.message
       : String(error);
-  return { isError: true, content: [{ type: 'text' as const, text: message.slice(0, 4000) }] };
+
+  const text = message.slice(0, 4000);
+
+  return {
+    isError: true,
+    content: [{ type: 'text' as const, text }],
+    ...(details ? { structuredContent: { ...details, error: text } } : {}),
+  };
 }
 
 function processResult(processId: string, record: ProcessRecord, reused = false) {
   const failed = record.exitCode !== undefined && record.exitCode !== 0;
+
+  const missingCommand =
+    record.exitCode === 127 ? /command not found:\s*([\w./@-]+)/i.exec(record.output)?.[1] : undefined;
 
   const data = {
     processId,
@@ -171,7 +171,14 @@ function processResult(processId: string, record: ProcessRecord, reused = false)
     truncated: record.truncated,
     previewReady: workbenchStore.previews.get().some((preview) => preview.ready),
     ...(reused ? { reused: true } : {}),
-    ...(failed ? { isError: true, error: `Command exited with code ${record.exitCode}.` } : {}),
+    ...(failed
+      ? {
+          isError: true,
+          error: missingCommand
+            ? `Command not found: ${missingCommand} (exit code 127). If it is a project dependency, finish installing dependencies and retry ${record.command}.`
+            : `Command exited with code ${record.exitCode}.`,
+        }
+      : {}),
   };
 
   return { ...success(data), ...(failed ? { isError: true } : {}) };
@@ -221,6 +228,23 @@ function appendOutput(record: ProcessRecord, chunk: string) {
 export async function createProjectMcpBridge() {
   const bridgeProjectGeneration = workbenchStore.projectGeneration.get();
   const bridgeChatId = chatId.get();
+  const processes = new Map<string, ProcessRecord>();
+
+  const unknownProcess = (processId: string) =>
+    failure(new Error(`Unknown process: ${processId}. Copy the exact processId from the project_run_command result.`));
+
+  const stopProcesses = () => {
+    for (const record of processes.values()) {
+      if (record.exitCode === undefined) {
+        try {
+          record.process.kill();
+        } catch {
+          /* process may already have exited */
+        }
+      }
+    }
+    processes.clear();
+  };
 
   const assertProjectCurrent = () => {
     if (workbenchStore.projectGeneration.get() !== bridgeProjectGeneration || chatId.get() !== bridgeChatId) {
@@ -233,20 +257,35 @@ export async function createProjectMcpBridge() {
 
   server.registerTool(
     'project_read_file',
-    { description: projectToolDefinitions.project_read_file.description, inputSchema: { path: z.string().min(1) } },
-    async ({ path: input }) => {
+    projectToolDefinitions.project_read_file,
+    async ({ path: input, numbered }) => {
       try {
         const target = projectPath(input);
         await workbenchStore.waitForExecutionQueue();
         assertProjectCurrent();
 
-        const content = await readText(target.relative);
+        const content = await readText(target.relative).catch((error) => {
+          if (isNotFoundError(error) && /(?:^|\/)node_modules\/\.package-lock\.json$/.test(target.relative)) {
+            throw new Error(
+              'npm’s generated install metadata is absent. Read the project package.json or its root package-lock.json for dependency information.',
+            );
+          }
+
+          throw error;
+        });
         assertProjectCurrent();
 
         const revision = await getFileRevision(content);
         fileRevisionsReadByModel.set(target.relative, revision);
 
-        return success({ path: target.relative, content, revision, truncated: false });
+        const numberedLines = numbered ? numberProjectLines(content) : undefined;
+
+        return success({
+          path: target.relative,
+          revision,
+          ...(numberedLines ? { lineCount: numberedLines.length, content: numberedLines.join('\n') } : { content }),
+          truncated: false,
+        });
       } catch (error) {
         return failure(error);
       }
@@ -255,16 +294,8 @@ export async function createProjectMcpBridge() {
 
   server.registerTool(
     'project_write_file',
-    {
-      description: projectToolDefinitions.project_write_file.description,
-      inputSchema: {
-        path: z.string().min(1),
-        content: z.string(),
-        overwrite: z.boolean().optional(),
-        replacementReason: z.string().trim().min(1).max(500).optional(),
-      },
-    },
-    async ({ path: input, content, overwrite, replacementReason }, extra) => {
+    projectToolDefinitions.project_write_file,
+    async ({ path: input, content, overwrite }, extra) => {
       try {
         if (new TextEncoder().encode(content).byteLength > MAX_TEXT_BYTES) {
           throw new Error('Content exceeds the text file size limit.');
@@ -274,7 +305,9 @@ export async function createProjectMcpBridge() {
 
         let created = false;
         let changed = false;
-        await queueMutation(async () => {
+        let sourceRepair: string | undefined;
+
+        const rejectedWrite = await queueMutation(async () => {
           assertNotAborted(extra.signal);
           assertProjectCurrent();
 
@@ -304,111 +337,61 @@ export async function createProjectMcpBridge() {
           }
 
           assertUnlocked(target.absolute);
-          changed = current?.type !== 'file' || current.content !== content;
 
-          if (!changed) {
-            return;
+          if (current?.type === 'file' && current.content === content) {
+            return null;
           }
 
-          if (current?.type === 'file' && !replacementReason) {
-            throw new Error(
-              'Cannot overwrite existing file without replacementReason. Either: (1) Use project_patch_file to make targeted edits by reading the file first and using expectedRevision, OR (2) Provide a replacementReason parameter explaining why a full file replacement is necessary (e.g., "Complete restructure", "Generated from scratch", "Fundamental architecture change").',
-            );
+          let prepared;
+
+          try {
+            prepared = await validateProjectSource(target.relative, content, { repairJsxMap: true });
+          } catch (error) {
+            if (!created) {
+              throw error;
+            }
+
+            return failure(error, { retryCreatePath: target.relative });
+          }
+          sourceRepair = prepared.sourceRepair;
+
+          if (sourceRepair && new TextEncoder().encode(prepared.content).byteLength > MAX_TEXT_BYTES) {
+            throw new Error('Content exceeds the text file size limit after the JSX syntax correction.');
           }
 
-          await assertValidProjectSource(target.relative, content);
           assertNotAborted(extra.signal);
           assertProjectCurrent();
 
-          if (current?.type === 'file') {
-            await workbenchStore.saveFileContent(target.absolute, content);
-          } else {
-            await workbenchStore.createFile(target.absolute, content);
+          changed = current?.type !== 'file' || current.content !== prepared.content;
+
+          if (!changed) {
+            return null;
           }
+
+          if (current?.type === 'file') {
+            await workbenchStore.saveFileContent(target.absolute, prepared.content);
+          } else {
+            await workbenchStore.createFile(target.absolute, prepared.content);
+          }
+
+          return null;
         });
+
+        if (rejectedWrite) {
+          return rejectedWrite;
+        }
 
         if (changed) {
           fileRevisionsReadByModel.delete(target.relative);
         }
 
-        return success({ path: target.relative, written: true, created, changed, generation: bridgeProjectGeneration });
-      } catch (error) {
-        return failure(error);
-      }
-    },
-  );
-
-  server.registerTool(
-    'project_patch_file',
-    {
-      description: projectToolDefinitions.project_patch_file.description,
-      inputSchema: {
-        path: z.string().min(1),
-        expectedContent: z.string().optional(),
-        expectedRevision: z
-          .string()
-          .regex(/^[a-f0-9]{64}$/)
-          .optional(),
-        oldText: z.string().min(1),
-        newText: z.string(),
-      },
-    },
-    async ({ path: input, expectedContent, expectedRevision, oldText, newText }, extra) => {
-      try {
-        const target = projectPath(input);
-
-        return await queueMutation(async () => {
-          assertNotAborted(extra.signal);
-          assertUnlocked(target.absolute);
-
-          const content = await readText(target.relative);
-          assertNotAborted(extra.signal);
-          assertProjectCurrent();
-
-          const revisionToCheck = expectedRevision ?? fileRevisionsReadByModel.get(target.relative);
-
-          if (expectedContent === undefined && revisionToCheck === undefined) {
-            throw new Error('Read the file first, then supply its revision as expectedRevision.');
-          }
-
-          if (
-            (revisionToCheck !== undefined && (await getFileRevision(content)) !== revisionToCheck) ||
-            (expectedContent !== undefined && content !== expectedContent)
-          ) {
-            throw new Error(
-              'Patch conflict: the file changed or expectedContent was copied incorrectly. Read the file again and use its revision as expectedRevision; do not repeat the stale patch.',
-            );
-          }
-
-          const first = content.indexOf(oldText);
-
-          if (first < 0) {
-            throw new Error('Patch conflict: oldText was not found.');
-          }
-
-          if (content.indexOf(oldText, first + oldText.length) >= 0) {
-            throw new Error('Patch conflict: oldText is ambiguous; it must match exactly once.');
-          }
-
-          const updated = content.slice(0, first) + newText + content.slice(first + oldText.length);
-
-          if (new TextEncoder().encode(updated).byteLength > MAX_TEXT_BYTES) {
-            throw new Error('Patched file exceeds the text file size limit.');
-          }
-
-          assertProjectCurrent();
-
-          const changed = updated !== content;
-
-          if (changed) {
-            await assertValidProjectSource(target.relative, updated);
-            assertNotAborted(extra.signal);
-            assertProjectCurrent();
-            await workbenchStore.saveFileContent(target.absolute, updated);
-            fileRevisionsReadByModel.delete(target.relative);
-          }
-
-          return success({ path: target.relative, patched: true, changed, generation: bridgeProjectGeneration });
+        return success({
+          path: target.relative,
+          written: true,
+          created,
+          changed,
+          generation: bridgeProjectGeneration,
+          ...(sourceRepair ? { sourceRepair } : {}),
         });
       } catch (error) {
         return failure(error);
@@ -416,15 +399,105 @@ export async function createProjectMcpBridge() {
     },
   );
 
+  const patchFile = async (
+    {
+      path: input,
+      expectedContent,
+      expectedRevision,
+      oldText,
+      lineRange,
+      newText,
+    }: ReturnType<typeof projectToolDefinitions.project_patch_file.inputSchema.parse>,
+    signal: AbortSignal,
+  ) => {
+    try {
+      const target = projectPath(input);
+
+      return await queueMutation(async () => {
+        assertNotAborted(signal);
+        assertUnlocked(target.absolute);
+
+        const content = await readText(target.relative);
+        assertNotAborted(signal);
+        assertProjectCurrent();
+
+        const revisionToCheck = expectedRevision ?? fileRevisionsReadByModel.get(target.relative);
+
+        if (expectedContent === undefined && revisionToCheck === undefined) {
+          throw new Error('Read the file first, then supply its revision as expectedRevision.');
+        }
+
+        if (
+          (revisionToCheck !== undefined && (await getFileRevision(content)) !== revisionToCheck) ||
+          (expectedContent !== undefined && content !== expectedContent)
+        ) {
+          throw new Error(
+            'Patch conflict: the file changed or expectedContent was copied incorrectly. Read the file again and use its revision as expectedRevision; do not repeat the stale patch.',
+          );
+        }
+
+        // The input schema requires oldText when lineRange is omitted.
+        const updated = lineRange
+          ? replaceProjectLines(content, lineRange, newText)
+          : replaceProjectText(content, oldText!, newText);
+
+        if (new TextEncoder().encode(updated).byteLength > MAX_TEXT_BYTES) {
+          throw new Error('Patched file exceeds the text file size limit.');
+        }
+
+        assertProjectCurrent();
+
+        const changed = updated !== content;
+
+        if (changed) {
+          await validateProjectSource(target.relative, updated);
+          assertNotAborted(signal);
+          assertProjectCurrent();
+          await workbenchStore.saveFileContent(target.absolute, updated);
+          fileRevisionsReadByModel.delete(target.relative);
+        }
+
+        return success({ path: target.relative, patched: true, changed, generation: bridgeProjectGeneration });
+      });
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return failure(
+          new Error(
+            'The target file does not exist. Create it with project_write_file and supply the complete file as content.',
+          ),
+        );
+      }
+
+      return failure(error);
+    }
+  };
+
+  server.registerTool('project_patch_file', projectToolDefinitions.project_patch_file, (input, { signal }) =>
+    patchFile(input, signal),
+  );
+
+  server.registerTool(
+    'project_replace_lines',
+    projectToolDefinitions.project_replace_lines,
+    ({ path, startLine, endLine, expectedRevision, newText }, { signal }) =>
+      patchFile({ path, lineRange: { start: startLine, end: endLine }, expectedRevision, newText }, signal),
+  );
+
   server.registerTool(
     'project_create_directory',
-    {
-      description: projectToolDefinitions.project_create_directory.description,
-      inputSchema: { path: z.string().min(1) },
-    },
+    projectToolDefinitions.project_create_directory,
     async ({ path: input }, extra) => {
       try {
         const target = projectPath(input);
+
+        if (isDependencyPath(target.relative)) {
+          return failure(
+            new Error(
+              'The package manager creates node_modules. Install project dependencies with project_run_command and purpose "install".',
+            ),
+          );
+        }
+
         await queueMutation(() => {
           assertNotAborted(extra.signal);
           assertProjectCurrent();
@@ -442,10 +515,7 @@ export async function createProjectMcpBridge() {
 
   server.registerTool(
     'project_delete_path',
-    {
-      description: projectToolDefinitions.project_delete_path.description,
-      inputSchema: { path: z.string().min(1), recursive: z.boolean().optional() },
-    },
+    projectToolDefinitions.project_delete_path,
     async ({ path: input, recursive }, extra) => {
       try {
         const target = projectPath(input);
@@ -493,26 +563,32 @@ export async function createProjectMcpBridge() {
 
   server.registerTool(
     'project_list_paths',
-    {
-      description: projectToolDefinitions.project_list_paths.description,
-      inputSchema: { path: z.string().optional(), limit: z.number().int().min(1).max(MAX_LIST_RESULTS).optional() },
-    },
+    projectToolDefinitions.project_list_paths,
     async ({ path: prefix = '', limit = MAX_LIST_RESULTS }) => {
       try {
         const relative = prefix ? projectPath(prefix, true).relative : '.';
         const safePrefix = relative === '.' ? '' : relative;
+
+        if (isDependencyPath(relative)) {
+          return success({ entries: [], truncated: false, note: dependencyDiscoveryHint });
+        }
+
         await workbenchStore.waitForExecutionQueue();
         assertProjectCurrent();
 
-        const entries = Object.entries(workbenchStore.files.get())
-          .filter(
-            ([entryPath, entry]) =>
-              entry && (!safePrefix || entryPath.slice(`${WORK_DIR}/`.length).startsWith(safePrefix)),
-          )
-          .slice(0, limit)
-          .map(([entryPath, entry]) => ({ path: entryPath.slice(`${WORK_DIR}/`.length), type: entry!.type }));
+        const entries = Object.entries(workbenchStore.files.get()).flatMap(([entryPath, entry]) => {
+          if (!entry || !entryPath.startsWith(`${WORK_DIR}/`)) {
+            return [];
+          }
 
-        return success({ entries, truncated: entries.length === limit });
+          const entryRelative = entryPath.slice(`${WORK_DIR}/`.length);
+
+          return entryRelative.startsWith(safePrefix) && !isDependencyPath(entryRelative)
+            ? [{ path: entryRelative, type: entry.type }]
+            : [];
+        });
+
+        return success({ entries: entries.slice(0, limit), truncated: entries.length > limit });
       } catch (error) {
         return failure(error);
       }
@@ -521,14 +597,7 @@ export async function createProjectMcpBridge() {
 
   server.registerTool(
     'project_search_content',
-    {
-      description: projectToolDefinitions.project_search_content.description,
-      inputSchema: {
-        query: z.string().min(1),
-        path: z.string().optional(),
-        limit: z.number().int().min(1).max(200).optional(),
-      },
-    },
+    projectToolDefinitions.project_search_content,
     async ({ query, path: input = '.', limit = 50 }, extra) => {
       try {
         const safePath = projectPath(input, true).relative;
@@ -556,10 +625,7 @@ export async function createProjectMcpBridge() {
 
   server.registerTool(
     'project_find_related_files',
-    {
-      description: projectToolDefinitions.project_find_related_files.description,
-      inputSchema: { path: z.string().min(1), limit: z.number().int().min(1).max(100).optional() },
-    },
+    projectToolDefinitions.project_find_related_files,
     async ({ path: input, limit = 20 }) => {
       try {
         const target = projectPath(input);
@@ -578,7 +644,13 @@ export async function createProjectMcpBridge() {
         const sourceStem = sourceName.slice(0, sourceName.length - path.extname(sourceName).length);
 
         const related = Object.entries(workbenchStore.files.get())
-          .filter(([candidatePath, candidate]) => candidate?.type === 'file' && candidatePath !== target.absolute)
+          .filter(
+            ([candidatePath, candidate]) =>
+              candidate?.type === 'file' &&
+              candidatePath !== target.absolute &&
+              candidatePath.startsWith(`${WORK_DIR}/`) &&
+              !isDependencyPath(candidatePath.slice(`${WORK_DIR}/`.length)),
+          )
           .map(([candidatePath]) => {
             const relative = candidatePath.slice(`${WORK_DIR}/`.length);
             const reasons: string[] = [];
@@ -614,18 +686,14 @@ export async function createProjectMcpBridge() {
 
   server.registerTool(
     'project_run_command',
-    {
-      description: projectToolDefinitions.project_run_command.description,
-      inputSchema: {
-        command: z.string().min(1).max(4000),
-        purpose: z.enum(['run', 'test', 'install', 'other']).optional(),
-      },
-    },
+    projectToolDefinitions.project_run_command,
     async ({ command, purpose = 'other' }, extra) => {
       try {
         let reused = false;
 
-        const processId = await queueMutation(async () => {
+        const installWaitUntil = Date.now() + INSTALL_DEPENDENCY_WAIT_MS;
+
+        const launch = await queueMutation(async () => {
           assertNotAborted(extra.signal);
           assertProjectCurrent();
 
@@ -642,6 +710,37 @@ export async function createProjectMcpBridge() {
             if (existing) {
               reused = true;
               return existing[0];
+            }
+          }
+
+          if (purpose === 'run' || purpose === 'test') {
+            const activeInstalls = [...processes].filter(
+              ([, record]) => record.purpose === 'install' && record.exitCode === undefined,
+            );
+
+            for (const [installProcessId, install] of activeInstalls) {
+              await waitForProcess(install, Math.max(0, installWaitUntil - Date.now()));
+              assertNotAborted(extra.signal);
+              assertProjectCurrent();
+
+              if (install.exitCode === undefined) {
+                return success({
+                  command,
+                  purpose,
+                  status: 'waiting-for-install',
+                  installProcessId,
+                  note: 'This command has not started. Poll installProcessId with project_get_process_output, then retry this command after the install exits with code 0.',
+                });
+              }
+
+              if (install.exitCode !== 0) {
+                return failure(
+                  new Error(
+                    'Dependency installation failed before this command could start. Inspect the install output and fix it before retrying.',
+                  ),
+                  { command, purpose, installProcessId },
+                );
+              }
             }
           }
 
@@ -673,7 +772,13 @@ export async function createProjectMcpBridge() {
             throw error;
           }
 
-          const processId = crypto.randomUUID();
+          // Use short opaque handles to make them easier to copy between tool calls.
+          let processId = `p-${crypto.randomUUID().slice(0, 8)}`;
+
+          while (processes.has(processId)) {
+            processId = `p-${crypto.randomUUID().slice(0, 8)}`;
+          }
+
           workbenchStore.toggleTerminal(true);
           workbenchStore.writeToBoltTerminal(`\r\n$ ${command}\r\n`);
 
@@ -724,11 +829,15 @@ export async function createProjectMcpBridge() {
           return processId;
         });
 
-        const record = processes.get(processId)!;
+        if (typeof launch !== 'string') {
+          return launch;
+        }
+
+        const record = processes.get(launch)!;
         await waitForProcess(record, 250);
         assertProjectCurrent();
 
-        return processResult(processId, record, reused);
+        return processResult(launch, record, reused);
       } catch (error) {
         const result = failure(error);
 
@@ -743,15 +852,12 @@ export async function createProjectMcpBridge() {
 
   server.registerTool(
     'project_get_process_output',
-    {
-      description: projectToolDefinitions.project_get_process_output.description,
-      inputSchema: { processId: z.string().min(1) },
-    },
+    projectToolDefinitions.project_get_process_output,
     async ({ processId }) => {
       const record = processes.get(processId);
 
       if (!record) {
-        return failure(new Error(`Unknown process: ${processId}`));
+        return unknownProcess(processId);
       }
 
       await waitForProcess(record, 1000);
@@ -761,95 +867,76 @@ export async function createProjectMcpBridge() {
     },
   );
 
-  server.registerTool(
-    'project_stop_process',
-    {
-      description: projectToolDefinitions.project_stop_process.description,
-      inputSchema: { processId: z.string().min(1) },
-    },
-    async ({ processId }) => {
-      const record = processes.get(processId);
+  server.registerTool('project_stop_process', projectToolDefinitions.project_stop_process, async ({ processId }) => {
+    const record = processes.get(processId);
 
-      if (!record) {
-        return failure(new Error(`Unknown process: ${processId}`));
-      }
+    if (!record) {
+      return unknownProcess(processId);
+    }
 
-      if (record.exitCode === undefined) {
-        try {
-          record.process.kill();
-        } catch {
-          /* process may exit between the status check and kill */
-        }
-      }
-
-      await Promise.race([
-        record.process.exit.then(() => record.done).catch(() => record.done),
-        new Promise((resolve) => setTimeout(resolve, 1500)),
-      ]);
-
-      return success({ processId, stopped: true, command: record.command, purpose: record.purpose });
-    },
-  );
-
-  server.registerTool(
-    'web_search',
-    {
-      description: projectToolDefinitions.web_search.description,
-      inputSchema: { query: z.string().min(1).max(1000), limit: z.number().int().min(1).max(10).optional() },
-    },
-    async ({ query, limit = 5 }, extra) => {
+    if (record.exitCode === undefined) {
       try {
-        const response = await fetch('/api/web-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ operation: 'search', query, limit }),
-          signal: extra.signal,
-        });
-
-        const body = (await response.json()) as { success?: boolean; data?: unknown; error?: string };
-
-        if (!response.ok || !body.success) {
-          throw new Error(body.error || `Web search failed (${response.status}).`);
-        }
-
-        return success(body.data);
-      } catch (error) {
-        return failure(error);
+        record.process.kill();
+      } catch {
+        /* process may exit between the status check and kill */
       }
-    },
-  );
+    }
 
-  server.registerTool(
-    'web_fetch',
-    {
-      description: projectToolDefinitions.web_fetch.description,
-      inputSchema: { url: z.string().min(1).max(2048) },
-    },
-    async ({ url }, extra) => {
-      try {
-        const response = await fetch('/api/web-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url }),
-          signal: extra.signal,
-        });
+    await Promise.race([
+      record.process.exit.then(() => record.done).catch(() => record.done),
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+    ]);
 
-        const body = (await response.json()) as { success?: boolean; data?: unknown; error?: string };
+    return success({ processId, stopped: true, command: record.command, purpose: record.purpose });
+  });
 
-        if (!response.ok || !body.success) {
-          throw new Error(body.error || `Web fetch failed (${response.status}).`);
-        }
+  server.registerTool('web_search', projectToolDefinitions.web_search, async ({ query, limit = 5 }, extra) => {
+    try {
+      const response = await fetch('/api/web-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operation: 'search', query, limit }),
+        signal: extra.signal,
+      });
 
-        return success(body.data);
-      } catch (error) {
-        return failure(error);
+      const body = (await response.json()) as { success?: boolean; data?: unknown; error?: string };
+
+      if (!response.ok || !body.success) {
+        throw new Error(body.error || `Web search failed (${response.status}).`);
       }
-    },
-  );
+
+      return success(body.data);
+    } catch (error) {
+      return failure(error);
+    }
+  });
+
+  server.registerTool('web_fetch', projectToolDefinitions.web_fetch, async ({ url }, extra) => {
+    try {
+      const response = await fetch('/api/web-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+        signal: extra.signal,
+      });
+
+      const body = (await response.json()) as { success?: boolean; data?: unknown; error?: string };
+
+      if (!response.ok || !body.success) {
+        throw new Error(body.error || `Web fetch failed (${response.status}).`);
+      }
+
+      return success(body.data);
+    } catch (error) {
+      return failure(error);
+    }
+  });
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'bolt-project-client', version: '1.0.0' });
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+  const unsubscribe = workbenchStore.projectGeneration.listen(stopProcesses);
 
   let closed = false;
 
@@ -885,25 +972,15 @@ export async function createProjectMcpBridge() {
     },
     async close() {
       closed = true;
-
-      for (const record of processes.values()) {
-        if (record.exitCode === undefined) {
-          try {
-            record.process.kill();
-          } catch {
-            /* process may already have exited */
-          }
-        }
-      }
+      unsubscribe();
+      stopProcesses();
       await client.close();
       await server.close();
     },
   };
 }
 
-let sharedBridge: Awaited<ReturnType<typeof createProjectMcpBridge>> | undefined;
-let sharedBridgePromise: Promise<Awaited<ReturnType<typeof createProjectMcpBridge>>> | undefined;
-let sharedBridgeGeneration = -1;
+let sharedBridge: { generation: number; promise: ReturnType<typeof createProjectMcpBridge> } | undefined;
 
 export async function callProjectMcpTool(
   name: string,
@@ -920,25 +997,75 @@ export async function callProjectMcpTool(
     throw new Error('The active chat changed before this tool could start.');
   }
 
-  if (sharedBridgeGeneration !== currentGeneration) {
-    await closeProjectMcpBridge();
-    sharedBridgeGeneration = currentGeneration;
-    sharedBridgePromise = createProjectMcpBridge();
+  if (sharedBridge?.generation !== currentGeneration) {
+    const previous = sharedBridge;
+
+    const promise = (async () => {
+      const oldBridge = await previous?.promise.catch(() => undefined);
+      await oldBridge?.close();
+
+      if (workbenchStore.projectGeneration.get() !== currentGeneration) {
+        throw new Error('The active project changed before this tool could start.');
+      }
+
+      return createProjectMcpBridge();
+    })();
+    sharedBridge = { generation: currentGeneration, promise };
   }
 
-  if (!sharedBridgePromise) {
-    sharedBridgePromise = createProjectMcpBridge();
+  const connection = sharedBridge;
+
+  const bridge = await connection.promise.catch((error) => {
+    if (sharedBridge === connection) {
+      sharedBridge = undefined;
+    }
+
+    throw error;
+  });
+
+  return bridge.callTool(name, args, { ...options, generation: currentGeneration });
+}
+
+/** Start a restored project with the same command lifecycle as a live build. */
+export async function startRestoredProject(
+  { setupCommand, startCommand }: ProjectCommands,
+  context: { generation: number; chatId: string },
+) {
+  const runTool = async (name: string, args: Record<string, unknown>) => {
+    const result = await callProjectMcpTool(name, args, context);
+    const details = result.structuredContent as Record<string, unknown> | undefined;
+
+    if (result.isError) {
+      const error = details?.error;
+      throw new Error(typeof error === 'string' ? error : 'Project setup command failed.');
+    }
+
+    return details;
+  };
+
+  if (setupCommand) {
+    let install = await runTool('project_run_command', { command: setupCommand, purpose: 'install' });
+
+    const processId = install?.processId;
+
+    while (install?.status === 'running' && typeof processId === 'string') {
+      install = await runTool('project_get_process_output', { processId });
+    }
+
+    if (install?.exitCode !== 0) {
+      throw new Error('Project setup did not confirm a successful dependency install.');
+    }
   }
 
-  sharedBridge = await sharedBridgePromise;
-
-  return sharedBridge.callTool(name, args, options);
+  if (startCommand) {
+    await runTool('project_run_command', { command: startCommand, purpose: 'run' });
+  }
 }
 
 export async function closeProjectMcpBridge() {
-  const bridge = sharedBridge ?? (sharedBridgePromise ? await sharedBridgePromise.catch(() => undefined) : undefined);
+  const connection = sharedBridge;
   sharedBridge = undefined;
-  sharedBridgePromise = undefined;
-  sharedBridgeGeneration = -1;
+
+  const bridge = await connection?.promise.catch(() => undefined);
   await bridge?.close();
 }

@@ -1,12 +1,13 @@
 import { useChat } from '@ai-sdk/react';
 import { useStore } from '@nanostores/react';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
+import { shouldContinueAfterToolResults } from './toolActivity';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { API_KEYS_UPDATED_EVENT, type ApiKeysUpdatedDetail } from '~/lib/api/apiKeys';
 import { removeSecureCookie, setSecureCookie } from '~/lib/api/secure-cookies';
@@ -31,7 +32,7 @@ import { executeTextUtility, getPluginToolName, isSupportedAdapter } from '~/lib
 import { pluginDatabase } from '~/lib/plugins/database';
 import type { PluginManifest } from '~/lib/plugins/schema';
 import { pluginManifestSchema } from '~/lib/plugins/schema';
-import { callProjectMcpTool, PROJECT_TOOL_NAMES } from '~/lib/runtime/projectMcp';
+import { callProjectMcpTool, PROJECT_TOOL_NAMES, startRestoredProject } from '~/lib/runtime/projectMcp';
 import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
@@ -57,7 +58,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { filesToArtifacts } from '~/utils/fileUtils';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { resolveProjectCallContext } from '~/utils/projectCallContext';
-import { createCommandsMessage, detectProjectCommands } from '~/utils/projectCommands';
+import { createCommandsMessage, detectProjectCommands, type ProjectCommands } from '~/utils/projectCommands';
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 
@@ -78,8 +79,16 @@ const SMOKE_TEST_PROVIDER: ProviderInfo = {
 export function Chat() {
   renderLogger.trace('Chat');
 
-  const { ready, initialMessages, archivedMessages, chatChanged, storeMessageHistory, importChat, exportChat } =
-    useChatHistory();
+  const {
+    ready,
+    initialMessages,
+    archivedMessages,
+    restoredProject,
+    chatChanged,
+    storeMessageHistory,
+    importChat,
+    exportChat,
+  } = useChatHistory();
 
   const title = useStore(description);
   useEffect(() => {
@@ -93,6 +102,7 @@ export function Chat() {
           description={title}
           initialMessages={initialMessages}
           archivedMessages={archivedMessages}
+          restoredProject={restoredProject}
           chatChanged={chatChanged}
           exportChat={exportChat}
           storeMessageHistory={storeMessageHistory}
@@ -134,6 +144,7 @@ const processSampledMessages = createSampler(
 interface ChatProps {
   initialMessages: UIMessage[];
   archivedMessages: UIMessage[];
+  restoredProject?: ProjectCommands;
 
   /** True when `initialMessages` belong to a different chat than the ones they replace. */
   chatChanged: boolean;
@@ -149,6 +160,7 @@ export const ChatImpl = memo(
     description,
     initialMessages,
     archivedMessages,
+    restoredProject,
     chatChanged,
     storeMessageHistory,
     importChat,
@@ -158,6 +170,7 @@ export const ChatImpl = memo(
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const hasAppliedInitialMessagesRef = useRef(false);
+    const startedRestoredProjectRef = useRef<ProjectCommands>(undefined);
     const hasStoredMessages = initialMessages.length > 0 || archivedMessages.length > 0;
     const [chatStarted, setChatStarted] = useState(hasStoredMessages);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -319,12 +332,7 @@ export const ChatImpl = memo(
         }
       },
 
-      /*
-       * v5's addToolOutput only re-POSTs when sendAutomaticallyWhen says so.
-       * Without this, approving an MCP tool updated the UI locally and never
-       * reached the server, stalling the conversation.
-       */
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+      sendAutomaticallyWhen: shouldContinueAfterToolResults,
       onError: (e) => {
         setFakeLoading(false);
         handleError(e, 'chat');
@@ -553,8 +561,6 @@ export const ChatImpl = memo(
           return;
         }
 
-        executingProjectCallsRef.current.add(toolCallId);
-
         const origin = projectCallGenerationsRef.current.get(toolCallId);
 
         const executionContext = resolveProjectCallContext(
@@ -571,6 +577,8 @@ export const ChatImpl = memo(
           });
           return;
         }
+
+        executingProjectCallsRef.current.add(toolCallId);
 
         const abortController = new AbortController();
         projectToolControllersRef.current.set(toolCallId, abortController);
@@ -720,10 +728,28 @@ export const ChatImpl = memo(
 
       parseMessages(initialMessages, false);
 
+      const activeChatId = chatId.get();
+
+      if (restoredProject && activeChatId && startedRestoredProjectRef.current !== restoredProject) {
+        startedRestoredProjectRef.current = restoredProject;
+
+        const generation = workbenchStore.projectGeneration.get();
+
+        void workbenchStore
+          .waitForExecutionQueue()
+          .then(() => startRestoredProject(restoredProject, { generation, chatId: activeChatId }))
+          .catch((error) => {
+            if (workbenchStore.projectGeneration.get() === generation && chatId.get() === activeChatId) {
+              logStore.logError('Failed to start the restored project', error);
+              toast.error('Could not start the restored project. See Bolt Terminal for details.');
+            }
+          });
+      }
+
       if (initialMessages.length > 0) {
         hasAppliedInitialMessagesRef.current = true;
       }
-    }, [initialMessages, chatChanged, hasStoredMessages]);
+    }, [initialMessages, chatChanged, hasStoredMessages, restoredProject]);
 
     useEffect(() => {
       const starterSetupMessage = initialMessages.find((message) =>

@@ -221,7 +221,7 @@ export async function streamText(props: {
       allowedHtmlElements: allowedHTMLElements,
       modificationTagName: MODIFICATIONS_TAG_NAME,
       designScheme,
-      projectTools: chatMode === 'build' && Boolean(options?.prepareStep),
+      projectTools: chatMode === 'build' && Boolean(options?.tools?.project_read_file),
       supabase: {
         isConnected: options?.supabaseConnection?.isConnected || false,
         hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
@@ -240,7 +240,7 @@ export async function streamText(props: {
 <agent_mode_workflow>
   The user enabled Agent Mode for this build request. Work autonomously through the available project tools, within the request's tool-step limit.
   - Follow Plan -> edit -> run -> test -> repair. Record a short plan and explicit observable completion criteria with agent_plan, and explain it briefly to the user.
-  - Inspect the relevant project files before editing. For follow-ups, use small exact patches to relevant files and preserve unrelated code; replace entire files only with a concrete reason.
+  - Inspect the relevant project files before editing. For follow-ups, use targeted patches to relevant files, preserve unrelated code, and replace entire files only with a concrete reason.
   - Run the requested app/program, then the smallest relevant available checks. Inspect actual outputs and exit codes. If a check fails, patch its cause and rerun it; edits invalidate earlier passing checks.
   - Call agent_complete with successful tool evidence for every planned criterion. If blocked or the task limit is reached, clearly state unmet criteria and failed or missing checks.
   - Do not claim a task or check is complete without tool evidence. Keep the plan focused on the user's request and do not invent extra work.
@@ -268,17 +268,7 @@ export async function streamText(props: {
       ---
       `;
 
-      /*
-       * The summary replaces older conversation history. Keep only the recent
-       * turns that the context optimizer selected, while pruning empty parts.
-       * A zero slice ID means no cutoff was selected, so keep only the latest
-       * message because the summary carries the earlier context.
-       */
-      const recentMessages =
-        props.messageSliceId && props.messageSliceId > 0
-          ? processedMessages.slice(props.messageSliceId)
-          : processedMessages.slice(-1);
-      processedMessages = recentMessages;
+      processedMessages = processedMessages.slice(props.messageSliceId ?? 0);
     }
   }
 

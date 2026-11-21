@@ -45,8 +45,9 @@ export function withAgentToolCallRecovery(model: LanguageModel, onRetry: () => v
           async start(controller) {
             try {
               for (let attempt = 0; attempt < MAX_RECOVERY_ATTEMPTS && !cancelled; attempt++) {
-                const correction =
-                  'Your previous response did not call a required tool. Use the supplied native tools interface now. Do not print JSON or function calls as text. Follow the tool schema exactly.';
+                const requiredTool = choice.type === 'tool' ? `Call ${choice.toolName}.` : 'Call an available tool.';
+                const correction = `Your previous response did not call a required tool. ${requiredTool} Use the native tools interface and follow its input schema exactly. If native tool calling is unavailable, return only a complete JSON object of the form {"name":"<tool name>","parameters":{...}} with no surrounding explanation. Bolt can validate and recover that call.`;
+
                 const retryPrompt =
                   params.prompt[0]?.role === 'system'
                     ? [

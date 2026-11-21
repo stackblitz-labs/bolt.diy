@@ -29,6 +29,47 @@ describe('toMissingCredentialError', () => {
 });
 
 describe('toSafeStreamErrorMessage', () => {
+  it.each([
+    ['{"newText":"private-source', 'For a full-file replacement, use project_write_file'],
+    [
+      JSON.stringify({
+        path: 'src/App.tsx',
+        startLine: 1,
+        endLine: 2,
+        expectedRevision: 'private-source',
+        newText: '',
+      }),
+      'Copy the entire revision from the latest numbered read',
+    ],
+  ])('gives safe recovery advice for invalid numbered edits', (toolInput, hint) => {
+    const error = new InvalidToolInputError({
+      toolName: 'project_replace_lines',
+      toolInput,
+      cause: new Error('invalid'),
+    });
+
+    const message = toSafeStreamErrorMessage(error);
+    expect(message).toContain(hint);
+    expect(message).not.toContain('private-source');
+  });
+
+  it.each(['{}', '{"content":"unfinished-private-content'])(
+    'gives recovery advice for missing or incomplete file write arguments',
+    (toolInput) => {
+      const error = new InvalidToolInputError({
+        toolName: 'project_write_file',
+        toolInput,
+        cause: new Error('invalid'),
+      });
+
+      const hint = toSafeStreamErrorMessage(error);
+
+      expect(hint).toContain('complete JSON object with path and content');
+      expect(hint).toContain('smaller complete files');
+      expect(hint).not.toContain('unfinished-private-content');
+    },
+  );
+
   it('explains tool validation failures without exposing raw arguments or provider details', () => {
     const invalid = new InvalidToolInputError({
       toolName: 'project_list_paths',
