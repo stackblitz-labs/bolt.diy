@@ -320,6 +320,10 @@ export function getAgentLoopInstructions(progress: ReturnType<typeof getAgentLoo
     return 'The completion gate accepted this task. Summarize the relevant changed files, passing checks, and fulfilled criteria. Do not start unrelated work.';
   }
 
+  if (!progress.plan) {
+    return 'Use the available project tools to list files and read relevant files if you need context for the latest request. Once you have enough context, call agent_plan with a concise plan and observable completion criteria grounded in the existing project. Record the plan before making edits or running commands.';
+  }
+
   const nextAction = progress.installingProcessId
     ? `Poll the dependency install with project_get_process_output and processId ${JSON.stringify(progress.installingProcessId)}. Wait for exit code 0 before starting the app or running checks.`
     : progress.needsCommandRepair && !progress.retryCreatePath
@@ -329,7 +333,7 @@ export function getAgentLoopInstructions(progress: ReturnType<typeof getAgentLoo
           ? `Create ${JSON.stringify(progress.retryCreatePath)} with project_write_file. Its earlier write failed validation before saving. Send path and complete valid content with real line breaks. Split long code into smaller complete files if needed. Use a numbered patch only after the file exists.`
           : 'Repair the latest failed project tool action. Use its exact error, reread the file if needed, and retry only after correcting the cause. Do not run or complete yet.'
         : !progress.edited
-          ? 'Use project_write_file to create a file or replace a starter placeholder with complete source. For targeted edits, use project_replace_lines after a numbered read. Implement the requested change before reporting completion.'
+          ? 'Follow the plan for the existing project. Use project_run_command when you need to install dependencies or check the project before editing. Use project_write_file to create files or replace a starter placeholder with complete source. For targeted edits, use project_replace_lines after a numbered read. Implement the requested changes before reporting completion.'
           : !progress.ran
             ? 'Run the changed app or program now with project_run_command and purpose="run". Inspect its output.'
             : !progress.tested
@@ -338,7 +342,7 @@ export function getAgentLoopInstructions(progress: ReturnType<typeof getAgentLoo
                 ? 'Start or inspect the app preview now. Confirm it is running before completing.'
                 : 'Call agent_complete alone and report every recorded criterion by its exact ID. The server attaches evidence from successful project tool calls automatically; do not provide process IDs, command names, or guessed evidence IDs.';
 
-  return `Follow Plan -> edit -> run -> test -> repair. Record a short plan and observable completion criteria with agent_plan. Inspect relevant files, then use targeted patches. Run the app/program with purpose run; use an existing live server for follow-up UI edits. Run the smallest relevant available checks with purpose test and wait for exit code 0. If a check fails, inspect its output, patch the cause, and rerun the check. Any edit after a passing check requires fresh verification. Call agent_complete alone and report each planned criterion by its exact ID; the server attaches evidence from successful project tool calls automatically. A plan or started process alone is not completion. If no automated test script exists, use an available typecheck, lint, focused runtime assertion, or smoke check and explain its limits; do not invent passing tests. If work cannot proceed, report outcome blocked with a concrete reason.
+  return `Follow the recorded plan. Inspect any remaining relevant files, then use targeted patches. Run the app/program with purpose run; use an existing live server for follow-up UI edits. Run the smallest relevant available checks with purpose test and wait for exit code 0. If a check fails, inspect its output, patch the cause, and rerun the check. Any edit after a passing check requires fresh verification. Call agent_complete alone and report each planned criterion by its exact ID; the server attaches evidence from successful project tool calls automatically. A plan or started process alone is not completion. If no automated test script exists, use an available typecheck, lint, focused runtime assertion, or smoke check and explain its limits; do not invent passing tests. If work cannot proceed, report outcome blocked with a concrete reason.
 NEXT REQUIRED ACTION: ${nextAction}
 Do not send a prose response while this action is pending. Remaining task steps: ${MAX_AGENT_STEPS - progress.steps}. Confirmed: plan=${Boolean(progress.plan)}, edits=${progress.edited}, run=${progress.ran}, passing check after latest changes=${progress.tested}, preview=${progress.previewReady}.
 Recorded criteria: ${JSON.stringify(progress.plan?.criteria ?? [])}. Report each criterion by its exact ID; the server attaches successful project tool-call evidence automatically.`;

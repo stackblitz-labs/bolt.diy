@@ -1,7 +1,7 @@
 import { simulateReadableStream, streamText, toUIMessageStream } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { describe, expect, it } from 'vitest';
-import { repairProjectPatchCall } from './project-tool-input';
+import { repairBuildToolCall } from './project-tool-input';
 import { toSafeStreamErrorMessage } from '~/lib/.server/api/errors';
 import { projectToolDefinitions } from '~/lib/runtime/projectMcp.shared';
 
@@ -41,7 +41,7 @@ async function streamPatch(input: Record<string, unknown>) {
     prompt: 'Update the Tailwind config.',
     toolChoice: 'required',
     tools: { project_patch_file: projectToolDefinitions.project_patch_file },
-    repairToolCall: repairProjectPatchCall,
+    repairToolCall: repairBuildToolCall,
   });
 
   const chunks = await Array.fromAsync(toUIMessageStream({ stream: result.stream, onError: toSafeStreamErrorMessage }));

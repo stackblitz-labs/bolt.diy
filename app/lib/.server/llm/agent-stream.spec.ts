@@ -113,9 +113,13 @@ describe('agent provider recovery', () => {
     expect(chunks.some((chunk) => chunk.type === 'error')).toBe(true);
   });
 
-  it.each(['native', 'json'])(
-    'retries a text-only required-tool response and executes a %s call once',
-    async (format) => {
+  it.each([
+    ['native', 'stop'],
+    ['json', 'stop'],
+    ['native', 'length'],
+  ] as const)(
+    'retries a missing required tool call and executes a %s call once after %s',
+    async (format, finishReason) => {
       const execute = vi.fn(async () => ({ plan: 'recorded' }));
 
       let attempts = 0;
@@ -126,7 +130,12 @@ describe('agent provider recovery', () => {
             start(controller) {
               controller.enqueue({ type: 'stream-start', warnings: [] });
 
-              if (attempts++ === 0) {
+              const isFirstAttempt = attempts++ === 0;
+
+              if (isFirstAttempt && finishReason === 'length') {
+                controller.enqueue({ type: 'finish', finishReason: { unified: 'length', raw: 'length' }, usage });
+                controller.close();
+              } else if (isFirstAttempt) {
                 controller.enqueue({ type: 'text-start', id: 'invalid' });
                 controller.enqueue({ type: 'text-delta', id: 'invalid', delta: '[{"name":"agent_plan"}]' });
                 controller.enqueue({ type: 'text-end', id: 'invalid' });
@@ -165,6 +174,13 @@ describe('agent provider recovery', () => {
       const chunks = await collect(result);
       expect(onRetry).toHaveBeenCalledExactlyOnceWith('tool-call');
       expect(model.doStreamCalls).toHaveLength(2);
+
+      if (finishReason === 'length') {
+        expect(model.doStreamCalls[1].prompt[0].content).toContain('reached the output limit');
+        expect(model.doStreamCalls[1].prompt[0].content).toContain('Make one call with concise arguments');
+        expect(model.doStreamCalls[1].toolChoice).toEqual(model.doStreamCalls[0].toolChoice);
+      }
+
       expect(execute).toHaveBeenCalledOnce();
       expect(chunks.some((chunk) => chunk.type === 'error')).toBe(false);
       expect(chunks).toContainEqual(expect.objectContaining({ type: 'tool-output-available' }));

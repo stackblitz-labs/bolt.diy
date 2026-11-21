@@ -43,10 +43,17 @@ export function withAgentToolCallRecovery(model: LanguageModel, onRetry: () => v
         ...initial,
         stream: new ReadableStream<Part>({
           async start(controller) {
+            let previousAttemptTruncated = false;
+
             try {
               for (let attempt = 0; attempt < MAX_RECOVERY_ATTEMPTS && !cancelled; attempt++) {
                 const requiredTool = choice.type === 'tool' ? `Call ${choice.toolName}.` : 'Call an available tool.';
-                const correction = `Your previous response did not call a required tool. ${requiredTool} Use the native tools interface and follow its input schema exactly. If native tool calling is unavailable, return only a complete JSON object of the form {"name":"<tool name>","parameters":{...}} with no surrounding explanation. Bolt can validate and recover that call.`;
+
+                const retryGuidance = previousAttemptTruncated
+                  ? 'Your previous response reached the output limit before completing a tool call. Make one call with concise arguments and omit any preamble. For a large edit, make the first small, valid change in this call and finish the rest in later calls. Aim for about 10 lines of code in this call.'
+                  : 'Your previous response did not call a required tool.';
+
+                const correction = `${retryGuidance} ${requiredTool} Use the native tools interface and follow its input schema exactly. If native tool calling is unavailable, return only a complete JSON object of the form {"name":"<tool name>","parameters":{...}} with no surrounding explanation. Bolt can validate and recover that call.`;
 
                 const retryPrompt =
                   params.prompt[0]?.role === 'system'
@@ -56,7 +63,7 @@ export function withAgentToolCallRecovery(model: LanguageModel, onRetry: () => v
                       ]
                     : [{ role: 'system' as const, content: correction }, ...params.prompt];
 
-                const result =
+                const result: typeof initial =
                   attempt === 0 ? initial : await normalized.doStream({ ...params, prompt: retryPrompt, abortSignal });
 
                 if (cancelled) {
@@ -98,6 +105,7 @@ export function withAgentToolCallRecovery(model: LanguageModel, onRetry: () => v
                   failed ||= value.type === 'error';
 
                   if (value.type === 'finish') {
+                    previousAttemptTruncated = value.finishReason.unified === 'length';
                     finished = true;
                     void reader.cancel().catch(() => undefined);
                     break;

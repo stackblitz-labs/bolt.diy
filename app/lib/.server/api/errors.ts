@@ -133,8 +133,51 @@ export function toMissingCredentialError(provider: string, providerMessage?: str
   });
 }
 
+const streamErrorReasons: Array<[RegExp, string]> = [
+  [/unsupported|unrecognized|unknown (?:tool|model)|not supported/, 'unsupported'],
+  [/parameter|schema|validation|invalid request/, 'invalid-parameters'],
+  [/tool.call|tool choice|tool input|tool execution|required tool/, 'tool-call'],
+  [/timeout|timed out|abort/, 'timeout-or-abort'],
+  [/unauthorized|api key|authentication/, 'authentication'],
+  [/rate.limit|too many requests/, 'rate-limit'],
+  [/certificate|tls|ssl/, 'tls'],
+  [/fetch failed|network|connection|socket/, 'network'],
+];
+
+function getStreamErrorReason(message: string) {
+  return streamErrorReasons.find(([pattern]) => pattern.test(message))?.[1];
+}
+
+function getStreamErrorStatus(error: unknown) {
+  if (error && typeof error === 'object' && 'statusCode' in error) {
+    const { statusCode } = error;
+
+    if (typeof statusCode === 'number' && Number.isInteger(statusCode)) {
+      return statusCode;
+    }
+  }
+
+  return undefined;
+}
+
+function getStreamErrorType(error: unknown, fallback: string) {
+  if (!(error instanceof Error)) {
+    return fallback;
+  }
+
+  const className = error.constructor?.name;
+
+  return className && /^[a-zA-Z][a-zA-Z0-9_]{0,60}$/.test(className) ? className : fallback;
+}
+
 /** Converts a streaming provider error to a client-safe hint without forwarding diagnostics. */
 export function toSafeStreamErrorMessage(error: unknown): string {
+  if (InvalidToolInputError.isInstance(error) && error.toolName === 'agent_plan') {
+    logger.warn('Invalid build plan arguments');
+
+    return 'Invalid build plan arguments. Include a goal, steps, requiresPreview, and criteria with a unique id and a description for each criterion.';
+  }
+
   if (InvalidToolInputError.isInstance(error) && error.toolName === 'project_write_file') {
     const hint = getProjectWriteInputHint(error.toolInput);
     logger.warn(`Invalid project file write arguments. ${hint}`);
@@ -159,22 +202,34 @@ export function toSafeStreamErrorMessage(error: unknown): string {
   const providerMessage = error instanceof Error ? error.message : String(error);
   const normalizedMessage = providerMessage.toLowerCase();
 
-  const statusCode =
-    typeof error === 'object' && error !== null && 'statusCode' in error ? error.statusCode : undefined;
+  const statusCode = getStreamErrorStatus(error);
 
-  const details =
-    error && typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : String(error);
+  const retryable =
+    error && typeof error === 'object' && 'isRetryable' in error && typeof error.isRetryable === 'boolean'
+      ? error.isRetryable
+      : 'unknown';
 
+  const cause = error instanceof Error ? error.cause : undefined;
+
+  const reason =
+    getStreamErrorReason(normalizedMessage) ??
+    (cause instanceof Error ? getStreamErrorReason(cause.message.toLowerCase()) : undefined) ??
+    'unclassified';
+
+  // Keep provider messages, tool arguments and request/response details out of logs.
   logger.error(
-    `Streaming provider error (${error instanceof Error ? error.name : 'UnknownError'}): ${providerMessage}`,
+    `Streaming provider error (type=${getStreamErrorType(error, 'UnknownError')}, status=${statusCode ?? 'unknown'}, retryable=${retryable}, reason=${reason}, causeType=${getStreamErrorType(cause, 'none')}, causeStatus=${getStreamErrorStatus(cause) ?? 'unknown'})`,
   );
-  logger.error(`Streaming provider error details: ${details}`);
 
   if ((error instanceof Error && error.name === 'TimeoutError') || /timeout|timed\s*out/.test(normalizedMessage)) {
     return 'Custom error: The AI provider stopped responding before the next step completed. Completed file changes and tool results are preserved. Retry to continue, or select a different model.';
   }
 
   if (ToolChoiceViolationError.isInstance(error)) {
+    if (error.finishReason === 'length') {
+      return 'Custom error: The model reached its output limit before completing a required tool call. Retry with a smaller edit or select a model with a larger output budget.';
+    }
+
     return 'Custom error: The selected model returned text instead of the required tool call, so the build could not continue. Retry or select a model that reliably supports tool calling.';
   }
 

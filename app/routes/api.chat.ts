@@ -16,13 +16,13 @@ import { createAgentStreamRecovery } from '~/lib/.server/llm/agent-stream';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { getRecentChatStart, shouldOptimizeRequestContext } from '~/lib/.server/llm/context-optimization';
 import { createSummary } from '~/lib/.server/llm/create-summary';
-import { repairProjectPatchCall } from '~/lib/.server/llm/project-tool-input';
+import { repairBuildToolCall } from '~/lib/.server/llm/project-tool-input';
 import { getWebResearchInstructions } from '~/lib/.server/llm/prompt-web-tools';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { streamText, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
-import { getAgentLoopInstructions, getAgentLoopProgress } from '~/lib/common/agentLoop';
+import { getAgentLoopProgress } from '~/lib/common/agentLoop';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { getStarterBuildProgress } from '~/lib/common/starterBuild';
 import { createMessage, getMessageText } from '~/lib/persistence/messageMigration';
@@ -107,28 +107,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * finishReason 'length' could recurse without bound.
      */
     let responseSegments = 1;
-
-    /*
-     * Single chunk observer shared by the initial and continuation segments.
-     * v7 exposes one stream per streamText call, so progress is observed through
-     * onChunk rather than by iterating the stream alongside the UI merge.
-     */
-    const observeChunk = ({ chunk }: { chunk: unknown }) => {
-      const part = chunk as { type?: string; error?: unknown };
-
-      if (part.type === 'error') {
-        const err = part.error;
-        const message = err instanceof Error ? err.message : err ? String(err) : 'unknown error';
-
-        const details =
-          err && typeof err === 'object'
-            ? JSON.stringify(err, Object.getOwnPropertyNames(err))
-            : String(err ?? 'unknown error');
-
-        logger.error(`Streaming provider error: ${message}`);
-        logger.error(`Streaming provider error details: ${details}`);
-      }
-    };
 
     const uiStream = createChatUIMessageStream(messages, {
       async execute({ writer }) {
@@ -358,22 +336,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const options: Omit<StreamingOptions, 'messages'> = {
           supabaseConnection: supabase,
-          system: [
-            getWebResearchInstructions({
-              browserUseToolNames,
-              webToolNames: Object.keys(projectTools).filter(
-                (toolName) => toolName === 'web_search' || toolName === 'web_fetch',
-              ),
-            }),
-            getAgentLoopInstructions(agentProgress),
-          ]
-            .filter(Boolean)
-            .join('\n\n'),
+          system: getWebResearchInstructions({
+            browserUseToolNames,
+            webToolNames: Object.keys(projectTools).filter(
+              (toolName) => toolName === 'web_search' || toolName === 'web_fetch',
+            ),
+          }),
 
           ...(hasTools
             ? { tools, ...(agentProgress.status !== 'inactive' ? { prepareStep: agentLoop.prepareStep } : {}) }
             : {}),
-          ...(chatMode === 'build' ? { repairToolCall: repairProjectPatchCall } : {}),
+          ...(chatMode === 'build' ? { repairToolCall: repairBuildToolCall } : {}),
 
           /*
            * isStepCount(undefined) can never be true, and supplying it replaces
@@ -512,13 +485,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               designScheme,
               summary,
               messageSliceId,
-
-              /*
-               * Without this the continuation segment produces no activity, so a
-               * slow continuation trips the staleness timeout and triggers a
-               * spurious recovery attempt.
-               */
-              onChunk: observeChunk,
             });
 
             writer.merge(
@@ -530,12 +496,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               }),
             );
 
-            /*
-             * The old code iterated result.fullStream here in parallel with the
-             * merge above. In v7 fullStream is the same stream object, so the
-             * second consumer starved the first. Chunk observation now happens
-             * in onChunk, which fires as the merged consumer reads.
-             */
             return;
           },
         };
@@ -566,7 +526,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           designScheme,
           summary,
           messageSliceId,
-          onChunk: observeChunk,
         });
 
         writer.merge(

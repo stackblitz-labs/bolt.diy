@@ -18,7 +18,7 @@ ARG VITE_PUBLIC_APP_URL
 ENV VITE_PUBLIC_APP_URL=${VITE_PUBLIC_APP_URL}
 
 # Install deps efficiently
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
 RUN pnpm fetch
 
 # Copy source and build
@@ -52,8 +52,10 @@ ENV WRANGLER_SEND_METRICS=false \
 # Note: API keys should be provided at runtime via docker run -e or docker-compose
 # Example: docker run -e OPENAI_API_KEY=your_key_here ...
 
-# Install curl for healthchecks
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# Install curl for healthchecks and verify the CA bundle for outbound HTTPS
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+  && update-ca-certificates \
+  && test -s /etc/ssl/certs/ca-certificates.crt \
   && rm -rf /var/lib/apt/lists/*
 
 # Pre-configure wrangler to disable metrics
