@@ -16,14 +16,15 @@ import {
   setSnapshot,
   type IChatMetadata,
 } from './db';
-import { createMessage, getMessageAnnotations, hasMessageFlag, type AnyPart } from './messageMigration';
+import { createMessage, getMessageAnnotations, getMessageText, hasMessageFlag, type AnyPart } from './messageMigration';
 import type { Snapshot } from './types';
 import type { FileMap } from '~/lib/stores/files';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
 import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import type { ContextAnnotation } from '~/types/context';
-import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
+import { WORK_DIR } from '~/utils/constants';
+import { detectProjectCommands, type ProjectCommands } from '~/utils/projectCommands';
 
 export interface ChatHistoryItem {
   id: string;
@@ -63,6 +64,7 @@ export function useChatHistory({ loadHistory = true }: { loadHistory?: boolean }
 
   const [archivedMessages, setArchivedMessages] = useState<UIMessage[]>([]);
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
+  const [restoredProject, setRestoredProject] = useState<ProjectCommands>();
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
 
@@ -221,61 +223,25 @@ export function useChatHistory({ loadHistory = true }: { loadHistory?: boolean }
 
             let filteredMessages = storedMessages.messages.slice(startingIdx + 1, endingIdx);
             let archivedMessages: UIMessage[] = [];
+            let restoredProject: ProjectCommands | undefined;
 
             if (startingIdx >= 0) {
               archivedMessages = storedMessages.messages.slice(0, startingIdx + 1);
             }
 
-            if (startingIdx > 0 && validSnapshot.preserveMessagesOnRestore) {
-              archivedMessages = [];
+            if (startingIdx >= 0 && (switchedChat || rewindId)) {
               await restoreSnapshot(validSnapshot, isCurrentLoad);
 
               if (!isCurrentLoad()) {
                 return;
               }
+            }
 
+            if (startingIdx >= 0 && validSnapshot.preserveMessagesOnRestore) {
+              archivedMessages = [];
               filteredMessages = storedMessages.messages.slice(0, endingIdx);
-            } else if (startingIdx > 0) {
-              const files = Object.entries(validSnapshot?.files || {})
-                .map(([key, value]) => {
-                  if (value?.type !== 'file') {
-                    return null;
-                  }
-
-                  return {
-                    content: value.content,
-                    path: key,
-                  };
-                })
-                .filter((x): x is { content: string; path: string } => !!x); // Type assertion
-
-              const projectCommands = await detectProjectCommands(files);
-
-              if (!isCurrentLoad()) {
-                return;
-              }
-
-              // Call the modified function to get only the command actions string
-              const commandActionsString = createCommandActionsString(projectCommands);
-
-              const restoredAssistantText = `Bolt restored this chat from a snapshot.
-                  <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
-                  ${Object.entries(snapshot?.files || {})
-                    .map(([key, value]) => {
-                      if (value?.type === 'file') {
-                        return `
-                      <boltAction type="file" filePath="${key}">
-${value.content}
-                      </boltAction>
-                      `;
-                      } else {
-                        return ``;
-                      }
-                    })
-                    .join('\n')}
-                  ${commandActionsString}
-                  </boltArtifact>
-                  `;
+            } else if (startingIdx >= 0) {
+              const restoredAssistantText = 'Bolt restored this chat from a snapshot.';
 
               const restoredSummary = summary
                 ? [
@@ -335,10 +301,29 @@ ${value.content}
 
                 ...filteredMessages,
               ];
-              await restoreSnapshot(validSnapshot, isCurrentLoad);
+            }
 
-              if (!isCurrentLoad()) {
-                return;
+            if (startingIdx >= 0 && switchedChat) {
+              // Existing import setup actions are already handled by the message parser.
+              const hasSetupActions = filteredMessages.some(
+                (message) =>
+                  message.role === 'assistant' &&
+                  /<boltAction\b[^>]*\btype\s*=\s*["']start["']/.test(getMessageText(message)),
+              );
+
+              if (!hasSetupActions) {
+                const files = Object.entries(validSnapshot.files).flatMap(([path, file]) => {
+                  const relativePath = path.startsWith(`${WORK_DIR}/`) ? path.slice(WORK_DIR.length + 1) : path;
+                  return file?.type === 'file' && !relativePath.split('/').includes('node_modules')
+                    ? [{ path: relativePath, content: file.content }]
+                    : [];
+                });
+
+                const commands = await detectProjectCommands(files);
+
+                if (commands.setupCommand || commands.startCommand) {
+                  restoredProject = commands;
+                }
               }
             }
 
@@ -349,6 +334,7 @@ ${value.content}
             loadedChatIdRef.current = storedMessages.id;
             setArchivedMessages(archivedMessages);
             setChatChanged(switchedChat);
+            setRestoredProject(restoredProject);
             setInitialMessages(filteredMessages);
 
             setUrlId(storedMessages.urlId);
@@ -389,6 +375,7 @@ ${value.content}
           routeHandoffChatIdRef.current = undefined;
           setInitialMessages([]);
           setArchivedMessages([]);
+          setRestoredProject(undefined);
           setChatChanged(true);
           setUrlId(undefined);
           description.set(undefined);
@@ -439,6 +426,7 @@ ${value.content}
       setChatChanged(leftChat);
       setArchivedMessages([]);
       setInitialMessages([]);
+      setRestoredProject(undefined);
       setUrlId(undefined);
       description.set(undefined);
       chatId.set(undefined);
@@ -488,6 +476,8 @@ ${value.content}
       }
 
       const entries = Object.entries(validSnapshot.files);
+      const directories = new Set<string>();
+      const restoredFiles: FileMap = {};
 
       const getContainerPath = (filePath: string) => {
         const workdirPrefix = `${container.workdir}/`;
@@ -505,7 +495,10 @@ ${value.content}
 
       for (const [filePath, value] of entries) {
         if (value?.type === 'folder') {
-          await container.fs.mkdir(getContainerPath(filePath), { recursive: true });
+          const relativePath = getContainerPath(filePath);
+          await container.fs.mkdir(relativePath, { recursive: true });
+          directories.add(relativePath);
+          restoredFiles[`${container.workdir}/${relativePath}`] = value;
 
           if (!isCurrentLoad()) {
             return;
@@ -515,12 +508,26 @@ ${value.content}
 
       for (const [filePath, value] of entries) {
         if (value?.type === 'file') {
+          const relativePath = getContainerPath(filePath);
+          const parent = relativePath.slice(0, Math.max(0, relativePath.lastIndexOf('/')));
+
+          if (parent && !directories.has(parent)) {
+            await container.fs.mkdir(parent, { recursive: true });
+            directories.add(parent);
+
+            if (!isCurrentLoad()) {
+              return;
+            }
+          }
+
           if (value.isBinary) {
             const binaryContent = Uint8Array.from(atob(value.content), (character) => character.charCodeAt(0));
-            await container.fs.writeFile(getContainerPath(filePath), binaryContent);
+            await container.fs.writeFile(relativePath, binaryContent);
           } else {
-            await container.fs.writeFile(getContainerPath(filePath), value.content, { encoding: 'utf8' });
+            await container.fs.writeFile(relativePath, value.content, { encoding: 'utf8' });
           }
+
+          restoredFiles[`${container.workdir}/${relativePath}`] = value;
 
           if (!isCurrentLoad()) {
             return;
@@ -528,7 +535,7 @@ ${value.content}
         }
       }
 
-      // workbenchStore.files.setKey(snapshot?.files)
+      workbenchStore.files.set({ ...workbenchStore.files.get(), ...restoredFiles });
     });
   }, []);
 
@@ -536,6 +543,7 @@ ${value.content}
     ready,
     initialMessages,
     archivedMessages,
+    restoredProject,
     chatChanged,
     updateChatMestaData: async (metadata: IChatMetadata) => {
       const id = chatId.get();

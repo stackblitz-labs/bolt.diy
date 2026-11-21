@@ -2,13 +2,19 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { UIMessage } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCachedSnapshot, invalidateChatCache } from './chatCache';
+import { getMessageText } from './messageMigration';
 
-const { resetWorkbench, waitForExecutionQueue, setMessages, setSnapshot } = vi.hoisted(() => ({
-  resetWorkbench: vi.fn(async (): Promise<void> => undefined),
-  waitForExecutionQueue: vi.fn(async () => undefined),
-  setMessages: vi.fn(async () => undefined),
-  setSnapshot: vi.fn(async () => undefined),
-}));
+const { resetWorkbench, waitForExecutionQueue, setMessages, setSnapshot, mkdir, writeFile, setFiles } = vi.hoisted(
+  () => ({
+    resetWorkbench: vi.fn(async (): Promise<void> => undefined),
+    waitForExecutionQueue: vi.fn(async () => undefined),
+    setMessages: vi.fn(async () => undefined),
+    setSnapshot: vi.fn(async () => undefined),
+    mkdir: vi.fn(async () => undefined),
+    writeFile: vi.fn(async () => undefined),
+    setFiles: vi.fn(),
+  }),
+);
 
 /*
  * `~/lib/stores/workbench` and `~/lib/webcontainer` both read
@@ -20,17 +26,13 @@ vi.mock('~/lib/stores/workbench', () => ({
   workbenchStore: {
     resetWorkbench,
     waitForExecutionQueue,
-    files: { get: () => ({}) },
+    files: { get: () => ({}), set: setFiles },
     firstArtifact: undefined,
   },
 }));
 
-/*
- * The chat workbench never boots a container under test, so the promise stays
- * pending on purpose.
- */
 vi.mock('~/lib/webcontainer', () => ({
-  webcontainer: new Promise(() => undefined),
+  webcontainer: Promise.resolve({ workdir: '/home/project', fs: { mkdir, writeFile } }),
   webcontainerContext: { loaded: false },
 }));
 
@@ -122,6 +124,9 @@ describe('useChatHistory chat switching', () => {
     waitForExecutionQueue.mockClear();
     setMessages.mockClear();
     setSnapshot.mockClear();
+    mkdir.mockClear();
+    writeFile.mockClear();
+    setFiles.mockClear();
     vi.mocked(getCachedSnapshot).mockClear();
     navigate.mockClear();
     routeId = 'chat-a';
@@ -166,6 +171,37 @@ describe('useChatHistory chat switching', () => {
     renderHook(() => useChatHistory());
 
     await waitFor(() => expect(getCachedSnapshot).toHaveBeenCalledWith({}, '1'));
+  });
+
+  it('restores snapshot files and detects install and startup commands once per chat opening', async () => {
+    const manifest = JSON.stringify({ scripts: { dev: 'vite' } });
+
+    const files = {
+      '/home/project/package.json': { type: 'file' as const, content: manifest, isBinary: false },
+      '/home/project/assets/icon.bin': { type: 'file' as const, content: 'AAE=', isBinary: true },
+    };
+
+    const snapshot = { chatIndex: 'chat-a-assistant', files };
+    vi.mocked(getCachedSnapshot).mockResolvedValueOnce(snapshot).mockResolvedValueOnce(snapshot);
+
+    const useChatHistory = await importHook();
+    const { result, rerender } = renderHook(() => useChatHistory());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    expect(mkdir).toHaveBeenCalledWith('assets', { recursive: true });
+    expect(writeFile).toHaveBeenCalledWith('package.json', manifest, { encoding: 'utf8' });
+    expect(writeFile).toHaveBeenCalledWith('assets/icon.bin', new Uint8Array([0, 1]));
+    expect(setFiles).toHaveBeenCalledWith(files);
+    expect(result.current.restoredProject).toMatchObject({
+      setupCommand: 'npm install --no-audit --no-fund',
+      startCommand: 'npm run dev',
+    });
+    expect(getMessageText(result.current.initialMessages[1])).toBe('Bolt restored this chat from a snapshot.');
+
+    routeSearch = 'prompt=hello';
+    rerender();
+    await waitFor(() => expect(result.current.restoredProject).toBeUndefined());
+    expect(writeFile).toHaveBeenCalledTimes(2);
   });
 
   it('should not reset the workbench when only the query string changes', async () => {

@@ -31,7 +31,7 @@ vi.mock('~/lib/stores/workbench', () => ({
 }));
 vi.mock('./ripgrepClient', () => ({ searchWithRipgrep: vi.fn() }));
 
-import { callProjectMcpTool, closeProjectMcpBridge, createProjectMcpBridge } from './projectMcp';
+import { callProjectMcpTool, closeProjectMcpBridge, createProjectMcpBridge, startRestoredProject } from './projectMcp';
 import { workbenchStore } from '~/lib/stores/workbench';
 
 let bridge: Awaited<ReturnType<typeof createProjectMcpBridge>> | undefined;
@@ -59,6 +59,36 @@ function processWithOutput(output: string, exitCode: number | Promise<number>) {
 }
 
 describe('project command tools', () => {
+  it.each([0, 1])('starts a restored project only after its install exits successfully (%i)', async (exitCode) => {
+    const installExit = Promise.withResolvers<number>();
+    const startedInstall = Promise.withResolvers<void>();
+    spawn.mockReset();
+    spawn.mockImplementationOnce(() => {
+      startedInstall.resolve();
+      return Promise.resolve(processWithOutput('installing dependencies\n', installExit.promise));
+    });
+    spawn.mockResolvedValueOnce(processWithOutput('dev server\n', 0));
+
+    const startup = startRestoredProject(
+      { type: 'Node.js', setupCommand: 'npm install', startCommand: 'npm run dev', followupMessage: '' },
+      { generation: workbenchStore.projectGeneration.get(), chatId: 'command-test' },
+    );
+
+    const outcome = startup.catch((error: unknown) => error);
+
+    await startedInstall.promise;
+    expect(spawn).toHaveBeenCalledExactlyOnceWith('/bin/jsh', ['-c', 'npm install']);
+    installExit.resolve(exitCode);
+
+    if (exitCode === 0) {
+      await expect(outcome).resolves.toBeUndefined();
+      expect(spawn).toHaveBeenNthCalledWith(2, '/bin/jsh', ['-c', 'npm run dev']);
+    } else {
+      await expect(outcome).resolves.toEqual(new Error('Command exited with code 1.'));
+      expect(spawn).toHaveBeenCalledOnce();
+    }
+  });
+
   it.each([0, 1])('holds batched dev and lint commands until install exits with %i', async (exitCode) => {
     const installExit = Promise.withResolvers<number>();
     const install = processWithOutput('installing\n', installExit.promise);
@@ -143,6 +173,7 @@ describe('project command tools', () => {
     expect(toggleTerminal).toHaveBeenCalledWith(true);
     expect(writeToBoltTerminal).toHaveBeenCalledWith('command-marker\n');
     expect(result.structuredContent).toMatchObject({
+      processId: expect.stringMatching(/^p-[a-f0-9]{8}$/),
       status: 'exited',
       exitCode: 0,
       output: 'command-marker\n',
@@ -435,6 +466,7 @@ describe('targeted project file edits', () => {
     const numbered = await bridge!.callTool('project_read_file', { path, numbered: true });
     const revision = (raw.structuredContent as { revision: string }).revision;
     expect(numbered.structuredContent).toMatchObject({
+      lineCount: 3,
       content: '1: const styles = {\n2: button: blue\n3: };',
       revision,
     });
@@ -504,7 +536,9 @@ describe('targeted project file edits', () => {
       lineRange: { start: 2, end: 4 },
     });
     expect(invalidRange.isError).toBe(true);
-    expect(invalidRange.content).toEqual([{ type: 'text', text: expect.stringContaining('lines 1 through 3') }]);
+    expect(invalidRange.content).toEqual([
+      { type: 'text', text: expect.stringContaining('requested lines 2 through 4, but the file has 3 numbered lines') },
+    ]);
 
     readFile.mockResolvedValue(new TextEncoder().encode(`// edited elsewhere\n${original}`));
 

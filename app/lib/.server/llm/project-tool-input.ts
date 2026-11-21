@@ -3,6 +3,7 @@ import { projectToolDefinitions } from '~/lib/runtime/projectMcp.shared';
 
 const patchInputSchema = projectToolDefinitions.project_patch_file.inputSchema;
 const writeInputSchema = projectToolDefinitions.project_write_file.inputSchema;
+const replaceLinesInputSchema = projectToolDefinitions.project_replace_lines.inputSchema;
 
 function parseInput(value: string): unknown {
   try {
@@ -129,6 +130,38 @@ export function getProjectWriteInputHint(rawInput: string) {
         return 'Omit replacementReason or supply a string of at most 500 characters.';
       default:
         return 'Remove fields outside the file write schema.';
+    }
+  });
+
+  return [...new Set(hints)].join(' ');
+}
+
+export function getProjectReplaceLinesInputHint(rawInput: string) {
+  const input = parseInput(rawInput);
+
+  if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).length === 0) {
+    return 'Send one complete JSON object with path, startLine, endLine, expectedRevision, and newText. For a full-file replacement, use project_write_file with complete source.';
+  }
+
+  const result = replaceLinesInputSchema.safeParse(input);
+
+  if (result.success) {
+    return 'Use the declared numbered edit input schema.';
+  }
+
+  const hints = result.error.issues.map((issue) => {
+    switch (issue.path[0]) {
+      case 'path':
+        return 'Supply the file path as a non-empty string.';
+      case 'startLine':
+      case 'endLine':
+        return 'Supply startLine and endLine as positive JSON integers from the numbered read.';
+      case 'expectedRevision':
+        return 'Copy the entire revision from the latest numbered read into expectedRevision.';
+      case 'newText':
+        return 'Supply newText as a string with the complete replacement lines.';
+      default:
+        return 'Remove fields outside the numbered edit schema.';
     }
   });
 

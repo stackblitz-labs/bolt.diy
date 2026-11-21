@@ -3,9 +3,7 @@ function splitLines(content: string) {
 }
 
 export function numberProjectLines(content: string) {
-  return splitLines(content)
-    .map((line, index) => `${index + 1}: ${line.replace(/\r?\n$/, '')}`)
-    .join('\n');
+  return splitLines(content).map((line, index) => `${index + 1}: ${line.replace(/\r?\n$/, '')}`);
 }
 
 export function replaceProjectLines(content: string, { start, end }: { start: number; end: number }, newText: string) {
@@ -13,7 +11,7 @@ export function replaceProjectLines(content: string, { start, end }: { start: nu
 
   if (end < start || end > lines.length) {
     throw new Error(
-      `Patch conflict: select lines 1 through ${lines.length} in order. Read the file again with numbered: true.`,
+      `Patch conflict: requested lines ${start} through ${end}, but the file has ${lines.length} numbered lines. Read the file again with numbered: true and select lines within its lineCount, inclusive.`,
     );
   }
 

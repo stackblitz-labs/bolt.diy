@@ -113,50 +113,63 @@ describe('agent provider recovery', () => {
     expect(chunks.some((chunk) => chunk.type === 'error')).toBe(true);
   });
 
-  it('retries a text-only required-tool response and accepts the recovered real tool call once', async () => {
-    const execute = vi.fn(async () => ({ plan: 'recorded' }));
+  it.each(['native', 'json'])(
+    'retries a text-only required-tool response and executes a %s call once',
+    async (format) => {
+      const execute = vi.fn(async () => ({ plan: 'recorded' }));
 
-    let attempts = 0;
+      let attempts = 0;
 
-    const model = new MockLanguageModelV4({
-      doStream: async () => ({
-        stream: new ReadableStream({
-          start(controller) {
-            controller.enqueue({ type: 'stream-start', warnings: [] });
+      const model = new MockLanguageModelV4({
+        doStream: async (params) => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'stream-start', warnings: [] });
 
-            if (attempts++ === 0) {
-              controller.enqueue({ type: 'text-start', id: 'invalid' });
-              controller.enqueue({ type: 'text-delta', id: 'invalid', delta: '[{"name":"agent_plan"}]' });
-              controller.enqueue({ type: 'text-end', id: 'invalid' });
-              finish(controller);
-            } else {
-              controller.enqueue({ type: 'tool-call', toolCallId: 'plan', toolName: 'agent_plan', input: '{}' });
-              finish(controller, true);
-            }
-          },
+              if (attempts++ === 0) {
+                controller.enqueue({ type: 'text-start', id: 'invalid' });
+                controller.enqueue({ type: 'text-delta', id: 'invalid', delta: '[{"name":"agent_plan"}]' });
+                controller.enqueue({ type: 'text-end', id: 'invalid' });
+                finish(controller);
+              } else if (format === 'native') {
+                controller.enqueue({ type: 'tool-call', toolCallId: 'plan', toolName: 'agent_plan', input: '{}' });
+                finish(controller, true);
+              } else {
+                expect(params.prompt[0].content).toContain('Bolt can validate and recover that call.');
+                controller.enqueue({ type: 'text-start', id: 'plan-json' });
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: 'plan-json',
+                  delta: '{"name":"agent_plan","parameters":{}}',
+                });
+                controller.enqueue({ type: 'text-end', id: 'plan-json' });
+                finish(controller);
+              }
+            },
+          }),
         }),
-      }),
-    });
+      });
 
-    const onRetry = vi.fn();
-    const recovery = createAgentStreamRecovery(onRetry);
+      const onRetry = vi.fn();
+      const recovery = createAgentStreamRecovery(onRetry);
 
-    const result = await streamText({
-      model: withAgentToolCallRecovery(withAgentStreamDeadlines(model), () => onRetry('tool-call')),
-      prompt: 'Build the page.',
-      toolChoice: 'required',
-      tools: { agent_plan: tool({ inputSchema: jsonSchema({ type: 'object', properties: {} }), execute }) },
-      streamRetries: 0,
-      onError: recovery.onError,
-    });
+      const result = await streamText({
+        model: withAgentToolCallRecovery(withAgentStreamDeadlines(model), () => onRetry('tool-call')),
+        prompt: 'Build the page.',
+        toolChoice: 'required',
+        tools: { agent_plan: tool({ inputSchema: jsonSchema({ type: 'object', properties: {} }), execute }) },
+        streamRetries: 0,
+        onError: recovery.onError,
+      });
 
-    const chunks = await collect(result);
-    expect(onRetry).toHaveBeenCalledExactlyOnceWith('tool-call');
-    expect(model.doStreamCalls).toHaveLength(2);
-    expect(execute).toHaveBeenCalledOnce();
-    expect(chunks.some((chunk) => chunk.type === 'error')).toBe(false);
-    expect(chunks).toContainEqual(expect.objectContaining({ type: 'tool-output-available', toolCallId: 'plan' }));
-  });
+      const chunks = await collect(result);
+      expect(onRetry).toHaveBeenCalledExactlyOnceWith('tool-call');
+      expect(model.doStreamCalls).toHaveLength(2);
+      expect(execute).toHaveBeenCalledOnce();
+      expect(chunks.some((chunk) => chunk.type === 'error')).toBe(false);
+      expect(chunks).toContainEqual(expect.objectContaining({ type: 'tool-output-available' }));
+    },
+  );
 
   it('stops after one unsuccessful tool-call retry and never executes printed JSON', async () => {
     const execute = vi.fn();

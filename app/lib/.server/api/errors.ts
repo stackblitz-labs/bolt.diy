@@ -1,5 +1,9 @@
 import { InvalidToolInputError, NoSuchToolError, ToolChoiceViolationError } from 'ai';
-import { getProjectPatchInputHint, getProjectWriteInputHint } from '~/lib/.server/llm/project-tool-input';
+import {
+  getProjectPatchInputHint,
+  getProjectReplaceLinesInputHint,
+  getProjectWriteInputHint,
+} from '~/lib/.server/llm/project-tool-input';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.errors');
@@ -146,8 +150,7 @@ export function toSafeStreamErrorMessage(error: unknown): string {
   }
 
   if (InvalidToolInputError.isInstance(error) && error.toolName === 'project_replace_lines') {
-    const hint =
-      'Supply path, numeric startLine and endLine, expectedRevision from the numbered read, and the replacement source as newText.';
+    const hint = getProjectReplaceLinesInputHint(error.toolInput);
     logger.warn(`Invalid numbered edit arguments. ${hint}`);
 
     return `Invalid numbered edit arguments. ${hint}`;

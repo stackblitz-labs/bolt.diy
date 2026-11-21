@@ -329,11 +329,11 @@ export function getAgentLoopInstructions(progress: ReturnType<typeof getAgentLoo
           ? `Create ${JSON.stringify(progress.retryCreatePath)} with project_write_file. Its earlier write failed validation before saving. Send path and complete valid content with real line breaks. Split long code into smaller complete files if needed. Use a numbered patch only after the file exists.`
           : 'Repair the latest failed project tool action. Use its exact error, reread the file if needed, and retry only after correcting the cause. Do not run or complete yet.'
         : !progress.edited
-          ? 'Use project_replace_lines after a numbered read to edit an existing file. Use project_write_file to create a new file. Implement the requested change before reporting completion.'
+          ? 'Use project_write_file to create a file or replace a starter placeholder with complete source. For targeted edits, use project_replace_lines after a numbered read. Implement the requested change before reporting completion.'
           : !progress.ran
             ? 'Run the changed app or program now with project_run_command and purpose="run". Inspect its output.'
             : !progress.tested
-              ? 'Run the smallest relevant check now with project_run_command and purpose="test". Wait for exit code 0; repair failures before continuing.'
+              ? 'Run the smallest relevant check now with project_run_command and purpose="test". Prefer an existing project script that checks the changed source. Wait for exit code 0; repair failures before continuing.'
               : progress.plan?.requiresPreview && !progress.previewReady
                 ? 'Start or inspect the app preview now. Confirm it is running before completing.'
                 : 'Call agent_complete alone and report every recorded criterion by its exact ID. The server attaches evidence from successful project tool calls automatically; do not provide process IDs, command names, or guessed evidence IDs.';

@@ -11,6 +11,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import { WORK_DIR } from '~/utils/constants';
 import { path } from '~/utils/path';
+import type { ProjectCommands } from '~/utils/projectCommands';
 
 const MAX_TEXT_BYTES = 256_000;
 const MAX_OUTPUT_CHARS = 32_000;
@@ -229,6 +230,9 @@ export async function createProjectMcpBridge() {
   const bridgeChatId = chatId.get();
   const processes = new Map<string, ProcessRecord>();
 
+  const unknownProcess = (processId: string) =>
+    failure(new Error(`Unknown process: ${processId}. Copy the exact processId from the project_run_command result.`));
+
   const stopProcesses = () => {
     for (const record of processes.values()) {
       if (record.exitCode === undefined) {
@@ -274,10 +278,12 @@ export async function createProjectMcpBridge() {
         const revision = await getFileRevision(content);
         fileRevisionsReadByModel.set(target.relative, revision);
 
+        const numberedLines = numbered ? numberProjectLines(content) : undefined;
+
         return success({
           path: target.relative,
-          content: numbered ? numberProjectLines(content) : content,
           revision,
+          ...(numberedLines ? { lineCount: numberedLines.length, content: numberedLines.join('\n') } : { content }),
           truncated: false,
         });
       } catch (error) {
@@ -766,7 +772,13 @@ export async function createProjectMcpBridge() {
             throw error;
           }
 
-          const processId = crypto.randomUUID();
+          // Use short opaque handles to make them easier to copy between tool calls.
+          let processId = `p-${crypto.randomUUID().slice(0, 8)}`;
+
+          while (processes.has(processId)) {
+            processId = `p-${crypto.randomUUID().slice(0, 8)}`;
+          }
+
           workbenchStore.toggleTerminal(true);
           workbenchStore.writeToBoltTerminal(`\r\n$ ${command}\r\n`);
 
@@ -845,7 +857,7 @@ export async function createProjectMcpBridge() {
       const record = processes.get(processId);
 
       if (!record) {
-        return failure(new Error(`Unknown process: ${processId}`));
+        return unknownProcess(processId);
       }
 
       await waitForProcess(record, 1000);
@@ -859,7 +871,7 @@ export async function createProjectMcpBridge() {
     const record = processes.get(processId);
 
     if (!record) {
-      return failure(new Error(`Unknown process: ${processId}`));
+      return unknownProcess(processId);
     }
 
     if (record.exitCode === undefined) {
@@ -1012,6 +1024,42 @@ export async function callProjectMcpTool(
   });
 
   return bridge.callTool(name, args, { ...options, generation: currentGeneration });
+}
+
+/** Start a restored project with the same command lifecycle as a live build. */
+export async function startRestoredProject(
+  { setupCommand, startCommand }: ProjectCommands,
+  context: { generation: number; chatId: string },
+) {
+  const runTool = async (name: string, args: Record<string, unknown>) => {
+    const result = await callProjectMcpTool(name, args, context);
+    const details = result.structuredContent as Record<string, unknown> | undefined;
+
+    if (result.isError) {
+      const error = details?.error;
+      throw new Error(typeof error === 'string' ? error : 'Project setup command failed.');
+    }
+
+    return details;
+  };
+
+  if (setupCommand) {
+    let install = await runTool('project_run_command', { command: setupCommand, purpose: 'install' });
+
+    const processId = install?.processId;
+
+    while (install?.status === 'running' && typeof processId === 'string') {
+      install = await runTool('project_get_process_output', { processId });
+    }
+
+    if (install?.exitCode !== 0) {
+      throw new Error('Project setup did not confirm a successful dependency install.');
+    }
+  }
+
+  if (startCommand) {
+    await runTool('project_run_command', { command: startCommand, purpose: 'run' });
+  }
 }
 
 export async function closeProjectMcpBridge() {

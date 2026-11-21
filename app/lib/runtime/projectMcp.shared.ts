@@ -15,7 +15,7 @@ export const projectToolDefinitions = {
       path: projectPath,
       numbered: z
         .boolean()
-        .describe('Set true before editing. Prefixes content with 1-based line numbers for project_replace_lines.')
+        .describe('Set true before editing to return 1-based line numbers and the last valid line number as lineCount.')
         .optional(),
     }),
   },
@@ -37,7 +37,7 @@ export const projectToolDefinitions = {
     inputSchema: z.strictObject({
       path: projectPath,
       startLine: lineNumber.describe('First line to replace, inclusive.'),
-      endLine: lineNumber.describe('Last line to replace, inclusive. Use the same number for a one-line edit.'),
+      endLine: lineNumber.describe('Last line to replace, inclusive and no greater than lineCount from the read.'),
       expectedRevision: revision.describe('Copy the revision from the numbered read.'),
       newText: z
         .string()
