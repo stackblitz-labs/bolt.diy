@@ -4,6 +4,7 @@ import { MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel, type FileMap 
 import { prepareModelMessages } from './model-messages';
 import { withDevelopmentCommentaryWorkstyle } from './prompt-workstyle';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
+import { toSafeStreamErrorMessage } from '~/lib/.server/api/errors';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import { getSystemPrompt } from '~/lib/common/prompts/prompts';
@@ -93,13 +94,6 @@ export async function streamText(props: {
   chatMode?: 'discuss' | 'build';
   agentMode?: boolean;
   designScheme?: DesignScheme;
-
-  /*
-   * v7 returns a single stream. Callers that used to iterate result.fullStream
-   * alongside the merged UI stream must observe chunks here instead, otherwise
-   * two consumers race for the same stream.
-   */
-  onChunk?: (options: { chunk: unknown }) => void;
 }) {
   const {
     messages,
@@ -115,7 +109,6 @@ export async function streamText(props: {
     chatMode,
     agentMode,
     designScheme,
-    onChunk,
   } = props;
 
   let currentModel = props.model ?? DEFAULT_MODEL;
@@ -332,21 +325,11 @@ export async function streamText(props: {
         )
       : options || {};
 
-  // DEBUG: Log filtered options
   logger.info(
-    `DEBUG STREAM: Options filtering for model "${modelDetails.name}":`,
-    JSON.stringify(
-      {
-        isReasoning,
-        originalOptions: options || {},
-        filteredOptions,
-        originalOptionsKeys: options ? Object.keys(options) : [],
-        filteredOptionsKeys: Object.keys(filteredOptions),
-        removedParams: options ? Object.keys(options).filter((key) => !(key in filteredOptions)) : [],
-      },
-      null,
-      2,
-    ),
+    `Streaming options: ${JSON.stringify({
+      isReasoning,
+      optionKeys: Object.keys(filteredOptions),
+    })}`,
   );
 
   /*
@@ -363,20 +346,7 @@ export async function streamText(props: {
     ...forwardedOptions
   } = filteredOptions as StreamingOptions & Record<string, unknown>;
 
-  if (provider.name === 'OpenRouter' && forwardedOptions.tools && Object.keys(forwardedOptions.tools).length > 0) {
-    const routing = forwardedOptions.providerOptions?.openrouter?.provider;
-    forwardedOptions.providerOptions = {
-      ...forwardedOptions.providerOptions,
-      openrouter: {
-        ...forwardedOptions.providerOptions?.openrouter,
-        provider: {
-          ...(routing && typeof routing === 'object' && !Array.isArray(routing) ? routing : {}),
-          require_parameters: true,
-        },
-      },
-    };
-  }
-
+  // Honor explicit routing options. Forcing require_parameters can exclude usable OpenRouter providers.
   const selectedModel = provider.getModelInstance({
     model: modelDetails.name,
     serverEnv,
@@ -394,27 +364,29 @@ export async function streamText(props: {
     messages: await prepareModelMessages(processedMessages as UIMessage[]),
     ...forwardedOptions,
 
-    ...(onChunk ? { onChunk } : {}),
+    async onChunk(event) {
+      // Record the original SDK error before it is wrapped for the UI stream.
+      if (event.chunk.type === 'error') {
+        toSafeStreamErrorMessage(event.chunk.error);
+      }
+
+      await forwardedOptions.onChunk?.(event);
+    },
+
+    // The SDK's default callback logs the raw error. Diagnostics are handled in onChunk.
+    onError: forwardedOptions.onError ?? (() => undefined),
 
     // Set temperature to 1 for reasoning models (required by OpenAI API)
     ...(isReasoning ? { temperature: 1 } : {}),
-  };
+  } satisfies Parameters<typeof _streamText>[0];
 
-  // DEBUG: Log final streaming parameters
   logger.info(
-    `DEBUG STREAM: Final streaming params for model "${modelDetails.name}":`,
-    JSON.stringify(
-      {
-        hasTemperature: 'temperature' in streamParams,
-        hasMaxOutputTokens: 'maxOutputTokens' in streamParams,
-        paramKeys: Object.keys(streamParams).filter((key) => !['model', 'messages', 'system'].includes(key)),
-        streamParams: Object.fromEntries(
-          Object.entries(streamParams).filter(([key]) => !['model', 'messages', 'system'].includes(key)),
-        ),
-      },
-      null,
-      2,
-    ),
+    `Sending model request: ${JSON.stringify({
+      provider: provider.name,
+      model: modelDetails.name,
+      maxOutputTokens: streamParams.maxOutputTokens,
+      toolCount: Object.keys(forwardedOptions.tools ?? {}).length,
+    })}`,
   );
 
   return await _streamText(streamParams);

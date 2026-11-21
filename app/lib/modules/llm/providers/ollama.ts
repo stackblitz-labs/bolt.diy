@@ -1,6 +1,7 @@
-import type { LanguageModel } from 'ai';
+import { wrapLanguageModel, type LanguageModel } from 'ai';
 import { createOllama } from 'ollama-ai-provider-v2';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
+import { getEnv } from '~/lib/modules/llm/env';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
 import { logger } from '~/utils/logger';
@@ -42,8 +43,9 @@ export default class OllamaProvider extends BaseProvider {
 
   getDefaultNumCtx(serverEnv?: Env): number {
     const envRecord = this.convertEnvToRecord(serverEnv);
+    const configured = Number(envRecord.DEFAULT_NUM_CTX || process.env.DEFAULT_NUM_CTX || getEnv().DEFAULT_NUM_CTX);
 
-    return envRecord.DEFAULT_NUM_CTX ? parseInt(envRecord.DEFAULT_NUM_CTX, 10) : 32768;
+    return Number.isSafeInteger(configured) && configured > 0 ? configured : 65_536;
   }
 
   private _resolveBaseUrl(
@@ -128,16 +130,27 @@ export default class OllamaProvider extends BaseProvider {
       baseURL: `${baseUrl}/api`,
     });
 
-    /*
-     * ollama-ai-provider (v0.x) was abandoned on the ai@4 line: its last release
-     * was 2025-01-17 and it never moved past @ai-sdk/provider@1, so it cannot
-     * produce the LanguageModelV4 that ai@7 requires. The v2 package renames
-     * the context-window option from `numCtx` to `options.num_ctx` and moves
-     * the settings object onto `.chat()`.
-     */
-    return ollamaProvider.chat(model, {
-      options: {
-        num_ctx: this.getDefaultNumCtx(serverEnv),
+    const numCtx = this.getDefaultNumCtx(serverEnv);
+
+    return wrapLanguageModel({
+      model: ollamaProvider.chat(model),
+      middleware: {
+        specificationVersion: 'v4',
+
+        // The chat adapter reads generation settings from providerOptions on each call.
+        transformParams: async ({ params }) => {
+          const ollama = params.providerOptions?.ollama;
+          const options = ollama?.options;
+          const overrides = options && typeof options === 'object' && !Array.isArray(options) ? options : {};
+
+          return {
+            ...params,
+            providerOptions: {
+              ...params.providerOptions,
+              ollama: { ...ollama, options: { num_ctx: numCtx, ...overrides } },
+            },
+          };
+        },
       },
     });
   };

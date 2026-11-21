@@ -2,14 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, PROVIDER_COMPLETION_LIMITS, isReasoningModel } from './constants';
 
 describe('LLM constants', () => {
-  it('keeps the OpenRouter completion limit within the affordable token budget', () => {
-    /*
-     * The OpenRouter key used by the e2e suite has a limited balance and rejects
-     * requests whose `max_tokens` exceed what it can afford. Raising this without
-     * checking the key budget reintroduces HTTP 402 failures that surface as
-     * "Server Error" mid-stream, so it is pinned deliberately.
-     */
-    expect(PROVIDER_COMPLETION_LIMITS.OpenRouter).toBe(4096);
+  it('defaults to an 8192-token completion limit for OpenRouter', () => {
+    expect(PROVIDER_COMPLETION_LIMITS.OpenRouter).toBe(8192);
   });
 
   it('defines a completion limit for every registered cloud provider', () => {

@@ -1,5 +1,5 @@
-import { InvalidToolInputError, NoSuchToolError } from 'ai';
-import { describe, expect, it } from 'vitest';
+import { APICallError, InvalidToolInputError, NoSuchToolError, ToolChoiceViolationError } from 'ai';
+import { describe, expect, it, vi } from 'vitest';
 import {
   toApiErrorResponse,
   ApiError,
@@ -29,6 +29,41 @@ describe('toMissingCredentialError', () => {
 });
 
 describe('toSafeStreamErrorMessage', () => {
+  it('classifies wrapped errors without logging their messages, names or payloads', () => {
+    using log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    const cause = new APICallError({
+      message: 'TLS certificate rejected: private-details',
+      url: 'https://provider.example/',
+      requestBodyValues: { prompt: 'private-prompt' },
+      statusCode: 502,
+    });
+
+    const error = new Error('Wrapped provider failure: private-value', { cause });
+    error.name = 'PrivateErrorName';
+
+    toSafeStreamErrorMessage(error);
+
+    const logs = log.mock.calls.flat().join(' ');
+    expect(logs).toContain('type=Error');
+    expect(logs).toContain('reason=tls, causeType=APICallError, causeStatus=502');
+    expect(logs).not.toMatch(/private-|PrivateErrorName/);
+  });
+
+  it('explains when the output limit cuts off a required call before completion', () => {
+    const error = new ToolChoiceViolationError({
+      toolChoice: { type: 'required' },
+      finishReason: 'length',
+      provider: 'ollama.responses',
+      modelId: 'example',
+      content: [{ type: 'reasoning', text: 'private-reasoning' }],
+    });
+
+    const message = toSafeStreamErrorMessage(error);
+    expect(message).toContain('reached its output limit before completing a required tool call');
+    expect(message).not.toContain('private-reasoning');
+  });
+
   it.each([
     ['{"newText":"private-source', 'For a full-file replacement, use project_write_file'],
     [

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getAgentCompletionProblems, getAgentLoopInstructions, getAgentLoopProgress } from '~/lib/common/agentLoop';
 import type { AnyMessage } from '~/lib/persistence/messageMigration';
 
-const planSchema = z
+export const agentPlanSchema = z
   .object({
     goal: z.string().min(1).max(500),
     steps: z.array(z.string().min(1).max(250)).min(1).max(6),
@@ -27,11 +27,14 @@ export function createAgentLoopTools<TaskToolName extends string = never>(
 ) {
   let currentMessages = messages;
 
+  const inspectionTools =
+    taskToolNames?.filter((name) => name === 'project_list_paths' || name === 'project_read_file') ?? [];
+
   const tools = {
     agent_plan: tool({
       description:
-        'Record a concise task plan and observable completion criteria before editing. Use stable criterion IDs. Require a preview for a web app, and preserve the existing project on follow-up requests.',
-      inputSchema: planSchema,
+        'Record a concise task plan and observable completion criteria before editing. Each criterion has an id and a description. Use unique, stable IDs. Require a preview for a web app, and preserve the existing project on follow-up requests.',
+      inputSchema: agentPlanSchema,
       execute: async (plan) => ({ plan: { ...plan, requiresPreview: requiresPreview || plan.requiresPreview } }),
     }),
     agent_complete: tool({
@@ -171,12 +174,12 @@ export function createAgentLoopTools<TaskToolName extends string = never>(
       if (!progress.plan) {
         return {
           ...instructions,
-          toolChoice: { type: 'tool' as const, toolName: 'agent_plan' as const },
-          activeTools: ['agent_plan' as const],
+          toolChoice: inspectionTools.length > 0 ? 'required' : { type: 'tool', toolName: 'agent_plan' },
+          activeTools: [...inspectionTools, 'agent_plan'],
         };
       }
 
-      const editingTools = new Set([
+      const toolsBeforeFirstEdit = new Set([
         'project_read_file',
         'project_write_file',
         'project_replace_lines',
@@ -185,6 +188,7 @@ export function createAgentLoopTools<TaskToolName extends string = never>(
         'project_list_paths',
         'project_search_content',
         'project_find_related_files',
+        'project_run_command',
         'project_get_process_output',
         'project_stop_process',
         'web_search',
@@ -192,7 +196,7 @@ export function createAgentLoopTools<TaskToolName extends string = never>(
       ]);
 
       const activeProjectTools = taskToolNames?.filter((toolName) => {
-        return progress.edited || progress.needsCommandRepair || editingTools.has(toolName);
+        return progress.edited || progress.needsCommandRepair || toolsBeforeFirstEdit.has(toolName);
       });
 
       return {

@@ -1,4 +1,5 @@
 import { InvalidToolInputError, type ToolCallRepairFunction, type ToolSet } from 'ai';
+import { agentPlanSchema } from './agent-loop';
 import { projectToolDefinitions } from '~/lib/runtime/projectMcp.shared';
 
 const patchInputSchema = projectToolDefinitions.project_patch_file.inputSchema;
@@ -31,9 +32,12 @@ function normalizeLineRange(range: unknown): unknown {
   return Array.isArray(range) && range.length === 2 ? { start: range[0], end: range[1] } : range;
 }
 
-/** Correct known formatting mistakes without changing the selected file, edit, or revision. */
-export const repairProjectPatchCall: ToolCallRepairFunction<ToolSet> = async ({ toolCall, error }) => {
-  if (toolCall.toolName !== 'project_patch_file' || !InvalidToolInputError.isInstance(error)) {
+/** Correct known formatting mistakes while preserving the model's intended plan or edit. */
+export const repairBuildToolCall: ToolCallRepairFunction<ToolSet> = async ({ toolCall, error }) => {
+  if (
+    !InvalidToolInputError.isInstance(error) ||
+    (toolCall.toolName !== 'agent_plan' && toolCall.toolName !== 'project_patch_file')
+  ) {
     return null;
   }
 
@@ -43,22 +47,42 @@ export const repairProjectPatchCall: ToolCallRepairFunction<ToolSet> = async ({ 
     return null;
   }
 
-  const { replacementReason, ...args } = input as Record<string, unknown>;
-  const range = normalizeLineRange(args.lineRange);
+  const args = input as Record<string, unknown>;
+
+  if (toolCall.toolName === 'agent_plan') {
+    const { criteria } = args;
+
+    if (
+      !Array.isArray(criteria) ||
+      !criteria.every((description) => typeof description === 'string' && description.trim())
+    ) {
+      return null;
+    }
+
+    const repaired = agentPlanSchema.safeParse({
+      ...args,
+      criteria: criteria.map((description, index) => ({ id: `criterion-${index + 1}`, description })),
+    });
+
+    return repaired.success ? { ...toolCall, input: JSON.stringify(repaired.data) } : null;
+  }
+
+  const { replacementReason, ...patchArgs } = args;
+  const range = normalizeLineRange(patchArgs.lineRange);
 
   if (replacementReason !== undefined && typeof replacementReason !== 'string') {
     return null;
   }
 
-  if (range === args.lineRange && replacementReason === undefined) {
+  if (range === patchArgs.lineRange && replacementReason === undefined) {
     return null;
   }
 
-  if (range !== args.lineRange) {
-    args.lineRange = range;
+  if (range !== patchArgs.lineRange) {
+    patchArgs.lineRange = range;
   }
 
-  const repaired = patchInputSchema.safeParse(args);
+  const repaired = patchInputSchema.safeParse(patchArgs);
 
   return repaired.success ? { ...toolCall, input: JSON.stringify(repaired.data) } : null;
 };
