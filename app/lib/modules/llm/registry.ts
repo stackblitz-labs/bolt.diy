@@ -3,6 +3,7 @@ import AnthropicProvider from './providers/anthropic';
 import CerebrasProvider from './providers/cerebras';
 import CohereProvider from './providers/cohere';
 import DeepseekProvider from './providers/deepseek';
+import CrowllmProvider from './providers/crowllm';
 import FireworksProvider from './providers/fireworks';
 import GithubProvider from './providers/github';
 import GoogleProvider from './providers/google';
@@ -26,6 +27,7 @@ export {
   CerebrasProvider,
   CohereProvider,
   DeepseekProvider,
+  CrowllmProvider,
   FireworksProvider,
   GoogleProvider,
   GroqProvider,
